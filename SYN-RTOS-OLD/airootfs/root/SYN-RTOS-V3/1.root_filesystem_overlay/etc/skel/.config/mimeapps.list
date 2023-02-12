@@ -1,0 +1,10 @@
+[Default Applications]
+x-scheme-handler/tg=userapp-Telegram Desktop-S7QJS1.desktop
+
+[Added Associations]
+x-scheme-handler/tg=userapp-Telegram Desktop-S7QJS1.desktop;
+application/x-font-vfont=org.kde.kwrite.desktop;
+application/octet-stream=engrampa.desktop;org.kde.kwrite.desktop;
+text/plain=org.kde.kwrite.desktop;
+audio/x-mod=vlc.desktop;
+image/tiff=feh.desktop;
