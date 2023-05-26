@@ -49,6 +49,6 @@ Users are advised to refer to comprehensive documentation and user guides to ful
 ## Conclusion
 SYN-OS offers a highly customizable and efficient operating system for advanced users, providing the ability to fine-tune the system according to specific requirements.
 
-CLICK TO VIEW VIDEO:
+##### CLICK TO VIEW VIDEO
 [![SYN-OS: An Overview](http://img.youtube.com/vi/fTbNA8TIzDM/0.jpg)](http://www.youtube.com/watch?v=fTbNA8TIzDM "SYN-OS: An Overview")
 
