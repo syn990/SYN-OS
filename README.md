@@ -1,52 +1,53 @@
-# SYN-OS: A Highly Customizable and Efficient Arch Linux-based Operating System
+# SYN-OS: Customizable Arch Linux-based Operating System
 
-Introduction:
-SYN-OS is an operating system developed by William Hayward-Holland (Syntax990) that caters to advanced users seeking a highly customizable and efficient computing experience. Built on the foundations of Arch Linux, SYN-OS features a minimalist user interface built from modular components, granting users unparalleled flexibility in customizing the system to their precise requirements.
+## Overview
+SYN-OS is a custom operating system developed by William Hayward-Holland (Syntax990), built on the foundation of Arch Linux. It is designed to provide advanced users with a highly customizable and efficient computing experience.
 
-Installation Process:
+## Installation Process
 
-Stage 0 (syn-stage0.sh):
-The installation process commences with the syn-stage0.sh script, responsible for performing essential tasks to establish the system's foundation.
+### Stage 0 (syn-stage0.sh)
+Initiates the installation process, performing critical system configuration tasks.
 
-Disk Partitioning:
-The script enables users to tailor the disk partitioning by customizing variables related to drive wiping, boot partition creation, root partition setup, mount locations, and filesystem types. It facilitates disk wiping, creates the boot and root partitions, and formats them accordingly with the desired filesystems.
+#### Disk Partitioning
+Users can customize disk partitioning by adjusting variables corresponding to disk wiping, boot partition creation, root partition setup, mount points, and filesystem types.
 
-Package Installation:
-SYN-OS streamlines the installation process through categorizing packages into different variables. Users can modify these variables to selectively include or exclude specific packages, allowing for a personalized package selection. The script employs the Pacstrap tool to install the chosen packages, ensuring their inclusion in the resulting system.
+#### Package Installation
+SYN-OS categorizes packages into different variables for streamlined installation. Users can modify these variables for personalized package selection. The script employs the Pacstrap tool for package installation.
 
-System Configuration:
-SYN-OS emphasizes robust system configuration. The script handles tasks such as keyboard layout setup, NTP (Network Time Protocol) configuration for accurate time synchronization, DHCP setup for seamless network connectivity, and mirror mystics, which optimize package downloads by leveraging the reflector tool to generate an optimized mirrorlist. Additionally, the script updates package databases and enhances system security by securing the keyring.
+#### System Configuration
+Includes keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP setup for network connectivity, and mirrorlist optimization using the reflector tool. Additionally, the script secures the keyring and updates package databases.
 
-Root Overlay Materials:
-To facilitate extensive customization, SYN-OS provides a root overlay feature. Users can add their own files and configurations to the SYN-OS-V4/root_overlay directory. During installation, these materials are copied to the root directory, allowing users to further tailor the system to their preferences and requirements.
+#### Root Overlay
+Users can add custom files and configurations to the SYN-OS-V4/root_overlay directory, which are then copied to the root directory during installation.
 
-Stage 1 (syn-stage1.sh):
-Upon completing stage 0, users execute the syn-stage1.sh script within the new root directory to finalize the installation process.
+### Stage 1 (syn-stage1.sh)
+Finalizes the installation process within the new root directory.
 
-System Configuration:
-syn-stage1.sh handles additional system configurations, encompassing the setup of the username, hostname, locale settings, hardware clock, and mirrorlist. These configurations are fully customizable, enabling users to create a personalized environment precisely aligned with their specific requirements.
+#### System Configuration
+Covers the setup of username, hostname, locale settings, hardware clock, and mirrorlist.
 
-Bootloader Configuration:
-The script configures the bootloader using the bootctl tool, ensuring a seamless boot process and proper loading of essential system components.
+#### Bootloader Configuration
+The script employs the bootctl tool to configure the bootloader.
 
-Final Steps:
-Following the execution of syn-stage1.sh, users are advised to reboot the system. This allows all the changes made during the installation process to take effect, resulting in a stable and fully functional SYN-OS environment.
+#### Post-Installation
+After running syn-stage1.sh, a system reboot is recommended to apply all changes and ensure a stable SYN-OS environment.
 
-Usage Considerations:
+## Usage Guidelines
 
-Expertise:
-SYN-OS caters to advanced users with a profound understanding of Linux systems, particularly Arch Linux. Proficiency in system customization and administration is vital to fully leverage the capabilities of SYN-OS.
+### Expertise
+SYN-OS targets advanced users with a comprehensive understanding of Linux systems, particularly Arch Linux.
 
-Customization:
-SYN-OS offers extensive customization options. Users can modify variables to personalize disk partitioning, package selection, locale settings, and other configurations. The root overlay materials provide an avenue for further customization by integrating user-specific files and configurations.
+### Customization
+SYN-OS provides extensive customization options, including disk partitioning, package selection, locale settings, and system configurations.
 
-Caution:
-Prudent caution should be exercised when using the scripts and customizing variables. Errors or improper modifications can result in data loss or system instability. It is imperative to meticulously review disk and partition variables to ensure accurate configuration before proceeding.
+### Caution
+Users should exercise caution when using the scripts and customizing variables. Errors or improper modifications could result in data loss or system instability. 
 
-Documentation:
-Comprehensive documentation or user guides are recommended to aid users in comprehending and harnessing the full potential of SYN-OS. These resources should cover customization options, available modules, and best practices for modifying SYN-OS.
+### Documentation
+Users are advised to refer to comprehensive documentation and user guides to fully utilize the capabilities of SYN-OS.
 
-Conclusion:
-SYN-OS delivers advanced users a highly customizable and efficient operating system rooted in Arch Linux. By harnessing its customization options, users can tailor SYN-OS to their specific needs and preferences. Through meticulous customization of disk partitioning, package selection, and system configurations, users can attain an optimal computing experience with SYN-OS.
+## Conclusion
+SYN-OS offers a highly customizable and efficient operating system for advanced users, providing the ability to fine-tune the system according to specific requirements.
+
 
 ![Alt text](/repo/images/readme.md/FIRST-IMAGE.png?raw=true)
