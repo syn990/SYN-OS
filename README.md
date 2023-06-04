@@ -11,23 +11,19 @@ Modify variables related to disk partitioning, including disk wiping, boot parti
 #### Package Installation
 In SYN-OS, packages are neatly grouped into variables for a seamless installation process. You can modify these variables for personalized package selection. The script uses the Pacstrap tool for package installation.
 
-#### System Configuration
+#### Live System Configuration
 It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP setup for network connectivity, and mirrorlist optimization using the Reflector tool. Additionally, the script ensures the keyring's security and updates package databases.
 
-#### Root Overlay
-Place your custom files and configurations in the `SYN-OS-V4/root_overlay` directory. These will be copied into the root directory during the installation.
+#### Root Overlay + Dotfiles
+Place your custom files and configurations in the `SYN-OS-V4/root_overlay` directory. These will be copied into the root directory during the installation. Be advised the SYN-OS dotfiles can be found in /etc/skel. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
 
-### Stage 1 - `syn-stage1.sh`
-This script wraps up the installation process within the newly created root directory.
+When adding packges/configuration changes to the ISO before building always ensure /etc/skel has the accompanying dotfiles.
 
 #### System Configuration
 The script sets up the username, hostname, locale settings, hardware clock, and mirrorlist.
 
 #### Bootloader Configuration
 The script leverages the bootctl tool to configure the bootloader.
-
-#### Post-Installation
-Post the execution of `syn-stage1.sh`, it is advisable to reboot the system to incorporate all changes and ensure a stable SYN-OS environment.
 
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
