@@ -1,0 +1,12 @@
+[$Version]
+update_info=spectacle_clipboard.upd:clipboard-settings-change,spectacle_rememberregion.upd:spectacle-migrate-rememberregion
+
+[General]
+rememberLastRectangularRegion=2
+
+[GuiConfig]
+captureMode=0
+
+[Save]
+lastSaveAsLocation=file:///home/syntax990/SYN-OS/taha1.png
+lastSaveLocation=file:///home/syntax990/SYN-OS/taha1.png
