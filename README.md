@@ -1,5 +1,10 @@
 # SYN-OS: Customizable Arch Linux-based Operating System
 
+#Be Advised:
+THIS IS A LOOSE COLLECTION OF CONSTANTLY UPDATED SCRIPTS WITH MISSING VERSION CONTROL
+THE STRUCTURE, FORM AND DESIGN GOALS ARE CONSTANTLY CHANGING AND DOCUMENTATION HAS YET TO EXIST
+I SIMPLY DO NOT HAVE TIME TO MAINTAIN A PLANNED PROJECT
+
 ## Overview
 SYN-OS is a custom operating system developed by William Hayward-Holland (Syntax990), built on the foundation of Arch Linux. It is designed to provide advanced users with a highly customizable and efficient computing experience.
 
