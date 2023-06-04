@@ -1,0 +1,126 @@
+[Document 0]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/SYN-INSTALLER-MAIN.sh
+
+[Document 1]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/motd.sh
+
+[Document 2]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/syn-ascii-art.sh
+
+[Document 3]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/syn-disk-variables.sh
+
+[Document 4]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/syn-installer-functions.sh
+
+[Document 5]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/syn-pacstrap-variables.sh
+
+[Document 6]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/REBUILD_ISO.sh
+
+[Document 7]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=Bash
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=Bash
+Mode Set By User=false
+URL=file:///home/syntax990/SYN-OS-LOCAL/equip-profile-with-repo.sh
+
+[MainWindow0]
+1920x1080 screen: Height=1038
+1920x1080 screen: Width=1916
+1920x1080 screen: XPosition=2
+1920x1080 screen: YPosition=40
+State=AAAA/wAAAAD9AAAAAAAAB3wAAAPUAAAABAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAIAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAGABoAGEAbQBiAHUAcgBnAGUAcgBCAGEAcgEAAAIX/////wAAAAAAAAAA
+ToolBarsMovable=Disabled
+eDP-1=eDP-1
+
+[MainWindow0 Settings]
+1920x1080 screen: Height=1038
+1920x1080 screen: Width=1916
+1920x1080 screen: XPosition=2
+1920x1080 screen: YPosition=40
+State=AAAA/wAAAAD9AAAAAAAAB3wAAAPUAAAABAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAIAAAAWAG0AYQBpAG4AVABvAG8AbABCAGEAcgEAAAAA/////wAAAAAAAAAAAAAAGABoAGEAbQBiAHUAcgBnAGUAcgBCAGEAcgEAAAIX/////wAAAAAAAAAA
+ToolBarsMovable=Disabled
+WindowState=0
+eDP-1=eDP-1
+
+[Open Documents]
+Count=8
+
+[Open MainWindows]
+Count=1
+
+[Recent Files]
+File1[$e]=$HOME/SYN-OS/REBUILD_ISO.sh
+File10[$e]=$HOME/SYN-OS-LOCAL/equip-profile-with-repo.sh
+File2[$e]=$HOME/SYN-OS/equip-profile-with-repo.sh
+File3[$e]=$HOME/SYN-OS-LOCAL/SYN-INSTALLER-MAIN.sh
+File4[$e]=$HOME/SYN-OS-LOCAL/motd.sh
+File5[$e]=$HOME/SYN-OS-LOCAL/syn-installer-functions.sh
+File6[$e]=$HOME/SYN-OS-LOCAL/syn-disk-variables.sh
+File7[$e]=$HOME/SYN-OS-LOCAL/syn-pacstrap-variables.sh
+File8[$e]=$HOME/SYN-OS-LOCAL/syn-ascii-art.sh
+File9[$e]=$HOME/SYN-OS-LOCAL/REBUILD_ISO.sh
+Name1[$e]=REBUILD_ISO.sh
+Name10[$e]=equip-profile-with-repo.sh
+Name2[$e]=equip-profile-with-repo.sh
+Name3[$e]=SYN-INSTALLER-MAIN.sh
+Name4[$e]=motd.sh
+Name5[$e]=syn-installer-functions.sh
+Name6[$e]=syn-disk-variables.sh
+Name7[$e]=syn-pacstrap-variables.sh
+Name8[$e]=syn-ascii-art.sh
+Name9[$e]=REBUILD_ISO.sh
