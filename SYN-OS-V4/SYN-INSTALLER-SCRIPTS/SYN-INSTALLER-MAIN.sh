@@ -37,7 +37,7 @@ check_success "Failed to set NTP"
 check_if_arch_repo_are_accessible
 
 # Going past this point will wipe the disks based on the variables at the top of this script.
-confirm_action "Autonomous judgment waiver is now in effect..."
+confirm_wipe "Autonomous judgment waiver is now in effect..."
 clear
 display_system_wipe_warning
 
