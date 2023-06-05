@@ -1,0 +1,14 @@
+
+# These things are run when an Openbox X Session is started.
+# You may place a similar script in $HOME/.config/openbox/autostart
+# to run user-specific things.
+#
+
+# Set random wallpaper found in the directory
+feh --bg-scale --randomize ~/.wallpaper/* &
+
+# Add artificial delay to tint2
+(sleep 2s && tint2) &
+
+# Set Resolution and Geometry
+sh -c 'xrandr --output HDMI-1 --mode 1360x768 --rate 60.02 --same-as LVDS-1 --output LVDS-1 --mode 1366x768 --rate 59.99'
