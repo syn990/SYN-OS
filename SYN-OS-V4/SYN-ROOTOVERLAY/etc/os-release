@@ -1,11 +1,11 @@
-NAME="SYN-RTOS"
-PRETTY_NAME="SYN-RTOS"
+NAME="SYN-OS"
+PRETTY_NAME="SYN-OS"
 ID=arch
 BUILD_ID=rolling
 ANSI_COLOR="38;2;23;147;209"
-HOME_URL="https://github.com/syn990/syn-rtos"
-DOCUMENTATION_URL="https://github.com/syn990/syn-rtos"
-SUPPORT_URL="https://github.com/syn990/syn-rtos"
-BUG_REPORT_URL="https://github.com/syn990/syn-rtos"
+HOME_URL="https://github.com/syn990/syn-os"
+DOCUMENTATION_URL="https://github.com/syn990/syn-os"
+SUPPORT_URL="https://github.com/syn990/syn-os"
+BUG_REPORT_URL="https://github.com/syn990/syn-os"
 PRIVACY_POLICY_URL=""
 LOGO=archlinux-logo
