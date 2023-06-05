@@ -139,7 +139,7 @@ pacstrap /mnt $SYNSTALL
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # COPY ROOT OVERLAY MATERIALS
-cp -R /root/SYN-OS-V4/root_overlay/* $ROOT_MOUNT_LOCATION_990
+cp -R /root/SYN-OS-V4/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990
 cp -R /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990
 
 # NOTIFICATION: Entering Stage 1
