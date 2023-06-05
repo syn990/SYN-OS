@@ -72,6 +72,6 @@ display_packstrapping_packages() {
 "
     sleep 2
     
-    echo "installing the following:"
+    echo "Installing the following:"
     echo $SYNSTALL
 }
