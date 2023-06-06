@@ -15,17 +15,23 @@ check_success() {
 }
 
 # Variables
-username="syntax990" # Username for the current system
-repository_name="SYN-OS-REPO" # Name of the new local repository
-repository_path="/home/$username/$repository_name" # Path to the new local repository
-cache_path="/var/cache/pacman/pkg" # Path to the local Pacman cache
-releng_custom_path="/home/$username/SYN-OS/SYN-OS-PROFILE" # Path to the custom Archiso profile
+username="syntax990"                                                # Username for the current system
+git_repository_name="SYN-OS"                                            # Name of the new local repository
+pacman_repository_name="SYN-OS-REPO"
+profile_name="SYN-OS-V4"                                            # Name of the Archiso profile
 
-printf "${GREEN}The script is starting...\n\n"
+repository_path="/home/$username/$git_repository_name"                  # Path to the new local repository
+releng_custom_path="/home/$username/$git_repository_name/$profilename"  # Path to the custom Archiso profile
+
+
+cache_path="/var/cache/pacman/pkg"                                  # Path to the local Pacman cache
+
+
+printf "${GREEN}Equipping local pacman repository to the Archiso profile...\n\n"
 sleep 0.5
 printf "Username: ${BLUE}$username${NC}\n"
 sleep 0.5
-printf "Repository name: ${BLUE}$repository_name${NC}\n"
+printf "Repository name: ${BLUE}$git_repository_name${NC}\n"
 sleep 0.5
 printf "Repository path: ${BLUE}$repository_path${NC}\n"
 sleep 0.5
@@ -33,11 +39,13 @@ printf "Cache path: ${BLUE}$cache_path${NC}\n"
 sleep 0.5
 printf "Releng custom path: ${BLUE}$releng_custom_path${NC}\n\n${NC}"
 sleep 0.5
+
+
 # Clean up existing directories to ensure a fresh start
 printf "${GREEN}Cleaning up existing directories...\n${NC}"
 sleep 0.5
 rm -Rv $repository_path
-rm -Rv $releng_custom_path/airootfs/root/SYN-OS-REPO
+rm -Rv $releng_custom_path/airootfs/root/$pacman_repository_name
 
 # Create a new directory for the repository
 printf "${GREEN}Creating a new directory for the repository...\n${NC}"
@@ -54,7 +62,7 @@ check_success "Failed to copy packages from $cache_path to $repository_path"
 # Generate a database for the new repository to manage packages
 printf "${GREEN}Generating a database for the new repository to manage packages...\n${NC}"
 sleep 0.5
-repo-add $repository_path/$repository_name.db.tar.gz $repository_path/*.pkg.tar.zst
+repo-add $repository_path/$git_repository_name.db.tar.gz $repository_path/*.pkg.tar.zst
 check_success "Failed to generate a database for the new repository"
 
 # Copy the repository directory to the releng profile in Archiso
