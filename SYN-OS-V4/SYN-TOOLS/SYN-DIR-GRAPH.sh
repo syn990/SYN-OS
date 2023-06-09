@@ -26,7 +26,7 @@ generate_dot_file() {
     echo "  nodesep=1;"
     echo "  ranksep=2;"
 
-    generate_structure "$root"
+    generate_structure "$root" "$1"
 
     echo "}"
     echo "Graphviz dot file generated." >&2
@@ -67,5 +67,27 @@ run_dot_commands() {
     rm SYN-DIRDRAW-*.png
 }
 
-generate_dot_file > SYN-DIRDRAW.dot
+echo "Select a variation:"
+echo "1. List Directories from your PWD"
+echo "2. List Files and Directories from your PWD"
+echo "3. List Hidden Files and Directories from your PWD"
+
+read -p "Enter your choice (1-3): " choice
+
+case $choice in
+    1)
+        generate_dot_file "directories" > SYN-DIRDRAW.dot
+        ;;
+    2)
+        generate_dot_file "files_and_directories" > SYN-DIRDRAW.dot
+        ;;
+    3)
+        generate_dot_file "hidden_files_and_directories" > SYN-DIRDRAW.dot
+        ;;
+    *)
+        echo "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
+
 run_dot_commands
