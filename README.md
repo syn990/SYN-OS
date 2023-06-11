@@ -1,6 +1,5 @@
-# SYN-OS: A Customizable Arch Linux-based Operating System
-
-# SYN-OS
+# SYN-OS: 
+# A Customizable Arch Linux-based Operating System
 
 SYN-OS is a lightweight Linux distribution based on Arch Linux, designed to offer a minimalistic and efficient desktop experience using Tint2 and Openbox. It aims to provide a modern computing environment on older hardware, allowing the usage of modern packages while keeping resource usage to a minimum. With SYN-OS, you can breathe new life into your aging machines, such as old MacBooks, while also taking advantage of the performance and control it offers on modern hardware.
 
@@ -44,7 +43,7 @@ For support or general questions, you can reach out to me via [LinkedIn](https:/
 ## Introduction
 Welcome to SYN-OS, a highly customizable operating system developed by William Hayward-Holland (Syntax990). Rooted in the foundations of Arch Linux, SYN-OS aims to provide an efficient and tailor-made computing experience to advanced users. This repository houses the project files and serves as the definitive source of all relevant instructions, resources, and updates about the system and its development.
 
-## Installation Process
+## Installation Process Explained...
 
 #### Disk Partitioning
 Modify variables related to disk partitioning, including disk wiping, boot partition creation, root partition setup, mount points, and filesystem types to suit your preferences.
@@ -70,6 +69,7 @@ The script leverages the bootctl tool to configure the bootloader.
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
 
 ### SYN-OS-V3: `syn-stage0.sh` & `syn-stage1.sh`
+
 The 'SYN-OS-V3 or Earlier' directory contains the necessary installation scripts and dotfiles to establish the system. However, it does not automate the arch-chroot process, necessitating manual script execution. Prior to running, it's essential to ensure both scripts contain suitable variables.
 
 These scripts are relatively simple; they are designed to wipe your disks and install the software with rudimentary error-checking and conditional output. This design prevents the system from spiralling into corruption without user intervention and increases the chances of successful installation. This approach was consistently employed from 2017 to 2022.
