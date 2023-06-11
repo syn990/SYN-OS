@@ -1,5 +1,46 @@
 # SYN-OS: A Customizable Arch Linux-based Operating System
 
+# SYN-OS
+
+SYN-OS is a lightweight Linux distribution based on Arch Linux, designed to offer a minimalistic and efficient desktop experience using Tint2 and Openbox. It aims to provide a modern computing environment on older hardware, allowing the usage of modern packages while keeping resource usage to a minimum. With SYN-OS, you can breathe new life into your aging machines, such as old MacBooks, while also taking advantage of the performance and control it offers on modern hardware.
+
+## Features
+
+- Lightweight and Resource-Efficient: SYN-OS is optimized to consume less than 160MB of memory on idle, making it ideal for running on older hardware with limited resources. It ensures smooth performance even on modern hardware, utilizing system resources efficiently for maximum control and performance on a wide range of tasks.
+- Tint2 and Openbox: The default desktop environment consists of Tint2 panel and the highly customizable Openbox window manager, providing a sleek and efficient user interface.
+- Customizable Installer: SYN-OS uses shell scripts with easily adjustable variables, allowing you to customize the installation process to suit your preferences and specific hardware requirements.
+- Modern Packages: Despite its lightweight nature, SYN-OS supports the installation of modern software packages, giving you access to the latest applications and utilities.
+- Compatibility: SYN-OS is a fully compatible derivative of Arch Linux, ensuring compatibility with a vast ecosystem of software and tools.
+
+## Getting Started
+
+To build your own customized ISO of SYN-OS using the SYN-ISO-PROFILE:
+
+1. Clone or download this repository to your local machine.
+2. Install the necessary dependencies, such as `mkarchiso`, if not already installed.
+3. Customize the SYN-ISO-PROFILE to your preferences, including package selection, dot files, and any additional configurations.
+4. Adjust the installer scripts by modifying the suitable variables to match your desired installation settings.
+5. Run the build command to create your custom ISO: `sudo mkarchiso -v path/to/SYN-ISO-PROFILE`.
+6. Wait for the build process to complete. The resulting ISO will be located in the `out` directory.
+
+For more detailed instructions and customization options, refer to the [SYN-ISO-PROFILE documentation](docs/profile-docs.md).
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). The MIT License is a permissive open-source license that provides users with maximum creative and commercial freedom.
+
+With the MIT License, you are free to use, modify, and distribute this software for any purpose, including commercial purposes. You can incorporate this code into your own projects, build upon it, and even sell your derivative works. The license does not impose any requirements on how you use or distribute the software.
+
+Unlike copyleft licenses such as the GPL, the MIT License does not require derivative works to be licensed under the same license. You have the freedom to choose the license terms for your modifications and enhancements, allowing you to maintain maximum control of your derived source code.
+
+Contributions and sharing your modifications are encouraged but not required. You have the choice to keep your modifications private or contribute them back to the community, without any obligation. While it is always appreciated when improvements are shared, the MIT License ensures that you have the freedom to make your own decisions regarding your derived works.
+
+## Support
+
+For support or general questions, you can reach out to me via [LinkedIn](https://www.linkedin.com/in/your-name/) or email me at william@npc.syntax990.com.
+
+990 990 990 990 (all work-in-progress)
+
 ## Introduction
 Welcome to SYN-OS, a highly customizable operating system developed by William Hayward-Holland (Syntax990). Rooted in the foundations of Arch Linux, SYN-OS aims to provide an efficient and tailor-made computing experience to advanced users. This repository houses the project files and serves as the definitive source of all relevant instructions, resources, and updates about the system and its development.
 
