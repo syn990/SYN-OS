@@ -4,7 +4,7 @@
 Welcome to SYN-OS, a lightweight, Arch Linux-based distribution created by William Hayward-Holland (Syntax990), offering a highly customizable, minimalistic, and efficient desktop experience through Tint2 and Openbox, designed for revitalizing older hardware like aged MacBooks with modern packages, and optimized resource usage, while simultaneously maximizing performance and control on modern systems, housing all relevant project files, resources, updates, and instructions in its definitive repository.
 
 <p align="center">
-  <img src="Images/SYN-OS.png" alt="SYN-OS Image">
+  <img src="/Images/SYN-OS.png" alt="SYN-OS Image">
 </p>
 
 
