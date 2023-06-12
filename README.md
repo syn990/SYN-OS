@@ -61,7 +61,10 @@ Place your custom files and configurations in the `SYN-OS-V4/root_overlay` direc
 
 ![SYN-OS Image](Images/SYN-ROOTOVERLAY.png)
 
+
 When adding packges/configuration changes to the ISO before building always ensure /etc/skel has the accompanying dotfiles.
+
+![SYN-OS Image](Images/SYN-DIRDRAW-twopi.png)
 
 #### System Configuration
 The script sets up the username, hostname, locale settings, hardware clock, and mirrorlist.
