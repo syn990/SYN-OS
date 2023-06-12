@@ -3,7 +3,10 @@
 
 Welcome to SYN-OS, a lightweight, Arch Linux-based distribution created by William Hayward-Holland (Syntax990), offering a highly customizable, minimalistic, and efficient desktop experience through Tint2 and Openbox, designed for revitalizing older hardware like aged MacBooks with modern packages, and optimized resource usage, while simultaneously maximizing performance and control on modern systems, housing all relevant project files, resources, updates, and instructions in its definitive repository.
 
-![SYN-OS Image](Images/SYN-OS.PNG)
+<p align="center">
+  <img src="./Images/SYN-OS.png" alt="SYN-OS Image">
+</p>
+
 
 ## Features
 
@@ -69,8 +72,12 @@ The script leverages the bootctl tool to configure the bootloader.
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
 
-![SYN-OS Image](Images/SYN-TOOLS.png)
-![SYN-OS Image](Images/SYN-INSTALLER-SCRIPTS.png)
+<p align="center">
+  <img src="./Images/SYN-TOOLS.png" alt="SYN-OS Image">
+</p>
+<p align="center">
+  <img src="./Images/SYN-INSTALLER-SCRIPTS.png" alt="SYN-OS Image">
+</p>
 
 ### SYN-OS-V3: `syn-stage0.sh` & `syn-stage1.sh`
 
@@ -88,10 +95,18 @@ This directory also preserves early versions of legacy code, providing a glimpse
 SYN-OS provides a powerful platform tailored for advanced users, enabling a high degree of customization to align with their specific needs. It serves as an ideal stepping-stone for users transitioning to more intermediate operating systems like Arch Linux, providing a clear vision and roadmap. This approach reduces the need for brute force learning through The Arch Wiki. That being said, The Arch Wiki remains an invaluable resource, offering concise instructions and comprehensive learning materials for the broader Linux ecosystem.
 
 #### Check out SYN-OS in action! Late Long Nights - Timelapsed
-[![SYN-OS: An Overview](http://img.youtube.com/vi/fTbNA8TIzDM/0.jpg)](http://www.youtube.com/watch?v= "SYN-OS: An Overview")
+<p align="center">
+  <a href="http://www.youtube.com/watch?v=fTbNA8TIzDM">
+    <img src="http://img.youtube.com/vi/fTbNA8TIzDM/0.jpg" alt="SYN-OS: An Overview">
+  </a>
+</p>
 
 #### Check out SYN-OS, terminal stuff and Half-Life 2 Overwatch offering a simple description!
-[![SYN-OS: An Overview](http://img.youtube.com/vi/fTbNA8TIzDM/0.jpg)](http://www.youtube.com/watch?v=fTbNA8TIzDM "SYN-OS: An Overview")
+<p align="center">
+  <a href="http://www.youtube.com/watch?v=fTbNA8TIzDM">
+    <img src="http://img.youtube.com/vi/fTbNA8TIzDM/0.jpg" alt="SYN-OS: An Overview">
+  </a>
+</p>
 
 ### ⚠️ Extreme Warning ⚠️
 
