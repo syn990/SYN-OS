@@ -1,47 +1,48 @@
 # SYN-OS: 
 # A Customizable Arch Linux-based Operating System
 
-SYN-OS is a lightweight Linux distribution based on Arch Linux, designed to offer a minimalistic and efficient desktop experience using Tint2 and Openbox. It aims to provide a modern computing environment on older hardware, allowing the usage of modern packages while keeping resource usage to a minimum. With SYN-OS, you can breathe new life into your aging machines, such as old MacBooks, while also taking advantage of the performance and control it offers on modern hardware.
+Welcome to SYN-OS, a lightweight, Arch Linux-based distribution created by William Hayward-Holland (Syntax990), offering a highly customizable, minimalistic, and efficient desktop experience through Tint2 and Openbox, designed for revitalizing older hardware like aged MacBooks with modern packages, and optimized resource usage, while simultaneously maximizing performance and control on modern systems, housing all relevant project files, resources, updates, and instructions in its definitive repository.
+
+![SYN-OS Image](./Images/SYN-OS.png)
 
 ## Features
 
-- Lightweight and Resource-Efficient: SYN-OS is optimized to consume less than 160MB of memory on idle, making it ideal for running on older hardware with limited resources. It ensures smooth performance even on modern hardware, utilizing system resources efficiently for maximum control and performance on a wide range of tasks.
-- Tint2 and Openbox: The default desktop environment consists of Tint2 panel and the highly customizable Openbox window manager, providing a sleek and efficient user interface.
-- Customizable Installer: SYN-OS uses shell scripts with easily adjustable variables, allowing you to customize the installation process to suit your preferences and specific hardware requirements.
-- Modern Packages: Despite its lightweight nature, SYN-OS supports the installation of modern software packages, giving you access to the latest applications and utilities.
-- Compatibility: SYN-OS is a fully compatible derivative of Arch Linux, ensuring compatibility with a vast ecosystem of software and tools.
+- **Lightweight and Resource-Efficient:** SYN-OS is optimized to consume less than 160MB of memory on idle, making it ideal for running on older hardware with limited resources. It ensures smooth performance even on modern hardware, utilizing system resources efficiently for maximum control and performance on a wide range of tasks.
+- **Tint2 and Openbox:** The default desktop environment consists of Tint2 panel and the highly customizable Openbox window manager, providing a sleek and efficient user interface.
+- **Customizable Installer:** SYN-OS uses shell scripts with easily adjustable variables, allowing you to customize the installation process to suit your preferences and specific hardware requirements.
+- **Modern Packages:** Despite its lightweight nature, SYN-OS supports the installation of modern software packages, giving you access to the latest applications and utilities.
+- **Compatibility:** SYN-OS is a fully compatible derivative of Arch Linux, ensuring compatibility with a vast ecosystem of software and tools.
 
-## Getting Started
+```markdown
+## Embark on Your SYN-OS Adventure
 
-To build your own customized ISO of SYN-OS using the SYN-ISO-PROFILE:
+To forge a customized ISO of SYN-OS employing the SYN-ISO-PROFILE, please follow these comprehensive steps:
 
-1. Clone or download this repository to your local machine.
-2. Install the necessary dependencies, such as `mkarchiso`, if not already installed.
-3. Customize the SYN-ISO-PROFILE to your preferences, including package selection, dot files, and any additional configurations.
-4. Adjust the installer scripts by modifying the suitable variables to match your desired installation settings.
-5. Run the build command to create your custom ISO: `sudo mkarchiso -v path/to/SYN-ISO-PROFILE`.
-6. Wait for the build process to complete. The resulting ISO will be located in the `out` directory.
+1. **Obtain the Repository:** Clone or download this repository to your local environment.
+```bash
+git clone https://github.com/syn990/SYN-OS.git
+```
+2. **Ensure Necessary Dependencies:** Check if all required dependencies, such as `mkarchiso`, are already installed. If not, install them before moving forward.
+```bash
+sudo pacman -S archiso
+```
+3. **Modify the SYN-ISO-PROFILE:** The SYN-ISO-PROFILE serves as the blueprint for your custom ISO. Tailor it to your preferences by choosing your package selection, configuring dot files, and implementing any additional adjustments.
+4. **Populate the `airootfs` Directory:** Any files you want to be present on the ISO should be copied into the `airootfs/root` directory. These might be configuration files, scripts, or other assets.
+```bash
+cp YOUR_FILES SYN-OS/SYN-ISO-PROFILE/airootfs/root/
+```
+5. **Adjust the Installer Scripts:** Alter the installer scripts by modifying the relevant variables to correspond with your desired installation settings.
+6. **Commence the Build Process:** Begin the generation of your personalized ISO by running the build command: `sudo mkarchiso -v path/to/SYN-ISO-PROFILE`.
+```bash
+sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE
+```
+7. **Patience is Key:** Allow the build process to complete. The resulting custom ISO will be located in the `out` directory, ready for you to explore your tailored SYN-OS experience.
 
-For more detailed instructions and customization options, refer to the [SYN-ISO-PROFILE documentation](docs/profile-docs.md).
+```Note: Be aware that the build process can take a significant amount of time, depending on your system's capabilities and the customizations you've implemented.```
+```
 
-## License
-
-This project is licensed under the [MIT License](LICENSE). The MIT License is a permissive open-source license that provides users with maximum creative and commercial freedom.
-
-With the MIT License, you are free to use, modify, and distribute this software for any purpose, including commercial purposes. You can incorporate this code into your own projects, build upon it, and even sell your derivative works. The license does not impose any requirements on how you use or distribute the software.
-
-Unlike copyleft licenses such as the GPL, the MIT License does not require derivative works to be licensed under the same license. You have the freedom to choose the license terms for your modifications and enhancements, allowing you to maintain maximum control of your derived source code.
-
-Contributions and sharing your modifications are encouraged but not required. You have the choice to keep your modifications private or contribute them back to the community, without any obligation. While it is always appreciated when improvements are shared, the MIT License ensures that you have the freedom to make your own decisions regarding your derived works.
-
-## Support
-
-For support or general questions, you can reach out to me via [LinkedIn](https://www.linkedin.com/in/your-name/) or email me at william@npc.syntax990.com.
-
-990 990 990 990 (all work-in-progress)
 
 ## Introduction
-Welcome to SYN-OS, a highly customizable operating system developed by William Hayward-Holland (Syntax990). Rooted in the foundations of Arch Linux, SYN-OS aims to provide an efficient and tailor-made computing experience to advanced users. This repository houses the project files and serves as the definitive source of all relevant instructions, resources, and updates about the system and its development.
 
 ## Installation Process Explained...
 
@@ -67,6 +68,8 @@ The script leverages the bootctl tool to configure the bootloader.
 
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
+
+
 
 ### SYN-OS-V3: `syn-stage0.sh` & `syn-stage1.sh`
 
@@ -108,5 +111,19 @@ SYN-OS provides a powerful platform tailored for advanced users, enabling a high
 **Compile your own ISO and do not trust any download links found anywhere...**
 
 
-# Please Note
+## Please Note
 SYN-OS is a continuously evolving project with frequent script updates. Due to its dynamic nature, data-loss incidents and stress, version control is not fully maintained. The project's structure, form, and design goals are subject to constant revision, and comprehensive documentation is currently not under any major development. As such, I may not always have the bandwidth to maintain a perfectly planned project at all times.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). The MIT License is a permissive open-source license that provides users with maximum creative and commercial freedom.
+
+With the MIT License, you are free to use, modify, and distribute this software for any purpose, including commercial purposes. You can incorporate this code into your own projects, build upon it, and even sell your derivative works. The license does not impose any requirements on how you use or distribute the software.
+
+Unlike copyleft licenses such as the GPL, the MIT License does not require derivative works to be licensed under the same license. You have the freedom to choose the license terms for your modifications and enhancements, allowing you to maintain maximum control of your derived source code.
+
+Contributions and sharing your modifications are encouraged but not required. You have the choice to keep your modifications private or contribute them back to the community, without any obligation. While it is always appreciated when improvements are shared, the MIT License ensures that you have the freedom to make your own decisions regarding your derived works.
+
+## Support
+
+For support or general questions, you can reach out to me via [LinkedIn](https://www.linkedin.com/in/your-name/) or email me at william@npc.syntax990.com.
