@@ -123,4 +123,4 @@ Contributions and sharing your modifications are encouraged but not required. Yo
 
 ## Support
 
-For support or general questions, you can reach out to me via [LinkedIn](https://www.linkedin.com/in/your-name/) or email me at william@npc.syntax990.com.
+For support or general questions, you can reach out to me via [LinkedIn](https://www.linkedin.com/in/william-hayward-holland-990/) or email me at william@npc.syntax990.com.
