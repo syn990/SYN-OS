@@ -6,9 +6,12 @@ generate_dot_file() {
 
     echo "Generating Graphviz dot file..." >&2
     echo "digraph G {"
+    echo "  bgcolor=\"#000000\";"
     echo "  rankdir=\"TB\";"
     echo "  nodesep=1;"
     echo "  ranksep=2;"
+    echo "  node [style=filled, fillcolor=\"#000000\", color=\"#8B0000\", fontcolor=\"#FF0000\"];"
+    echo "  edge [color=\"#FF0000\"];"
 
     generate_structure "$root"
 
@@ -42,8 +45,6 @@ generate_structure() {
         fi
     done
 }
-
-
 
 run_dot_commands() {
     local layout
