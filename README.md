@@ -13,11 +13,11 @@ Welcome to SYN-OS, a lightweight, Arch Linux-based distribution created by Willi
 - **Modern Packages:** Despite its lightweight nature, SYN-OS supports the installation of modern software packages, giving you access to the latest applications and utilities.
 - **Compatibility:** SYN-OS is a fully compatible derivative of Arch Linux, ensuring compatibility with a vast ecosystem of software and tools.
 
-```markdown
 ## Embark on Your SYN-OS Adventure
 
 To forge a customized ISO of SYN-OS employing the SYN-ISO-PROFILE, please follow these comprehensive steps:
 
+```markdown
 1. **Obtain the Repository:** Clone or download this repository to your local environment.
 ```bash
 git clone https://github.com/syn990/SYN-OS.git
