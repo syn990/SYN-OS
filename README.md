@@ -39,8 +39,6 @@ sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE
 7. **Patience is Key:** Allow the build process to complete. The resulting custom ISO will be located in the `out` directory, ready for you to explore your tailored SYN-OS experience.
 
 ```Note: Be aware that the build process can take a significant amount of time, depending on your system's capabilities and the customizations you've implemented.```
-```
-
 
 ## Introduction
 
@@ -68,7 +66,6 @@ The script leverages the bootctl tool to configure the bootloader.
 
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
-
 
 
 ### SYN-OS-V3: `syn-stage0.sh` & `syn-stage1.sh`
