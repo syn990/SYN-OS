@@ -56,6 +56,8 @@ It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP
 #### Root Overlay + Dotfiles
 Place your custom files and configurations in the `SYN-OS-V4/root_overlay` directory. These will be copied into the root directory during the installation. Be advised the SYN-OS dotfiles can be found in /etc/skel. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
 
+![SYN-OS Image](Images/SYN-ROOTOVERLAY.png)
+
 When adding packges/configuration changes to the ISO before building always ensure /etc/skel has the accompanying dotfiles.
 
 #### System Configuration
@@ -67,6 +69,8 @@ The script leverages the bootctl tool to configure the bootloader.
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
 
+![SYN-OS Image](Images/SYN-TOOLS.png)
+![SYN-OS Image](Images/SYN-INSTALLER-SCRIPTS.png)
 
 ### SYN-OS-V3: `syn-stage0.sh` & `syn-stage1.sh`
 
