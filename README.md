@@ -2,11 +2,6 @@
 
 Welcome to SYN-OS, an operating system project built with customization and ease of use in mind. This README provides an overview of the project and serves as a guide to get started.
 
-
-
-
-
-
 <p align="center">
   <img src="./Images/Screenshot_20230614_015618.png" alt="SYN-OS Image">
 </p>
@@ -90,3 +85,25 @@ SYN-OS is designed for advanced users with deep understanding of Linux systems, 
 <p align="center">
   <img src="./Images/SYN-INSTALLER-SCRIPTS.png" alt="SYN-OS Image">
 </p>
+
+### [SYN-INSTALLER-MAIN.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/SYN-INSTALLER-MAIN.sh)
+
+This is the main script to execute the installation of SYN-OS, an Arch Linux ISO project. Once the ISO has been created and booted, running this script is the primary step to initialize the system setup.
+
+SYN-INSTALLER-MAIN.sh is the cornerstone of the SYN-OS installation process. It sets up partitions, filesystems, mounting points, tests network connectivity, sets up the keyboard layout and NTP, checks the accessibility of Arch Linux repositories, and wipes disks. It partitions and formats the drive according to whether EFI variables are present or not. Then it manages package installation, sets up the keyring, updates mirror lists, generates fstab, copies root overlay materials, and prepares the system for the next stage of installation.
+
+This script also serves as a gateway to the remainder of the installation process by sourcing several other scripts in the `SYN-INSTALLER-SCRIPTS` directory. Each of these sourced scripts performs specific tasks, and their code can be reviewed individually for a deeper understanding of the installation process.
+
+### [syn-disk-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-disk-variables.sh)
+
+This script is where you define the partitioning scheme for the SYN-OS installation. It includes variables that determine which devices will be targeted for formatting, partitioning, and mounting.
+
+Modify these variables to match your [specific configuration](https://man.archlinux.org/man/lsblk.8.en#:~:text=lsblk%20lists%20information%20about%20all,types%20from%20the%20block%20device.). This is where the script decides on which disk to destroy and format.:
+
+Disk to be wiped: `WIPE_DISK_990="/dev/vda"`
+Boot Partition: `BOOT_PART_990="/dev/vda1"`
+Root Partition: `ROOT_PART_990="/dev/vda2"`
+Location to the new system's boot directory: `BOOT_MOUNT_LOCATION_990="/mnt/boot"`
+Location to the new system's root directory: `ROOT_MOUNT_LOCATION_990="/mnt/"`
+Filesystem for the boot partiton: `BOOT_FILESYSTEM_990="fat32"`
+Filesystem for the root partition: `ROOT_FILESYSTEM_990="f2fs"`
