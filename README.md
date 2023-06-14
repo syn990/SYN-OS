@@ -62,7 +62,7 @@ The installer leverages the bootctl tool to configure the bootloader as a single
 
 Currently the scripts will ensure the system wipes the drives present in `syn-disk-variables.sh` and ensure a single root partition with a seperate GPT/UEFI boot partition.
 
-It also contains an MBR fallback should the [UEFI Variables]((https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface) not get detected. This will install a single MBR root linux partition.
+It also contains an MBR fallback should the [UEFI Variables](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface) not get detected. This will install a single MBR root linux partition.
 
 There is no swap, you can add these yourself.
 
