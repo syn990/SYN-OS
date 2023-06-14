@@ -28,6 +28,10 @@ SYN-OS is a modular operating system that comprises several components and direc
 
 - **SYN-ISO-PROFILE**: Includes the ISO profile for building the operating system image. This directory contains the necessary files and configurations. See [archsio](https://wiki.archlinux.org/title/archiso).
 
+<p align="center">
+  <img src="./Images/SYN-ISO-PROFILE.png" alt="SYN-OS Image">
+</p>
+
 
 - **SYN-ROOTOVERLAY**: Contains the root overlay for the operating system. It includes boot-related files and configuration in the `boot` directory as well as system-wide configurations in the `etc` directory. The dotiles are also included in `etc/skel`. This SYN-ROOTFSOVERLAY is to be copied into the project's airootfs directory, or any other existing profile including baseline or releng (however without accompanying dotfiles the enviroment may fail).
 
