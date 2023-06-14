@@ -1,18 +1,7 @@
-# SYN-OS
-
-Welcome to SYN-OS, an operating system project built with customization and ease of use in mind. This README provides an overview of the project and serves as a guide to get started.
-  
-  
-  
-  
-  
 
 <p align="center">
   <img src="./Images/Screenshot_20230614_015618.png" alt="SYN-OS Image">
 </p>
-  
-  
-  
   
   
   
