@@ -43,7 +43,7 @@ Place your custom files and configurations in the `/SYN-OS/SYN-OS-V4/SYN-ROOTOVE
 - **SYN-DOTFILES**: Contains a collection of dotfiles for setting up and customizing various applications and tools. If you change the pacakges in [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh) then you can also add your custom dotfiles from `~/.config`.
 
 <p align="center">
-  <img src=".Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
+  <img src="./Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
 </p>
 
 
