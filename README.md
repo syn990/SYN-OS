@@ -7,7 +7,16 @@
   
 ## Overview
 
-A compact distribution grounded in Arch Linux, meticulously designed by William Hayward-Holland (Syntax990). This operating system promotes a streamlined and highly adaptable desktop environment through the integration of `Tint2` and `Openbox`. Uniquely, SYN-OS excels in optimizing resource utilization and elevating performance, making it an ideal choice for rejuvenating outdated hardware with the ability to run contemporary packages. Furthermore, it is tailored to deliver superior control and performance on advanced systems. All project-related files, resources, updates, and directives are conveniently hosted in a comprehensive, centralized repository.
+SYN-OS is a compact distribution based on Arch Linux, meticulously crafted by William Hayward-Holland (Syntax990). This operating system offers a streamlined and highly adaptable desktop environment by integrating Tint2 and Openbox. One of its unique strengths is its ability to optimize resource usage and enhance performance, making it an excellent choice for reviving outdated hardware while still being able to run modern packages. Additionally, SYN-OS is optimized to provide exceptional control and performance on advanced systems.
+
+This project is suitable for individuals seeking complete control over their devices. It is built entirely on vanilla Arch Linux and utilizes well-known utilities and relatively simple bash scripts. My goal is to provide an installation process that allows users to easily adapt and customize the system to their specific needs. I hope that you will find value in using SYN-OS or, perhaps unintentionally, learn a great deal from it. I have dedicated a significant amount of time to learning Arch Linux and have built numerous systems, and I believe no other installer compares to what I have created. It started as a comprehensive script that I could modify as needed to build Arch, and it has evolved into something truly special.
+
+All project-related files, resources, updates, and guidelines are conveniently hosted in a comprehensive, centralized repository.
+
+You are expected to go directly to the [The Arch Wiki](https://wiki.archlinux.org) for resources and instructions that are outside the scope of the project itself. This system is vanilla so all resources found will be relevent.
+
+**Important note:** This installer is not designed to be used as a shortcut for installing Arch Linux. If that is your intention, then this project may not be suitable for you. However, if you are interested in delving into the provided sources and reverse engineering them, you will undoubtedly gain a deeper understanding of Arch Linux within this environment.
+
 
 <p align="center">
   <img src="./Images/SYN-OS.PNG" alt="SYN-OS Image">
