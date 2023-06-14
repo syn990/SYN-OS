@@ -70,7 +70,7 @@ Place your custom files and configurations in the `SYN-OS-V4/SYN-ROOTOVERLAY` di
 The installer sets up the username, hostname, locale settings, hardware clock, and mirrorlist.
 
 #### Bootloader Configuration
-The installer leverages the bootctl tool to configure the bootloader as a single disk gpt SYN-ROOTOVERLAY/boot contains neccessary information.
+The installer leverages the bootctl tool to configure the bootloader as a single disk gpt `SYN-ROOTOVERLAY/boot/` contains neccessary information. Here you can see the files deposited into the installer.
 
 <p align="center">
   <img src="./Images/SYN-ROOTOVERLAY-boot.png" alt="SYN-OS Image">
