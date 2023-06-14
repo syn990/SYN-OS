@@ -14,6 +14,9 @@ This project is suitable for individuals seeking complete control over their dev
   <img src="./Images/SYN-OS.PNG" alt="SYN-OS Image">
 </p>
 
+### Timelapse:
+[![Video Title](https://img.youtube.com/vi/07uWPOyV7cw/0.jpg)](https://www.youtube.com/watch?v=07uWPOyV7cw)
+
 **Important note:** This installer is not designed to be used as a shortcut for installing Arch Linux. If that is your intention, then this project may not be suitable for you. However, if you are interested in delving into the provided sources and reverse engineering them, you will undoubtedly gain a deeper understanding of Arch Linux within this environment.
 
 ## REPO DIRECTORIES
