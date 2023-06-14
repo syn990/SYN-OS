@@ -106,7 +106,7 @@ Filesystem for the root partition: `ROOT_FILESYSTEM_990="f2fs"`
 
 The script includes multiple variables that contain the names of packages to be installed. These variables can be modified to add or remove packages as needed to customize the SYN-OS installation.
 
-Here are the main package variables: (All packages are using Arch Linux offical repositories)
+Here are the main package variables: (All packages used in these variables are using Arch Linux offical repositories)
 - `basePackages`: Basic system packages required for the initial setup.
 - `systemPackages`: Packages for audio, networking, and other system-related utilities.
 - `controlPackages`: Packages for controlling the system settings.
