@@ -46,6 +46,11 @@ Place your custom files and configurations in the `/SYN-OS/SYN-OS-V4/SYN-ROOTOVE
   <img src="./Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
 </p>
 
+ **Be advised** the SYN-OS dotfiles can be found in `/etc/skel` post-install and `/SYN-OS/SYN-OS-V4/SYN-ROOTOVERLAY/etc/skel/` and are coped in `SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/airootfs/root/SYN-INSTALLER-SCRIPTSS????`. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
+
+
+```Note: When adding packges/configuration changes to SYN-ISO-PROFILE before building always ensure /etc/skel has the accompanying dotfiles.```
+
 
 
 - **SYN-INSTALLER-SCRIPTS**: Houses installer scripts that facilitate the setup and configuration of SYN-OS-V4.
@@ -66,13 +71,7 @@ It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP
 #### Root Overlay
 
 #### Dotfiles
- **Be advised** the SYN-OS dotfiles can be found in `/etc/skel`. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
 
-<p align="center">
-  <img src="./Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
-</p>
-
-```Note: When adding packges/configuration changes to SYN-ISO-PROFILE before building always ensure /etc/skel has the accompanying dotfiles.```
 
 #### System Configuration
 The installer sets up the username, hostname, locale settings, hardware clock, and mirrorlist.
