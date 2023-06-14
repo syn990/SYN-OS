@@ -54,9 +54,15 @@ In SYN-OS, packages are neatly grouped into variables for a seamless installatio
 It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP setup for network connectivity, and mirrorlist optimization using the Reflector tool. Additionally, the script ensures the keyring's security and updates package databases.
 
 #### Root Overlay + Dotfiles
-Place your custom files and configurations in the `SYN-OS-V4/root_overlay` directory. These will be copied into the root directory during the installation. Be advised the SYN-OS dotfiles can be found in /etc/skel. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
+Place your custom files and configurations in the `SYN-OS-V4/SYN-ROOTOVERLAY` directory. These will be copied into the root directory during the installation. **Be advised** the SYN-OS dotfiles can be found in `/etc/skel`. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
 
-![SYN-OS Image](Images/SYN-ROOTOVERLAY.png)
+<p align="center">
+  <img src="./Images/SYN-ROOTOVERLAY-etc.png" alt="SYN-OS Image">
+</p>
+
+<p align="center">
+  <img src="./Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
+</p>
 
 ```Note: When adding packges/configuration changes to SYN-ISO-PROFILE before building always ensure /etc/skel has the accompanying dotfiles.```
 
@@ -65,6 +71,10 @@ The installer sets up the username, hostname, locale settings, hardware clock, a
 
 #### Bootloader Configuration
 The installer leverages the bootctl tool to configure the bootloader as a single disk gpt SYN-ROOTOVERLAY/boot contains neccessary information.
+
+<p align="center">
+  <img src="./Images/SYN-ROOTOVERLAY-boot.png" alt="SYN-OS Image">
+</p>
 
 ### Customization
 SYN-OS is designed for advanced users with deep understanding of Linux systems, specifically Arch Linux. It allows users to customize aspects like disk partitioning, package selection, locale settings, and system configurations. Users can directly manipulate the build scripts, giving you the power to shape the distro according to your vision, rather than relying on disk images or cloning technology.
