@@ -2,6 +2,10 @@
 
 Welcome to SYN-OS, an operating system project built with customization and ease of use in mind. This README provides an overview of the project and serves as a guide to get started.
 
+<p align="center">
+  <img src="./Images/Screenshot_20230614_015618.png" alt="SYN-OS Image">
+</p>
+
 ## Overview
 
 A compact distribution grounded in Arch Linux, meticulously designed by William Hayward-Holland (Syntax990). This operating system promotes a streamlined and highly adaptable desktop environment through the integration of Tint2 and Openbox. Uniquely, SYN-OS excels in optimizing resource utilization and elevating performance, making it an ideal choice for rejuvenating outdated hardware with the ability to run contemporary packages. Furthermore, it is tailored to deliver superior control and performance on advanced systems. All project-related files, resources, updates, and directives are conveniently hosted in a comprehensive, centralized repository.
@@ -9,7 +13,6 @@ A compact distribution grounded in Arch Linux, meticulously designed by William 
 <p align="center">
   <img src="./Images/SYN-OS.PNG" alt="SYN-OS Image">
 </p>
-
 
 ## Getting Started
 
