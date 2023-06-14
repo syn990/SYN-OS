@@ -18,19 +18,18 @@ Welcome to SYN-OS, an operating system project built with customization and ease
   
 ## Overview
 
-A compact distribution grounded in Arch Linux, meticulously designed by William Hayward-Holland (Syntax990). This operating system promotes a streamlined and highly adaptable desktop environment through the integration of Tint2 and Openbox. Uniquely, SYN-OS excels in optimizing resource utilization and elevating performance, making it an ideal choice for rejuvenating outdated hardware with the ability to run contemporary packages. Furthermore, it is tailored to deliver superior control and performance on advanced systems. All project-related files, resources, updates, and directives are conveniently hosted in a comprehensive, centralized repository.
+A compact distribution grounded in Arch Linux, meticulously designed by William Hayward-Holland (Syntax990). This operating system promotes a streamlined and highly adaptable desktop environment through the integration of `Tint2` and `Openbox`. Uniquely, SYN-OS excels in optimizing resource utilization and elevating performance, making it an ideal choice for rejuvenating outdated hardware with the ability to run contemporary packages. Furthermore, it is tailored to deliver superior control and performance on advanced systems. All project-related files, resources, updates, and directives are conveniently hosted in a comprehensive, centralized repository.
 
 <p align="center">
   <img src="./Images/SYN-OS.PNG" alt="SYN-OS Image">
 </p>
 
-## Getting Started
-
 SYN-OS is a modular operating system that comprises several components and directories. Here's a brief description of each:
 
-- **SYN-ISO-PROFILE**: Includes the ISO profile for building the operating system image. This directory contains the necessary files and configurations. Refer to the README file within this directory for instructions on modifying or customizing the ISO profile.
+- **SYN-ISO-PROFILE**: Includes the ISO profile for building the operating system image. This directory contains the necessary files and configurations. See [archsio](https://wiki.archlinux.org/title/archiso).
 
-- **SYN-ROOTOVERLAY**: Contains the root overlay for the operating system. It includes boot-related files and configuration in the "boot" directory, as well as system-wide configurations in the "etc" directory. See the README file in this directory for more details on how to use the root overlay effectively.
+
+- **SYN-ROOTOVERLAY**: Contains the root overlay for the operating system. It includes boot-related files and configuration in the `boot` directory as well as system-wide configurations in the `etc` directory. The dotiles are also included in `etc/skel`. This SYN-ROOTFSOVERLAY is to be copied into the project's airootfs directory, or any other existing profile including baseline or releng (however without accompanying dotfiles the enviroment may fail).
 
 - **SYN-DOTFILES**: Contains a collection of dotfiles for setting up and customizing various applications and tools. If you change the pacakges in [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh) then you can also add your custom dotfiles from `~/.config`.
 
@@ -38,31 +37,7 @@ SYN-OS is a modular operating system that comprises several components and direc
 
 - **SYN-TOOLS**: Provides various tools, scripts, or utilities that exist in the context of SYN-OS-V4.
 
-To forge a customized ISO of SYN-OS employing the SYN-ISO-PROFILE, please follow these comprehensive steps:
-
-1. **Obtain the Repository:** Clone or download this repository to your local environment.
-```bash
-git clone https://github.com/syn990/SYN-OS.git
-```
-2. **Ensure Necessary Dependencies:** Check if all required dependencies, such as `mkarchiso`, are already installed. If not, install them before moving forward.
-```bash
-sudo pacman -S archiso
-```
-3. **Modify the SYN-ISO-PROFILE:** The SYN-ISO-PROFILE serves as the blueprint for your custom ISO. Tailor it to your preferences by choosing your package selection, configuring dot files, and implementing any additional adjustments.
-4. **Populate the `airootfs` Directory:** Any files you want to be present on the ISO should be copied into the `airootfs/root` directory. These might be configuration files, scripts, or other assets.
-```bash
-cp YOUR_FILES SYN-OS/SYN-ISO-PROFILE/airootfs/root/
-```
-5. **Adjust the Installer Scripts:** Alter the installer scripts by modifying the relevant variables to correspond with your desired installation settings.
-6. **Commence the Build Process:** Begin the generation of your personalized ISO by running the build command: `sudo mkarchiso -v path/to/SYN-ISO-PROFILE`.
-```bash
-sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE
-```
-7. **Patience is Key:** Allow the build process to complete. The resulting custom ISO will be located in the `out` directory, ready for you to explore your tailored SYN-OS experience.
-
-```Note: Be aware that the build process can take a significant amount of time, depending on your system's capabilities and the customizations you've implemented.```
-
-## Installation Process Explained...
+## Installation Process Explained... (Scroll down to the bottom to find the actual instructions)
 
 #### Disk Partitioning
 Modify variables related to disk partitioning, including disk wiping, boot partition creation, root partition setup, mount points, and filesystem types to suit your preferences.
@@ -144,3 +119,28 @@ Please ensure that the package names are valid and accessible through the config
 
 Refer to the `syn-pacstrap-variables.sh` script in the [SYN-INSTALLER-SCRIPTS](https://github.com/syn990/SYN-OS/tree/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS) directory for more details.
 
+## Getting Started
+
+To forge a customized ISO of SYN-OS employing the SYN-ISO-PROFILE, please follow these comprehensive steps:
+
+1. **Obtain the Repository:** Clone or download this repository to your local environment.
+```bash
+git clone https://github.com/syn990/SYN-OS.git
+```
+2. **Ensure Necessary Dependencies:** Check if all required dependencies, such as `mkarchiso`, are already installed. If not, install them before moving forward.
+```bash
+sudo pacman -S archiso
+```
+3. **Modify the SYN-ISO-PROFILE:** The SYN-ISO-PROFILE serves as the blueprint for your custom ISO. Tailor it to your preferences by choosing your package selection, configuring dot files, and implementing any additional adjustments.
+4. **Populate the `airootfs` Directory:** Any files you want to be present on the ISO should be copied into the `airootfs/root` directory. These might be configuration files, scripts, or other assets.
+```bash
+cp YOUR_FILES SYN-OS/SYN-ISO-PROFILE/airootfs/root/
+```
+5. **Adjust the Installer Scripts:** Alter the installer scripts by modifying the relevant variables to correspond with your desired installation settings.
+6. **Commence the Build Process:** Begin the generation of your personalized ISO by running the build command: `sudo mkarchiso -v path/to/SYN-ISO-PROFILE`.
+```bash
+sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE
+```
+7. **Patience is Key:** Allow the build process to complete. The resulting custom ISO will be located in the `out` directory, ready for you to explore your tailored SYN-OS experience.
+
+```Note: Be aware that the build process can take a significant amount of time, depending on your system's capabilities and the customizations you've implemented.```
