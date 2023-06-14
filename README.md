@@ -28,15 +28,15 @@ A compact distribution grounded in Arch Linux, meticulously designed by William 
 
 SYN-OS is a modular operating system that comprises several components and directories. Here's a brief description of each:
 
-- **SYN-DOTFILES**: Contains a collection of dotfiles for customizing various applications and tools. Refer to the README file in this directory for more information on how to use and customize the dotfiles.
-
-- **SYN-INSTALLER-SCRIPTS**: Houses installer scripts that facilitate the setup and configuration of SYN-OS-V4. Details about each script and instructions for running them can be found in the README file inside this directory.
-
 - **SYN-ISO-PROFILE**: Includes the ISO profile for building the operating system image. This directory contains the necessary files and configurations. Refer to the README file within this directory for instructions on modifying or customizing the ISO profile.
 
 - **SYN-ROOTOVERLAY**: Contains the root overlay for the operating system. It includes boot-related files and configuration in the "boot" directory, as well as system-wide configurations in the "etc" directory. See the README file in this directory for more details on how to use the root overlay effectively.
 
-- **SYN-TOOLS**: Provides various tools, scripts, or utilities that can be useful in the context of SYN-OS-V4. Consult the README file inside this directory to learn more about each tool and instructions for using them.
+- **SYN-DOTFILES**: Contains a collection of dotfiles for setting up and customizing various applications and tools. If you change the pacakges in [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh) then you can also add your custom dotfiles from `~/.config`.
+
+- **SYN-INSTALLER-SCRIPTS**: Houses installer scripts that facilitate the setup and configuration of SYN-OS-V4.
+
+- **SYN-TOOLS**: Provides various tools, scripts, or utilities that exist in the context of SYN-OS-V4.
 
 To forge a customized ISO of SYN-OS employing the SYN-ISO-PROFILE, please follow these comprehensive steps:
 
