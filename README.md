@@ -104,9 +104,6 @@ Filesystem for the root partition: `ROOT_FILESYSTEM_990="f2fs"`
 
 ### [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh)
 
-This script is responsible for defining the 
-kage installation variables used by pacstrap during the initial setup of the main system.
-
 The script includes multiple variables that contain the names of packages to be installed. These variables can be modified to add or remove packages as needed to customize the SYN-OS installation.
 
 Here are the main package variables: (All packages are using Arch Linux offical repositories)
