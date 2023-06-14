@@ -157,13 +157,17 @@ SYN-OS is a continuously evolving project with frequent script updates. Due to i
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). The MIT License is a permissive open-source license that provides users with maximum creative and commercial freedom.
+This project is licensed under the MIT License, granting broad permissions for both creative and commercial use. This implies you are free to utilize, modify, and distribute this software for any purpose, including commercial.
 
-With the MIT License, you are free to use, modify, and distribute this software for any purpose, including commercial purposes. You can incorporate this code into your own projects, build upon it, and even sell your derivative works. The license does not impose any requirements on how you use or distribute the software.
+The MIT License, distinct for its simplicity and permissiveness, allows you to build upon this code and even monetize your derivative works without any restrictions. Unlike copyleft licenses like the GPL, the MIT License does not impose a requirement for your derivative works to retain the same license, offering you the flexibility to choose your own licensing terms for any modifications and enhancements.
 
-Unlike copyleft licenses such as the GPL, the MIT License does not require derivative works to be licensed under the same license. You have the freedom to choose the license terms for your modifications and enhancements, allowing you to maintain maximum control of your derived source code.
+While we encourage contributions and the sharing of modifications, these are not mandatory under this license. You have the discretion to either keep your modifications private or contribute them back to the community. Although the sharing of improvements is appreciated, the ultimate decision is yours. The MIT License merely provides the freedom for you to make your own decisions regarding your derived works.
 
-Contributions and sharing your modifications are encouraged but not required. You have the choice to keep your modifications private or contribute them back to the community, without any obligation. While it is always appreciated when improvements are shared, the MIT License ensures that you have the freedom to make your own decisions regarding your derived works.
+<p align="center">
+  <img src="./Images/LICENSE.png" alt="SYN-OS Image">
+</p>
+
+For further details, please refer to the [LICENSE](https://github.com/syn990/SYN-OS/blob/main/LICENSE) file in this repository.
 
 ## Support
 
