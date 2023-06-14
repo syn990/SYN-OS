@@ -32,10 +32,21 @@ SYN-OS is a modular operating system that comprises several components and direc
   <img src="./Images/SYN-ISO-PROFILE.png" alt="SYN-OS Image">
 </p>
 
-
 - **SYN-ROOTOVERLAY**: Contains the root overlay for the operating system. It includes boot-related files and configuration in the `boot` directory as well as system-wide configurations in the `etc` directory. The dotiles are also included in `etc/skel`. This SYN-ROOTFSOVERLAY is to be copied into the project's airootfs directory, or any other existing profile including baseline or releng (however without accompanying dotfiles the enviroment may fail).
 
+Place your custom files and configurations in the `/SYN-OS/SYN-OS-V4/SYN-ROOTOVERLAY/` directory. These should be be copied into the `/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/airootfs/` manually before building the ISO, else the installed packages will have default dotfiles which aren't appropriate for xorg or openbox.
+
+<p align="center">
+  <img src="./Images/SYN-ROOTOVERLAY-etc.png" alt="SYN-OS Image">
+</p>
+
 - **SYN-DOTFILES**: Contains a collection of dotfiles for setting up and customizing various applications and tools. If you change the pacakges in [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh) then you can also add your custom dotfiles from `~/.config`.
+
+<p align="center">
+  <img src=".Images/SYN-ROOTOVERLAY-skel.png" alt="SYN-OS Image">
+</p>
+
+
 
 - **SYN-INSTALLER-SCRIPTS**: Houses installer scripts that facilitate the setup and configuration of SYN-OS-V4.
 
@@ -53,11 +64,6 @@ In SYN-OS, packages are neatly grouped into variables for a seamless installatio
 It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP setup for network connectivity, and mirrorlist optimization using the Reflector tool. Additionally, the script ensures the keyring's security and updates package databases.
 
 #### Root Overlay
-Place your custom files and configurations in the `SYN-OS-V4/SYN-ROOTOVERLAY` directory. These will be copied into the root directory during the installation.
-
-<p align="center">
-  <img src="./Images/SYN-ROOTOVERLAY-etc.png" alt="SYN-OS Image">
-</p>
 
 #### Dotfiles
  **Be advised** the SYN-OS dotfiles can be found in `/etc/skel`. This is to ensure that all users created always get the same constistent configuraiton, as defined from the applications included via the intial pacstrap.
