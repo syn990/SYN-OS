@@ -57,27 +57,14 @@ Place your custom files and configurations in the `/SYN-OS/SYN-OS-V4/SYN-ROOTOVE
 
 - **SYN-TOOLS**: Provides various tools, scripts, or utilities that exist in the context of SYN-OS-V4.
 
-## IMPORTANT CONCEPTS / FOR ANY MULTI-TASKING/REAL-TIME OPERATING SYSTEM IN SOME CONTEXT
-
-#### Disk Partitioning
-Modify variables related to disk partitioning, including disk wiping, boot partition creation, root partition setup, mount points, and filesystem types to suit your preferences.
-
-#### Package Installation
-In SYN-OS, packages are neatly grouped into variables for a seamless installation process. You can modify these variables for personalized package selection. The script uses the Pacstrap tool for package installation.
-
-#### Live System Configuration
-It covers keyboard layout setup, Network Time Protocol (NTP) configuration, DHCP setup for network connectivity, and mirrorlist optimization using the Reflector tool. Additionally, the script ensures the keyring's security and updates package databases.
-
-#### Root Overlay
-
-#### Dotfiles
-
-
-#### System Configuration
-The installer sets up the username, hostname, locale settings, hardware clock, and mirrorlist.
-
 #### Bootloader Configuration
 The installer leverages the bootctl tool to configure the bootloader as a single disk gpt `SYN-ROOTOVERLAY/boot/` contains neccessary information. Here you can see the files deposited into the installer.
+
+Currently the scripts will ensure the system wipes the drives present in `syn-disk-variables.sh` and ensure a single root partition with a seperate GPT/UEFI boot partition.
+
+It also contains an MBR fallback should the [UEFI Variables]((https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface) not get detected. This will install a single MBR root linux partition.
+
+There is no swap, you can add these yourself.
 
 <p align="center">
   <img src="./Images/SYN-ROOTOVERLAY-boot.png" alt="SYN-OS Image">
@@ -117,7 +104,8 @@ Filesystem for the root partition: `ROOT_FILESYSTEM_990="f2fs"`
 
 ### [syn-pacstrap-variables.sh](https://github.com/syn990/SYN-OS/blob/main/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh)
 
-This script is responsible for defining the package installation variables used by pacstrap during the initial setup of the main system.
+This script is responsible for defining the 
+kage installation variables used by pacstrap during the initial setup of the main system.
 
 The script includes multiple variables that contain the names of packages to be installed. These variables can be modified to add or remove packages as needed to customize the SYN-OS installation.
 
