@@ -37,7 +37,8 @@ SYN-OS is a modular operating system that comprises several components and direc
 
 - **SYN-TOOLS**: Provides various tools, scripts, or utilities that exist in the context of SYN-OS-V4.
 
-## Installation Process Explained... (Scroll down to the bottom to find the actual instructions)
+## Installation Process Explained... 
+####(Scroll down to the bottom to find the actual instructions)
 
 #### Disk Partitioning
 Modify variables related to disk partitioning, including disk wiping, boot partition creation, root partition setup, mount points, and filesystem types to suit your preferences.
