@@ -1,11 +1,21 @@
 # SYN-OS
 
 Welcome to SYN-OS, an operating system project built with customization and ease of use in mind. This README provides an overview of the project and serves as a guide to get started.
+  
+  
+  
+  
+  
 
 <p align="center">
   <img src="./Images/Screenshot_20230614_015618.png" alt="SYN-OS Image">
 </p>
-
+  
+  
+  
+  
+  
+  
 ## Overview
 
 A compact distribution grounded in Arch Linux, meticulously designed by William Hayward-Holland (Syntax990). This operating system promotes a streamlined and highly adaptable desktop environment through the integration of Tint2 and Openbox. Uniquely, SYN-OS excels in optimizing resource utilization and elevating performance, making it an ideal choice for rejuvenating outdated hardware with the ability to run contemporary packages. Furthermore, it is tailored to deliver superior control and performance on advanced systems. All project-related files, resources, updates, and directives are conveniently hosted in a comprehensive, centralized repository.
@@ -100,10 +110,11 @@ This script is where you define the partitioning scheme for the SYN-OS installat
 
 Modify these variables to match your [specific configuration](https://man.archlinux.org/man/lsblk.8.en#:~:text=lsblk%20lists%20information%20about%20all,types%20from%20the%20block%20device.). This is where the script decides on which disk to destroy and format.:
 
-Disk to be wiped: `WIPE_DISK_990="/dev/vda"`
-Boot Partition: `BOOT_PART_990="/dev/vda1"`
-Root Partition: `ROOT_PART_990="/dev/vda2"`
-Location to the new system's boot directory: `BOOT_MOUNT_LOCATION_990="/mnt/boot"`
-Location to the new system's root directory: `ROOT_MOUNT_LOCATION_990="/mnt/"`
-Filesystem for the boot partiton: `BOOT_FILESYSTEM_990="fat32"`
+Disk to be wiped: `WIPE_DISK_990="/dev/vda"`  
+Boot Partition: `BOOT_PART_990="/dev/vda1"`  
+Root Partition: `ROOT_PART_990="/dev/vda2"`  
+Location to the new system's boot directory: `BOOT_MOUNT_LOCATION_990="/mnt/boot"`  
+Location to the new system's root directory: `ROOT_MOUNT_LOCATION_990="/mnt/"`  
+Filesystem for the boot partition: `BOOT_FILESYSTEM_990="fat32"`  
 Filesystem for the root partition: `ROOT_FILESYSTEM_990="f2fs"`
+
