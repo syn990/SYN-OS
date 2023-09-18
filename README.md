@@ -2,7 +2,7 @@
 
 SYN-OS is a compact Arch Linux-based distribution created by William Hayward-Holland (Syntax990). It provides a streamlined desktop environment with Tint2 and Openbox, optimized for both older and modern hardware. This distribution is designed for advanced users looking to customize their system.
 
-**Note:** This installer is not for a quick Arch Linux installation; it's intended for customization and learning. It's expected that you are already running the Arch Linux base system and are ready to build your own spin-off...
+**Note:** This installer is not a shortcut for deploying Arch Linux. It is intended for those who seek a bespoke system and are already running an Arch Linux base setup.
 
 [Visit the Wiki!](https://github.com/syn990/SYN-OS/wiki)
 
@@ -25,6 +25,8 @@ SYN-OS is meant for advanced users who want to customize disk partitioning, pack
 3. Modify SYN-ISO-PROFILE, populate airootfs, and adjust installer scripts.
 4. Build your customized ISO: `sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE`
 5. Be patient; the custom ISO will be in the 'out' directory.
+
+Once the ISO is generated, it can be booted on systems that are x86_64-compatible, adhering to Arch Linux specifications.
 
 ## License
 
