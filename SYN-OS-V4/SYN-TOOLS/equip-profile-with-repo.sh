@@ -100,7 +100,7 @@ main() {
     copy_packages
     generate_database
     copy_to_releng
-    printf "${RED}The script has completed its operations.\n${NC}"
+    printf "${GREEN}The script has completed its operations.\n${NC}"
 }
 
 main
