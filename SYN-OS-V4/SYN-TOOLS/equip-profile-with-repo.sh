@@ -81,9 +81,14 @@ generate_database() {
 copy_to_releng() {
     printf "${GREEN}Copying the local repository to the releng profile in Archiso...\n${NC}"
     sleep 0.5
+
+    # Create target directory if it doesn't exist
+    mkdir -p $releng_custom_path/airootfs/root
+
     cp -rv $local_repo_path $releng_custom_path/airootfs/root
     check_success "Failed to copy the local repository to the releng profile in Archiso"
 }
+
 
 # Main function
 main() {
