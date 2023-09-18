@@ -1,10 +1,12 @@
 #!/bin/bash
 
-# Set the color codes
-RED='\033[1;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Initialise colour codes
+init_colours() {
+    RED='\033[1;31m'
+    GREEN='\033[0;32m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+}
 
 # Check if the previous command was successful
 check_success() {
@@ -14,61 +16,86 @@ check_success() {
     fi
 }
 
-# Variables
-username="syntax990"                                                # Username for the current system
-git_repository_name="SYN-OS"                                            # Name of the new local repository
-pacman_repository_name="SYN-OS-REPO"
-profile_name="SYN-OS-V4"                                            # Name of the Archiso profile
+# Initialise variables
+init_variables() {
+    username="syntax990"
+    github_project_name="SYN-OS"
+    local_repo_name="SYN-OS-REPO"
+    profile_name="SYN-OS-V4"
 
-repository_path="/home/$username/$git_repository_name"                  # Path to the new local repository
-releng_custom_path="/home/$username/$git_repository_name/$profilename"  # Path to the custom Archiso profile
+    github_project_path="/home/$username/$github_project_name"
+    local_repo_path="/home/$username/$local_repo_name"
+    releng_custom_path="/home/$username/$github_project_name/$profile_name"
+    cache_path="/var/cache/pacman/pkg"
+}
 
+# Display information
+display_info() {
+    printf "${GREEN}Equipping local pacman repository to the Archiso profile...\n\n${NC}"
+    sleep 0.5
+    printf "Username: ${BLUE}$username${NC}\n"
+    sleep 0.5
+    printf "GitHub Project Name: ${BLUE}$github_project_name${NC}\n"
+    sleep 0.5
+    printf "Local Repository Path: ${BLUE}$local_repo_path${NC}\n"
+    sleep 0.5
+    printf "Cache path: ${BLUE}$cache_path${NC}\n"
+    sleep 0.5
+    printf "Releng custom path: ${BLUE}$releng_custom_path${NC}\n\n${NC}"
+    sleep 0.5
+}
 
-cache_path="/var/cache/pacman/pkg"                                  # Path to the local Pacman cache
+# Clean up existing directories
+clean_directories() {
+    printf "${GREEN}Cleaning up existing directories...\n${NC}"
+    sleep 0.5
+    rm -Rv $local_repo_path
+    rm -Rv $releng_custom_path/airootfs/root/$local_repo_name
+}
 
+# Create a new directory for the local repository
+create_repository() {
+    printf "${GREEN}Creating a new directory for the local repository...\n${NC}"
+    sleep 0.5
+    mkdir -p $local_repo_path
+    check_success "Failed to create directory $local_repo_path"
+}
 
-printf "${GREEN}Equipping local pacman repository to the Archiso profile...\n\n"
-sleep 0.5
-printf "Username: ${BLUE}$username${NC}\n"
-sleep 0.5
-printf "Repository name: ${BLUE}$git_repository_name${NC}\n"
-sleep 0.5
-printf "Repository path: ${BLUE}$repository_path${NC}\n"
-sleep 0.5
-printf "Cache path: ${BLUE}$cache_path${NC}\n"
-sleep 0.5
-printf "Releng custom path: ${BLUE}$releng_custom_path${NC}\n\n${NC}"
-sleep 0.5
+# Copy packages from the local cache to the local repository
+copy_packages() {
+    printf "${GREEN}Copying all packages from the local cache to the local repository...\n${NC}"
+    sleep 0.5
+    cp $cache_path/* $local_repo_path
+    check_success "Failed to copy packages from $cache_path to $local_repo_path"
+}
 
+# Generate a new package database
+generate_database() {
+    printf "${GREEN}Generating a database for the local repository...\n${NC}"
+    sleep 0.5
+    repo-add $local_repo_path/$local_repo_name.db.tar.gz $local_repo_path/*.pkg.tar.zst
+    check_success "Failed to generate a database for the local repository"
+}
 
-# Clean up existing directories to ensure a fresh start
-printf "${GREEN}Cleaning up existing directories...\n${NC}"
-sleep 0.5
-rm -Rv $repository_path
-rm -Rv $releng_custom_path/airootfs/root/$pacman_repository_name
+# Copy the local repository to the Archiso releng profile
+copy_to_releng() {
+    printf "${GREEN}Copying the local repository to the releng profile in Archiso...\n${NC}"
+    sleep 0.5
+    cp -rv $local_repo_path $releng_custom_path/airootfs/root
+    check_success "Failed to copy the local repository to the releng profile in Archiso"
+}
 
-# Create a new directory for the repository
-printf "${GREEN}Creating a new directory for the repository...\n${NC}"
-sleep 0.5
-mkdir -p $repository_path
-check_success "Failed to create directory $repository_path"
+# Main function
+main() {
+    init_colours
+    init_variables
+    display_info
+    clean_directories
+    create_repository
+    copy_packages
+    generate_database
+    copy_to_releng
+    printf "${RED}The script has completed its operations.\n${NC}"
+}
 
-# Copy all packages from the local Pacman cache to the new repository
-printf "${GREEN}Copying all packages from the local Pacman cache to the new repository...\n${NC}"
-sleep 0.5
-cp $cache_path/* $repository_path
-check_success "Failed to copy packages from $cache_path to $repository_path"
-
-# Generate a database for the new repository to manage packages
-printf "${GREEN}Generating a database for the new repository to manage packages...\n${NC}"
-sleep 0.5
-repo-add $repository_path/$git_repository_name.db.tar.gz $repository_path/*.pkg.tar.zst
-check_success "Failed to generate a database for the new repository"
-
-# Copy the repository directory to the releng profile in Archiso
-printf "${GREEN}Copying the repository directory to the releng profile in Archiso...\n${NC}"
-sleep 0.5
-cp -rv $repository_path $releng_custom_path/airootfs/root
-check_success "Failed to copy the repository directory to the releng profile in Archiso"
-
-printf "${RED}The script has completed its operations.\n${NC}"
+main
