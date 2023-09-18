@@ -4,4 +4,4 @@
 
 rm -R /home/syntax990/SYN-OS/WORKDIR
 rm -R /home/syntax990/SYN-OS/*.iso
-mkarchiso -v -w WORKDIR -o /home/syntax990/SYN-OS /home/syntax990/SYN-OS/SYN-OS-PROFILE/
+mkarchiso -v -w WORKDIR -o /home/syntax990/SYN-OS /home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/
