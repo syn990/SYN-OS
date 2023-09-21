@@ -1,12 +1,21 @@
 #!/bin/bash
 
 # Initialise colour codes
-init_colours() {
-    RED='\033[1;31m'
-    GREEN='\033[0;32m'
-    BLUE='\033[0;34m'
-    NC='\033[0m'
-}
+RED='\033[1;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Initialise variables
+username="syntax990"
+github_project_name="SYN-OS"
+local_repo_name="SYN-OS-REPO"
+profile_name="SYN-OS-V4"
+
+github_project_path="/home/$username/$github_project_name"
+local_repo_path="/home/$username/$local_repo_name"
+releng_custom_path="/home/$username/$github_project_name/$profile_name"
+cache_path="/var/cache/pacman/pkg"
 
 # Check if the previous command was successful
 check_success() {
@@ -14,19 +23,6 @@ check_success() {
         printf "${RED}$1${NC}\n"
         exit 1
     fi
-}
-
-# Initialise variables
-init_variables() {
-    username="syntax990"
-    github_project_name="SYN-OS"
-    local_repo_name="SYN-OS-REPO"
-    profile_name="SYN-OS-V4"
-
-    github_project_path="/home/$username/$github_project_name"
-    local_repo_path="/home/$username/$local_repo_name"
-    releng_custom_path="/home/$username/$github_project_name/$profile_name"
-    cache_path="/var/cache/pacman/pkg"
 }
 
 # Display information
@@ -92,8 +88,6 @@ copy_to_releng() {
 
 # Main function
 main() {
-    init_colours
-    init_variables
     display_info
     clean_directories
     create_repository
