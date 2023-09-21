@@ -1,27 +1,27 @@
 #!/bin/bash
 
 # Variables
-WORKDIR="/home/syntax990/SYN-OS/WORKDIR"
-ISODIR="/home/syntax990/SYN-OS"
-ISOPROFILE="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/"
+ARCHISO_WORKDIR="/home/syntax990/SYN-OS/WORKDIR"
+SYN_ISO_DIR="/home/syntax990/SYN-OS"
+SYN_ISO_PROFILE="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/"
 
 # Check and remove existing WORKDIR
-if [ -d "$WORKDIR" ]; then
-    rm -R "$WORKDIR"
-    echo "The directory $WORKDIR has been deleted."
+if [ -d "$ARCHISO_WORKDIR" ]; then
+    rm -R "$ARCHISO_WORKDIR"
+    echo "The directory $ARCHISO_WORKDIR has been deleted."
 else
-    echo "The directory $WORKDIR does not exist."
+    echo "The directory $ARCHISO_WORKDIR does not exist."
 fi
 
 # Check and remove existing ISO files
-for iso_file in "$ISODIR"/*.iso; do
+for iso_file in "$SYN_ISO_DIR"/*.iso; do
     if [ -f "$iso_file" ]; then
         rm "$iso_file"
-        echo "The file $iso_file has been deleted."
+        echo "The old image $iso_file has been deleted."
     else
-        echo "No ISO files found in $ISODIR."
+        echo "No ISO files found in $SYN_ISO_DIR."
     fi
 done
 
 # Create a new ISO
-mkarchiso -v -w "$WORKDIR" -o "$ISODIR" "$ISOPROFILE"
+mkarchiso -v -w "$ARCHISO_WORKDIR" -o "$SYN_ISO_DIR" "$SYN_ISO_PROFILE"
