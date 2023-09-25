@@ -1,43 +1,106 @@
 # SYN-OS
 
-SYN-OS is a compact Arch Linux-based distribution created by William Hayward-Holland (Syntax990). It provides a streamlined desktop environment with Tint2 and Openbox, optimized for both older and modern hardware. This distribution is designed for advanced users looking to customize their system.
+SYN-OS is an advanced Arch Linux-based operating system project, masterminded by William Hayward-Holland (Syntax990). It is tailored for individuals with elevated demands for efficiency, flexibility, and scalability. 
 
-**Note:** This installer is not a shortcut for deploying Arch Linux. It is intended for those who seek a bespoke system and are already running an Arch Linux base setup.
+**Canonical Version:** SYN-OS-2035 serves as the authoritative build, while earlier versions remain for historical context.
 
-[Visit the Wiki!](https://github.com/syn990/SYN-OS/wiki)
+### SYN-OS Sub-Components
 
-## Repository Directories
+### SYN-DOTFILES
 
-- **SYN-ISO-PROFILE:** Contains the ISO profile for building the OS image.
-- **SYN-ROOTOVERLAY:** Contains system-wide configurations.
-- **SYN-DOTFILES:** Includes dotfiles for customizing applications.
-- **SYN-INSTALLER-SCRIPTS:** Houses installer scripts.
-- **SYN-TOOLS:** Provides various tools and utilities.
+This directory houses personalised configurations and customisations for various tools and utilities employed within the SYN-OS ecosystem. 
 
-## Customization
+#### Directories and Files in `/SYN-OS-2035/SYN-DOTFILES/.config/`
 
-SYN-OS is meant for advanced users who want to customize disk partitioning, package selection, and more. You can modify scripts and variables as needed.
+- **autostart**: Stores the `lxrandr-autostart.desktop` graphical resolution setting.
+- **dconf**: Contains `user` settings for the Dconf database, a low-level configuration system.
+- **htop**: Houses `htoprc`, which holds user-defined settings for the htop utility.
+- **kitty**: Contains `kitty.conf`, a configuration file for the Kitty terminal emulator.
+- **openbox**: Holds multiple Openbox files including `autostart`, `environment`, `menu.xml`, `menu.xml.1`, and `rc.xml` for various Openbox window manager configurations.
+- **pavucontrol-qt**: Includes `pavucontrol-qt.conf` for configuring the QT-based PulseAudio mixer.
+- **pcmanfm-qt/default**: Contains `recent-files.conf` and `settings.conf` for PcmanFM-Qt, a file manager.
+- **pulse**: Manages PulseAudio settings including databases and default sink/source configurations.
+- **qt5ct/colors**: Houses `syntax990.conf` for QT-based applications. 
+- **ranger**: Consists of multiple configuration files such as `commands_full.py`, `commands.py`, `rc.conf`, `rifle.conf`, and `scope.sh` for the Ranger file manager.
+- **tint2**: Includes a variety of tint2 configurations, from `blank` to various templates like `SYN-RTOS-DARKRED_TOP.tint2rc`.
+- **vlc**: Contains `vlc-qt-interface.conf` and `vlcrc` for VLC media player configurations.
 
-## Getting Started
+#### Other Dotfiles
+
+- **.oh-my-zsh**: Customisations for the Oh My Zsh shell framework.
+- **.themes**: Stores custom user themes.
+- **.wallpaper**: Holds custom wallpapers.
+- **.xinitrc**: X.Org initialisation script.
+- **.zshrc**: Zsh shell configurations.
+
+#### SYN-INSTALLER-SCRIPTS
+
+Shell scripts for bootstrapping and configuring the system.
+
+- `motd-primer.sh`: Creates the MOTD from the live installer to the resulting system.
+- `motd.sh`: Final Message of the Day script.
+- `syn-1_chroot.sh`: Chrooting script which executes the final tages of the installer on the live system.
+- `syn-ascii-art.sh`: ASCII Art as it's own shell script.
+- `syn-disk-variables.sh`: Disk variable definitions where wiping and formatting occurs.
+- `syn-installer-functions.sh`: Core installer functions.
+- `SYN-INSTALLER-MAIN.sh`: Main installation script. This is the one that is run, all the others are called from it.
+- `syn-pacstrap-variables.sh`: Pacstrap utility variables.
+
+#### SYN-ISO-PROFILE
+
+Holds the core data structures required for generating the bootable ISO.
+
+- `airootfs`: AI root filesystem.
+  - `etc`: System-wide configurations.
+    - `hostname`: System hostname.
+    - `locale.conf`: Localisation configurations.
+    - `localtime`: Local time settings.
+    - ... [Other configurations]
+
+[Note: Due to verbosity considerations, not all files and directories are listed. Please refer to the actual repository for a complete structure.]
+
+#### SYN-ROOTOVERLAY
+
+Contains essential root overlay configurations.
+
+- `boot`: Boot-related configurations.
+  - `loader`: Bootloader files.
+    - `entries`: Bootloader entries.
+    - `loader.conf`: Main loader configuration.
+
+- `etc`: System-wide configurations.
+  - `issue`: Login issue file.
+  - `os-release`: Operating system metadata.
+  - ... [Other configurations]
+
+#### SYN-TOOLS
+
+Holds a variety of utility scripts.
+
+- `equip-profile-with-repo.sh`: Script to equip the profile with the repository.
+- `REBUILD_ISO.sh`: Script to rebuild the ISO.
+
+---
+
+## Quick Start Guide
 
 1. Clone the repository: `git clone https://github.com/syn990/SYN-OS.git`
-2. Install dependencies: `sudo pacman -S archiso`
-3. Modify SYN-ISO-PROFILE, populate airootfs, and adjust installer scripts.
-4. Build your customized ISO: `sudo mkarchiso -v SYN-OS/SYN-ISO-PROFILE`
-5. Be patient; the custom ISO will be in the 'out' directory.
-
-Once the ISO is generated, it can be booted on systems that are x86_64-compatible, adhering to Arch Linux specifications.
+2. Install requisite dependencies: `sudo pacman -S archiso`
+3. Edit `/SYN-OS-2035/SYN-ISO-PROFILE` and its `airootfs`.
+4. `sudo mkarchiso -v /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE`
+5. Output will be in 'out' directory.
+6. Boot that ISO up.
 
 ## License
 
-SYN-OS is under the MIT License, allowing you to use, modify, and distribute it for any purpose, including commercial. See the [LICENSE](https://github.com/syn990/SYN-OS/blob/main/LICENSE) for details.
+Licensed under MIT. See [LICENSE](https://github.com/syn990/SYN-OS/blob/main/LICENSE) for details.
 
 <p align="center">
-  <img src="./Images/LICENSE.png" alt="SYN-OS Image">
+  <img src="./Images/LICENSE.png" alt="SYN-OS License">
 </p>
 
 ## Support
 
-For support or questions, you can contact William Hayward-Holland via [LinkedIn](https://www.linkedin.com/in/william-hayward-holland-990/) or email at william@npc.syntax990.com.
+Contact via [LinkedIn](https://www.linkedin.com/in/william-hayward-holland-990/) or `william@npc.syntax990.com`.
 
-Please refer to [The Arch Wiki](https://wiki.archlinux.org) for resources beyond the project's scope.
+For further guidance, please refer to [The Arch Wiki](https://wiki.archlinux.org).
