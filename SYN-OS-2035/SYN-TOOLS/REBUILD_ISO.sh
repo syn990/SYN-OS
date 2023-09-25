@@ -5,11 +5,11 @@
 # creates a new ISO using mkarchiso, and removes installer scripts from the target directory.
 
 # Variables
-ARCHISO_WORKDIR="/home/syntax990/SYN-OS/WORKDIR"  # The working directory for mkarchiso.
-SYN_ISO_DIR="/home/syntax990/SYN-OS"  # The directory where the SYN-OS ISO files are located.
-SYN_ISO_PROFILE="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/"  # The profile directory for mkarchiso.
+ARCHISO_WORKDIR="/home/syntax990/SYN-OS/WORKDIR"                                # The working directory for mkarchiso.
+SYN_ISO_DIR="/home/syntax990/SYN-OS"                                            # The directory where the SYN-OS ISO files are located.
+SYN_ISO_PROFILE="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/"             # The profile directory for mkarchiso.
 INSTALLER_SCRIPTS_DIR="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-INSTALLER-SCRIPTS"  # The directory containing the installer scripts.
-TARGET_DIR="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/airootfs/root"  # The target directory for moving installer scripts.
+TARGET_DIR="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/airootfs/root"     # The target directory for moving installer scripts.
 
 # Check and remove existing WORKDIR
 # Check if the ARCHISO_WORKDIR directory exists.
