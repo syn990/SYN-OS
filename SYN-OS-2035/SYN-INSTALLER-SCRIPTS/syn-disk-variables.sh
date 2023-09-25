@@ -23,6 +23,8 @@ ROOT_FILESYSTEM_990="f2fs"
 #            mkdir /mnt/boot/
 #            mount /dev/sda1 /mnt/boot
 
-# Alternativley, you can just use cfdisk, gdisk, parted, or any other partioning software or
+# SYN-INSTALLER-MAIN.sh is using parted with the above variables to wipe and format the disks. 
+# Alternativley, you can just use cfdisk, gdisk, or any other partioning software or
 # hardware, even a Windows installer, so long as the linux kernel can read it and boot from it...
+
 # When going rouge and removing the partitioning you will also have to mount, and make filesystems..
