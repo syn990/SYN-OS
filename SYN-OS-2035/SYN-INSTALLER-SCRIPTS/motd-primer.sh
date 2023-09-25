@@ -6,7 +6,7 @@ set -e
 
 # First, we define some variables. The PROFILE_PATH variable is the path to the directory where your custom archiso profile is located.
 # The MOTD_SCRIPT variable is the name of the script that will display the MOTD.
-PROFILE_PATH="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE"  # Path to the custom archiso profile directory
+PROFILE_PATH="/home/syntax990/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE"  # Path to the custom archiso profile directory
 MOTD_SCRIPT="motd.sh"  # Name of the script that displays the MOTD
 
 # We use the 'cd' command to change the current directory to the directory where the custom archiso profile is located.

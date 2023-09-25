@@ -6,15 +6,15 @@
 # All variables, functions and processes will branch from this script.
 
 # Installation:
-# This script aims to do the following: (/root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/*)
+# This script aims to do the following: (/root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/*)
 # - Map defined partition, file-system and mounting information seen in syn-disk-variables.sh
-# - Pacstrap using packages described in pacstrap_variables.sh
+# - Pacstrap using packages described in syn-pacstrap-variables.sh
 
 # Load additional sources
-source /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-installer-functions.sh
-source /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-disk-variables.sh
-source /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh
-source /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-ascii-art.sh
+source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-installer-functions.sh
+source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-disk-variables.sh
+source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh
+source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-ascii-art.sh
 
 clear
 display_syn_os_logo
@@ -122,7 +122,7 @@ if [ -d "/etc/pacman.d/gnupg" ]; then
     sudo rm -r "/etc/pacman.d/gnupg"
 fi
 
-# Initialize and populate keyring
+# Initialize and populate keyring - A requirement for first-run
 echo "Initializing new keyring..."
 sudo pacman-key --init
 
@@ -139,8 +139,8 @@ pacstrap /mnt $SYNSTALL
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # COPY ROOT OVERLAY MATERIALS
-cp -R /root/SYN-OS-V4/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990
-cp -R /root/SYN-OS-V4/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990
+cp -R /root/SYN-OS-2035/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990
+cp -R /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990
 
 # NOTIFICATION: Entering Stage 1
 echo "NOTIFICATION: Stage Zero Complete - Entering Stage 1"
@@ -162,7 +162,6 @@ echo "5. Essential packages were installed to the resulting system using Pacstra
 echo "6. Mirror mystics were applied and the keyring was re-secured."
 echo "7. Cryptographic keys for Pacman were generated and the package database was updated."
 echo "8. The root overlay materials from $ROOT_OVERLAY_DIRECTORY were copied to the root directory."
-
 
 arch-chroot $ROOT_MOUNT_LOCATION_990 chmod +x /syn-1_chroot.sh
 arch-chroot $ROOT_MOUNT_LOCATION_990 /syn-1_chroot.sh
