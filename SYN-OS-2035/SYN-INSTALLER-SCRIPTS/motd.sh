@@ -1,11 +1,5 @@
 #!/bin/bash
 
-printf "\n\e[1;32mWelcome to \e[1mSYN-OS\e[0;32m. This robust and advanced operating system marks the evolution of building your own operating system, based on \e[1mArch Linux\e[0;32m.\e[0m\n\n"
-
-
-
-#!/bin/bash
-
 # Source additional functions
 source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-installer-functions.sh
 
