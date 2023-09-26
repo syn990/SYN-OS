@@ -6,15 +6,15 @@
 # All variables, functions and processes will branch from this script.
 
 # Installation:
-# This script aims to do the following: (/root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/*)
+# This script aims to do the following: (/root/SYN-INSTALLER-SCRIPTS/*)
 # - Map defined partition, file-system and mounting information seen in syn-disk-variables.sh
 # - Pacstrap using packages described in syn-pacstrap-variables.sh
 
 # Load additional sources
-source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-installer-functions.sh
-source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-disk-variables.sh
-source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh
-source /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-ascii-art.sh
+source /root/SYN-INSTALLER-SCRIPTS/syn-installer-functions.sh
+source /root/SYN-INSTALLER-SCRIPTS/syn-disk-variables.sh
+source /root/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh
+source /root/SYN-INSTALLER-SCRIPTS/syn-ascii-art.sh
 
 clear
 display_syn_os_logo
@@ -139,8 +139,8 @@ pacstrap /mnt $SYNSTALL
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # COPY ROOT OVERLAY MATERIALS
-cp -R /root/SYN-OS-2035/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990
-cp -R /root/SYN-OS-2035/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990
+cp -R /root/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990
+cp -R /root/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990
 
 # NOTIFICATION: Entering Stage 1
 echo "NOTIFICATION: Stage Zero Complete - Entering Stage 1"

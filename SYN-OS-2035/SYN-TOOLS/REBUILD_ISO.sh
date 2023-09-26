@@ -5,11 +5,11 @@
 # creates a new ISO using mkarchiso, and removes installer scripts from the target directory.
 
 # Variables
-ARCHISO_WORKDIR="/home/syntax990/SYN-OS/WORKDIR"                                # The working directory for mkarchiso.
-SYN_ISO_DIR="/home/syntax990/SYN-OS"                                            # The directory where the SYN-OS ISO files are located.
-SYN_ISO_PROFILE="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/"             # The profile directory for mkarchiso.
-INSTALLER_SCRIPTS_DIR="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-INSTALLER-SCRIPTS"  # The directory containing the installer scripts.
-TARGET_DIR="/home/syntax990/SYN-OS/SYN-OS-V4/SYN-ISO-PROFILE/airootfs/root"     # The target directory for moving installer scripts.
+ARCHISO_WORKDIR="/home/syntax990/Github-Projects/SYN-OS/WORKDIR"                                # The working directory for mkarchiso.
+SYN_ISO_DIR="/home/syntax990/Github-Projects/SYN-OS"                                            # The directory where the SYN-OS ISO files are located.
+SYN_ISO_PROFILE="/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/"             # The profile directory for mkarchiso.
+INSTALLER_SCRIPTS_DIR="/home/syntax990/SYN-OS/SYN-OS-2035/SYN-INSTALLER-SCRIPTS"  # The directory containing the installer scripts.
+TARGET_DIR="/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root"     # The target directory for moving installer scripts.
 
 # Check and remove existing WORKDIR
 # Check if the ARCHISO_WORKDIR directory exists.
@@ -31,7 +31,7 @@ done
 # Check if the INSTALLER_SCRIPTS_DIR directory exists.
 # If it exists, copy its contents to the TARGET_DIR directory and display a message.
 # If it doesn't exist, display a message indicating that it doesn't exist.
-[ -d "$INSTALLER_SCRIPTS_DIR" ] && { cp -R "$INSTALLER_SCRIPTS_DIR" "$TARGET_DIR"; echo "Moved $INSTALLER_SCRIPTS_DIR to $TARGET_DIR."; } || echo "The directory $INSTALLER_SCRIPTS_DIR does not exist."
+#[ -d "$INSTALLER_SCRIPTS_DIR" ] && { cp -R "$INSTALLER_SCRIPTS_DIR" "$TARGET_DIR"; echo "Moved $INSTALLER_SCRIPTS_DIR to $TARGET_DIR."; } || echo "The directory $INSTALLER_SCRIPTS_DIR does not exist."
 
 # Create a new ISO
 # Use mkarchiso to create a new ISO image.
@@ -45,4 +45,4 @@ mkarchiso -v -w "$ARCHISO_WORKDIR" -o "$SYN_ISO_DIR" "$SYN_ISO_PROFILE"
 # Check if the SYN-INSTALLER-SCRIPTS directory exists in the TARGET_DIR directory.
 # If it exists, remove it and display a message.
 # If it doesn't exist, display a message indicating that it wasn't found.
-[ -d "${TARGET_DIR}/SYN-INSTALLER-SCRIPTS" ] && { rm -R "${TARGET_DIR}/SYN-INSTALLER-SCRIPTS"; echo "Removed SYN-INSTALLER-SCRIPTS from $TARGET_DIR."; } || echo "The directory SYN-INSTALLER-SCRIPTS was not found in $TARGET_DIR."
+        #[ -d "${TARGET_DIR}/SYN-INSTALLER-SCRIPTS" ] && { rm -R "${TARGET_DIR}/SYN-INSTALLER-SCRIPTS"; echo "Removed SYN-INSTALLER-SCRIPTS from $TARGET_DIR."; } || echo "The directory SYN-INSTALLER-SCRIPTS was not found in $TARGET_DIR."
