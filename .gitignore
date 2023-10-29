@@ -1,2 +1,3 @@
 *.iso
 SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root
+WORKDIR/

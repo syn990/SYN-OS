@@ -1,21 +1,8 @@
 #!/bin/bash
-
-
-# Display script instructions
-echo "DO NOT RUN INSIDE THE INSTALL SHELL" & sleep 0.5
-echo "MAKE SURE YOU ARE RUNNING THIS SCRIPT INSIDE THE NEW ROOT DIRECTORY" & sleep 0.5
-echo "RUNNING THIS ON A LIVE SYSTEM WILL DESTROY IT, INCLUDING THE ISO INSTALLER ROOT DIRECTORY" & sleep 0.5
-echo & sleep 0.5
-echo "ABSOLUTELY BE SURE YOU HAVE USED ARCH-CHROOT AND THIS SCRIPT IS RUNNING IN THE NEW RESULTING SYSTEM ROOT DIRECTORY" & sleep 0.5
-echo "YOU HAVE BEEN WARNED..." & sleep 0.5
-echo & sleep 0.5
-
 clear
 
 # Main script variables
-echo "Setting up main script variables" & sleep 0.5 
-
-clear
+echo "Setting up new system variables" & sleep 0.5 
 
 ## BELOW ARE THE VARIABLES WHICH ARE TO BE MODIFIED TO SUIT YOUR RESULT SYSTEM PREFERENCES, (Edit the strings before &&)
 # Set the default username
@@ -77,7 +64,9 @@ echo
 echo "Generating system variables"
 sleep 0.5
 
-echo "Removing existing locale.gen file" & rm /etc/locale.gen & sleep 0.5
+# Remove any garbled data or prematurley created locale.gen
+echo "Removing existing locale.gen file"
+rm /etc/locale.gen
 
 echo "Creating new locale.gen file with locale generation"
 touch /etc/locale.gen && echo "$LOCALE_GEN_990" >> /etc/locale.gen
@@ -120,7 +109,25 @@ sleep 0.5
 
 systemctl enable "dhcpcd@$NETWORK_INTERFACE_990.service"
 systemctl enable iwd.service
+
+# Install and configure the bootloader (systemd-boot)
+echo "Installing and configuring bootloader (systemd-boot)"
+
 bootctl --path=/boot install
+ROOT_REAL_UUID_990=$(blkid -s UUID -o value /dev/mapper/cryptroot)
+
+echo "default syn.conf" > /boot/loader/loader.conf
+echo "timeout 0" >> /boot/loader/loader.conf
+echo "editor 0" >> /boot/loader/loader.conf
+
+echo "title   SYN-OS - 2035" > /boot/loader/entries/syn.conf
+echo "linux   /vmlinuz-linux" >> /boot/loader/entries/syn.conf
+echo "initrd  /initramfs-linux.img" >> /boot/loader/entries/syn.conf
+echo "options cryptdevice=UUID=$ROOT_REAL_UUID_990:cryptroot root=/dev/mapper/cryptroot rw" >> /boot/loader/entries/syn.conf
+
+# Write the mkinitcpio data to ensure the system has the neccessary hooks to decrypt itself
+echo 'HOOKS=(base udev modconf kms memdisk encrypt block filesystems keyboard)' >> /etc/mkinitcpio.conf
+
 sleep 0.5
 
 # Display final instructions
