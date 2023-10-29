@@ -64,11 +64,29 @@ createIso() {
 }
 
 # Function to copy dotfiles, the root overlay files and installer scripts from the GitHub repo directories to Archiso profile
+# Function to copy dotfiles, the root overlay files, and installer scripts from the GitHub repo directories to Archiso profile
 copyDataToProfile() {
+    # Check if the directories exist inside airootfs/root and delete them if present
+    if [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-DOTFILES" ] || [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-INSTALLER-SCRIPTS" ] || [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-ROOTOVERLAY" ]; then
+        rm -rf /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-DOTFILES
+        rm -rf /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-INSTALLER-SCRIPTS
+        rm -rf /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-ROOTOVERLAY
+    fi
+
+    # Copy dotfiles, installer scripts, and root overlay files to airootfs/root
     cp -vR /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-DOTFILES /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root
     cp -vR /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-INSTALLER-SCRIPTS /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root
     cp -vR /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ROOTOVERLAY /home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root
+
+    # Echo messages to the user
+    echo "Files copied to airootfs/root successfully."
+
+    # Check if the directories did not exist and notify the user
+    if [ $? -eq 0 ]; then
+        echo "The directories did not exist in airootfs/root, copying them now."
+    fi
 }
+
 
 # Main menu function for interactive selection
 menu() {
