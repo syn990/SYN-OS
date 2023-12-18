@@ -20,8 +20,6 @@ check_success() {
     fi
 }
 
-# Function to set up a local repository OF THE CURRENT SYSTEM and copy it to Archiso profile
-setupLocalRepo() {    
     username="syntax990"
     github_project_name="SYN-OS"
     local_repo_name="SYN-OS-REPO"
@@ -32,6 +30,9 @@ setupLocalRepo() {
     local_repo_path="/root/$local_repo_name"
     releng_custom_path="/home/$username/Github-Projects/$github_project_name/$version/$ARCHISO_PROFILE"
     cache_path="/var/cache/pacman/pkg"
+
+# Function to set up a local repository OF THE CURRENT SYSTEM and copy it to Archiso profile
+setupLocalRepo() {    
 
     rm -Rv $local_repo_path
     rm -Rv $releng_custom_path/airootfs/root/$local_repo_name
@@ -50,21 +51,7 @@ setupLocalRepo() {
     check_success "Failed to copy the local repository to $releng_custom_path/airootfs/root"
 }
 
-# Function to create a new ISO image for SYN-OS
-createIso() {
-    ARCHISO_WORKDIR="/home/syntax990/Github-Projects/SYN-OS/WORKDIR"
-    SYN_ISO_DIR="/home/syntax990/Github-Projects/SYN-OS"
-    SYN_ISO_PROFILE="/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE"
-
-    [ -d "$ARCHISO_WORKDIR" ] && { rm -R "$ARCHISO_WORKDIR"; }
-    rm "$SYN_ISO_DIR"/*.iso
-
-    mkarchiso -v -w "$ARCHISO_WORKDIR" -o "$SYN_ISO_DIR" "$SYN_ISO_PROFILE"
-    check_success "Failed to create ISO using mkarchiso"
-}
-
 # Function to copy dotfiles, the root overlay files and installer scripts from the GitHub repo directories to Archiso profile
-# Function to copy dotfiles, the root overlay files, and installer scripts from the GitHub repo directories to Archiso profile
 copyDataToProfile() {
     # Check if the directories exist inside airootfs/root and delete them if present
     if [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-DOTFILES" ] || [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-INSTALLER-SCRIPTS" ] || [ -d "/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root/SYN-ROOTOVERLAY" ]; then
@@ -87,6 +74,18 @@ copyDataToProfile() {
     fi
 }
 
+# Function to create a new ISO image for SYN-OS
+createIso() {
+    ARCHISO_WORKDIR="/home/syntax990/Github-Projects/SYN-OS/WORKDIR"
+    SYN_ISO_DIR="/home/syntax990/Github-Projects/SYN-OS"
+    SYN_ISO_PROFILE="/home/syntax990/Github-Projects/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE"
+
+    [ -d "$ARCHISO_WORKDIR" ] && { rm -R "$ARCHISO_WORKDIR"; }
+    rm "$SYN_ISO_DIR"/*.iso
+
+    mkarchiso -v -w "$ARCHISO_WORKDIR" -o "$SYN_ISO_DIR" "$SYN_ISO_PROFILE"
+    check_success "Failed to create ISO using mkarchiso"
+}
 
 # Main menu function for interactive selection
 menu() {
@@ -94,10 +93,15 @@ menu() {
     echo "------------------------------------------------------------------"
     echo "${GREEN}SYN-OS Build and Deployment Interactive Prompt${NC}"
     echo "------------------------------------------------------------------"
-    echo "1) Setup Local Repository and Copy to Archiso Profile"
-    echo "2) Copy Data (The dotfiles, root-overlay materials and the installer scripts) to Archiso Profile"
+    echo "1)   Spin up a repository on-the-fly based on this systems packages:"
+    echo
+    echo "   - Pull data directly from this system's cache:  $BLUE [ $NC $RED $cache_path $NC $BLUE ] $NC"
+    echo "   - Set up a Local Repository:                    $BLUE [ $NC $RED $local_repo_path $NC $BLUE ] $NC" 
+    echo "   - Copy it to Archiso Profile:                   $BLUE [ $NC $RED $releng_custom_path $NC $BLUE ] $NC"
+    echo 
+    echo "2) Copy Data (Dotfiles, Root-overlay Materials, and Installer Scripts) to Archiso Profile"
     echo "3) Create New ISO Image for SYN-OS"
-    echo "4) Run all steps in sequence 1, 2 and 3"
+    echo "4) Run all Steps in Sequence 1, 2, and 3"
     echo "5) Quit"
     echo "------------------------------------------------------------------"
     echo "Please enter your choice: "
