@@ -23,11 +23,13 @@ echo "${RESET}"
 
 # Welcome Message
 printf "${YELLOW}Welcome to SYN-OS.${RESET}\n"
-printf "This system is built on the robust architecture of Arch Linux.\n"
+printf "This system is built as a custom profile, built on the release-engineering architecture of Arch Linux.\n"
+printf "Build by Syntax990 a.k.a William Hayward-Holland.\n"
 
 # Script Context
-printf "\n${BLUE}You are currently in the SYN-OS installation environment.${RESET}\n"
-printf "The SYN-INSTALLER-MAIN.sh script has guided the system setup and initialisation.\n"
+printf "\nYou are currently in the SYN-OS installation environment.\n"
+printf "The ${BLUE}SYN-INSTALLER-MAIN.sh${RESET} script has guided the system setup and initialisation.\n"
+printf "${RED} sh ${RESET} ${YELLOW} SYN-INSTALLER-SCRIPTS/SYN-INSTALLER-MAIN.sh ${RESET} \n"
 printf "Execute that script to begin installation.\n"
 
 # Status and Tips
@@ -43,12 +45,6 @@ else
 fi
 
 printf "• SYN-OS components loaded: ${GREEN}Successful${RESET}\n"
-
-# What to do next
-printf "\n${YELLOW}Next Steps:${RESET}\n"
-printf "1. Use ${GREEN}arch-chroot${RESET} to enter the new environment.\n"
-printf "2. Run additional post-installation scripts as needed.\n"
-printf "3. Check logs and configurations before rebooting.\n"
 
 # Footer
 printf "\n${BLUE}Support and Resources:${RESET}\n"
