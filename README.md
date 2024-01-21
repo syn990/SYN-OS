@@ -1,28 +1,36 @@
 # SYN-OS
 
-SYN-OS is an advanced Arch Linux-based operating system project, masterminded by William Hayward-Holland (Syntax990). It is tailored for individuals with elevated demands for efficiency, flexibility, and scalability. 
+**Author:** William Hayward-Holland (Syntax990)
 
-**Canonical Version:** SYN-OS-2035 serves as the authoritative build, while earlier versions remain for historical context.
+## Overview
 
-### SYN-OS Sub-Components
+SYN-OS is an advanced Arch Linux-based operating system, meticulously crafted by William Hayward-Holland, also known as Syntax990. Tailored for individuals with heightened demands for efficiency, flexibility, and scalability, SYN-OS stands out as a project aiming to provide a unique blend of customizability and performance.
 
-### SYN-DOTFILES
+## Key Features
 
-This directory houses personalised configurations and customisations for various tools and utilities employed within the SYN-OS ecosystem. 
+- **Efficiency and Flexibility:** SYN-OS leverages Arch Linux to offer users a quick template for deploying a custom-curated system. Much like the arch-installer, this project provides a comprehensive overview, empowering users to construct the interface and understand the minimal system, adapting scripts to their specific designs and use-cases.
+
+- **Underlying Technology:** The operating system is an illusion crafted from the usage of "archiso," utilizing the same tools employed by developers during the release engineering ISO production. SYN-OS is an adapted version of this project, incorporating a full graphical environment and a suite of software. Its documentation allows users to seamlessly shift the system according to their preferences, ensuring a personalized experience.
+
+- **Stability and Versatility:** SYN-OS, when used standalone, delivers a stable and simple operating system capable of addressing the most modern use-cases for laptops, servers, or workstations. Resembling vanilla Arch Linux, SYN-OS guarantees freedom from vendor lock-in. 
+
+**Canonical Version:** SYN-OS-2035 serves as the authoritative build, while earlier versions are retained for historical context.
 
 #### Directories and Files in `/SYN-OS-2035/SYN-DOTFILES/.config/`
+
+Dotfiles are the personalized configurations and customizations that elevate SYN-OS to meet user preferences. The `/SYN-OS-2035/SYN-DOTFILES/.config/` directory houses various configurations:
 
 - **autostart**: Stores the `lxrandr-autostart.desktop` graphical resolution setting.
 - **dconf**: Contains `user` settings for the Dconf database, a low-level configuration system.
 - **htop**: Houses `htoprc`, which holds user-defined settings for the htop utility.
 - **kitty**: Contains `kitty.conf`, a configuration file for the Kitty terminal emulator.
-- **openbox**: Holds multiple Openbox files including `autostart`, `environment`, `menu.xml`, `menu.xml.1`, and `rc.xml` for various Openbox window manager configurations.
+- **openbox**: Holds multiple Openbox files including `autostart`, `environment`, `menu.xml`, and `rc.xml` for various Openbox window manager configurations.
 - **pavucontrol-qt**: Includes `pavucontrol-qt.conf` for configuring the QT-based PulseAudio mixer.
 - **pcmanfm-qt/default**: Contains `recent-files.conf` and `settings.conf` for PcmanFM-Qt, a file manager.
 - **pulse**: Manages PulseAudio settings including databases and default sink/source configurations.
-- **qt5ct/colors**: Houses `syntax990.conf` for QT-based applications. 
-- **ranger**: Consists of multiple configuration files such as `commands_full.py`, `commands.py`, `rc.conf`, `rifle.conf`, and `scope.sh` for the Ranger file manager.
-- **tint2**: Includes a variety of tint2 configurations, from `blank` to various templates like `SYN-RTOS-DARKRED_TOP.tint2rc`.
+- **qt5ct/colors**: Houses `syntax990.conf` for QT-based applications. These are the SYN-OS qt window colours. 
+- **ranger**: Consists of multiple configuration files for the Ranger file manager.
+- **tint2**: Includes a variety of tint2 configurations, this is the panel. Themes like `SYN-RTOS-DARKRED_TOP.tint2rc` are included.
 - **vlc**: Contains `vlc-qt-interface.conf` and `vlcrc` for VLC media player configurations.
 
 #### Other Dotfiles
@@ -32,6 +40,12 @@ This directory houses personalised configurations and customisations for various
 - **.wallpaper**: Holds custom wallpapers.
 - **.xinitrc**: X.Org initialisation script.
 - **.zshrc**: Zsh shell configurations.
+
+#### Auto-Start Properties
+
+- ** Desktop/Session Managment ? ** - The installed system starts in a tty and requests username/password.
+- ** xinitrc + openbox + xcompmgr ** - xcompmgr provides basic compositing such as transparency and shadows and is run along side openbox.
+- ** lightdm or anything? ** Nope... We use startx to ensure no bloat or wasted resources on daemons managing a graphical insecure login screen.
 
 #### SYN-INSTALLER-SCRIPTS
 
