@@ -7,9 +7,9 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # Initialise colour codes
-RED='\033[1;31m'
+RED='\033[0;34m'
 GREEN='\033[0;32m'
-BLUE='\033[0;34m'
+BLUE='\033[1;94m'
 NC='\033[0m'
 
 # Function to check the success of the previous command
@@ -93,17 +93,36 @@ menu() {
     echo "------------------------------------------------------------------"
     echo "${GREEN}SYN-OS Build and Deployment Interactive Prompt${NC}"
     echo "------------------------------------------------------------------"
-    echo "1)   Spin up a repository on-the-fly based on this systems packages:"
+    echo "1) Spin up a repository on-the-fly based on this system's packages:"
     echo
-    echo "   - Pull data directly from this system's cache:  $BLUE [ $NC $RED $cache_path $NC $BLUE ] $NC"
-    echo "   - Set up a Local Repository:                    $BLUE [ $NC $RED $local_repo_path $NC $BLUE ] $NC" 
-    echo "   - Copy it to Archiso Profile:                   $BLUE [ $NC $RED $releng_custom_path $NC $BLUE ] $NC"
+    echo "   - Pull data directly from this system's cache:  ${BLUE}[ ${NC}${RED}$cache_path${NC}${BLUE} ]${NC}"
+    echo "   - Set up a Local Repository:                    ${BLUE}[ ${NC}${RED}$local_repo_path${NC}${BLUE} ]${NC}" 
+    echo "   - Copy it to Archiso Profile:                   ${BLUE}[ ${NC}${RED}$releng_custom_path${NC}${BLUE} ]${NC}"
     echo 
     echo "2) Copy Data (Dotfiles, Root-overlay Materials, and Installer Scripts) to Archiso Profile"
-    echo "3) Create New ISO Image for SYN-OS"
+    echo 
+    echo "   - ${BLUE}autostart:${NC} Stores the 'lxrandr-autostart.desktop' graphical resolution setting."
+    echo "   - ${BLUE}dconf:${NC} Contains 'user' settings for the Dconf database, a low-level configuration system."
+    echo "   - ${BLUE}htop:${NC} Houses 'htoprc', which holds user-defined settings for the htop utility."
+    echo "   - ${BLUE}kitty:${NC} Contains 'kitty.conf', a configuration file for the Kitty terminal emulator."
+    echo "   - ${BLUE}openbox:${NC} Holds multiple files for Openbox window manager and desktop panel configurations."
+    echo "   - ${BLUE}pavucontrol-qt:${NC} Includes 'pavucontrol-qt.conf' for configuring the QT-based PulseAudio mixer."
+    echo "   - ${BLUE}pcmanfm-qt/default:${NC} Contains 'recent-files.conf' and 'settings.conf' for PcmanFM-Qt, a file manager."
+    echo "   - ${BLUE}pulse:${NC} Manages PulseAudio settings including databases and default sink/source configurations."
+    echo "   - ${BLUE}qt5ct/colors:${NC} Houses 'syntax990.conf' for QT-based applications. These are the SYN-OS QT window colors."
+    echo "   - ${BLUE}ranger:${NC} Consists of multiple configuration files for the Ranger file manager."
+    echo "   - ${BLUE}tint2:${NC} Includes a variety of tint2 configurations, this is the panel. Themes like 'SYN-RTOS-DARKRED_TOP.tint2rc' are included."
+    echo "   - ${BLUE}vlc:${NC} Contains 'vlc-qt-interface.conf' and 'vlcrc' for VLC media player configurations."
+    echo 
+    echo "3) Create New ISO Image for SYN-OS-2035 Archiso Project"
+    echo "   - The ISO image will be based on the SYN-OS-2035 Archiso project configuration."
+    echo 
     echo "4) Run all Steps in Sequence 1, 2, and 3"
+    echo "   - ${BLUE}IMPORTANT:${NC} Press 4 unless you want to sequentially modify before building the ISO."
+    echo
     echo "5) Quit"
     echo "------------------------------------------------------------------"
+    echo
     echo "Please enter your choice: "
 
     read choice
