@@ -7,7 +7,9 @@
 SYN-OS is an advanced Arch Linux-based operating system, meticulously crafted by William Hayward-Holland, also known as Syntax990. Tailored for individuals with heightened demands for efficiency, flexibility, and scalability, SYN-OS stands out as a project aiming to provide a unique blend of customizability and performance.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/QWRoTm8-x84" frameborder="0" allowfullscreen></iframe>
+
 <iframe width="560" height="315" src="https://www.youtube.com/embed/2aPcttW8LJk" frameborder="0" allowfullscreen></iframe>
+
 <iframe width="560" height="315" src="https://www.youtube.com/embed/RZXVWXwVmeg" frameborder="0" allowfullscreen></iframe>
 
 ## Key Features
