@@ -1,6 +1,4 @@
-# Path to your oh-my-zsh installation.
-DEFAULT_USER_990=$USER
-export ZSH="/home/$DEFAULT_USER_990/.oh-my-zsh"
+export ZSH="root/.oh-my-zsh"
 
 # Theme for zsh
 ZSH_THEME="random"
