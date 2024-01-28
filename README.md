@@ -1,8 +1,8 @@
 # SYN-OS
 
-**Author:** William Hayward-Holland (Syntax990)
+##### **Author:** William Hayward-Holland (Syntax990)
 
-## Overview
+### Overview
 
 SYN-OS is an ArchISO project, functioning as a custom Arch Linux-based operating system. 
 
@@ -12,12 +12,24 @@ SYN-OS is an ArchISO project, functioning as a custom Arch Linux-based operating
 
 Developed by William Hayward-Holland (Syntax990), SYN-OS utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. Tailored for enhanced efficiency, flexibility, and scalability, SYN-OS offers a unique blend of customizability and performance.
 
-## Key Features
+# Key Features
 
 - **Efficiency and Flexibility:** SYN-OS leverages Arch Linux, empowering users to customise their system.
 - **Underlying Technology:** Built upon "archiso," SYN-OS utilises tools developers use during ISO production.
 - **Stability and Versatility:** As a standalone system, SYN-OS delivers stability for modern use-cases on various platforms.
 - **User Interface Reinterpretation on Minimalism:** Focus on zero-touch configuration with Openbox as the primary session for X.
+
+## Openbox
+
+<p align="center">
+  <img src="./Images/openbox.png" alt="SYN-OS License">
+</p>
+
+## Openbox + SYN-OS
+
+<p align="center">
+  <img src="./Images/openbox-SYNOS.png" alt="SYN-OS License">
+</p>
 
 ## History
 
