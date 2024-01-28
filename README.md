@@ -28,41 +28,54 @@ Developed by William Hayward-Holland (Syntax990), SYN-OS utilises build scripts 
 
 ### The Dotfiles
 
-Custom configurations and customizations in `/SYN-OS-2035/SYN-DOTFILES/.config/` include:
+In UNIX-like operating systems, configuration files often start with a dot ('.') and are commonly referred to as "dotfiles." These files store user-specific settings and preferences for various applications, ensuring a personalized computing experience. SYN-OS embraces the concept of dotfiles to empower users with a customizable environment.
 
-- **autostart:** `lxrandr-autostart.desktop` graphical resolution setting.
-- **dconf:** `user` settings for the Dconf database.
-- **htop:** `htoprc` for user-defined settings in the htop utility.
-- **kitty:** `kitty.conf` for the Kitty terminal emulator.
-- **openbox:** Various Openbox files for different window manager configurations.
-- **pavucontrol-qt:** `pavucontrol-qt.conf` for configuring the QT-based PulseAudio mixer.
-- **.oh-my-zsh:** Customizations for the Oh My Zsh shell framework.
-- **.themes:** Custom user themes.
-- **.wallpaper:** Custom wallpapers.
-- **.xinitrc:** X.Org initialization script.
-- **.zshrc:** Zsh shell configurations.
-- ... [Other configurations]
-- ... [These are generic and not current in SYN-OS]
+Within SYN-OS, dotfiles are a crucial part of the system installer. They contain configurations for applications, window managers, and other components that contribute to the overall look and feel of the system. During the installation process, these dotfiles are copied into the ISO and later integrated into user profiles to ensure a consistent and tailored experience on SYN-OS.
+
+Let's explore some key dotfiles included in SYN-OS:
+
+- **autostart:** `lxrandr-autostart.desktop` (Graphical resolution for LXrandr).
+- **dconf:** `user` (User settings for Dconf).
+- **htop:** `htoprc` (User-defined settings for htop).
+- **kitty:** `kitty.conf` (Configuration for Kitty terminal emulator).
+- **openbox:** (Various Openbox files for window manager configurations).
+- **pavucontrol-qt:** `pavucontrol-qt.conf` (Configuration for QT-based PulseAudio mixer).
+- **.oh-my-zsh:** (Customizations for Oh My Zsh).
+- **.themes:** (Custom user themes).
+- **.wallpaper:** (Custom wallpapers).
+- **.xinitrc:** (X.Org initialization script).
+- **.zshrc:** (Zsh shell configurations).
+
+
+These dotfiles collectively contribute to the individuality and functionality of SYN-OS, allowing users to shape their computing environment according to their preferences.
+
 
 ### Auto-Start Properties
 
-- **Desktop/Session Management:** The system starts in a tty and requests username/password.
-- **xinitrc + openbox + xcompmgr:** Basic compositing with transparency and shadows run alongside openbox.
-- **lightdm or anything?:** No, we use startx to avoid unnecessary resources on graphical login screens.
+- **Embracing "Terminal By Design":** The system starts in a tty, prompting for a username/password, and optionally employs an X session through `xinitrc`, invoked by executing `startx`.
+- **Why no lightdm or session management?:** We choose startx to minimize resource usage, steering clear of unnecessary overhead from graphical login screens.
+- **`xinitrc` + `openbox` + `xcompmgr`:** This combination involves basic compositing with transparency and shadows, operating alongside openbox.
+
 
 ### Installer Scripts
 
 Shell scripts for bootstrapping and configuring the system:
-(These need deleting and starting afresh, drawing parrellels from the original 2 script setup)
 
-- `motd-primer.sh`: Creates the MOTD from the live installer to the resulting system.
-- `motd.sh`: Final Message of the Day script.
-- `syn-1_chroot.sh`: Chrooting script for executing the final stages of the installer.
-- ... [Other scripts]
+- `syn-stage0.sh` : Defines the disks, installs the packages and gets the system ready for chroot (to finalise)
+- `syn-stage1.sh`: Chrooting script for executing the final stages of the installer.
+- `motd-primer.sh`: Creates the MOTD from the live installer to the resulting system., combined with `motd.sh` which is somewhat working in 2035.
+- `SYN-INSTALLER-MAIN.sh` : An attempt at being the main thread of the other shell scripts, being the main script for installing SYN-OS.
+- `syn-disk-variables.sh` : Self-contained functions for pacstrap when setting up the system from the live ISO
+- `syn-ascii-art.sh` : Functions that contain ASCII art used for printf and echo.
+- `syn-pacstrap-variables.sh` : Self-contained functions for pacstrap when setting up the system from the live ISO.
+- `syn-installer-functions.sh` : Contains various extra non-essential components.
 
-### SYN-ISO-PROFILE
+
+### Archiso Profile
 
 Core data structures for generating the bootable ISO:
+
+SYN-OS is built from the baseline version of ArchISO, a core set of minimal features to boot the kernel.
 
 - `airootfs`: AI root filesystem.
   - `etc`: System-wide configurations.
