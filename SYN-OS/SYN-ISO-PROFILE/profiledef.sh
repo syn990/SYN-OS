@@ -4,8 +4,8 @@
 iso_name="SYN-OS"
 iso_label="$iso_name(date +%s)+%Y%m)"
 iso_publisher="Syntax990"
-iso_application="SYN-OS 2035"
-iso_version="2035"
+iso_application="SYN-OS"
+iso_version="chronomorph"
 install_dir="arch"
 buildmodes=('iso')
 bootmodes=('bios.syslinux.mbr' 'bios.syslinux.eltorito'
