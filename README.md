@@ -65,7 +65,7 @@ These dotfiles collectively contribute to the individuality and functionality of
 ### Auto-Start Properties
 
 - **Embracing "Terminal By Design":** The system starts in a tty, prompting for a username/password, and optionally employs an X session through `xinitrc`, invoked by executing `startx`.
-- **Why no lightdm or session management?:** We choose startx to minimize resource usage, steering clear of unnecessary overhead from graphical login screens.
+- **Why no lightdm or session management?:** We choose startx to minimize resource usage, steering clear of unnecessary overhead from graphical login screens. You are fully able to install and configure these login/desktop managers as you would on Arch Linux, at the cost of security and performance.
 - **`xinitrc` + `openbox` + `xcompmgr`:** This combination involves basic compositing with transparency and shadows, operating alongside openbox.
 
 
