@@ -4,29 +4,25 @@
 
 ## Overview
 
-SYN-OS is an ArchISO project, functioning as a custom Arch Linux-based operating system. 
-
-<p align="center">
-  <img src="SYN-OS-V3 or Earlier/repo/images/readme.md/FIRST-IMAGE.png" alt="SYN-OS License">
-</p>
-
-Developed by William Hayward-Holland (Syntax990), SYN-OS utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. Tailored for enhanced efficiency, flexibility, and scalability, SYN-OS offers a unique blend of customizability and performance.
+SYN-OS is a custom Arch Linux-based operating system designed by William Hayward-Holland, also known as Syntax990. Tailored for users seeking heightened efficiency, flexibility, and scalability, SYN-OS offers a unique blend of customizability and performance.
 
 ## Key Features
 
-- **Efficiency and Flexibility:** SYN-OS leverages Arch Linux, empowering users to customise their system.
-- **Underlying Technology:** Built upon "archiso," SYN-OS utilises tools developers use during ISO production.
-- **Stability and Versatility:** As a standalone system, SYN-OS delivers stability for modern use-cases on various platforms.
-- **User Interface Reinterpretation on Minimalism:** Focus on zero-touch configuration with Openbox as the primary session for X.
+- **Efficiency and Flexibility:** SYN-OS leverages Arch Linux to provide users with a customizable system. Similar to the arch-installer, this project empowers users to construct their interface, adapting scripts to specific designs and use-cases.
 
-## History
+- **Underlying Technology:** Built upon "archiso," SYN-OS utilizes the tools developers use during ISO production. It incorporates a full graphical environment and extensive documentation, enabling users to tailor the system to their preferences.
 
-- **SYN-OS:** Baseline version not ready for use.
-- **SYN-OS-2035:** A mixed build with a blend of ArchISO's default baseline and components from V4. (Failed)
-- **SYN-OS-V4:** Aiming to break away from the minimal 2-script method to describe the system programmatically. (Messy / Cancelled)
-- **Earlier SYN-RTOS:** Quick, dirty, and functional, but hard to interpret and lacks error control. (Historic, Very Useful)
+- **Stability and Versatility:** As a standalone system, SYN-OS delivers stability for modern use-cases on laptops, servers, or workstations. Resembling vanilla Arch Linux, it ensures freedom from vendor lock-in.
 
-### The Dotfiles
+- **User Interface Reinterpretation on Minimalism:** A core focus was to implement a zero-touch configuration of a system without a display manager or complete desktop envrioment, instead relying on Openbox as a simple session for X as well as a config drivel panel (tint2) to operate as the UI. A dynamic menu for browing installed applications (which is part of Openbox) has been adapted for the SYN-OS envrioment 
+
+**Canonical Version:** This version serves as the authoritative build, while earlier versions are retained for historical context. It is currently a blend of ArchISO's default baseline as well as various components new and from V4. 2035 refers to what year this system was released.
+
+**SYN-OS-V4:** This system was aiming to break away from the minimal 2 script method in order to better describe the system programatically as various shell components rather than a liner event-driven process.
+
+## Directory Structure
+
+### SYN-DOTFILES
 
 Custom configurations and customizations in `/SYN-OS-2035/SYN-DOTFILES/.config/` include:
 
@@ -36,13 +32,15 @@ Custom configurations and customizations in `/SYN-OS-2035/SYN-DOTFILES/.config/`
 - **kitty:** `kitty.conf` for the Kitty terminal emulator.
 - **openbox:** Various Openbox files for different window manager configurations.
 - **pavucontrol-qt:** `pavucontrol-qt.conf` for configuring the QT-based PulseAudio mixer.
+- ... [Other configurations]
+
+### Other Dotfiles
+
 - **.oh-my-zsh:** Customizations for the Oh My Zsh shell framework.
 - **.themes:** Custom user themes.
 - **.wallpaper:** Custom wallpapers.
 - **.xinitrc:** X.Org initialization script.
 - **.zshrc:** Zsh shell configurations.
-- ... [Other configurations]
-- ... [These are generic and not current in SYN-OS]
 
 ### Auto-Start Properties
 
@@ -50,10 +48,9 @@ Custom configurations and customizations in `/SYN-OS-2035/SYN-DOTFILES/.config/`
 - **xinitrc + openbox + xcompmgr:** Basic compositing with transparency and shadows run alongside openbox.
 - **lightdm or anything?:** No, we use startx to avoid unnecessary resources on graphical login screens.
 
-### Installer Scripts
+### SYN-INSTALLER-SCRIPTS
 
 Shell scripts for bootstrapping and configuring the system:
-(These need deleting and starting afresh, drawing parrellels from the original 2 script setup)
 
 - `motd-primer.sh`: Creates the MOTD from the live installer to the resulting system.
 - `motd.sh`: Final Message of the Day script.
@@ -68,13 +65,11 @@ Core data structures for generating the bootable ISO:
   - `etc`: System-wide configurations.
     - `hostname`, `locale.conf`, `localtime`, ... [Other configurations]
 
-[Note: Due to verbosity considerations, not all files and directories are listed. This all needs to be properly defined as it consists of a loose collection of text files.]
+[Note: Due to verbosity considerations, not all files and directories are listed. Please refer to the actual repository for a complete structure.]
 
 ### SYN-ROOTOVERLAY
 
-Data is to be copied into the archiso, as it is supposed to act as a pre-configuration ISO. This needs removing and the documentation needs improvement as this is complicating the setup and reducing reliability.
-
-Essential root overlay configurations include:
+Essential root overlay configurations:
 
 - `boot`: Boot-related configurations.
   - `loader`: Bootloader files.
@@ -83,20 +78,19 @@ Essential root overlay configurations include:
   - `issue`, `os-release`: Login issue file and operating system metadata.
   - ... [Other configurations]
 
-### External OS Tools
+### SYN-TOOLS
 
 Variety of utility scripts:
 
 - `equip-profile-with-repo.sh`: Script to equip the profile with the repository.
-- `SYN-BUILDER.ZSH`: Script to rebuild the ISO.
-- `Graph.sh`: Dynamic script to scan pwd, draw a directory tree in a dot matrix, then produce a few PDF and various algorithms to display the data.
+- `REBUILD_ISO.sh`: Script to rebuild the ISO.
 
 ## Quick Start Guide
 
 1. Clone the repository: `git clone https://github.com/syn990/SYN-OS.git`
 2. Install requisite dependencies: `sudo pacman -S archiso`
-3. Edit `/SYN-OS/SYN-ISO-PROFILE` and the contents of `airootfs` as well as the packages file to modify what is pre-included in the ISO.
-4. Run `SYN-BUILDER.ZSH`
+3. Edit `/SYN-OS-2035/SYN-ISO-PROFILE` and its `airootfs`.
+4. Run `sudo mkarchiso -v /path/to/SYN-OS/SYN-OS-2035/SYN-ISO-PROFILE`
 5. Find the output in the 'out' directory.
 6. Boot the ISO.
 
@@ -113,3 +107,6 @@ Licensed under MIT. See [LICENSE](https://github.com/syn990/SYN-OS/blob/main/LIC
 Contact via [LinkedIn](https://www.linkedin.com/in/william-hayward-holland-990/) or `william@npc.syntax990.com`.
 
 For further guidance, please refer to [The Arch Wiki](https://wiki.archlinux.org).
+```
+
+Feel free to adjust the content as needed.
