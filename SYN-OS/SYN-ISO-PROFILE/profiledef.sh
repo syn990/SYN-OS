@@ -19,5 +19,6 @@ airootfs_image_tool_options=('-comp' 'lz4')
 #airootfs_image_tool_options=('-zlzma,109' -E 'ztailpacking,fragments,dedupe')
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
-  ["/root/syn-stage0.zsh"]="0:0:755"
+  ["/root/syn-resources/scripts/syn-stage0.zsh"]="0:0:755"
+  ["/root/syn-resources/scripts/syn-stage1.zsh"]="0:0:755"
 )
