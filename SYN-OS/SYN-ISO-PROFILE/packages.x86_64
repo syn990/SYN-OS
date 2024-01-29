@@ -7,9 +7,12 @@ cloud-init
 dhclient
 dhcpcd
 dnsmasq
+dosfstools
+f2fs-tools
 grml-zsh-config
 grub
 hyperv
+iwd
 linux
 linux-atm
 linux-firmware
@@ -17,8 +20,10 @@ linux-firmware-marvell
 mkinitcpio
 mkinitcpio-archiso
 modemmanager
+nano
 open-vm-tools
 openssh
+parted
 pv
 qemu-guest-agent
 reflector
