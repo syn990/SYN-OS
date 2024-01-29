@@ -1,0 +1,103 @@
+!! Matrix/Green-DOS style
+!! Made by Anna Schröder, ananymania@gmail.com
+!! Font size: 10px 
+!! Button order: CIMl
+#=========================================
+
+!! Window Layout:
+border.width: 1
+padding.height: 3
+padding.width: 3
+*.client.padding.height: 0
+*.client.padding.width: 1
+*.label.text.font: shadow=y:shadowtint=0:shadowoffset=-5
+*.label.bg: Gradient interlaced crossdiagonal flat
+*.label.text.justify: left
+*.title.bg: Solid Flat border
+*.handle.width:1
+*.handle.bg: Solid Flatborder
+*.grip.bg: Solid Flat border
+
+*.inactive.*.title.bg: Solid Flat border
+*.inactive.label.bg: ParentRelative
+
+#=========================================
+
+!! Window Colors:
+*.handle.*.color:Limegreen
+*.grip.*.color:Limegreen
+*.border.color: black
+*.label.text.color: LightGreen
+*.title.bg.color: Black
+*.title.*.border.color: LimeGreen
+*.client.color: Limegreen
+*.separator.color: black
+*.title.bg.color: black
+*.label.bg.colorTo: Black
+*.label.bg.color: LightGreen
+*.label.bg.interlace.color: Black
+
+*.inactive.title.*.border.color: #64AA64
+*.inactive.label.text.color: #64AA64
+*.inactive.client.color: #64AA64
+*.inactive.handle.*.color: #64AA64
+*.inactive.grip.*.color: #64AA64
+
+#=========================================
+
+!! Button Layout:
+*.button.*.bg: Gradient Pyramid Flat 
+*.button.*.pressed.bg: Gradient MirrorHorizontal Flat Border
+*.button.*.hover.bg: Gradient Vertical Flat 
+
+*.inactive.button.*.bg: Flat ParentRelative
+
+#=========================================
+
+!!Button color:
+*.image.color: black
+*.button.*.bg.color: Darkgreen
+*.button.*.bg.colorTo: PaleGreen
+*.button.*.hover.*.ColorTo: Green
+
+*.button.*.toggled.*.bg.color: Brown
+*.button.*.toggled.*.bg.colorTo: Yellow
+
+*.button.*.disabled.*.bg.color: Gray
+*.button.*.disabled.*.bg.colorTo: LightGray
+
+#=========================================
+
+!! Menu section:
+menu.border.width: 1
+menu.overlap.x: 4
+menu.overlap.y: -2
+menu.separator.width: 1
+menu.*.font: shadow=y:shadowtint=0:shadowoffset=-5
+menu.title.text.justify: Center
+menu.items.bg: Gradient horizontal interlaced
+menu.title.bg: ParentRelative
+menu.*.active.bg: Flat Solid
+
+menu.*.bg.border.color: gray
+menu.*.text.color: #AAFFAA
+menu.*.bg.color: Black
+menu.*.colorTo: LightGreen
+menu.*.interlaced.color: Dimgray
+menu.*.image.color: Lightgreen
+menu.*.active.bg.color: Darkgreen
+menu.*.active.text.color: Green
+menu.*.disabled.text.color: Gray
+menu.separator.color: Green
+
+#=========================================
+
+!! Dialog section:
+osd.border.width: 1
+osd.border.color: DarkGray
+osd.bg : Flat
+osd.*.button.*.bg: Flat Raised
+osd.*.button.bg.color: Gray
+osd.*.bg.color : LightGray
+osd.border.color : Black
+osd.*.text.color : Black

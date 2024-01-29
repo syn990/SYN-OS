@@ -5,4 +5,4 @@ export LANG=en_GB.UTF-8
 export EDITOR='nano'
 
 # Launch Install Shortcut
-alias syntax990="/root/syn-stage0.zsh"
+alias syntax990="/root/syn-resources/scripts/syn-stage0.zsh"

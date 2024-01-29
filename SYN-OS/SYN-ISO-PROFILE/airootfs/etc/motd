@@ -5,7 +5,7 @@ For Wi-Fi, authenticate to the wireless network using the [35miwctl[0m utility
 For mobile broadband (WWAN) modems, connect with the [35mmmcli[0m utility.
 Ethernet, WLAN and WWAN interfaces using DHCP should work automatically.
 
-The system currently has no method of installation as networking and basic testing / mounting is required before extensive use.
+The system currently has no working boot method. You will manually need to setup your own bootloader for now.
 
 [41m [41m [41m [40m [44m [40m [41m [46m [45m [41m [46m [43m [41m [44m [45m [40m [44m [40m [41m [44m [41m [41m [46m [42m [41m [44m [43m [41m [45m [40m [40m [44m [40m [41m [44m [42m [41m [46m [44m [41m [46m [47m [0m
 
@@ -26,4 +26,4 @@ printf " ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀        ▀▀    
 [41m [41m [41m [40m [44m [40m [41m [46m [45m [41m [46m [43m [41m [44m [45m [40m [44m [40m [41m [44m [41m [41m [46m [42m [41m [44m [43m [41m [45m [40m [40m [44m [40m [41m [44m [42m [41m [46m [44m [41m [46m [47m [0m
 
 
-printf "Run the \e[1;34msyntax990\e[0m command to continue..."
+Run the [38;2;23;147;209msyntax990[0m command to continue...
