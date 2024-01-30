@@ -1,4 +1,5 @@
 #!/bin/bash
+source /syn-stage0.zsh
 clear
 
 # Main script variables
@@ -115,7 +116,7 @@ systemctl enable iwd.service
 echo "Installing and configuring bootloader (systemd-boot)"
 
 bootctl --path=/boot install
-ROOT_REAL_UUID_990=$(blkid -s UUID -o value /dev/mapper/cryptroot)
+ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
 
 echo "default syn.conf" >> /boot/loader/loader.conf
 echo "timeout 0" >> /boot/loader/loader.conf
@@ -124,7 +125,7 @@ echo "editor 0" >> /boot/loader/loader.conf
 echo "title   SYN-OS" >> /boot/loader/entries/syn.conf
 echo "linux   /vmlinuz-linux" >> /boot/loader/entries/syn.conf
 echo "initrd  /initramfs-linux.img" >> /boot/loader/entries/syn.conf
-echo "options cryptdevice=UUID=$ROOT_REAL_UUID_990:cryptroot root=/dev/mapper/cryptroot rw" >> /boot/loader/entries/syn.conf
+echo "options root=UUID=$ROOT_REAL_UUID_990 rw" >> /boot/loader/entries/syn.conf
 
 # Write the mkinitcpio data to ensure the system has the neccessary hooks to decrypt itself
 echo 'HOOKS=(base udev modconf kms memdisk encrypt block filesystems keyboard)' >> /etc/mkinitcpio.conf
