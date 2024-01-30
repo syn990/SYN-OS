@@ -237,12 +237,13 @@ DotfileOverlay="/root/syn-resources/DotfileOverlay/*"
 cp -Rv $DotfileOverlay $ROOT_MOUNT_LOCATION_990/
 check_success "Failed to copy root materials"
 
-SynStage1="/root/syn-resources/scripts/syn-stage1.zsh"
-cp -Rv $SynStage1 $ROOT_MOUNT_LOCATION_990/
-check_success "Failed to copy root materials"
+# The file is duplicated to the root directory as stage 1 relies on it's source for the partition vars.
+cp -v /root/syn-resources/scripts/syn-stage0.zsh $ROOT_MOUNT_LOCATION_990/syn-stage0.zsh
+check_success "Failed to copy syn-stage0.sh"
 
-
-
+# The file is duplicated to the root directory as it will generate the resulting system and arm it with the final SYN-OS post-install enviroment (ready)
+cp -v /root/syn-resources/scripts/syn-stage1.zsh $ROOT_MOUNT_LOCATION_990/syn-stage1.zsh
+check_success "Failed to copy syn-stage0.sh"
 
 clear
 
