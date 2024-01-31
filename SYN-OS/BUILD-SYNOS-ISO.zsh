@@ -16,7 +16,7 @@ displayDotfileInformation()
 {
     echo -e "${RED}Data${NC} (${NC}Dotfiles, Root-overlay Materials, and Installer Scripts${RED})${NC} ${RED}to Archiso Profile${NC}"
     echo
-    echo "   - You can find all these in the profile >> ${GREEN}(/airootfs/etc/skel/)${NC} or on the SYN-LIVE >> ${GREEN}(/etc/skel)${NC} ) "
+    echo "   - You can find all these in the profile >> ${GREEN}(/airootfs/root/syn-resources/DotfileOverlay/etc/skel)${NC} or on the SYN-LIVE >> ${GREEN}(/root/syn-resources/DotfileOverlay/etc/skel)${NC} ) "
     echo 
     echo "   - ${BLUE}autostart:${NC} Stores the 'lxrandr-autostart.desktop' graphical resolution setting."
     echo "   - ${BLUE}dconf:${NC} Contains 'user' settings for the Dconf database, a low-level configuration system."
