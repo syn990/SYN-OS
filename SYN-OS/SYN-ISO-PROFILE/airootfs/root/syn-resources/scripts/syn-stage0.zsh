@@ -167,7 +167,40 @@ sleep 1
 echo "          .. activley participating in the ongoing creation of reality"
 echo "" 
 clear 
+
 #############################################################################################################
+
+# Mirrorlist, pacman and reflector
+
+# Make sure the package names are valid and that the mirrors can be read.
+
+# Secure the keyring for trusted downloads
+echo -e "\e[1;33m# Securing the Keyring\e[0m"
+pacman-key --init
+pacman-key --populate archlinux
+check_success "Failed to secure the keyring. Trusted non-spooky downloads not possible."
+
+# Animated loading spinner
+echo -n "Fetching mirrors from the UK"
+for i in {1..5}; do
+    echo -n "."
+    sleep 1
+done
+echo ""
+
+# Use reflector to update the mirror list
+echo -e "\e[1;33m# Updating Mirror List\e[0m"
+reflector -c "GB" -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist
+check_success "Failed to get mirrorlist via reflector. Expect issues trying to download from pacstrap."
+
+# Update package databases
+echo -e "\e[1;33m# Updating Package Databases\e[0m"
+pacman -Sy
+check_success "Failed to update package databases. Networking issue or pacman is already in use somewhere on the system."
+
+#############################################################################################################
+
+
 sleep 1
 echo  " ___  _   ___ ___ _____ ___    _   ___ "
 echo  "| _ \/_\ / __/ __|_   _| _ \  /_\ | _ |"""
@@ -203,17 +236,6 @@ SYNSTALL=($basePackages $systemPackages $controlPackages $wmPackages $cliPackage
 
 # Usage: pacstrap /mnt $SYNSTALL package1 package2 package 3 (you can use any package that is accessible from the mirrorlist)
 # This command installs all the packages listed in the SYNSTALL array to the specified mount point.
-# Make sure the package names are valid and that the mirrors can be read.
-
-reflector -c "GB" -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist
-check_success "Failed to get mirrorlist via reflector and update /etc/pacman.d/mirrorlist expect issues trying to download from pacstrap."
-
-pacman -Sy			# Update package databases
-check_success "Failed to update package databases. Networking issue or pacman is already in use somewhere on the system."
-
-pacman-key --init
-pacman-key --populate archlinux
-check_success "Failed to secure the keyring. Trusted non-spooky downloads not possible."
 
 pacman -Sy			# Update package databases (again for some reason back in 2035)
 
@@ -239,9 +261,10 @@ echo ""
 echo  " Copying the dotfile overlay materials to the new system root directory"
 echo ""
 
-DotfileOverlay="/root/syn-resources/DotfileOverlay/*"
-cp -Rv $DotfileOverlay $ROOT_MOUNT_LOCATION_990/
-check_success "Failed to copy root materials"
+# Copy the dotfiles to /etc/skel in the new root directory
+echo "Copying dotfiles to /etc/skel in the new root directory"
+cp -Rv /root/syn-resources/DotfileOverlay/etc/skel "$ROOT_MOUNT_LOCATION_990/etc/skel"
+check_success "Failed to copy dotfiles to /etc/skel in the new root directory"
 
 # The file is duplicated to the root directory as stage 1 relies on it's source for the partition vars.
 cp -v /root/syn-resources/scripts/syn-stage0.zsh $ROOT_MOUNT_LOCATION_990/syn-stage0.zsh
