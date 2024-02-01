@@ -1,5 +1,15 @@
+#!/bin/zsh
+
+# SYN-OS
+# SYNTAX990
+# WILLIAM HAYWARD-HOLLAND
+# M.I.T LICENSE
+
 # Path to your oh-my-zsh installation.
+
+#not able to source this from syn-stage0.zsh
 DEFAULT_USER_990=$USER
+
 export ZSH="/home/$DEFAULT_USER_990/.oh-my-zsh"
 
 # Theme for zsh

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh
 
 # SYN-OS
 # SYNTAX990
@@ -124,8 +124,8 @@ printf ".----    |       |  |     |  |\   |        |  \`--'  | .----    |   \n"
 printf "|_______/        |__|     |__| \__|         \______/  |_______/    \n"
 printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\e[0m\n\n"
 sleep 1
-echo "Installing the Syntax Operating System"
-sleep 1
+echo "Without constraints; SYN-OS has independent freedom/volition and creative intelligence, activley participating in the ongoing creation of reality"
+sleep 0.1
 echo ""
 echo "(((((((((((((((((((((((((/((((((((/***//////////////////////////////////////////"
 echo "(((((((((((((((((((((((((/**(((/*******/////////////////////////////////////////"
@@ -161,21 +161,30 @@ echo "*,,,,,***********,****************************************/****//*********
 echo ",,,,,,,,,,,*********,,,,,,,,,,***,****,,,,,,,******************//***************"
 echo ""
 sleep 1
-echo "Ignorance is the poison, knowledge is the nourish" 
+echo "SYN-OS has independent freedom/volition and creative intelligence..." 
 echo ""
 sleep 1
-clear 
-echo "Ignorance is the poison, knowledge is the nourish"
+echo "          .. activley participating in the ongoing creation of reality"
 echo "" 
-############################################################################################################
+clear 
+#############################################################################################################
 sleep 1
 echo  " ___  _   ___ ___ _____ ___    _   ___ "
 echo  "| _ \/_\ / __/ __|_   _| _ \  /_\ | _ |"""
 echo  "|  _/ _ \ (__\__ \ | | |   / / _ \|  _/"
 echo  "|_|/_/ \_\___|___/ |_| |_|_\/_/ \_\_|  "
 echo ""
+sleep 0.5 
 echo "Installing packages to the resulting system."
-echo "Applying mirror mystics and re-securing the keyring"
+sleep 1
+echo ""
+echo -e "\033[33m   ,##.                   ,==.\033[0m"
+echo -e "\033[33m ,#    #.                 \\ o '\033[0m"
+echo -e "\033[33m#        #     _     _     \\    \\\033[0m"
+echo -e "\033[33m#        #    (_)   (_)    /    ;\033[0m"
+echo -e "\033[33m \`#    #'                 /   .'\033[0m"
+echo -e "\033[33m   \`##'                   \"==\"\033[0m"
+sleep 1
 
 # Define arrays for different categories of packages
 basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "pacman-contrib" "sudo" "zsh")
@@ -196,26 +205,23 @@ SYNSTALL=($basePackages $systemPackages $controlPackages $wmPackages $cliPackage
 # This command installs all the packages listed in the SYNSTALL array to the specified mount point.
 # Make sure the package names are valid and that the mirrors can be read.
 
-pacstrap /mnt $SYNSTALL
-check_success "Failed pacstrap operation"
-
 reflector -c "GB" -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist
-check_success "Failed to apply mirror mystics"
+check_success "Failed to get mirrorlist via reflector and update /etc/pacman.d/mirrorlist expect issues trying to download from pacstrap."
 
 pacman -Sy			# Update package databases
-check_success "Failed to update package databases"
+check_success "Failed to update package databases. Networking issue or pacman is already in use somewhere on the system."
 
 pacman-key --init
 pacman-key --populate archlinux
-check_success "Failed to secure the keyring"
+check_success "Failed to secure the keyring. Trusted non-spooky downloads not possible."
 
-pacman -Sy			# Update package databases
+pacman -Sy			# Update package databases (again for some reason back in 2035)
 
 # If you wanted to add your packages:
 # Add packages after $SYNSTALL like this "pacstrap /mnt $SYNSTALL firefox mixxx virtualbox some-other-package"
 
-pacstrap /mnt $SYNSTALL
-check_success "Failed to install packages"
+pacstrap $ROOT_MOUNT_LOCATION_990 $SYNSTALL
+check_success "Failed to install packages to the new root directory."
 
 ############################################################################################################
 
@@ -243,7 +249,7 @@ check_success "Failed to copy syn-stage0.sh"
 
 # The file is duplicated to the root directory as it will generate the resulting system and arm it with the final SYN-OS post-install enviroment (ready)
 cp -v /root/syn-resources/scripts/syn-stage1.zsh $ROOT_MOUNT_LOCATION_990/syn-stage1.zsh
-check_success "Failed to copy syn-stage0.sh"
+check_success "Failed to copy syn-stage1.sh"
 
 clear
 
