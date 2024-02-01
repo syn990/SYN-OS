@@ -1,5 +1,14 @@
-#!/bin/bash
-source /syn-stage0.zsh
+#!/bin/zsh
+
+# SYN-OS
+# SYNTAX990
+# WILLIAM HAYWARD-HOLLAND
+# M.I.T LICENSE
+
+
+# The root partition - this has to match what is in syn-stage0.zsh, systemd not running in chroot means we cant just source it from syn-stage0.sh
+ROOT_PART_990="/dev/sda2"
+
 clear
 
 # Main script variables
