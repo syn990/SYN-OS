@@ -3,11 +3,12 @@
 </p>
 
 # SYN-OS Readme - The Syntax Operating System - Based on Arch
-```markdown
+
 ### SYN-OS Overview
 
 **SYN-OS** is an Arch Linux-based* operating system created by William Hayward-Holland (Syntax990). It utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. This package serves as your template to assimilate and repurpose this system for an embedded system or a minimal desktop/server graphical environment that is predictable and transparent by design.
 
+```markdown
 #### Project Structure
 
 1. **scripts:**
