@@ -1,3 +1,12 @@
+#!/bin/zsh
+
+# SYN-OS
+# SYNTAX990
+# WILLIAM HAYWARD-HOLLAND
+# M.I.T LICENSE
+
+# .zshrc
+
 # You may need to manually set your language environment
 export LANG=en_GB.UTF-8
 
