@@ -5,6 +5,8 @@
 # WILLIAM HAYWARD-HOLLAND
 # M.I.T LICENSE
 
+# - .zshrc
+
 # Path to your oh-my-zsh installation.
 
 #not able to source this from syn-stage0.zsh
