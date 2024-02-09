@@ -95,6 +95,20 @@ To manually build the ISO:
 5. Find the output ISO in the 'out' directory.
 6. Boot the ISO.
 ```
+
+#### The installation process (syn-stage0.sh) (Run 'syntax990' to start)
+
+<p align="center">
+  <img src="./Images/SYN-STAGE0.png">
+</p>
+
+#### The installation process (syn-stage1.sh) (Run 'sh syn-stage1.sh' to start, within the chroot enviroment)
+
+
+<p align="center">
+  <img src="./Images/SYN-STAGE1.png">
+</p>
+
 #### Screenshots
 
 
@@ -107,6 +121,7 @@ To manually build the ISO:
 <p align="center">
   <img src="./Images/openbox-SYNOS.png">
 </p>
+
 
 ```markdown
 ### Support
