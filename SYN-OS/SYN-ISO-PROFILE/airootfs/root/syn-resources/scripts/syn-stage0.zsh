@@ -171,37 +171,6 @@ clear
 
 #############################################################################################################
 
-# Mirrorlist, pacman and reflector
-
-# Make sure the package names are valid and that the mirrors can be read.
-
-# Secure the keyring for trusted downloads
-echo -e "\e[1;33m# Securing the Keyring\e[0m"
-pacman-key --init
-pacman-key --populate archlinux
-check_success "Failed to secure the keyring. Trusted non-spooky downloads not possible."
-
-# Animated loading spinner
-echo -n "Fetching mirrors from the UK"
-for i in {1..5}; do
-    echo -n "."
-    sleep 1
-done
-echo ""
-
-# Use reflector to update the mirror list
-echo -e "\e[1;33m# Updating Mirror List\e[0m"
-reflector -c "GB" -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist
-check_success "Failed to get mirrorlist via reflector. Expect issues trying to download from pacstrap."
-
-# Update package databases
-echo -e "\e[1;33m# Updating Package Databases\e[0m"
-pacman -Sy
-check_success "Failed to update package databases. Networking issue or pacman is already in use somewhere on the system."
-
-#############################################################################################################
-
-
 sleep 1
 echo  " ___  _   ___ ___ _____ ___    _   ___ "
 echo  "| _ \/_\ / __/ __|_   _| _ \  /_\ | _ |"""
@@ -221,7 +190,7 @@ echo -e "\033[33m   \`##'                   \"==\"\033[0m"
 sleep 1
 
 # Define arrays for different categories of packages
-basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "pacman-contrib" "sudo" "zsh")
+basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "archlinux-keyring" "pacman-contrib" "sudo" "zsh")
 systemPackages=("alsa-utils" "archlinux-xdg-menu" "dhcpcd" "dnsmasq" "hostapd" "iwd" "pulseaudio" "python-pyalsa")
 controlPackages=("lxrandr" "obconf-qt" "pavucontrol-qt")
 wmPackages=("openbox" "xcompmgr" "xorg-server" "xorg-xinit" "tint2")
@@ -238,12 +207,10 @@ SYNSTALL=($basePackages $systemPackages $controlPackages $wmPackages $cliPackage
 # Usage: pacstrap /mnt $SYNSTALL package1 package2 package 3 (you can use any package that is accessible from the mirrorlist)
 # This command installs all the packages listed in the SYNSTALL array to the specified mount point.
 
-pacman -Sy			# Update package databases (again for some reason back in 2035)
-
 # If you wanted to add your packages:
 # Add packages after $SYNSTALL like this "pacstrap /mnt $SYNSTALL firefox mixxx virtualbox some-other-package"
 
-pacstrap $ROOT_MOUNT_LOCATION_990 $SYNSTALL
+pacstrap -K $ROOT_MOUNT_LOCATION_990 $SYNSTALL
 check_success "Failed to install packages to the new root directory."
 
 ############################################################################################################
