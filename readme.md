@@ -1,3 +1,10 @@
+<!-- Add Lightbox2 CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+
+<!-- Add Lightbox2 JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+
+
 <p align="center">
   <img src="./Images/SYN-BANNER.png" alt="Openbox SYN-OS">
 </p>
@@ -96,13 +103,16 @@ To manually build the ISO:
 6. Boot the ISO.
 ```
 
-#### The installation process (syn-stage0.sh) (Run 'syntax990' to start)
+## The installation process (syn-stage0.sh) (Run 'syntax990' to start)
 
 <p align="center">
-  <img src="./Images/SYN-STAGE0.png">
+  <a href="./SYN-OS/Graphviz/syn-stage0.svg" data-lightbox="image-gallery" data-title="Installation Process">
+    <img src="./SYN-OS/Graphviz/syn-stage0.svg" alt="Installation Process" style="width: 100%; max-width: 800px;">
+  </a>
 </p>
 
-#### The installation process (syn-stage1.sh) (Run 'sh syn-stage1.sh' to start, within the chroot enviroment)
+
+## The installation process (syn-stage1.sh) (Run 'sh syn-stage1.sh' to start, within the chroot enviroment)
 
 
 <p align="center">

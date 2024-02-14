@@ -1,0 +1,80 @@
+digraph script_flow {
+    rankdir=LR;
+
+    // Define color scheme for different types of nodes
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    variable [fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    device [fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    process [fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    start_end [shape=ellipse, fillcolor="#ffffcc", color="#333300", fontcolor="black"];
+    intermediate [fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+
+    // Nodes
+    syntax990 [label="Run 'syntax990' Command", shape=parallelogram, style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    check_edit_vars [label="Check and Edit Variables", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    ascii_art [label="Display ASCII Art", shape=parallelogram, style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    setup_functions [label="Setup Functions", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    setup_keyboard [label="Setup Keyboard Layout", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    setup_ntp [label="Setup NTP", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    start_dhcp [label="Start DHCP Service", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    disk_processing [label="Disk Processing", style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    install_packages [label="Install Packages", style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    generate_filesystem_table [label="Generate Filesystem Table", style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    copy_overlay_materials [label="Copy Overlay Materials\n/boot -> /mnt/boot\n/etc/skel -> /mnt/etc/skel\nsyn-stage0.zsh -> /mnt/syn-stage0.zsh", style="filled", fillcolor="#d3d3d3", color="#696969", fontcolor="black"];
+    gen_fstab [label="Generate Filesystem Table (genfstab)", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    check_success [label="Check Success", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    end [label="End", shape=ellipse, style="filled", fillcolor="#ffffcc", color="#333300", fontcolor="black"];
+
+    // Define variables
+    WIPE_DISK_990 [label="WIPE_DISK_990", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    BOOT_PART_990 [label="BOOT_PART_990", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    ROOT_PART_990 [label="ROOT_PART_990", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    BOOT_MOUNT_LOCATION_990 [label="BOOT_MOUNT_LOCATION_990", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    ROOT_MOUNT_LOCATION_990 [label="ROOT_MOUNT_LOCATION_990", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    BOOT_FILESYSTEM_990 [label="BOOT_FILESYSTEM_990 (FAT32)", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    ROOT_FILESYSTEM_990 [label="ROOT_FILESYSTEM_990 (F2FS)", style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+
+    // Device nodes
+    DRIVE_SDA [label="/dev/sda", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    DRIVE_SDA1 [label="/dev/sda1 (200 MiB)", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    DRIVE_SDA2 [label="/dev/sda2", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+
+    // Connect nodes
+    syntax990 -> check_edit_vars [label="Check and Edit\nVariables"];
+    check_edit_vars -> ascii_art;
+    ascii_art -> setup_functions;
+    setup_functions -> setup_keyboard;
+    setup_functions -> setup_ntp;
+    setup_ntp -> start_dhcp;
+    start_dhcp -> disk_processing;
+    disk_processing -> install_packages;
+    disk_processing -> generate_filesystem_table;
+    install_packages -> generate_filesystem_table;
+    generate_filesystem_table -> copy_overlay_materials;
+    copy_overlay_materials -> gen_fstab;
+    gen_fstab -> check_success;
+    check_success -> end;
+
+    // Connect variables to check_edit_vars section
+    WIPE_DISK_990 -> check_edit_vars;
+    BOOT_PART_990 -> check_edit_vars;
+    ROOT_PART_990 -> check_edit_vars;
+    BOOT_MOUNT_LOCATION_990 -> check_edit_vars;
+    ROOT_MOUNT_LOCATION_990 -> check_edit_vars;
+    BOOT_FILESYSTEM_990 -> check_edit_vars;
+    ROOT_FILESYSTEM_990 -> check_edit_vars;
+
+    // Connect device nodes to disk_processing section
+    DRIVE_SDA -> disk_processing;
+    DRIVE_SDA1 -> disk_processing;
+    DRIVE_SDA2 -> disk_processing;
+
+    // Connect device nodes to variable nodes
+    DRIVE_SDA -> WIPE_DISK_990;
+    DRIVE_SDA1 -> BOOT_PART_990;
+    DRIVE_SDA2 -> ROOT_PART_990;
+
+    // Connect /dev/sda device to its partitions
+    DRIVE_SDA -> DRIVE_SDA1 [style=dotted];
+    DRIVE_SDA -> DRIVE_SDA2 [style=dotted];
+}
