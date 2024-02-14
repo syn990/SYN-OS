@@ -1,0 +1,56 @@
+digraph stage1_flow {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+    
+    
+    
+    start [label="Start", shape=ellipse, style="filled", fillcolor="#ffffcc", color="#333300", fontcolor="black"];
+    set_variables [label="Set Variables", style="filled", fillcolor="#98fb98", color="#006400", fontcolor="black"];
+    remove_locale_gen [label="Remove existing locale.gen", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    create_locale_gen [label="Create new locale.gen with generation", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    locale_gen [label="Generate locale", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    create_locale_conf [label="Create locale.conf with configuration", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    create_hostname [label="Create hostname file", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    create_timezone_link [label="Create symbolic link for timezone", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    modify_sudoers [label="Modify sudoers file", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    create_user [label="Create user account", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    enable_services [label="Enable systemd services", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    install_bootloader [label="Install and configure bootloader", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    write_mkinitcpio [label="Write mkinitcpio data", style="filled", fillcolor="#ffa07a", color="#8b4513", fontcolor="black"];
+    end [label="End", shape=ellipse, style="filled", fillcolor="#ffffcc", color="#333300", fontcolor="black"];
+    
+    // Variables
+    ROOT_PART_990 [label="/dev/sda2", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    DEFAULT_USER_990 [label="syntax990", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    FINAL_HOSTNAME_990 [label="SYN-TESTBUILD", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    LOCALE_GEN_990 [label="en_GB.UTF-8 UTF-8", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    LOCALE_CONF_990 [label="LANG=en_GB.UTF-8", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    ZONE_INFO990 [label="GB", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    SHELL_CHOICE_990 [label="/bin/zsh", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    NETWORK_INTERFACE_990 [label="<value>", shape=plaintext, style="filled", fillcolor="#7fbfff", color="#285577", fontcolor="black"];
+    
+    start -> set_variables;
+    set_variables -> remove_locale_gen;
+    ROOT_PART_990 -> remove_locale_gen [label="ROOT_PART_990"];
+    remove_locale_gen -> create_locale_gen;
+    create_locale_gen -> locale_gen;
+    LOCALE_GEN_990 -> create_locale_gen [label="LOCALE_GEN_990"];
+    locale_gen -> create_locale_conf;
+    LOCALE_CONF_990 -> create_locale_conf [label="LOCALE_CONF_990"];
+    create_locale_conf -> create_hostname;
+    FINAL_HOSTNAME_990 -> create_hostname [label="FINAL_HOSTNAME_990"];
+    create_hostname -> create_timezone_link;
+    ZONE_INFO990 -> create_timezone_link [label="ZONE_INFO990"];
+    create_timezone_link -> modify_sudoers;
+    modify_sudoers -> create_user;
+    DEFAULT_USER_990 -> create_user [label="DEFAULT_USER_990"];
+    create_user -> enable_services;
+    SHELL_CHOICE_990 -> create_user [label="SHELL_CHOICE_990"];
+    enable_services -> install_bootloader;
+    NETWORK_INTERFACE_990 -> enable_services [label="NETWORK_INTERFACE_990"];
+    install_bootloader -> write_mkinitcpio;
+    end -> write_mkinitcpio;
+}
+
+
+
