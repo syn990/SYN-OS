@@ -98,8 +98,6 @@ To manually build the ISO:
 
 ## The installation process (syn-stage0.sh) (Run 'syntax990' to start)
 
-## The installation process (syn-stage0.sh) (Run 'syntax990' to start)
-
 <p align="center">
   <a href="./SYN-OS/Graphviz/syn-stage0.svg">
     <img src="./SYN-OS/Graphviz/syn-stage0.svg" alt="syn-stage0.sh" style="width: 100%; max-width: 800px;">
