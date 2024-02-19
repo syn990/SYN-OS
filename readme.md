@@ -8,6 +8,15 @@
 
 **SYN-OS** is an Arch Linux-based* operating system created by William Hayward-Holland (Syntax990). It utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. This package serves as your template to assimilate and repurpose this system for an embedded system or a minimal desktop/server graphical environment that is predictable and transparent by design.
 
+### Downloading the ISO
+
+Click the link below to download the ISO:
+
+[SYN-OS-CHRONOMORPH FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)
+
+Once the download is complete, you'll have the current ISO file saved to your local machine.
+
+
 ```markdown
 #### Project Structure
 
@@ -78,6 +87,7 @@
 
 - SYN-OS embraces "Terminal By Design," starting in a tty and optionally employing an X session through `xinitrc`, invoked by executing `startx`. Basic compositing with transparency and shadows operates alongside openbox.
 
+
 #### Building the ISO
 
 To manually build the ISO:
@@ -96,17 +106,17 @@ To manually build the ISO:
 6. Boot the ISO.
 ```
 
-## The installation process (syn-stage0.sh) (Run 'syntax990' to start)
+## The installation process (syn-stage0.zsh) (Run 'syntax990' to start)
 
 <p align="center">
   <a href="./SYN-OS/Graphviz/syn-stage0.svg">
-    <img src="./SYN-OS/Graphviz/syn-stage0.svg" alt="syn-stage0.sh" style="width: 100%; max-width: 800px;">
+    <img src="./SYN-OS/Graphviz/syn-stage0.svg" alt="syn-stage0.zsh" style="width: 100%; max-width: 800px;">
   </a>
 </p>
 
 Click on the image above to view it in full size.
 
-## The installation process (syn-stage1.sh) (Run 'sh syn-stage1.sh' to start, within the chroot enviroment)
+## The installation process (syn-stage1.zsh) (Run 'sh syn-stage1.zsh' to start, within the chroot enviroment)
 
 
 <p align="center">
