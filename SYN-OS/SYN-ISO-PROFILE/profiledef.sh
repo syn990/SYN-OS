@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034
 
 iso_name="SYN-OS"
-iso_label="$iso_name(date +%s)+%Y%m)"
+iso_label=""
 iso_publisher="Syntax990"
 iso_application="SYN-OS"
 iso_version="chronomorph"
