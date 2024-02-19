@@ -231,7 +231,7 @@ echo ""
 
 # Copy the dotfiles to /etc/skel in the new root directory
 echo "Copying dotfiles to /etc/skel in the new root directory"
-cp -Rv /root/syn-resources/DotfileOverlay/etc/skel "$ROOT_MOUNT_LOCATION_990/etc/skel"
+cp -Rv /root/syn-resources/DotfileOverlay/etc/skel "$ROOT_MOUNT_LOCATION_990/etc/"
 check_success "Failed to copy dotfiles to /etc/skel in the new root directory"
 
 # The file is duplicated to the root directory as stage 1 relies on it's source for the partition vars.
