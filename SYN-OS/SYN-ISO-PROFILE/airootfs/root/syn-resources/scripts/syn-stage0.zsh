@@ -32,7 +32,7 @@ confirm_action() {
 
 ############################################################################################################
 
-# Below you will find all the mount and partition variables, which are used in syn-stage0.sh
+# Below you will find all the mount and partition variables, which are used in syn-stage0.zsh
 # Modify them for convienence, or use your own partitioning.
 
 # This currently wipes sda, without any prompt. We need it to create a device label as this will help bootctl be more predictable
@@ -236,11 +236,11 @@ check_success "Failed to copy dotfiles to /etc/skel in the new root directory"
 
 # The file is duplicated to the root directory as stage 1 relies on it's source for the partition vars.
 cp -v /root/syn-resources/scripts/syn-stage0.zsh $ROOT_MOUNT_LOCATION_990/syn-stage0.zsh
-check_success "Failed to copy syn-stage0.sh"
+check_success "Failed to copy syn-stage0.zsh"
 
 # The file is duplicated to the root directory as it will generate the resulting system and arm it with the final SYN-OS post-install enviroment (ready)
 cp -v /root/syn-resources/scripts/syn-stage1.zsh $ROOT_MOUNT_LOCATION_990/syn-stage1.zsh
-check_success "Failed to copy syn-stage1.sh"
+check_success "Failed to copy syn-stage1.zsh"
 
 clear
 
@@ -266,5 +266,15 @@ echo "6. Installed the essential packages to the resulting system using Pacstrap
 echo "7. Applied mirror mystics and re-secure the keyring."
 echo "8. Generateed cryptographic keys for Pacman and update the package databases."
 echo "9. Copied the root overlay materials from $DotfileOverlay to the root directory."
-echo "10. Completeed Stage Zero now to arch-chroot into the new system. Run: arch-chroot $ROOT_MOUNT_LOCATION_990"
-echo "11. Once inside, execute syn-stage1.sh in the new root directory."
+echo "10. Completeed Stage Zero now to arch-chroot into the new system."
+echo "11. (hint - if the prompt has halted)"
+echo "    Run: arch-chroot $ROOT_MOUNT_LOCATION_990"
+echo "12. Run: sh syn-stage1.zsh"
+echo ""
+
+sleep 0.5
+echo "Executing syn-stage1.zsh in the new root directory."
+sleep 0.5
+
+# Execute the stage 1 script inside the chroot environment
+arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/zsh -c "chmod +x /syn-stage0.zsh; chmod +x /syn-stage1.zsh; /syn-stage1.zsh"

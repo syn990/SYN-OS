@@ -31,7 +31,11 @@ check_success() {
     releng_custom_path="/home/$username/Github-Projects/$github_project_name/$version/$ARCHISO_PROFILE"
     cache_path="/var/cache/pacman/pkg"
 
-# Function to set up a local repository OF THE CURRENT SYSTEM and copy it to Archiso profile
+# Function to set up a local repository OF THE CURRENT SYSTEM YOU ARE USING
+# Presumably Arch Linux. It will copy it's packages directly to the new Archiso profile
+# Very Dangerous. May cause local conflicts and version control issues.
+# Will 100% cause packages to not update in the correct order.
+# Work can be done to ensure a robust local-pull is built.
 setupLocalRepo() {    
 
     rm -Rv $local_repo_path
@@ -95,7 +99,7 @@ menu() {
     echo "------------------------------------------------------------------"
     echo "1) Spin up a repository on-the-fly based on this system's packages:"
     echo
-    echo "   - Pull data directly from this system's cache:  ${BLUE}[ ${NC}${RED}$cache_path${NC}${BLUE} ]${NC}"
+    echo "   - Pull data directly from this system's cache:  ${BLUE}[ ${NC}${RED}$cache_path${NC}${BLUE} ]${NC} Dangerous!"
     echo "   - Set up a Local Repository:                    ${BLUE}[ ${NC}${RED}$local_repo_path${NC}${BLUE} ]${NC}" 
     echo "   - Copy it to Archiso Profile:                   ${BLUE}[ ${NC}${RED}$releng_custom_path${NC}${BLUE} ]${NC}"
     echo 
@@ -117,7 +121,7 @@ menu() {
     echo "3) Create New ISO Image for SYN-OS-2035 Archiso Project"
     echo "   - The ISO image will be based on the SYN-OS-2035 Archiso project configuration."
     echo 
-    echo "4) Run all Steps in Sequence 1, 2, and 3"
+    echo "4) Run all Steps in Sequence 1, 2, and 3 - Dangerous!"
     echo "   - ${BLUE}IMPORTANT:${NC} Press 4 unless you want to sequentially modify before building the ISO."
     echo
     echo "5) Quit"
