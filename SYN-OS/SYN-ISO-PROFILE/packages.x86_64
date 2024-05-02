@@ -6,7 +6,6 @@ archlinux-keyring
 base
 bind
 broadcom-wl
-cloud-init
 dhclient
 dhcpcd
 dnsmasq

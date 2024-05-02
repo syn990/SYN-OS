@@ -7,8 +7,7 @@
 
 # - syn-stage1.zsh
 
-# The root partition - this has to match what is in syn-stage0.zsh, systemd not running in chroot means we cant just source it from syn-stage0.sh
-ROOT_PART_990="/dev/sda2"
+source /syn-stage0.zsh
 
 clear
 
@@ -140,7 +139,9 @@ echo "options root=UUID=$ROOT_REAL_UUID_990 rw" >> /boot/loader/entries/syn.conf
 # Write the mkinitcpio data to ensure the system has the neccessary hooks to decrypt itself
 echo 'HOOKS=(base udev modconf kms memdisk encrypt block filesystems keyboard)' >> /etc/mkinitcpio.conf
 
-sleep 0.2
+sleep 0.5
+
+clear
 
 echo "                                                                                                                       
 ████████████████████████████████████████████████████████████████████████████████████████████████                                                                                                                       
