@@ -10,9 +10,10 @@
 
 ### Downloading the ISO
 
-Click the link below to download the ISO:
+Click the link below to download a pre-built ISO:
 
 [SYN-OS-CHRONOMORPH FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)
+[SYN-OS-CHRONOMORPH MAY 2024](https://drive.google.com/file/d/1dpPjhZujTDitzRbx1dFWoD8Y2Vhaa-bw/view?usp=sharing)
 
 Once the download is complete, you'll have the current ISO file saved to your local machine.
 
