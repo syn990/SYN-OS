@@ -17,7 +17,6 @@ source /root/SYN-INSTALLER-SCRIPTS/syn-pacstrap-variables.sh
 source /root/SYN-INSTALLER-SCRIPTS/syn-ascii-art.sh
 
 syn_directory_structure_extensive_description
-clear
 display_syn_os_logo
 
 # Check network connectivity to Arch Linux repositories
@@ -114,7 +113,6 @@ cp -R /root/SYN-ROOTOVERLAY/* $ROOT_MOUNT_LOCATION_990/
 mkdir /mnt/root/
 cp -R /root/SYN-INSTALLER-SCRIPTS/syn-1_chroot.sh $ROOT_MOUNT_LOCATION_990/root/
 
-# NOTIFICATION: Entering Stage 1
-echo "NOTIFICATION: Stage Zero Complete - Entering Stage 1"
-arch-chroot $ROOT_MOUNT_LOCATION_990 chmod +x /root/syn-1_chroot.sh
-arch-chroot $ROOT_MOUNT_LOCATION_990 /root/syn-1_chroot.sh
+# Execute the chroot wrap-up script inside the chroot environment
+chmod +x $ROOT_MOUNT_LOCATION_990/root/syn-1_chroot.sh
+arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/bash -c "chmod +x /root/syn-1_chroot.sh; /root/syn-1_chroot.sh"
