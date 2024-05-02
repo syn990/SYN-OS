@@ -8,14 +8,40 @@
 
 **SYN-OS** is an Arch Linux-based* operating system created by William Hayward-Holland (Syntax990). It utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. This package serves as your template to assimilate and repurpose this system for an embedded system or a minimal desktop/server graphical environment that is predictable and transparent by design.
 
-### Downloading the ISO
+### Downloading and Installing SYN-OS
 
-Click the link below to download a pre-built ISO:
+#### Downloading the ISO
 
-[SYN-OS-CHRONOMORPH FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)
-[SYN-OS-CHRONOMORPH MAY 2024](https://drive.google.com/file/d/1dpPjhZujTDitzRbx1dFWoD8Y2Vhaa-bw/view?usp=sharing)
+To download the latest version of SYN-OS, click on the respective link below:
 
-Once the download is complete, you'll have the current ISO file saved to your local machine.
+- **[SYN-OS-CHRONOMORPH FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
+- **[SYN-OS-CHRONOMORPH MAY 2024](https://drive.google.com/file/d/1dpPjhZujTDitzRbx1dFWoD8Y2Vhaa-bw/view?usp=sharing)**
+
+After downloading the ISO, save it to your local machine.
+
+#### Creating a Bootable USB Drive
+
+For both Windows and Mac users, you can create a bootable USB drive using the following steps:
+
+1. **Windows Users:**
+   - Download and install Rufus from the [official website](https://rufus.ie/).
+   - Insert a USB drive with sufficient storage capacity.
+   - Open Rufus and select the inserted USB drive under "Device."
+   - Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
+   - Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
+   - Click "Start" to create the bootable USB drive.
+
+2. **Mac Users:**
+   - Insert a USB drive with sufficient storage capacity.
+   - Open Disk Utility (you can find it in Applications > Utilities).
+   - Select your USB drive from the list of available drives.
+   - Click on the "Erase" tab and format the USB drive using the "MS-DOS (FAT)" format.
+   - Once formatted, open Terminal (you can find it in Applications > Utilities).
+   - Use the `diskutil list` command to identify the disk identifier of your USB drive.
+   - Use the `sudo dd if=/path/to/SYN-OS-ISO-file of=/dev/diskN bs=1m` command to write the SYN-OS ISO to the USB drive (replace `/path/to/SYN-OS-ISO-file` with the actual path to the ISO file and `/dev/diskN` with the disk identifier of your USB drive).
+   - This process may take some time. Once it's complete, eject the USB drive.
+
+After creating the bootable USB drive, you can proceed to boot your computer from it and install SYN-OS following the on-screen instructions.
 
 
 ```markdown
