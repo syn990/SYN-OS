@@ -8,6 +8,14 @@
 
 **SYN-OS** is an Arch Linux-based* operating system created by William Hayward-Holland (Syntax990). It utilises build scripts to systematically install and configure an Arch Linux system according to user preferences. This package serves as your template to assimilate and repurpose this system for an embedded system or a minimal desktop/server graphical environment that is predictable and transparent by design.
 
+#### User Interface and Interaction
+
+SYN-OS is intentionally designed with a "Terminal By Design" philosophy, prioritizing efficiency and simplicity. Upon startup, SYN-OS initiates in a terminal environment (tty), offering users a fast and lightweight interface for command-line interaction.
+
+For users who prefer a graphical user interface (GUI), SYN-OS provides the option to transition to an X session through the `xinitrc` script. Executing the `startx` command seamlessly switches to a graphical environment while maintaining the underlying principles of speed and minimalism.
+
+In the graphical environment, SYN-OS utilises the Openbox window manager, enhancing the user experience with basic compositing features such as transparency and shadows. Despite these enhancements, SYN-OS remains true to its roots, focusing on simplicity and functionality without unnecessary distractions or resource-intensive components.
+
 ### Downloading and Installing SYN-OS
 
 #### Downloading the ISO
@@ -45,6 +53,7 @@ After creating the bootable USB drive, you can proceed to boot your computer fro
 
 
 ```markdown
+
 #### Project Structure
 
 1. **scripts:**
@@ -110,11 +119,7 @@ After creating the bootable USB drive, you can proceed to boot your computer fro
     - **loopback.cfg:** Configuration for loopback booting.
     - **grub.cfg:** General GRUB configuration.
 
-#### Auto-Start Properties
-
-- SYN-OS embraces "Terminal By Design," starting in a tty and optionally employing an X session through `xinitrc`, invoked by executing `startx`. Basic compositing with transparency and shadows operates alongside openbox.
-
-
+    
 #### Building the ISO
 
 To manually build the ISO:
