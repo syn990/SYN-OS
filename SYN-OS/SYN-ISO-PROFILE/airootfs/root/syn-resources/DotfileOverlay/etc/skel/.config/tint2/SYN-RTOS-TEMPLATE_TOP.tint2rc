@@ -180,6 +180,31 @@ mouse_scroll_up = toggle
 mouse_scroll_down = iconify
 
 #-------------------------------------
+# Executor 1
+execp = new
+execp_command = ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}'
+execp_interval = 1
+execp_has_icon = 0
+execp_cache_icon = 0
+execp_continuous = 0
+execp_markup = 1
+execp_monitor = all
+execp_lclick_command = 
+execp_rclick_command = 
+execp_mclick_command = 
+execp_uwheel_command = 
+execp_dwheel_command = 
+execp_font = Terminus 9
+execp_font_color = #e01b24 100
+execp_padding = 0 0
+execp_background_id = 0
+execp_centered = 0
+execp_icon_w = 0
+execp_icon_h = 0
+
+#-------------------------------------
+
+#-------------------------------------
 # System tray (notification area)
 systray_padding = 0 4 2
 systray_background_id = 0
