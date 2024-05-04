@@ -1,29 +1,38 @@
-To install [38;2;23;147;209mSYN-OS[0m follow the readme:
+To install [38;2;23;147;209mSYN-OS[0m follow the readme: ( or run the command [38;2;23;147;209msyntax990[0m )
+
 https://github.com/syn990
 
 For Wi-Fi, authenticate to the wireless network using the [35miwctl[0m utility.
 For mobile broadband (WWAN) modems, connect with the [35mmmcli[0m utility.
 Ethernet, WLAN and WWAN interfaces using DHCP should work automatically.
 
-The system currently has issues with loading the dotfiles, but can now get internet access and download packages.
+Welcome to [38;2;23;147;209mSYN-OS[0m!
 
-[41m [41m [41m [40m [44m [40m [41m [46m [45m [41m [46m [43m [41m [44m [45m [40m [44m [40m [41m [44m [41m [41m [46m [42m [41m [44m [43m [41m [45m [40m [40m [44m [40m [41m [44m [42m [41m [46m [44m [41m [46m [47m [0m
+- System Information:
+  - Version: SOAM-DO-HUAWEI
+  - Kernel Version: $(uname -r)
+  - Architecture: x86_64
 
-printf "\\n"
-printf " ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄        ▄               ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄      \\n" 
-printf "▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░▌      ▐░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌     \\n"
-printf "▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░▌░▌     ▐░▌             ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀      \\n"
-printf "▐░▌          ▐░▌       ▐░▌▐░▌▐░▌    ▐░▌             ▐░▌       ▐░▌▐░▌               \\n"
-printf "▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄█░▌▐░▌ ▐░▌   ▐░▌ ▄▄▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄      \\n"
-printf "▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌  ▐░▌  ▐░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌     \\n"
-printf " ▀▀▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░▌   ▐░▌ ▐░▌ ▀▀▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌ ▀▀▀▀▀▀▀▀▀█░▌     \\n"
-printf "          ▐░▌     ▐░▌     ▐░▌    ▐░▌▐░▌             ▐░▌       ▐░▌          ▐░▌     \\n"
-printf " ▄▄▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌     ▐░▐░▌             ▐░█▄▄▄▄▄▄▄█░▌ ▄▄▄▄▄▄▄▄▄█░▌     \\n"
-printf "▐░░░░░░░░░░░▌     ▐░▌     ▐░▌      ▐░░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌     \\n"
-printf " ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀        ▀▀               ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀      \\n"
-
-
-[41m [41m [41m [40m [44m [40m [41m [46m [45m [41m [46m [43m [41m [44m [45m [40m [44m [40m [41m [44m [41m [41m [46m [42m [41m [44m [43m [41m [45m [40m [40m [44m [40m [41m [44m [42m [41m [46m [44m [41m [46m [47m [0m
-
-
-Run the [38;2;23;147;209msyntax990[0m command to continue...
+- Disk Information (Planned Actions) :
+  - Main Storage Medium: check /root/syn-resources/scripts/syn-stage0.zsh
+  - Boot Partition: check /root/syn-resources/scripts/syn-stage0.zsh
+  - Root Partition: check /root/syn-resources/scripts/syn-stage0.zsh
+  
+- Usage Instructions:
+  - Customize SYN-OS package arrays to tailor your system:
+    - Edit the installation scripts (syn-stage0.zsh and syn-stage1.zsh) to modify package arrays according to your preferences.
+    - Example package arrays:
+      - Base Packages: (base, base-devel, dosfstools, ...)
+      - System Packages: (alsa-utils, archlinux-xdg-menu, ...)
+      - Control Packages: (lxrandr, obconf-qt, pavucontrol-qt, ...)
+      - Window Manager Packages: (openbox, xcompmgr, xorg-server, ...)
+      - CLI Packages: (git, htop, man, ...)
+      - GUI Packages: (engrampa, feh, kitty, ...)
+      - Font Packages: (terminus-font, ttf-bitstream-vera)
+      - CLI Extra Packages: (android-tools, archiso, binwalk, ...)
+      - GUI Extra Packages: (audacity, chromium, gimp, ...)
+  
+- Support Contact:
+  - For technical support:
+    - Email: william@npc.syntax990.com
+    - Linkedin: william-hayward-holland-990
