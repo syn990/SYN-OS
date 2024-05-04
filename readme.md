@@ -22,8 +22,8 @@ In the graphical environment, SYN-OS utilises the Openbox window manager, enhanc
 
 To download the latest version of SYN-OS, click on the respective link below:
 
-- **[SYN-OS-CHRONOMORPH FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
-- **[SYN-OS-CHRONOMORPH MAY 2024](https://drive.google.com/file/d/1dpPjhZujTDitzRbx1dFWoD8Y2Vhaa-bw/view?usp=sharing)**
+- **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
+- **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1iIB2uKi41hPM_rfCT0knn-JCgZzsT9G0/view?usp=drive_link)**
 
 After downloading the ISO, save it to your local machine.
 
