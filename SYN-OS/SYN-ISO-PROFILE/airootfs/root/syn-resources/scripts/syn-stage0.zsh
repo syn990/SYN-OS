@@ -269,7 +269,7 @@ echo "9. Copied the root overlay materials from $DotfileOverlay to the root dire
 echo "10. Completeed Stage Zero now to arch-chroot into the new system."
 echo "11. (hint - if the prompt has halted)"
 echo "    Run: arch-chroot $ROOT_MOUNT_LOCATION_990"
-echo "12. Run: sh syn-stage1.zsh"
+echo "12. Run: sh /syn-stage1.zsh"
 echo ""
 
 sleep 0.5
