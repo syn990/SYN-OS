@@ -127,24 +127,12 @@ disk_processing_mbr() {
         echo "Mounting boot partition: $BOOT_PART_990 to $BOOT_MOUNT_LOCATION_990"
         mount $BOOT_PART_990 $BOOT_MOUNT_LOCATION_990
         check_success "Failed to mount boot partition"
-
-        # Create the syslinux folder if it doesn't exist
-        echo "Creating syslinux folder if it doesn't exist"
-        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
-        check_success "Failed to create syslinux folder"
-        
-        # Copy splash.png to the syslinux folder
-        echo "Copying splash.png to the syslinux folder"
-        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
-        check_success "Failed to copy splash.png to syslinux folder"
-
     else
-        echo "EFI System detected. Skipping MBR partition creation."
+        echo "EFI System suddenly detected. Skipping MBR partition creation."
         echo "Somthing terrible has happend."
         sleep 990
     fi
 }
-
 art_montage() {
     clear
 
@@ -311,6 +299,30 @@ dotfiles_and_vars() {
     fi
 }
 
+syslinux(){
+    if [ ! -d "/sys/firmware/efi/efivars" ]; then
+        # Create the syslinux folder if it doesn't exist
+        echo "Creating syslinux folder if it doesn't exist"
+        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
+        check_success "Failed to create syslinux folder"
+        
+        # Copy splash.png to the syslinux folder
+        echo "Copying splash.png to the syslinux folder"
+        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
+        check_success "Failed to copy splash.png to syslinux folder"
+
+        echo "Installing Syslinux into disk MBR"
+        umount BOOT_PART_990
+        umount ROOT_PART_990
+        syslinux --directory syslinux --install $BOOT_PART_990
+        dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=/dev/sda status=progress
+    else
+        echo "EFI System somehow detected. Skipping MBR partition creation."
+        echo "Somthing terrible has happend."
+        sleep 990
+    fi
+}
+
 
 end_art() {
     clear
@@ -351,9 +363,11 @@ disk_processing_mbr
 art_montage
 pacstrap_sync
 dotfiles_and_vars
+
 end_art
+
+
 
 echo "Executing syn-stage1.zsh script in the new root directory."
 arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/zsh -c "chmod +x /syn-stage0.zsh; chmod +x /syn-stage1.zsh; /syn-stage1.zsh"
 
-/root/syn-resources/splash.png
