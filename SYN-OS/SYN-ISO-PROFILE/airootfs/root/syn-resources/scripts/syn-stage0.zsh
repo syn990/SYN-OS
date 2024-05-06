@@ -95,44 +95,30 @@ disk_processing_mbr() {
 
         echo "Disk processing for MBR systems..."
 
-        # Wipe the disk and create partitions
-        echo "Wiping disk: $WIPE_DISK_990 and creating partitions"
+        # Wipe the disk and create a single partition
+        echo "Wiping disk: $WIPE_DISK_990 and creating a single partition"
         parted --script $WIPE_DISK_990 mklabel msdos
         check_success "Failed to create disk label"
 
-        parted --script $WIPE_DISK_990 mkpart primary $BOOT_FILESYSTEM_990 1Mib 200Mib
-        check_success "Failed to create boot partition"
-
-        parted --script $WIPE_DISK_990 mkpart primary $ROOT_FILESYSTEM_990 201Mib 100%
+        parted --script $WIPE_DISK_990 mkpart primary $ROOT_FILESYSTEM_990 1Mib 100%
         check_success "Failed to create root partition"
 
-        # Format partitions
-        echo "Formatting boot partition: $BOOT_PART_990"
-        mkfs.vfat -F 32 $BOOT_PART_990
-        check_success "Failed to format boot partition"
-
+        # Format the root partition
         echo "Formatting root partition: $ROOT_PART_990"
         mkfs.f2fs -f $ROOT_PART_990
         check_success "Failed to format root partition"
 
-        # Mount partitions
+        # Mount the root partition
         echo "Mounting root partition: $ROOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
         mount $ROOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount root partition"
-
-        echo "Creating boot directory: $BOOT_MOUNT_LOCATION_990"
-        mkdir $BOOT_MOUNT_LOCATION_990
-        check_success "Failed to create boot directory"
-
-        echo "Mounting boot partition: $BOOT_PART_990 to $BOOT_MOUNT_LOCATION_990"
-        mount $BOOT_PART_990 $BOOT_MOUNT_LOCATION_990
-        check_success "Failed to mount boot partition"
     else
-        echo "EFI System suddenly detected. Skipping MBR partition creation."
-        echo "Somthing terrible has happend."
+        echo "EFI System detected. Skipping MBR partition creation."
+        echo "Something terrible has happened."
         sleep 990
     fi
 }
+
 art_montage() {
     clear
 
@@ -313,18 +299,14 @@ syslinux_setup_conditionally() {
         check_success "Failed to copy splash.png to syslinux folder"
 
         echo "Installing Syslinux into disk MBR"
-        umount $BOOT_PART_990
+        extlinux --install /boot/syslinux
         umount $ROOT_PART_990
-        syslinux --directory syslinux --install $BOOT_PART_990
         dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=$WIPE_DISK_990 status=progress
+        
         # Mount root partition
         echo "Mounting root partition: $ROOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
         mount $ROOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount root partition"
-        # Mount boot partition
-        echo "Mounting boot partition: $BOOT_PART_990 to $BOOT_MOUNT_LOCATION_990"
-        mount $BOOT_PART_990 $BOOT_MOUNT_LOCATION_990
-        check_success "Failed to mount boot partition"
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
     fi
