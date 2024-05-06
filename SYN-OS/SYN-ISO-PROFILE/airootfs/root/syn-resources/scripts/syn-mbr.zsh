@@ -11,6 +11,10 @@
 ROOT_PART_990="/dev/sda2"
 # source /syn-stage0.zsh
 
+# Get UUID of the root partition
+ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
+
+
 clear
 
 # Main script variables
@@ -80,28 +84,21 @@ systemctl enable iwd.service
 # Configure Syslinux
 echo "Configuring Syslinux"
 cp -Rv /usr/lib/syslinux/bios/*.c32 /boot/syslinux/
+
 cat <<EOF > /boot/syslinux/syslinux.cfg
-UI vesamenu.c32
+PROMPT 1
+TIMEOUT 50
+DEFAULT synos
 
-MENU TITLE AUTHORIZED ACCESS ONLY
-MENU BACKGROUND splash.png
+LABEL synos
+	LINUX ../vmlinuz-linux
+	APPEND root=UUID=$ROOT_REAL_UUID_990 rw
+	INITRD ../initramfs-linux.img
 
-MENU COLOR title       1;36;44   #9033ccff #a0000000 std
-MENU COLOR border      30;44     #40ffffff #a0000000 std
-MENU COLOR sel         7;37;40   #e0ffffff #20ffffff all
-MENU COLOR unsel       37;44     #50ffffff #a0000000 std
-MENU COLOR hotkey      1;7;37;40 #ffffffff #20ffffff std
-MENU COLOR help        37;40     #c0ffffff #a0000000 std
-MENU COLOR timeout_msg 37;40    #80ffffff #00000000 std
-MENU COLOR timeout     1;37;40  #c0ffffff #00000000 std
-MENU COLOR msg07       37;40    #90ffffff #a0000000 std
-
-DEFAULT syn-os
-LABEL syn-os
-    MENU LABEL Boot SYN-OS
-    LINUX /boot/vmlinuz-linux
-    APPEND root=$ROOT_PART_990 rw
-    INITRD /boot/initramfs-linux.img
+LABEL archfallback
+	LINUX ../vmlinuz-linux
+	APPEND root=UUID=$ROOT_REAL_UUID_990 rw
+	INITRD ../initramfs-linux-fallback.img
 
 LABEL hdt
     MENU LABEL HDT (Hardware Detection Tool)
@@ -117,7 +114,7 @@ LABEL poweroff
 EOF
 
 
-sleep 0.5
+#sleep 0.5
 
 clear
 
