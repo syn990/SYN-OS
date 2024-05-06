@@ -77,61 +77,62 @@ echo "Enabling systemd services and setting up bootloader"
 systemctl enable "dhcpcd@$NETWORK_INTERFACE_990.service"
 systemctl enable iwd.service
 
-# Configure Syslinux
-echo "Configuring Syslinux"
-cp -Rv /usr/lib/syslinux/bios/*.c32 /boot/syslinux/
+## Configure Syslinux
+#echo "Configuring Syslinux"
+#cp -Rv /usr/lib/syslinux/bios/*.c32 /boot/syslinux/
+#dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=/dev/sda
 
-cat <<EOF > /boot/syslinux/syslinux.cfg
+#cat <<EOF > /boot/syslinux/syslinux.cfg
 
-UI vesamenu.c32
-DEFAULT synos
-PROMPT 5
-MENU TITLE ACCESS RESTRICTED
-MENU BACKGROUND splash.png
-TIMEOUT 50
+#UI vesamenu.c32
+#DEFAULT synos
+#PROMPT 5
+#MENU TITLE ACCESS RESTRICTED
+#MENU BACKGROUND splash.png
+#TIMEOUT 50
 
-MENU WIDTH 78
-MENU MARGIN 4
-MENU ROWS 5
-MENU VSHIFT 10
-MENU TIMEOUTROW 13
-MENU TABMSGROW 11
-MENU CMDLINEROW 11
-MENU HELPMSGROW 16
-MENU HELPMSGENDROW 29
+#MENU WIDTH 78
+#MENU MARGIN 4
+#MENU ROWS 5
+#MENU VSHIFT 10
+#MENU TIMEOUTROW 13
+#MENU TABMSGROW 11
+#MENU CMDLINEROW 11
+#MENU HELPMSGROW 16
+#MENU HELPMSGENDROW 29
 
-MENU COLOR border       30;44   #40ffffff #a0000000 std
-MENU COLOR title        1;36;44 #9033ccff #a0000000 std
-MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
-MENU COLOR unsel        37;44   #50ffffff #a0000000 std
-MENU COLOR help         37;40   #c0ffffff #a0000000 std
-MENU COLOR timeout_msg  37;40   #80ffffff #00000000 std
-MENU COLOR timeout      1;37;40 #c0ffffff #00000000 std
-MENU COLOR msg07        37;40   #90ffffff #a0000000 std
-MENU COLOR tabmsg       31;40   #30ffffff #00000000 std
+#MENU COLOR border       30;44   #40ffffff #a0000000 std
+#MENU COLOR title        1;36;44 #9033ccff #a0000000 std
+#MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
+#MENU COLOR unsel        37;44   #50ffffff #a0000000 std
+#MENU COLOR help         37;40   #c0ffffff #a0000000 std
+#MENU COLOR timeout_msg  37;40   #80ffffff #00000000 std
+#MENU COLOR timeout      1;37;40 #c0ffffff #00000000 std
+#MENU COLOR msg07        37;40   #90ffffff #a0000000 std
+#MENU COLOR tabmsg       31;40   #30ffffff #00000000 std
 
-LABEL synos
-	LINUX ../vmlinuz-linux
-	APPEND root=$ROOT_PART_990 rw
-	INITRD ../initramfs-linux.img
+#LABEL synos
+#	LINUX ../vmlinuz-linux
+#	APPEND root=$ROOT_PART_990 rw
+#	INITRD ../initramfs-linux.img
 
-LABEL archfallback
-	LINUX ../vmlinuz-linux
-	APPEND root=$ROOT_PART_990 rw
-	INITRD ../initramfs-linux-fallback.img
+#LABEL archfallback
+#	LINUX ../vmlinuz-linux
+#	APPEND root=$ROOT_PART_990 rw
+#	INITRD ../initramfs-linux-fallback.img
 
-LABEL hdt
-    MENU LABEL HDT (Hardware Detection Tool)
-    COM32 hdt.c32
+#LABEL hdt
+#    MENU LABEL HDT (Hardware Detection Tool)
+#    COM32 hdt.c32
 
-LABEL reboot
-    MENU LABEL Reboot
-    COM32 reboot.c32
+#LABEL reboot
+#    MENU LABEL Reboot
+#    COM32 reboot.c32
 
-LABEL poweroff
-    MENU LABEL Poweroff
-    COM32 poweroff.c32
-EOF
+#LABEL poweroff
+#    MENU LABEL Poweroff
+#    COM32 poweroff.c32
+#EOF
 
 # Display final instructions
 echo "
