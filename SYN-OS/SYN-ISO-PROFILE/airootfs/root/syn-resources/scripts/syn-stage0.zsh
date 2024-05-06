@@ -300,12 +300,12 @@ syslinux_setup_conditionally() {
 
         echo "Installing Syslinux into disk MBR"
         extlinux --install /boot/syslinux
-        umount $ROOT_PART_990
+        umount $BOOT_PART_990
         dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=$WIPE_DISK_990 status=progress
         
         # Mount root partition
-        echo "Mounting root partition: $ROOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
-        mount $ROOT_PART_990 $ROOT_MOUNT_LOCATION_990
+        echo "Mounting root partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
+        mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount root partition"
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
