@@ -323,7 +323,6 @@ disk_processing_mbr
 art_montage
 pacstrap_sync
 dotfiles_and_vars
-syslinux_setup_conditionally
 end_art
 
 echo "Executing syn-stage1.zsh script in the new root directory."
