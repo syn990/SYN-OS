@@ -111,11 +111,6 @@ disk_processing_mbr() {
         echo "Mounting partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
         mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount partition"
-
-        # Install Syslinux bootloader
-        echo "Installing Syslinux bootloader to $BOOT_PART_990"
-        syslinux-install_update -i -a -m $BOOT_PART_990
-        check_success "Failed to install Syslinux"
     else
         echo "EFI System detected. Skipping Syslinux installation."
     fi
@@ -300,8 +295,10 @@ syslinux_setup_conditionally() {
         cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
         check_success "Failed to copy splash.png to syslinux folder"
 
-        echo "Installing Syslinux into disk MBR"
-        syslinux-install_update -i -a -m -c /mnt
+        # Install Syslinux bootloader
+        echo "Installing Syslinux bootloader to $BOOT_PART_990"
+        syslinux-install_update -i -a -m $BOOT_PART_990
+        check_success "Failed to install Syslinux"
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
     fi
