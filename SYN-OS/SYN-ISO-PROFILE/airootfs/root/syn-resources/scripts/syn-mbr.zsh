@@ -81,7 +81,7 @@ systemctl enable iwd.service
 
        #SYSLINUX (mbr)
 #      mkdir /boot/syslinux/                #created dummy folder in syn-stage0.sh
-       syslinux-install_update -i -a -m     #install syslinux to mbr
+#       syslinux-install_update -i -a -m     #install syslinux to mbr
        echo "You are on your own - manually correct the file"
        nano /boot/syslinux/syslinux.cfg     #force manual correction of syslinux sda1 parameter
 

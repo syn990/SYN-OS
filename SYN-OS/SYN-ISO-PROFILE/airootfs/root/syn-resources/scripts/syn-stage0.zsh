@@ -285,20 +285,15 @@ dotfiles_and_vars() {
 syslinux_setup_conditionally() {
     # Check if EFI System Partition (ESP) exists
     if [ ! -d "/sys/firmware/efi/efivars" ]; then
-        # Create the syslinux folder if it doesn't exist
-        echo "Creating syslinux folder if it doesn't exist"
-        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
-        check_success "Failed to create syslinux folder"
-        
-        # Copy splash.png to the syslinux folder
-        echo "Copying splash.png to the syslinux folder"
-        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
-        check_success "Failed to copy splash.png to syslinux folder"
-
         # Install Syslinux bootloader
         echo "Installing Syslinux bootloader to $BOOT_PART_990"
         syslinux-install_update -i -a -m $BOOT_PART_990
         check_success "Failed to install Syslinux"
+
+#      # Copy splash.png to the syslinux folder
+#        echo "Copying splash.png to the syslinux folder"
+#        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
+#        check_success "Failed to copy splash.png to syslinux folder"
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
     fi
