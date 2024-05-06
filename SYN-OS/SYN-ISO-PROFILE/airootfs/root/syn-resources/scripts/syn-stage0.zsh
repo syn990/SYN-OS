@@ -85,6 +85,16 @@ disk_processing_uefi() {
         check_success "Failed to mount boot partition"
     else
         echo "MBR System detected. Skipping EFI partition creation."
+
+        # Create the syslinux folder if it doesn't exist
+        echo "Creating syslinux folder if it doesn't exist"
+        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
+        check_success "Failed to create syslinux folder"
+
+        # Copy splash.png to the syslinux folder
+        echo "Copying splash.png to the syslinux folder"
+        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux
+        check_success "Failed to copy splash.png to syslinux folder"
     fi
 }
 
@@ -129,6 +139,8 @@ disk_processing_mbr() {
         check_success "Failed to mount boot partition"
     else
         echo "EFI System detected. Skipping MBR partition creation."
+        echo "Somthing terrible has happend."
+        sleep 990
     fi
 }
 
@@ -343,3 +355,4 @@ end_art
 echo "Executing syn-stage1.zsh script in the new root directory."
 arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/zsh -c "chmod +x /syn-stage0.zsh; chmod +x /syn-stage1.zsh; /syn-stage1.zsh"
 
+/root/syn-resources/splash.png
