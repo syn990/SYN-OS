@@ -299,7 +299,8 @@ dotfiles_and_vars() {
     fi
 }
 
-syslinux(){
+syslinux_setup_conditionally() {
+    # Check if EFI System Partition (ESP) exists
     if [ ! -d "/sys/firmware/efi/efivars" ]; then
         # Create the syslinux folder if it doesn't exist
         echo "Creating syslinux folder if it doesn't exist"
@@ -312,17 +313,24 @@ syslinux(){
         check_success "Failed to copy splash.png to syslinux folder"
 
         echo "Installing Syslinux into disk MBR"
-        umount BOOT_PART_990
-        umount ROOT_PART_990
+        umount $BOOT_PART_990
+        umount $ROOT_PART_990
         syslinux --directory syslinux --install $BOOT_PART_990
-        dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=/dev/sda status=progress
+        dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=$WIPE_DISK_990 status=progress
+        # Mount root partition
+        echo "Mounting root partition: $ROOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
+        mount $ROOT_PART_990 $ROOT_MOUNT_LOCATION_990
+        check_success "Failed to mount root partition"
+        # Mount boot partition
+        echo "Mounting boot partition: $BOOT_PART_990 to $BOOT_MOUNT_LOCATION_990"
+        mount $BOOT_PART_990 $BOOT_MOUNT_LOCATION_990
+        check_success "Failed to mount boot partition"
     else
-        echo "EFI System somehow detected. Skipping MBR partition creation."
-        echo "Somthing terrible has happend."
-        sleep 990
+        echo "EFI System detected. Skipping SYSLINUX setup."
     fi
 }
 
+# Call syslinux_setup_conditionally function instead of syslinux-setup
 
 end_art() {
     clear
@@ -363,7 +371,7 @@ disk_processing_mbr
 art_montage
 pacstrap_sync
 dotfiles_and_vars
-
+syslinux_setup_conditionally
 end_art
 
 
