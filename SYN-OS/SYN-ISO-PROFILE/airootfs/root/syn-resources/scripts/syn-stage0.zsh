@@ -103,14 +103,14 @@ disk_processing_mbr() {
         parted --script $WIPE_DISK_990 mkpart primary $ROOT_FILESYSTEM_990 1Mib 100%
         check_success "Failed to create root partition"
 
-        # Format the root partition
-        echo "Formatting root partition: $ROOT_PART_990"
-        mkfs.f2fs -f $ROOT_PART_990
+        # Format the root/boot partition
+        echo "Formatting root partition: $BOOT_PART_990"
+        mkfs.f2fs -f $BOOT_PART_990
         check_success "Failed to format root partition"
 
-        # Mount the root partition
-        echo "Mounting root partition: $ROOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
-        mount $ROOT_PART_990 $ROOT_MOUNT_LOCATION_990
+        # Mount the root/boot partition
+        echo "Mounting root partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
+        mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount root partition"
     else
         echo "EFI System detected. Skipping MBR partition creation."
