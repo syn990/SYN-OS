@@ -85,16 +85,6 @@ disk_processing_uefi() {
         check_success "Failed to mount boot partition"
     else
         echo "MBR System detected. Skipping EFI partition creation."
-
-        # Create the syslinux folder if it doesn't exist
-        echo "Creating syslinux folder if it doesn't exist"
-        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
-        check_success "Failed to create syslinux folder"
-
-        # Copy splash.png to the syslinux folder
-        echo "Copying splash.png to the syslinux folder"
-        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux
-        check_success "Failed to copy splash.png to syslinux folder"
     fi
 }
 
@@ -137,6 +127,17 @@ disk_processing_mbr() {
         echo "Mounting boot partition: $BOOT_PART_990 to $BOOT_MOUNT_LOCATION_990"
         mount $BOOT_PART_990 $BOOT_MOUNT_LOCATION_990
         check_success "Failed to mount boot partition"
+
+        # Create the syslinux folder if it doesn't exist
+        echo "Creating syslinux folder if it doesn't exist"
+        mkdir -p $BOOT_MOUNT_LOCATION_990/syslinux
+        check_success "Failed to create syslinux folder"
+        
+        # Copy splash.png to the syslinux folder
+        echo "Copying splash.png to the syslinux folder"
+        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/sysliinux
+        check_success "Failed to copy splash.png to syslinux folder"
+
     else
         echo "EFI System detected. Skipping MBR partition creation."
         echo "Somthing terrible has happend."
@@ -240,7 +241,7 @@ pacstrap_sync() {
 
     # Define arrays for different categories of packages
     basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "archlinux-keyring" "pacman-contrib" "sudo" "zsh")
-    systemPackages=("alsa-utils" "archlinux-xdg-menu" "dhcpcd" "dnsmasq" "hostapd" "iwd" "pulseaudio" "python-pyalsa")
+    systemPackages=("alsa-utils" "archlinux-xdg-menu" "dhcpcd" "dnsmasq" "hostapd" "iwd" "pulseaudio" "python-pyalsa" "syslinux")
     controlPackages=("lxrandr" "obconf-qt" "pavucontrol-qt")
     wmPackages=("openbox" "xcompmgr" "xorg-server" "xorg-xinit" "tint2")
     cliPackages=("git" "htop" "man" "nano" "reflector" "rsync" "wget")
