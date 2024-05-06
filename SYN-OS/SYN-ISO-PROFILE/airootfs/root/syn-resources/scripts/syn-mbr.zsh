@@ -77,14 +77,26 @@ echo "Enabling systemd services and setting up bootloader"
 systemctl enable "dhcpcd@$NETWORK_INTERFACE_990.service"
 systemctl enable iwd.service
 
-#Install bootloader
+syslinux_setup_conditionally() {
+    # Check if EFI System Partition (ESP) exists
+    if [ ! -d "/sys/firmware/efi/efivars" ]; then
+  
+        # Install Syslinux bootloader
+        mkdir /boot/syslinux/                #create dummy folder
+        syslinux-install_update -i -a -m     #install syslinux to mbr
+        nano /boot/syslinux/syslinux.cfg     #force manual correction of syslinux sda1 parameter
 
-       #SYSLINUX (mbr)
-#      mkdir /boot/syslinux/                #created dummy folder in syn-stage0.sh
-#       syslinux-install_update -i -a -m     #install syslinux to mbr
-       echo "You are on your own. You manually correct the file..."
-       sleep 2
-       nano /boot/syslinux/syslinux.cfg     #force manual correction of syslinux sda1 parameter
+        check_success "Failed to install Syslinux"
+
+#      # Copy splash.png to the syslinux folder
+#        echo "Copying splash.png to the syslinux folder"
+#        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
+#        check_success "Failed to copy splash.png to syslinux folder"
+    else
+        echo "EFI System detected. Skipping SYSLINUX setup."
+    fi
+}
+syslinux_setup_conditionally
 
 # Display final instructions
 echo "

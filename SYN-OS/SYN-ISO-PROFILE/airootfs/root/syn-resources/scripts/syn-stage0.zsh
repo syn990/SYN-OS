@@ -282,23 +282,6 @@ dotfiles_and_vars() {
     fi
 }
 
-syslinux_setup_conditionally() {
-    # Check if EFI System Partition (ESP) exists
-    if [ ! -d "/sys/firmware/efi/efivars" ]; then
-        # Install Syslinux bootloader
-        echo "Installing Syslinux bootloader to $BOOT_PART_990"
-        syslinux-install_update -i -a -m $BOOT_PART_990
-        check_success "Failed to install Syslinux"
-
-#      # Copy splash.png to the syslinux folder
-#        echo "Copying splash.png to the syslinux folder"
-#        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
-#        check_success "Failed to copy splash.png to syslinux folder"
-    else
-        echo "EFI System detected. Skipping SYSLINUX setup."
-    fi
-}
-
 # Call syslinux_setup_conditionally function instead of syslinux-setup
 
 end_art() {
@@ -342,8 +325,6 @@ pacstrap_sync
 dotfiles_and_vars
 syslinux_setup_conditionally
 end_art
-
-
 
 echo "Executing syn-stage1.zsh script in the new root directory."
 arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/zsh -c "chmod +x /syn-stage0.zsh; chmod +x /syn-stage1.zsh; /syn-stage1.zsh"
