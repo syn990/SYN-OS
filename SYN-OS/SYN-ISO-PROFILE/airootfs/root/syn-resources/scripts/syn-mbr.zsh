@@ -77,18 +77,31 @@ echo "Enabling systemd services and setting up bootloader"
 systemctl enable "dhcpcd@$NETWORK_INTERFACE_990.service"
 systemctl enable iwd.service
 
-# Install and configure the bootloader (SYSLINUX)
-echo "Installing and configuring bootloader (SYSLINUX)"
-pacman -S syslinux --noconfirm
-syslinux-install_update -iam
+# Configure Syslinux
+echo "Configuring Syslinux"
+cat <<EOF > /boot/syslinux/syslinux.cfg
+UI vesamenu.c32
+DEFAULT syn-os
+MENU BACKGROUND splash.png
 
-# Get UUID of the root partition
-ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
+LABEL syn-os
+    MENU LABEL SYN-OS
+    LINUX ../vmlinuz-linux
+    APPEND root=$ROOT_PART_990 rw
+    INITRD ../initramfs-linux.img
 
-# Write bootloader configurations
-echo "LABEL syn-os" >> /boot/syslinux/syslinux.cfg
-echo "    LINUX ../vmlinuz-linux" >> /boot/syslinux/syslinux.cfg
-echo "    APPEND root=UUID=$ROOT_REAL_UUID_990 rw" >> /boot/syslinux/syslinux.cfg
+LABEL hdt
+    MENU LABEL HDT (Hardware Detection Tool)
+    COM32 hdt.c32
+
+LABEL reboot
+    MENU LABEL Reboot
+    COM32 reboot.c32
+
+LABEL poweroff
+    MENU LABEL Poweroff
+    COM32 poweroff.c32
+EOF
 
 sleep 0.5
 
