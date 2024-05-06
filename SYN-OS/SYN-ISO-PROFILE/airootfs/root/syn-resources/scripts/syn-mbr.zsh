@@ -79,6 +79,7 @@ systemctl enable iwd.service
 
 # Configure Syslinux
 echo "Configuring Syslinux"
+cp -Rv /usr/lib/syslinux/bios/*.c32 /boot/syslinux/
 cat <<EOF > /boot/syslinux/syslinux.cfg
 UI vesamenu.c32
 
