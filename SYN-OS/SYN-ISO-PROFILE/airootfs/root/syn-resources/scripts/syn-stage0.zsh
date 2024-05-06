@@ -89,10 +89,9 @@ disk_processing_uefi() {
 }
 
 disk_processing_mbr() {
-    # Check if EFI System Partition (ESP) exists
+  # Check if EFI System Partition (ESP) exists
     if [ ! -d "/sys/firmware/efi/efivars" ]; then
         echo "MBR System detected."
-
         echo "Disk processing for MBR systems..."
 
         # Wipe the disk and create a single partition
@@ -100,22 +99,25 @@ disk_processing_mbr() {
         parted --script $WIPE_DISK_990 mklabel msdos
         check_success "Failed to create disk label"
 
-        parted --script $WIPE_DISK_990 mkpart primary $ROOT_FILESYSTEM_990 1Mib 100%
-        check_success "Failed to create root partition"
+        parted --script $WIPE_DISK_990 mkpart primary ext4 1MiB 100%
+        check_success "Failed to create partition"
 
-        # Format the root/boot partition
-        echo "Formatting root partition: $BOOT_PART_990"
-        mkfs.f2fs -f $BOOT_PART_990
-        check_success "Failed to format root partition"
+        # Format the partition with ext4 filesystem
+        echo "Formatting partition: $BOOT_PART_990 with ext4 filesystem"
+        mkfs.ext4 $BOOT_PART_990
+        check_success "Failed to format partition"
 
-        # Mount the root/boot partition
-        echo "Mounting root partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
+        # Install Syslinux bootloader
+        echo "Installing Syslinux bootloader to $BOOT_PART_990"
+        syslinux-install_update -i -a -m $BOOT_PART_990
+        check_success "Failed to install Syslinux"
+
+        # Mount the partition
+        echo "Mounting partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
         mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
-        check_success "Failed to mount root partition"
+        check_success "Failed to mount partition"
     else
-        echo "EFI System detected. Skipping MBR partition creation."
-        echo "Something terrible has happened."
-        sleep 990
+        echo "EFI System detected. Skipping Syslinux installation."
     fi
 }
 
