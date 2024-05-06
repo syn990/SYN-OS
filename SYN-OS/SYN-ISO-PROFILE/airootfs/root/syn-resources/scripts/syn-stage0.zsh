@@ -107,15 +107,15 @@ disk_processing_mbr() {
         mkfs.ext4 $BOOT_PART_990
         check_success "Failed to format partition"
 
-        # Install Syslinux bootloader
-        echo "Installing Syslinux bootloader to $BOOT_PART_990"
-        syslinux-install_update -i -a -m $BOOT_PART_990
-        check_success "Failed to install Syslinux"
-
         # Mount the partition
         echo "Mounting partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
         mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
         check_success "Failed to mount partition"
+
+        # Install Syslinux bootloader
+        echo "Installing Syslinux bootloader to $BOOT_PART_990"
+        syslinux-install_update -i -a -m $BOOT_PART_990
+        check_success "Failed to install Syslinux"
     else
         echo "EFI System detected. Skipping Syslinux installation."
     fi
