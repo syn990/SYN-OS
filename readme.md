@@ -16,44 +16,6 @@ For users who prefer a graphical user interface (GUI), SYN-OS provides the optio
 
 In the graphical environment, SYN-OS utilises the Openbox window manager, enhancing the user experience with basic compositing features such as transparency and shadows. Despite these enhancements, SYN-OS remains true to its roots, focusing on simplicity and functionality without unnecessary distractions or resource-intensive components.
 
-### Downloading and Installing SYN-OS
-
-#### Downloading the ISO
-
-To download the latest version of SYN-OS, click on the respective link below:
-
-- **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
-- **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1iIB2uKi41hPM_rfCT0knn-JCgZzsT9G0/view?usp=drive_link)**
-
-After downloading the ISO, save it to your local machine.
-
-#### Creating a Bootable USB Drive
-
-For both Windows and Mac users, you can create a bootable USB drive using the following steps:
-
-1. **Windows Users:**
-   - Download and install Rufus from the [official website](https://rufus.ie/).
-   - Insert a USB drive with sufficient storage capacity.
-   - Open Rufus and select the inserted USB drive under "Device."
-   - Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
-   - Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
-   - Click "Start" to create the bootable USB drive.
-
-2. **Mac Users:**
-   - Insert a USB drive with sufficient storage capacity.
-   - Open Disk Utility (you can find it in Applications > Utilities).
-   - Select your USB drive from the list of available drives.
-   - Click on the "Erase" tab and format the USB drive using the "MS-DOS (FAT)" format.
-   - Once formatted, open Terminal (you can find it in Applications > Utilities).
-   - Use the `diskutil list` command to identify the disk identifier of your USB drive.
-   - Use the `sudo dd if=/path/to/SYN-OS-ISO-file of=/dev/diskN bs=1m` command to write the SYN-OS ISO to the USB drive (replace `/path/to/SYN-OS-ISO-file` with the actual path to the ISO file and `/dev/diskN` with the disk identifier of your USB drive).
-   - This process may take some time. Once it's complete, eject the USB drive.
-
-After creating the bootable USB drive, you can proceed to boot your computer from it and install SYN-OS following the on-screen instructions.
-
-
-```markdown
-
 #### Project Structure
 
 1. **scripts:**
@@ -119,23 +81,52 @@ After creating the bootable USB drive, you can proceed to boot your computer fro
     - **loopback.cfg:** Configuration for loopback booting.
     - **grub.cfg:** General GRUB configuration.
 
+#### Downloading the ISO
+
+To download the latest version of SYN-OS, click on the respective link below:
+
+- **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
+- **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)**
+
+After downloading the ISO, save it to your local machine.
+
+#### Creating a Bootable USB Drive
+
+For both Windows and Mac users, you can create a bootable USB drive using the following steps:
+
+1. **Windows Users:**
+   - Download and install Rufus from the [official website](https://rufus.ie/).
+   - Insert a USB drive with sufficient storage capacity.
+   - Open Rufus and select the inserted USB drive under "Device."
+   - Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
+   - Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
+   - Click "Start" to create the bootable USB drive.
+
+2. **Mac Users:**
+   - Insert a USB drive with sufficient storage capacity.
+   - Open Disk Utility (you can find it in Applications > Utilities).
+   - Select your USB drive from the list of available drives.
+   - Click on the "Erase" tab and format the USB drive using the "MS-DOS (FAT)" format.
+   - Once formatted, open Terminal (you can find it in Applications > Utilities).
+   - Use the `diskutil list` command to identify the disk identifier of your USB drive.
+   - Use the `sudo dd if=/path/to/SYN-OS-ISO-file of=/dev/diskN bs=1m` command to write the SYN-OS ISO to the USB drive (replace `/path/to/SYN-OS-ISO-file` with the actual path to the ISO file and `/dev/diskN` with the disk identifier of your USB drive).
+   - This process may take some time. Once it's complete, eject the USB drive.
+
+After creating the bootable USB drive, you can proceed to boot your computer from it and install SYN-OS following the on-screen instructions.
+
+Once booted and connected to the internet (automatic on ethernet + DHCP) it should be as simple as one command to install the entire system.
+
+```markdown
     
-#### Building the ISO
+#### Customizing the ISO (requires SYN-OS)
 
-To manually build the ISO:
-
-1. Navigate to the SYN-ISO-PROFILE directory: `cd SYN-OS/SYN-ISO-PROFILE`
-2. Run the build script: `./BUILD-SYNOS-ISO.zsh`
-3. Locate the resulting ISO in the 'SYN-ISO-PROFILE' directory.
-
-#### Customizing the ISO
-
-1. Clone the repository: `git clone https://github.com/syn990/SYN-OS.git`
-2. Navigate to the SYN-ISO-PROFILE directory: `cd SYN-OS/SYN-ISO-PROFILE`
-3. Edit configurations and customize packages in `airootfs/etc` to suit your preferences.
-4. Run the new build script: `./BUILD-SYNOS-ISO.zsh`
-5. Find the output ISO in the 'out' directory.
-6. Boot the ISO.
+1. Open kitty (or any terminal).
+2. Clone the repository: `git clone https://github.com/syn990/SYN-OS.git`
+3. Navigate to the SYN-ISO-PROFILE directory: `cd SYN-OS/SYN-ISO-PROFILE`
+4. Edit configurations and customize packages in `airootfs/etc` to suit your preferences.
+5. Run the new build script: `./BUILD-SYNOS-ISO.zsh`
+6. Find the output ISO in the 'SYN-ISO-PROFILE' directory.
+7. Boot the ISO.
 ```
 
 ## The installation process (syn-stage0.zsh) (Run 'syntax990' to start)
@@ -165,7 +156,6 @@ Click on the image above to view it in full size.
 <p align="center">
   <img src="./Images/openbox.png">
 </p>
-
 
 
 <p align="center">
