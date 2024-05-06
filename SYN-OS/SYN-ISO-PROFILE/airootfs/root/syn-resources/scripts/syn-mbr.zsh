@@ -8,12 +8,8 @@
 # - syn-stage1.zsh - Stage 1 MBR
 
 # Requires fixing as to not define ROOT_PART_990 twice during process
-ROOT_PART_990="/dev/sda2"
+ROOT_PART_990="/dev/sda1"
 # source /syn-stage0.zsh
-
-# Get UUID of the root partition
-ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
-
 
 clear
 
@@ -116,12 +112,12 @@ MENU COLOR tabmsg       31;40   #30ffffff #00000000 std
 
 LABEL synos
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$ROOT_REAL_UUID_990 rw
+	APPEND root=$ROOT_PART_990 rw
 	INITRD ../initramfs-linux.img
 
 LABEL archfallback
 	LINUX ../vmlinuz-linux
-	APPEND root=UUID=$ROOT_REAL_UUID_990 rw
+	APPEND root=$ROOT_PART_990 rw
 	INITRD ../initramfs-linux-fallback.img
 
 LABEL hdt
@@ -136,11 +132,6 @@ LABEL poweroff
     MENU LABEL Poweroff
     COM32 poweroff.c32
 EOF
-
-
-#sleep 0.5
-
-clear
 
 # Display final instructions
 echo "
