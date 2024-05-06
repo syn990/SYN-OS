@@ -135,7 +135,7 @@ disk_processing_mbr() {
         
         # Copy splash.png to the syslinux folder
         echo "Copying splash.png to the syslinux folder"
-        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux.png
+        cp /root/syn-resources/splash.png $BOOT_MOUNT_LOCATION_990/syslinux/syslinux.png
         check_success "Failed to copy splash.png to syslinux folder"
 
     else
