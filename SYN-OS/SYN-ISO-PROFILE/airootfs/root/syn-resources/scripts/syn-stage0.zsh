@@ -299,14 +299,9 @@ syslinux_setup_conditionally() {
         check_success "Failed to copy splash.png to syslinux folder"
 
         echo "Installing Syslinux into disk MBR"
-        extlinux --install /boot/syslinux
-        umount $BOOT_PART_990
-        dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/bios/mbr.bin of=$WIPE_DISK_990 status=progress
-        
-        # Mount root partition
-        echo "Mounting root partition: $BOOT_PART_990 to $ROOT_MOUNT_LOCATION_990"
-        mount $BOOT_PART_990 $ROOT_MOUNT_LOCATION_990
-        check_success "Failed to mount root partition"
+        syslinux-install_update -i -a -m -c /mnt
+        rm /mnt/boot/syslinux/syslinux.cfg
+        cp /mnt/usr/lib/syslinux/bios/*.c32 /mnt/boot/syslinux/
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
     fi
