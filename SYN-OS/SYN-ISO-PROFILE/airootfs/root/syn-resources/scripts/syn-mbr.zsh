@@ -81,14 +81,26 @@ systemctl enable iwd.service
 echo "Configuring Syslinux"
 cat <<EOF > /boot/syslinux/syslinux.cfg
 UI vesamenu.c32
-DEFAULT syn-os
+
+MENU TITLE AUTHORIZED ACCESS ONLY
 MENU BACKGROUND splash.png
 
+MENU COLOR title       1;36;44   #9033ccff #a0000000 std
+MENU COLOR border      30;44     #40ffffff #a0000000 std
+MENU COLOR sel         7;37;40   #e0ffffff #20ffffff all
+MENU COLOR unsel       37;44     #50ffffff #a0000000 std
+MENU COLOR hotkey      1;7;37;40 #ffffffff #20ffffff std
+MENU COLOR help        37;40     #c0ffffff #a0000000 std
+MENU COLOR timeout_msg 37;40    #80ffffff #00000000 std
+MENU COLOR timeout     1;37;40  #c0ffffff #00000000 std
+MENU COLOR msg07       37;40    #90ffffff #a0000000 std
+
+DEFAULT syn-os
 LABEL syn-os
-    MENU LABEL SYN-OS
-    LINUX ../vmlinuz-linux
+    MENU LABEL Boot SYN-OS
+    LINUX /boot/vmlinuz-linux
     APPEND root=$ROOT_PART_990 rw
-    INITRD ../initramfs-linux.img
+    INITRD /boot/initramfs-linux.img
 
 LABEL hdt
     MENU LABEL HDT (Hardware Detection Tool)
@@ -102,6 +114,7 @@ LABEL poweroff
     MENU LABEL Poweroff
     COM32 poweroff.c32
 EOF
+
 
 sleep 0.5
 
