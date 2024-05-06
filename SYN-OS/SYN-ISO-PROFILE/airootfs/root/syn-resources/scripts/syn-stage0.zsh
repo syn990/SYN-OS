@@ -300,8 +300,6 @@ syslinux_setup_conditionally() {
 
         echo "Installing Syslinux into disk MBR"
         syslinux-install_update -i -a -m -c /mnt
-        rm /mnt/boot/syslinux/syslinux.cfg
-        cp /mnt/usr/lib/syslinux/bios/*.c32 /mnt/boot/syslinux/
     else
         echo "EFI System detected. Skipping SYSLINUX setup."
     fi
