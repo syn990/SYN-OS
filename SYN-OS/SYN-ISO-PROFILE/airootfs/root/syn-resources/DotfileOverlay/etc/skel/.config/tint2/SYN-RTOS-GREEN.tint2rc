@@ -5,7 +5,7 @@
 # Gradients
 # Gradient 1
 gradient = vertical
-start_color = #100000 62
+start_color = #003300 62
 end_color = #000000 100
 
 #-------------------------------------
@@ -16,8 +16,8 @@ border_width = 0
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #100000 60
-border_color = #100000 30
+background_color = #003300 60
+border_color = #003300 30
 gradient_id = 1
 background_color_hover = #000000 60
 border_color_hover = #000000 30
@@ -32,12 +32,12 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #777777 20
-border_color = #777777 30
-background_color_hover = #aaaaaa 22
-border_color_hover = #eaeaea 44
-background_color_pressed = #555555 4
-border_color_pressed = #eaeaea 44
+background_color = #004d00 20
+border_color = #004d00 30
+background_color_hover = #006600 22
+border_color_hover = #006600 44
+background_color_pressed = #002200 4
+border_color_pressed = #006600 44
 
 # Background 3: 
 rounded = 4
@@ -45,12 +45,12 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #777777 20
-border_color = #ffffff 40
-background_color_hover = #aaaaaa 22
-border_color_hover = #eaeaea 44
-background_color_pressed = #555555 4
-border_color_pressed = #eaeaea 44
+background_color = #004d00 20
+border_color = #003300 40
+background_color_hover = #006600 22
+border_color_hover = #006600 44
+background_color_pressed = #002200 4
+border_color_pressed = #006600 44
 
 # Background 4: Urgent task
 rounded = 4
@@ -58,12 +58,12 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #aa4400 100
-border_color = #aa7733 100
-background_color_hover = #cc7700 100
-border_color_hover = #aa7733 100
-background_color_pressed = #555555 4
-border_color_pressed = #aa7733 100
+background_color = #007700 100
+border_color = #005500 100
+background_color_hover = #008800 100
+border_color_hover = #005500 100
+background_color_pressed = #002200 4
+border_color_pressed = #005500 100
 
 # Background 5: Active task, Launcher
 rounded = 1
@@ -71,11 +71,11 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #222222 100
-border_color = #333333 100
-background_color_hover = #ffffaa 100
+background_color = #003300 100
+border_color = #002200 100
+background_color_hover = #aaffaa 100
 border_color_hover = #000000 100
-background_color_pressed = #ffffaa 100
+background_color_pressed = #aaffaa 100
 border_color_pressed = #000000 100
 
 # Background 6: 
@@ -84,11 +84,11 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #222222 100
-border_color = #333333 100
-background_color_hover = #ffffaa 100
+background_color = #003300 100
+border_color = #002200 100
+background_color_hover = #aaffaa 100
 border_color_hover = #000000 100
-background_color_pressed = #ffffaa 100
+background_color_pressed = #aaffaa 100
 border_color_pressed = #000000 100
 
 # Background 7: 
@@ -97,12 +97,12 @@ border_width = 1
 border_sides = TBLR
 border_content_tint_weight = 0
 background_content_tint_weight = 0
-background_color = #222222 100
-border_color = #333333 100
-background_color_hover = #1c71d8 100
+background_color = #003300 100
+border_color = #002200 100
+background_color_hover = #0055aa 100
 border_color_hover = #000000 100
 gradient_id_hover = 0
-background_color_pressed = #1c71d8 100
+background_color_pressed = #0055aa 100
 border_color_pressed = #000000 100
 
 #-------------------------------------
@@ -149,8 +149,8 @@ taskbar_name_padding = 4 2
 taskbar_name_background_id = 0
 taskbar_name_active_background_id = 0
 taskbar_name_font = Terminus Bold 9
-taskbar_name_font_color = #ff0000 100
-taskbar_name_active_font_color = #ff0000 100
+taskbar_name_font_color = #00ff00 100
+taskbar_name_active_font_color = #00ff00 100
 taskbar_distribute_size = 0
 taskbar_sort_order = none
 task_align = left
@@ -167,7 +167,7 @@ task_font = Terminus Bold 9
 task_tooltip = 0
 task_thumbnail = 0
 task_thumbnail_size = 210
-task_font_color = #ff0000 100
+task_font_color = #00ff00 100
 task_icon_asb = 50 50 -10
 task_background_id = 1
 task_active_background_id = 5
@@ -212,7 +212,7 @@ time2_format =
 time1_font = Terminus Medium 9
 time1_timezone = 
 time2_timezone = 
-clock_font_color = #e01b24 100
+clock_font_color = #00ff00 100
 clock_padding = 2 0
 clock_background_id = 1
 clock_tooltip = 
@@ -231,7 +231,7 @@ battery_low_cmd = xmessage 'tint2: Power loss iminent!'
 battery_full_cmd = 
 bat1_font = Terminus Bold 8
 bat2_font = Terminus Bold 0
-battery_font_color = #e01b24 100
+battery_font_color = #00ff00 100
 bat1_format = 
 bat2_format = 
 battery_padding = 1 0
@@ -249,7 +249,7 @@ ac_disconnected_cmd =
 # Separator 1
 separator = new
 separator_background_id = 0
-separator_color = #e01b24 100
+separator_color = #00ff00 100
 separator_style = line
 separator_size = 2
 separator_padding = 2 1
@@ -258,7 +258,7 @@ separator_padding = 2 1
 # Separator 2
 separator = new
 separator_background_id = 0
-separator_color = #e01b24 100
+separator_color = #00ff00 100
 separator_style = line
 separator_size = 2
 separator_padding = 2 1
@@ -267,7 +267,7 @@ separator_padding = 2 1
 # Separator 3
 separator = new
 separator_background_id = 0
-separator_color = #e01b24 100
+separator_color = #00ff00 100
 separator_style = line
 separator_size = 2
 separator_padding = 2 1
@@ -275,7 +275,7 @@ separator_padding = 2 1
 #-------------------------------------
 # Executor 1
 execp = new
-execp_command = ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}'
+execp_command = ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'
 execp_interval = 1
 execp_has_icon = 0
 execp_cache_icon = 0
@@ -288,7 +288,7 @@ execp_mclick_command =
 execp_uwheel_command = 
 execp_dwheel_command = 
 execp_font = Terminus 9
-execp_font_color = #e01b24 100
+execp_font_color = #00ff00 100
 execp_padding = 0 0
 execp_background_id = 0
 execp_centered = 0
@@ -301,5 +301,4 @@ tooltip_show_timeout = 0.5
 tooltip_hide_timeout = 0.1
 tooltip_padding = 6 6
 tooltip_background_id = 1
-tooltip_font_color = #ff0000 100
-
+tooltip_font_color = #00ff00 100
