@@ -19,6 +19,12 @@
         <startupnotify><enabled>yes</enabled></startupnotify>
       </action>
     </item>
+    <item label="QT5 Controls">
+      <action name="Execute">
+        <command>qt5ct</command>
+        <startupnotify><enabled>yes</enabled></startupnotify>
+    </action>
+    </item>
   <separator label="Audio/Visual Settings" />
     <item label="Display Resolution and Screen Setup">
       <action name="Execute">
