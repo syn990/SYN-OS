@@ -2,32 +2,93 @@
 
 # SYN-OS
 # SYNTAX990
-# WILLIAM HAYWARD-HOLLAND
-# M.I.T LICENSE
+# William Hayward-Holland
+# MIT License
 
 # - syn-stage0.zsh
 
+###############################################################################################################
+# IMPORTANT NOTICE!                           # IMPORTANT NOTICE!                           # IMPORTANT NOTICE!
+
+
+# IMPORTANT NOTICE!
+# Disk Processing:
+# This script currently performs a wipe operation on /dev/sda without any user prompt. It's crucial to create a device label during this process to enhance the predictability of bootctl.
+# Before executing this script, it's imperative to run 'lsblk' to inspect the disk layout and ensure correctness.
+# If you're installing on a system with a Master Boot Record (MBR), carefully identify the disk name and verify that it matches the output from 'lsblk'. Failure to do so may result in boot failures.
+
+# IMPORTANT NOTICE!
+# Pacstrap Function:
+# This function synchronizes packages using pacstrap. It is designed to streamline the installation process by categorizing packages into various arrays based on their functionality. These arrays are then combined into a single variable called SYNSTALL, which represents all the packages to be installed on the system. Before running this function, ensure that the necessary packages are included in the respective arrays as per your requirements.
+
+    # Explanation of Arrays:
+        # - The basePackages array includes fundamental packages essential for the system's core functionality. This includes base system utilities, compilers, and essential firmware.
+        # - The systemPackages array consists of packages related to system utilities and services, such as network management tools, audio utilities, and display managers.
+        # - The controlPackages array contains packages for controlling various aspects of the system, such as display settings and audio control.
+        # - The wmPackages array includes packages related to window managers and the X server, essential for graphical user interface (GUI) functionality.
+        # - The cliPackages array comprises command-line interface (CLI) utilities commonly used for system administration and everyday tasks.
+        # - The guiPackages array contains graphical user interface (GUI) applications for enhancing the user experience.
+        # - The fontPackages array includes font-related packages to ensure proper font rendering and compatibility.
+        # - The cliExtraPackages array includes additional CLI utilities for specialized tasks or user preferences.
+        # - The guiExtraPackages array comprises extra GUI applications for specific use cases or user preferences.
+
+    # Combining Arrays into SYNSTALL:
+        # All these arrays are combined into a single variable called SYNSTALL using the following syntax:
+        # SYNSTALL=($basePackages $systemPackages $controlPackages $wmPackages $cliPackages $guiPackages $fontPackages $cliExtraPackages $guiExtraPackages)
+        # This ensures that all the packages from different categories are consolidated into one variable for ease of use during the pacstrap operation.
+
+    # Usage:
+        # Once the SYNSTALL variable is defined, it is passed as an argument to the pacstrap command along with the root mount location. For example:
+        # pacstrap -K $ROOT_MOUNT_LOCATION_990 $SYNSTALL
+        # This command installs all the packages listed in the SYNSTALL variable to the specified root mount location, ensuring that the necessary software components are installed for the resulting system.
+
+    # Customization:
+        # If you wish to add or remove packages, you can modify the respective arrays according to your requirements. Simply add or remove package names from the relevant array, ensuring that they are appropriately categorized. Once the arrays are updated, the SYNSTALL variable will automatically reflect the changes, allowing for flexible customization of the installation process.
+
+# IMPORTANT NOTICE!
+# Dotfiles and Variables Setup:
+# This function handles the copying of system configuration files and variables necessary for setting up the environment in the new root directory. It ensures that essential configuration files are available to users, enabling a consistent and complete user experience.
+
+    # Copying Dotfiles:
+        # - The function copies dotfiles from the DotfileOverlay directory to the new root directory (/mnt). These dotfiles include configuration files for various applications and utilities, ensuring that default settings are applied to the system.
+
+    # Setting Variables:
+        # - Additionally, the function copies the syn-stage0.zsh script to the root directory. This script contains essential variables and functions required for the installation process. By duplicating it to the root directory, we ensure that these variables are accessible and correctly set up during subsequent stages of installation.
+
+    # Filesystem Table Generation:
+        # - After copying dotfiles and variables, the function generates the filesystem table (/etc/fstab) with boot information regarding UUID assignment. This step is crucial for ensuring proper booting and system functionality, as it defines how partitions are mounted and accessed by the system.
+
+    # User Dotfiles:
+        # - Lastly, the function ensures that user dotfiles are copied to /etc/skel, ensuring that new users created on the system inherit a complete environment with predefined settings and configurations.
+
+    # Customization:
+        # - Users can customize dotfiles and variables according to their preferences or specific system requirements. Simply modify the files in the DotfileOverlay directory or update the syn-stage0.zsh script as needed to reflect desired changes in configuration.
+
+    # Usage:
+        # - To utilize this function, simply call it within the main script. It will automatically handle the copying of dotfiles, setting up variables, generating the filesystem table, and ensuring user dotfiles are available for new users.
+
+    # Verification:
+        # - After execution, users can verify the presence and correctness of copied dotfiles and variables in the new root directory (/mnt). Additionally, inspecting the generated filesystem table (/mnt/etc/fstab) ensures that partitions are correctly defined for mounting during boot.
+
+
 ############################################################################################################
 
-# Below you will find all the mount and partition variables, which are used in syn-stage0.zsh
-# Modify them for convenience, or use your own partitioning.
+# Below, you'll find all the variables used in syn-stage0.zsh.
+# Modify them for your convenience or use your own partitioning strategy.
 
-# This currently wipes sda, without any prompt. We need it to create a device label as this will help bootctl be more predictable
-# You absolutely must run lsblk and check the disk
-# It's set to gpt so a different script is needed for MBR setups.
-
-WIPE_DISK_990="/dev/sda"                  # Drive to be wiped - The main storage medium
-BOOT_PART_990="/dev/sda1"                 # The boot partition
-ROOT_PART_990="/dev/sda2"                 # The root partition
-BOOT_MOUNT_LOCATION_990="/mnt/boot"       # The boot directory
-ROOT_MOUNT_LOCATION_990="/mnt/"           # The root directory
-BOOT_FILESYSTEM_990="fat32"               # The boot partition's filesystem
-ROOT_FILESYSTEM_990="f2fs"                # The root partition's filesystem
+# Disk Mount and Partition Variables
+WIPE_DISK_990="/dev/sda"                  # The drive to be wiped - primary storage medium.
+BOOT_PART_990="/dev/sda1"                 # The boot partition.
+ROOT_PART_990="/dev/sda2"                 # The root partition.
+BOOT_MOUNT_LOCATION_990="/mnt/boot"       # The mount point for the boot directory.
+ROOT_MOUNT_LOCATION_990="/mnt/"           # The mount point for the root directory.
+BOOT_FILESYSTEM_990="fat32"               # The filesystem format for the boot partition. If changed, ensure to update corresponding disk processing variables below.
+ROOT_FILESYSTEM_990="f2fs"                # The filesystem format for the root partition. If changed, ensure to update corresponding disk processing variables below.
 
 # Function to check if a command executed successfully
 check_success() {
     if [ $? -ne 0 ]; then
-        echo "Error: $1"
+        echo "\033[1;31mError: $1\033[0m"
         exit 1
     fi
 }
@@ -43,6 +104,7 @@ confirm_action() {
     fi
 }
 
+# Function ti prepare the environment for SYN-OS
 syn-os_environment_prep() {
     loadkeys uk                               # Setup the keyboard layout
     check_success "Failed to setup keyboard layout"
@@ -52,6 +114,28 @@ syn-os_environment_prep() {
     check_success "Failed to start DHCP service"
 }
 
+# Function to display an ASCII art threat before wiping disk
+wipe_art_montage() {
+    echo "\033[0;31m____    __    ____  __  .______    __  .__   __.   _______ \033[0m"
+    echo "\033[0;31m\   \  /  \  /   / |  | |   _  \  |  | |  \ |  |  /  _____|\033[0m"
+    echo "\033[0;31m \   \/    \/   /  |  | |  |_)  | |  | |   \|  | |  |  __  \033[0m"
+    echo "\033[0;31m  \            /   |  | |   ___/  |  | |  .    | |  | |_ | \033[0m"
+    echo "\033[0;31m   \    /\    /    |  | |  |      |  | |  |\   | |  |__| | \033[0m"
+    echo "\033[0;31m    \__/  \__/     |__| | _|      |__| |__| \__|  \______| \033[0m"
+    echo "\033[0;31m ___________    ____  _______ .______     ____    ____ .___________. __    __   __  .__   __.   _______ \033[0m"
+    echo "\033[0;31m|   ____\   \  /   / |   ____||   _  \    \   \  /   / |           ||  |  |  | |  | |  \ |  |  /  _____|\033[0m"
+    echo "\033[0;31m|  |__   \   \/   /  |  |__   |  |_)  |    \   \/   /   ---|  |---- |  |__|  | |  | |   \|  | |  |  __  \033[0m"
+    echo "\033[0;31m|   __|   \      /   |   __|  |      /      \_    _/       |  |     |   __   | |  | |  .    | |  | |_ | \033[0m"
+    echo "\033[0;31m|  |____   \    /    |  |____ |  |\  \----.   |  |         |  |     |  |  |  | |  | |  |\   | |  |__| | \033[0m"
+    echo "\033[0;31m|_______|   \__/     |_______|| _|  ._____|   |__|         |__|     |__|  |__| |__| |__| \__|  \______| \033[0m"
+    echo ""
+    echo "\033[1;31mIf you didn't read the source properly, you may risk wiping all your precious data...\033[0m"
+    echo
+    echo "Press CTRL + C Right NOW IF YOU WANT TO SAVE YOUR DATA YOU HAVE LESS THAN A SECOND TO REACT"
+    sleep 3
+}
+
+# Function to process disks for UEFI systems
 disk_processing_uefi() {
     # Check if EFI System Partition (ESP) exists
     if [ -d "/sys/firmware/efi/efivars" ]; then
@@ -88,6 +172,7 @@ disk_processing_uefi() {
     fi
 }
 
+# Function to process disks for MBR systems
 disk_processing_mbr() {
   # Check if EFI System Partition (ESP) exists
     if [ ! -d "/sys/firmware/efi/efivars" ]; then
@@ -116,6 +201,7 @@ disk_processing_mbr() {
     fi
 }
 
+# Function to display ASCII art for SYN-OS
 art_montage() {
     clear
 
@@ -173,48 +259,31 @@ art_montage() {
     clear 
 }
 
-wipe_art_montage() {
-    echo "____    __    ____  __  .______    __  .__   __.   _______ "
-    echo "\   \  /  \  /   / |  | |   _  \  |  | |  \ |  |  /  _____|"
-    echo " \   \/    \/   /  |  | |  |_)  | |  | |   \|  | |  |  __  "
-    echo "  \            /   |  | |   ___/  |  | |  .    | |  | |_ | "
-    echo "   \    /\    /    |  | |  |      |  | |  |\   | |  |__| | "
-    echo "    \__/  \__/     |__| | _|      |__| |__| \__|  \______| "
-    echo " ___________    ____  _______ .______     ____    ____ .___________. __    __   __  .__   __.   _______ "
-    echo "|   ____\   \  /   / |   ____||   _  \    \   \  /   / |           ||  |  |  | |  | |  \ |  |  /  _____|"
-    echo "|  |__   \   \/   /  |  |__   |  |_)  |    \   \/   /   ---|  |---- |  |__|  | |  | |   \|  | |  |  __  "
-    echo "|   __|   \      /   |   __|  |      /      \_    _/       |  |     |   __   | |  | |  .    | |  | |_ | "
-    echo "|  |____   \    /    |  |____ |  |\  \----.   |  |         |  |     |  |  |  | |  | |  |\   | |  |__| | "
-    echo "|_______|   \__/     |_______|| _|  ._____|   |__|         |__|     |__|  |__| |__| |__| \__|  \______| "
-    echo ""
-    echo "If you didn't read the source properly, you may risk wiping all your precious data..."
-    sleep 3
-}
-
+# Function to synchronize pacstrap packages
 pacstrap_sync() {
     sleep 1
-    echo  " ___  _   ___ ___ _____ ___    _   ___ "
-    echo  "| _ \/_\ / __/ __|_   _| _ \  /_\ | _ |"""
-    echo  "|  _/ _ \ (__\__ \ | | |   / / _ \|  _/"
-    echo  "|_|/_/ \_\___|___/ |_| |_|_\/_/ \_\_|  "
+    echo  "\033[0;34m ___  _   ___ ___ _____ ___    _   ___ \033[0m"
+    echo  "\033[0;34m| _ \/_\ / __/ __|_   _| _ \  /_\ | _ |""\033[0m"
+    echo  "\033[0;34m|  _/ _ \ (__\__ \ | | |   / / _ \|  _/\033[0m"
+    echo  "\033[0;34m|_|/_/ \_\___|___/ |_| |_|_\/_/ \_\_|  \033[0m"
     echo ""
     sleep 0.5 
     echo "Installing packages to the resulting system."
     sleep 1
     echo ""
-    echo -e "\033[33m   ,##.                   ,==.\033[0m"
-    echo -e "\033[33m ,#    #.                 \\ o '\033[0m"
-    echo -e "\033[33m#        #     _     _     \\    \\\033[0m"
-    echo -e "\033[33m#        #    (_)   (_)    /    ;\033[0m"
-    echo -e "\033[33m \`#    #'                 /   .'\033[0m"
-    echo -e "\033[33m   \`##'                   \"==\"\033[0m"
+    echo -e "\033[0;33m   ,##.                   ,==.\033[0m"
+    echo -e "\033[0;33m ,#    #.                 \\ o '\033[0m"
+    echo -e "\033[0;33m#        #     _     _     \\    \\\033[0m"
+    echo -e "\033[0;33m#        #    (_)   (_)    /    ;\033[0m"
+    echo -e "\033[0;33m \`#    #'                 /   .'\033[0m"
+    echo -e "\033[0;33m   \`##'                   \"==\"\033[0m"
     sleep 1
 
     # Define arrays for different categories of packages
     basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "archlinux-keyring" "pacman-contrib" "sudo" "zsh")
     systemPackages=("alsa-utils" "archlinux-xdg-menu" "dhcpcd" "dnsmasq" "hostapd" "iwd" "pulseaudio" "python-pyalsa" "syslinux")
     controlPackages=("lxrandr" "obconf-qt" "pavucontrol-qt")
-    wmPackages=("openbox" "xcompmgr" "xorg-server" "xorg-xinit" "tint2")
+    wmPackages=("openbox" "qt5ct" "xcompmgr" "xorg-server" "xorg-xinit" "tint2")
     cliPackages=("git" "htop" "man" "nano" "reflector" "rsync" "wget")
     guiPackages=("engrampa" "feh" "kitty" "kwrite" "pcmanfm-qt")
     fontPackages=("terminus-font" "ttf-bitstream-vera")
@@ -234,38 +303,41 @@ pacstrap_sync() {
     pacstrap -K $ROOT_MOUNT_LOCATION_990 $SYNSTALL
     check_success "Failed to install packages to the new root directory."
 }
-############################################################################################################
 
+# Function to copy dotfiles and setup variables
 dotfiles_and_vars() {
     echo "Generating filesystem table with boot information in respect to UUID assignment"
     genfstab -U /mnt >> /mnt/etc/fstab
     if [ $? -ne 0 ]; then
-        echo "Failed to generate filesystem table"
+        echo "❌ Failed to generate filesystem table"
         exit 1
+    else
+        echo "✅ Filesystem table generated successfully"
     fi
 
-    echo "  ____   ___ _____ _____ ___    _   ___ "
-    echo " |  _ \ / _ \_   _|  ___|_ _| |   | ____/ ___| "
-    echo " | | | | | | || | | |_   | || |   |  _| \___ \ "
-    echo " | |_| | |_| || | |  _|  | || |___| |___ ___) |"
-    echo " |____/ \___/ |_| |_|   |___|_____|_____|____/ "
     echo ""
-    echo "Copying the dotfile overlay materials to the new system root directory"
+    echo "\033[1;34m🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟\033[0m"
+    echo "\033[1;34m🚀    SYN-OS Stage 0: Setting Up Dotfiles        🚀\033[0m"
+    echo "\033[1;34m🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟🌟\033[0m"
     echo ""
 
-    # Copy the dotfiles to /etc/skel in the new root directory
-    echo "Copying dotfiles to /etc/skel in the new root directory"
-    cp -Rv /root/syn-resources/DotfileOverlay/etc/skel "$ROOT_MOUNT_LOCATION_990/etc/"
+    # Copy the dotfiles to the new root directory
+    echo "📂 Copying dotfiles to the new root directory..."
+    cp -Rv /root/syn-resources/DotfileOverlay/* "$ROOT_MOUNT_LOCATION_990/"
     if [ $? -ne 0 ]; then
-        echo "Failed to copy dotfiles to /etc/skel in the new root directory"
+        echo "❌ Failed to copy dotfiles to the new root directory"
         exit 1
+    else
+        echo "✅ Dotfiles copied successfully"
     fi
 
     # The file is duplicated to the root directory as stage 0 relies on its source for the partition vars.
     cp -v /root/syn-resources/scripts/syn-stage0.zsh $ROOT_MOUNT_LOCATION_990/syn-stage0.zsh
     if [ $? -ne 0 ]; then
-        echo "Failed to stage 0"
+        echo "❌ Failed to stage 0"
         exit 1
+    else
+        echo "✅ Stage 0 almost completed..."
     fi
 
     # Depending on whether the system boots with MBR or UEFI, choose the appropriate script
@@ -277,54 +349,63 @@ dotfiles_and_vars() {
         cp -v /root/syn-resources/scripts/syn-mbr.zsh $ROOT_MOUNT_LOCATION_990/syn-stage1.zsh
     fi
     if [ $? -ne 0 ]; then
-        echo "Failed to copy stage 1"
+        echo "❌ Failed to copy stage 1"
         exit 1
+    else
+        echo "✅ Stage 1 completed successfully"
     fi
 }
 
-# Call syslinux_setup_conditionally function instead of syslinux-setup
-
+# Function to display end ASCII art and summary
 end_art() {
+    
     clear
+    
     echo ""
-    echo "     _______.____    ____ .__   __.          ______        _______."
-    echo "    /       |\   \  /   / |  \ |  |         /  __  \      /       |"
-    echo "   |   (----  \   \/   /  |   \|  |  ______|  |  |  |    |   (---- "
-    echo "    \   \      \_    _/   |  .    | |______|  |  |  |     \   \    "
-    echo ".----)   |       |  |     |  |\   |        |   --'  | .----)   |   "
-    echo "|_______/        |__|     |__| \__|         \______/  |_______/    "
-    echo ""
-    echo ""
-    echo "SUMMARY: Stage Zero Complete - Prepare for the next steps"
-    echo ""
-    echo "Congratulations! Stage Zero of the process is complete."
-    echo ""
-    echo "1. Mounted the root partition ($ROOT_PART_990) to the root directory ($ROOT_MOUNT_LOCATION_990)."
-    echo "2. Created the boot partition ($BOOT_PART_990) and format it with the appropriate filesystem ($BOOT_FILESYSTEM_990)."
-    echo "3. Formatted the root partition ($ROOT_PART_990) with the appropriate filesystem ($ROOT_FILESYSTEM_990)."
-    echo "4. Mounted the boot partition ($BOOT_PART_990) to the boot directory ($BOOT_MOUNT_LOCATION_990)."
-    echo "5. Generated the filesystem table with boot information in respect to UUID assignment."
-    echo "6. Installed the essential packages to the resulting system using Pacstrap."
-    echo "7. Applied mirror mystics and re-secure the keyring."
-    echo "8. Generated cryptographic keys for Pacman and update the package databases."
-    echo "9. Copied the root overlay materials from $DotfileOverlay to the root directory."
-    echo "10. Completed Stage Zero now to arch-chroot into the new system."
-    echo "11. (hint - if the prompt has halted)"
-    echo "    Run: arch-chroot $ROOT_MOUNT_LOCATION_990"
-    echo "12. Run: sh /syn-stage1.zsh"
-    echo ""
+    echo "     \033[0;31m _______.____    ____ .__   __.          ______        _______.\033[0m"
+    echo "    \033[0;31m/       |\   \  /   / |  \ |  |         /  __  \      /       |\033[0m"
+    echo "   \033[0;31m|   (----  \   \/   /  |   \|  |  ______|  |  |  |    |   (---- \033[0m"
+    echo "    \033[0;31m\   \      \_    _/   |  .    | |______|  |  |  |     \   \    \033[0m"
+    echo "\033[0;31m.----)   |       |  |     |  |\   |        |   --'  | .----)   |   \033[0m"
+    echo "\033[0;31m|_______/        |__|     |__| \__|         \______/  |_______/    \033[0m"
+
     sleep 0.5
+    
+    echo ""
+    echo "\033[32mSUMMARY: Stage Zero Complete - Prepare for the next steps\033[0m"
+    
+    sleep 0.2
+    
+    echo ""
+    echo "\033[1;37mCongratulations! Stage Zero of the process is complete.\033[0m"
+    echo ""
+    
+    sleep 0.2
+    
+    echo "\033[32m• \033[1;37mMounted the root partition (\033[1;93m$ROOT_PART_990\033[0m\033[1;37m) to the root directory (\033[1;93m$ROOT_MOUNT_LOCATION_990\033[0m\033[1;37m).\033[0m"
+    echo "\033[32m• \033[1;37mCreated the boot partition (\033[1;93m$BOOT_PART_990\033[0m\033[1;37m) and format it with the appropriate filesystem (\033[1;93m$BOOT_FILESYSTEM_990\033[0m\033[1;37m).\033[0m"
+    echo "\033[32m• \033[1;37mFormatted the root partition (\033[1;93m$ROOT_PART_990\033[0m\033[1;37m) with the appropriate filesystem (\033[1;93m$ROOT_FILESYSTEM_990\033[0m\033[1;37m).\033[0m"
+    echo "\033[32m• \033[1;37mMounted the boot partition (\033[1;93m$BOOT_PART_990\033[0m\033[1;37m) to the boot directory (\033[1;93m$BOOT_MOUNT_LOCATION_990\033[0m\033[1;37m).\033[0m"
+    echo "\033[32m• \033[1;37mGenerated the filesystem table with boot information in respect to UUID assignment.\033[0m"
+    echo "\033[32m• \033[1;37mInstalled the essential packages to the resulting system using Pacstrap.\033[0m"
+    echo "\033[32m• \033[1;37mGenerated cryptographic keys for Pacman and update the package databases.\033[0m"
+    echo "\033[32m• \033[1;37mStrapped the SYN-OS patched files into the root directory of the system.\033[0m"
+    echo "\033[32m• \033[1;37mCopied the user dotfiles into /etc/skel ensuring new users get complete environment.\033[0m"
+    echo ""
+    echo ""
+    sleep 5
 }
 
-syn-os_environment_prep
-wipe_art_montage
-disk_processing_uefi
-disk_processing_mbr
-art_montage
-pacstrap_sync
-dotfiles_and_vars
-end_art
+# The functions will execute in the exact order they are listed.
+
+syn-os_environment_prep  # Configures essential system settings: keyboard layout, NTP, DHCP.
+wipe_art_montage         # Displays ASCII art to emphasize filesystem manipulation consequences.
+disk_processing_uefi     # Handles disk formatting and partitioning for UEFI systems with bootctl bootloader.
+disk_processing_mbr      # Manages disk formatting and partitioning for MBR systems with SYSLINUX bootloader.
+art_montage              # Presents symbolic artwork representing SYN-OS's creative autonomy.
+pacstrap_sync            # Installs a predefined set of packages for system functionality.
+dotfiles_and_vars        # Copies system configuration files and variables for setup and customization.
+end_art                  # Displays concluding ASCII art, marking stage completion with a celebratory message.
 
 echo "Executing syn-stage1.zsh script in the new root directory."
 arch-chroot $ROOT_MOUNT_LOCATION_990 /bin/zsh -c "chmod +x /syn-stage0.zsh; chmod +x /syn-stage1.zsh; /syn-stage1.zsh"
-

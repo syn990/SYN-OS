@@ -2,5 +2,5 @@
 Type=Application
 Name=LXRandR autostart
 Comment=Start xrandr with settings done in LXRandR
-Exec=sh -c 'xrandr --output eDP-1 --mode 1280x720'
+Exec=sh -c 'xrandr --output eDP-1 --mode 1360x768'
 OnlyShowIn=LXDE

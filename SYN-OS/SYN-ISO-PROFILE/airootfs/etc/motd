@@ -1,15 +1,7 @@
-To install [38;2;23;147;209mSYN-OS[0m follow the readme: ( or run the command [38;2;23;147;209msyntax990[0m )
-
-https://github.com/syn990
-
-For Wi-Fi, authenticate to the wireless network using the [35miwctl[0m utility.
-For mobile broadband (WWAN) modems, connect with the [35mmmcli[0m utility.
-Ethernet, WLAN and WWAN interfaces using DHCP should work automatically.
-
 Welcome to [38;2;23;147;209mSYN-OS[0m!
 
 - System Information:
-  - Version: SOAM-DO-HUAWEI
+  - Version: VOULITION
   - Kernel Version: $(uname -r)
   - Architecture: x86_64
 
