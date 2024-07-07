@@ -4,6 +4,26 @@
 
 **SYN-OS** is an Arch Linux-based operating system created by William Hayward-Holland (Syntax990). It utilizes build scripts to systematically install and configure an Arch Linux system, offering a highly customizable and efficient computing experience.
 
+## Table of Contents
+- [Key Features](#key-features)
+- [Unique Aspects](#unique-aspects)
+- [Installation Process](#installation-process)
+- [Customization Options](#customization-options)
+- [System Architecture](#system-architecture)
+- [Target Audience](#target-audience)
+- [Development Status](#development-status)
+- [Getting Started](#getting-started)
+  - [Downloading the ISO](#downloading-the-iso)
+  - [Creating a Bootable USB Drive](#creating-a-bootable-usb-drive)
+  - [Boot into the SYN-OS Live Environment](#boot-into-the-syn-os-live-environment)
+  - [Customize the Installation](#customize-the-installation-optional)
+  - [Run the Installation Command](#run-the-installation-command)
+  - [Follow the On-Screen Prompts](#follow-the-on-screen-prompts)
+  - [Post-Installation](#post-installation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+
 ## Key Features
 
 - **Terminal-Centric Design**: Starts in a terminal environment (tty) by default, emphasizing efficiency and simplicity.
