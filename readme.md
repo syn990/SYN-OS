@@ -6,7 +6,6 @@
 
 ## Table of Contents
 - [Key Features](#key-features)
-- [Unique Aspects](#unique-aspects)
 - [Installation Process](#installation-process)
 - [Customization Options](#customization-options)
 - [System Architecture](#system-architecture)
