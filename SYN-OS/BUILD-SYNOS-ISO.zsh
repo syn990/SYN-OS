@@ -17,7 +17,7 @@ displayDotfileInformation()
     echo -e "${RED}Data${NC} (${NC}Dotfiles, Root-overlay Materials, and Installer Scripts${RED})${NC} ${RED}to Archiso Profile${NC}"
     echo
     echo "   - You can find all these in the profile >> ${GREEN}(/airootfs/root/syn-resources/DotfileOverlay/etc/skel)${NC} or on the SYN-LIVE >> ${GREEN}(/root/syn-resources/DotfileOverlay/etc/skel)${NC} ) "
-    echo 
+    echo
     echo "   - ${BLUE}autostart:${NC} Stores the 'lxrandr-autostart.desktop' graphical resolution setting."
     echo "   - ${BLUE}dconf:${NC} Contains 'user' settings for the Dconf database, a low-level configuration system."
     echo "   - ${BLUE}htop:${NC} Houses 'htoprc', which holds user-defined settings for the htop utility."
@@ -72,9 +72,9 @@ esac
 
 # Function to create a new ISO image for SYN-OS
 createIso() {
-    ARCHISO_WORKDIR="/home/syntax990/Github-Projects/SYN-OS/WORKDIR"
-    SYN_ISO_DIR="/home/syntax990/Github-Projects/SYN-OS/SYN-ISO-PROFILE"
-    SYN_ISO_PROFILE="/home/syntax990/Github-Projects/SYN-OS/SYN-OS/SYN-ISO-PROFILE"
+    ARCHISO_WORKDIR="/home/syntax990/SYN-OS/WORKDIR"
+    SYN_ISO_DIR="/home/syntax990/SYN-OS/SYN-ISO-PROFILE"
+    SYN_ISO_PROFILE="/home/syntax990/SYN-OS/SYN-OS/SYN-OS/SYN-ISO-PROFILE"
 
     [ -d "$ARCHISO_WORKDIR" ] && { rm -R "$ARCHISO_WORKDIR"; }
     [ -d "$SYN_ISO_DIR" ] && { rm -R "$SYN_ISO_DIR"; }
