@@ -288,7 +288,7 @@ pacstrap_sync() {
     guiPackages=("engrampa" "feh" "kitty" "kwrite" "pcmanfm-qt")
     fontPackages=("terminus-font" "ttf-bitstream-vera")
     cliExtraPackages=("android-tools" "archiso" "binwalk" "brightnessctl" "hdparm" "hexedit" "lshw" "ranger" "sshfs" "yt-dlp")
-    guiExtraPackages=("audacity" "qutebrowser" "gimp" "kdenlive" "obs-studio" "openra" "spectacle" "vlc")
+    guiExtraPackages=("audacity" "vivaldi" "vivaldi-ffmpeg-codecs" "gimp" "kdenlive" "obs-studio" "openra" "spectacle" "vlc")
     #vmExtraPackages=("edk2-ovmf" "libvirt" "qemu-desktop" "virt-manager" "virt-viewer")
 
     # Combine arrays into a single array
