@@ -24,7 +24,7 @@
 - [License](#license)
 - [Support](#support)
 
-## Key Features
+## Key Features & Unique Aspects
 
 - **Terminal-Centric Design**: Starts in a terminal environment (tty) by default, emphasizing efficiency and simplicity.
 - **Flexible GUI Options**: 
@@ -34,9 +34,6 @@
 - **Highly Customizable**: Far beyond vanilla Arch, with pre-configured options and easy customization.
 - **Efficient Installation**: Two-stage process with automatic boot method detection (UEFI/MBR).
 - **Modular Components**: Built from modular components for maximum flexibility.
-
-## Unique Aspects
-
 - **Custom Openbox Themes**: Compiled themes offer a range of visual styles out-of-the-box.
 - **Tint2 Panel Configuration**: Specially configured panel with custom menus, enhancing usability.
 - **xinitrc Customization**: Easily modify the X session startup process.
