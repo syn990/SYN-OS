@@ -84,8 +84,10 @@ SYN-OS is primarily developed by a single developer. The project is ongoing, wit
 
 1. **Download the SYN-OS ISO**:
    - Download the latest version of SYN-OS from the link below:
+   - 
+     - **[SYN-OS-ArchTech Corp. Edition JULY 2024](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)**
+   - Earlier versions:
      - **[SYN-OS-VOLITION MAY 2024](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)**
-   - Older versions:
      - **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)**
      - **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
 
