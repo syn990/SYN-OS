@@ -1,25 +1,39 @@
-#!/usr/bin/env bash
-# shellcheck disable=SC2034
+# =============================================================================
+#                              SYN-OS profiledef.sh
+#         Build Configuration File for SYN-OS ISO Build with Custom Title
+# -----------------------------------------------------------------------------
+#   This configuration file defines the settings used during the SYN-OS ISO
+#   build process. It includes custom titles and configurations.
+#   Author: Syntax990
+# =============================================================================
 
-iso_name="SYN-OS"
-iso_label=""
+iso_name="SYN-OS-M-141"
+iso_label="SYNOS_$(date +%Y%m)"
 iso_publisher="Syntax990"
-iso_application="SYN-OS"
-iso_version="VOLITION"
+iso_application="SYN-OS - Installation Media"
+iso_version="$(date +%Y.%m.%d)"
 install_dir="arch"
 buildmodes=('iso')
-bootmodes=('bios.syslinux.mbr' 'bios.syslinux.eltorito'
-           'uefi-ia32.grub.esp' 'uefi-x64.grub.esp'
-           'uefi-ia32.grub.eltorito' 'uefi-x64.grub.eltorito')
+bootmodes=(
+  'bios.syslinux.mbr'
+  'bios.syslinux.eltorito'
+  'uefi-ia32.grub.esp'
+  'uefi-x64.grub.esp'
+  'uefi-ia32.grub.eltorito'
+  'uefi-x64.grub.eltorito'
+)
 arch="x86_64"
 pacman_conf="pacman.conf"
 airootfs_image_type="squashfs"
-airootfs_image_tool_options=('-comp' 'lz4')
-#airootfs_image_type="erofs"
-#airootfs_image_tool_options=('-zlzma,109' -E 'ztailpacking,fragments,dedupe')
+airootfs_image_tool_options=('-comp' 'xz' '-b' '256K' '-Xbcj' 'x86')
+
+# File Permissions
 file_permissions=(
-  ["/etc/shadow"]="0:0:400"
+  ["/etc/shadow"]="0:0:400"  # Sensitive file as read-only
   ["/root/syn-resources/scripts/syn-stage0.zsh"]="0:0:755"
   ["/root/syn-resources/scripts/syn-mbr.zsh"]="0:0:755"
   ["/root/syn-resources/scripts/syn-uefi.zsh"]="0:0:755"
+  ["/root/syn-resources/scripts/syn-lanbridge.sh"]="0:0:755"
+  ["/root/syn-resources/scripts/syn-stage0-refined.zsh"]="0:0:755"
+  ["/root/syn-resources/scripts/syn-stage1.zsh"]="0:0:755"
 )

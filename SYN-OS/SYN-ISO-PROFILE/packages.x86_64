@@ -6,7 +6,6 @@ archlinux-keyring
 base
 bind
 broadcom-wl
-cloud-init
 dhclient
 dhcpcd
 dnsmasq
@@ -16,6 +15,7 @@ grml-zsh-config
 grub
 hyperv
 iwd
+kbd
 linux
 linux-atm
 linux-firmware
@@ -29,6 +29,7 @@ openssh
 parted
 pv
 qemu-guest-agent
+ranger
 reflector
 syslinux
 systemd-resolvconf
