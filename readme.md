@@ -51,17 +51,50 @@
 
 ## Installation Overview
 
-The SYN-OS installation is handled through a two-script process that automates system setup while allowing for customization:
+The SYN-OS installation is handled through a streamlined two-script process that automates system setup while allowing for customization:
 
 1. **Stage 0 (`syn-stage0.zsh`)**:
+   - Initiated with the command `syntax990` (an alias in `.zshrc` on the installation media).
    - Prepares the system by configuring disk partitions, setting up the environment, and installing packages.
-   - Installs packages categorized into logical arrays for clarity and modularity.
+   - Organizes packages into logical arrays for clarity and modularity.
+   - Executes `arch-chroot` to enter the installation environment and automatically runs `syn-stage1.zsh` for the next stage.
 
 2. **Stage 1 (`syn-stage1.zsh`)**:
    - Finalizes the installation within the chroot environment.
+   - Contains user account variables that can be customized prior to execution, allowing for personalized setup.
    - Sets up users, installs the bootloader, and applies configurations.
 
-**Note**: The MBR/UEFI boot process has been unified and no longer requires separate scripts for each boot method. The installation scripts now handle bootloader installation seamlessly.
+**Note**: The MBR/UEFI boot process has been unified, so separate scripts for each boot method are no longer required. The installation scripts handle bootloader installation seamlessly.
+
+---
+
+### Customizing Installation Scripts
+
+Before running `syntax990` to initiate the installation, you may want to customize certain settings in both `syn-stage0.zsh` and `syn-stage1.zsh` to fit your specific requirements, such as disk partitioning, package selection, and user account details.
+
+#### Editing Stage 0 and Stage 1 Scripts
+
+Both scripts are located in `/root/syn-resources/scripts/`. You can use `nano`, a simple command-line editor, to make these edits.
+
+1. **Open the scripts** with `nano`:
+   - For Stage 0:
+     ```bash
+     nano /root/syn-resources/scripts/syn-stage0.zsh
+     ```
+   - For Stage 1:
+     ```bash
+     nano /root/syn-resources/scripts/syn-stage1.zsh
+     ```
+
+2. **Edit Variables and Settings**:
+   - In `syn-stage0.zsh`, you might adjust partitioning and package arrays.
+   - In `syn-stage1.zsh`, you can set user account details and any other custom settings.
+
+3. **Save Changes**:
+   - After editing, press `CTRL + O`, then `Enter` to save.
+   - Exit `nano` with `CTRL + X`.
+
+Making these adjustments before running `syntax990` ensures that the installation process will be tailored to your environment and requirements.
 
 ---
 
