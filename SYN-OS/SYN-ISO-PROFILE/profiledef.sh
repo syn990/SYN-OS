@@ -29,11 +29,8 @@ airootfs_image_tool_options=('-comp' 'xz' '-b' '256K' '-Xbcj' 'x86')
 
 # File Permissions
 file_permissions=(
-  ["/etc/shadow"]="0:0:400"  # Sensitive file as read-only
+  ["/etc/shadow"]="0:0:400"
   ["/root/syn-resources/scripts/syn-stage0.zsh"]="0:0:755"
-  ["/root/syn-resources/scripts/syn-mbr.zsh"]="0:0:755"
-  ["/root/syn-resources/scripts/syn-uefi.zsh"]="0:0:755"
   ["/root/syn-resources/scripts/syn-lanbridge.sh"]="0:0:755"
-  ["/root/syn-resources/scripts/syn-stage0-refined.zsh"]="0:0:755"
   ["/root/syn-resources/scripts/syn-stage1.zsh"]="0:0:755"
 )
