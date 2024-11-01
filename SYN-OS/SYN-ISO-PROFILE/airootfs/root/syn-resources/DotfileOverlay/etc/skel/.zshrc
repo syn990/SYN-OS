@@ -1,34 +1,29 @@
 #!/bin/zsh
+# =============================================================================
+#                                 SYN-OS .zshrc
+#                      Zsh Configuration for SYN-OS Users
+# -----------------------------------------------------------------------------
+#   This file sets up the Zsh environment for users in SYN-OS, including 
+#   Oh-My-Zsh configuration, plugins, and language settings.
+#   Author: William Hayward-Holland (Syntax990)
+#   License: MIT
+# =============================================================================
 
-# SYN-OS
-# SYNTAX990
-# WILLIAM HAYWARD-HOLLAND
-# M.I.T LICENSE
-
-# - .zshrc
-
-# Path to your oh-my-zsh installation.
-
-#not able to source this from syn-stage0.zsh
+# Define path to Oh-My-Zsh installation for the default user
 DEFAULT_USER_990=$USER
-
 export ZSH="/home/$DEFAULT_USER_990/.oh-my-zsh"
 
-# Theme for zsh
+# Set Zsh theme (random for variety)
 ZSH_THEME="random"
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
+# Load plugins (keep it minimal to optimize startup time)
 plugins=(git)
 
-# Set zsh variable for some reason
+# Source Oh-My-Zsh configuration
 source $ZSH/oh-my-zsh.sh
 
-# You may need to manually set your language environment
+# Set language environment
 export LANG=en_GB.UTF-8
 
-# Setup nano as the default text editor
+# Define nano as the default text editor
 export EDITOR='nano'
