@@ -1,8 +1,13 @@
 #!/bin/zsh
-
-# SYN-OS ISO Build Script
-# Creates a new ISO for SYN-OS, setting up necessary variables, checking directories,
-# using mkarchiso, and cleaning up afterward.
+# =============================================================================
+#                               SYN-OS ISO Build Script
+#       Automates the process of building a new ISO image for SYN-OS,
+#       including setting up variables, configuring directories, using
+#       mkarchiso, and cleaning up after the build.
+# -----------------------------------------------------------------------------
+#   Author: William Hayward-Holland (Syntax990)
+#   License: MIT
+# =============================================================================
 
 # Root check
 if [ "$(id -u)" -ne 0 ]; then
