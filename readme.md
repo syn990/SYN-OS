@@ -224,7 +224,7 @@ Earlier versions:
 #### Windows Users
 
 1. **Download and install Rufus** from the [official website](https://rufus.ie/).
-2. **Insert a USB drive** with at least 4GB of storage.
+2. **Insert a USB drive** with at least 1GB of storage.
 3. **Open Rufus** and select your USB drive under "Device."
 4. **Select SYN-OS ISO**: Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
 5. **Partition Scheme**: Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
