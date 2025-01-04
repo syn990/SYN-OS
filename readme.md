@@ -1,166 +1,286 @@
-SYNTERNAL
-=========
+# SYN-OS
+
+![SYN-OS Banner](./Images/SYN-BANNER.png)
 
-**SYNTERNAL** is a cutting-edge system interface developed by William Hayward-Holland (Syntax990). It is prebuilt and fully integrated into **[SYN-OS](https://github.com/syn990/SYN-OS)**, serving as an autonomous AI interface that surpasses traditional terminal or graphical user interfaces. SYNTERNAL combines conversational AI with real-time system control, offering an intuitive and seamless user experience.
+**SYN-OS** is a highly customizable Arch Linux-based operating system crafted by William Hayward-Holland (Syntax990). It leverages a collection of build scripts, dotfiles, and custom theming to provide a streamlined, efficient, and personalized computing experience. With a focus on modularity and user control, SYN-OS bridges the gap between the minimalism of vanilla Arch and a functional desktop environment.
 
-* * * * *
+---
 
-Table of Contents
------------------
+## Table of Contents
 
--   Overview
+- [Key Features](#key-features)
+- [Installation Overview](#installation-overview)
+- [Package Collection](#package-collection)
+  - [Package Categories](#package-categories)
+- [Customization and Theming](#customization-and-theming)
+  - [Dotfiles and Configuration](#dotfiles-and-configuration)
+  - [Openbox Window Manager](#openbox-window-manager)
+  - [Tint2 Panel](#tint2-panel)
+  - [xinitrc and Startup Scripts](#xinitrc-and-startup-scripts)
+- [System Architecture](#system-architecture)
+- [Target Audience](#target-audience)
+- [Development Status](#development-status)
+- [Getting Started](#getting-started)
+  - [Downloading the ISO](#downloading-the-iso)
+  - [Creating a Bootable USB Drive](#creating-a-bootable-usb-drive)
+    - [Mac Users](#mac-users)
+    - [Windows Users](#windows-users)
+  - [Booting into the SYN-OS Live Environment](#booting-into-the-syn-os-live-environment)
+  - [Running the Installation](#running-the-installation)
+  - [Post-Installation](#post-installation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
--   Key Features
+---
 
--   Prebuilt Integration
+## Key Features
 
--   How It Works
+- **Modular Package Collection**: Carefully curated packages categorized for logical system components.
+- **Custom Dotfiles and Theming**: Pre-configured settings and themes for an out-of-the-box personalized experience.
+- **Two-Stage Installation Process**: Automated scripts that streamline setup.
+- **Terminal-Centric Design**: Starts in a terminal environment by default, emphasizing efficiency.
+- **Flexible GUI Options**:
+  - Transition to X session via `startx`.
+  - Customized Openbox window manager with extensive theming.
+  - Custom Tint2 panel with specialized menus.
+- **Highly Customizable**: Easily modify variables, scripts, and configurations to tailor the system to your needs.
+- **Root Overlay Feature**: Add custom files and configurations during installation for further personalization.
 
--   Usage
+---
 
--   Customisation
+## Installation Overview
 
--   System Requirements
+The SYN-OS installation is handled through a streamlined two-script process that automates system setup while allowing for customization:
 
--   Development Status
+1. **Stage 0 (`syn-stage0.zsh`)**:
+   - Initiated with the command `syntax990` (an alias in `.zshrc` on the installation media).
+   - Prepares the system by configuring disk partitions, setting up the environment, and installing packages.
+   - Organizes packages into logical arrays for clarity and modularity.
+   - Executes `arch-chroot` to enter the installation environment and automatically runs `syn-stage1.zsh` for the next stage.
 
--   Contributing
+2. **Stage 1 (`syn-stage1.zsh`)**:
+   - Finalizes the installation within the chroot environment.
+   - Contains user account variables that can be customized prior to execution, allowing for personalized setup.
+   - Sets up users, installs the bootloader, and applies configurations.
 
--   License
+**Note**: The MBR/UEFI boot process has been unified, so separate scripts for each boot method are no longer required. The installation scripts handle bootloader installation seamlessly.
 
--   Support
+---
 
-* * * * *
+### Customizing Installation Scripts
 
-Overview
---------
+Before running `syntax990` to initiate the installation, you may want to customize certain settings in both `syn-stage0.zsh` and `syn-stage1.zsh` to fit your specific requirements, such as disk partitioning, package selection, and user account details.
 
-SYNTERNAL is a next-generation AI interface prebuilt into **[SYN-OS](https://github.com/syn990/SYN-OS)**. Designed to interpret natural language queries and execute complex commands autonomously, it provides an unparalleled level of control and insight into the operating system's inner workings. Whether you're a power user or a beginner, SYNTERNAL adapts to your needs.
+#### Editing Stage 0 and Stage 1 Scripts
 
-* * * * *
+Both scripts are located in `/root/syn-resources/scripts/`. You can use `nano`, a simple command-line editor, to make these edits.
 
-Key Features
-------------
+1. **Open the scripts** with `nano`:
+   - For Stage 0:
+     ```bash
+     nano /root/syn-resources/scripts/syn-stage0.zsh
+     ```
+   - For Stage 1:
+     ```bash
+     nano /root/syn-resources/scripts/syn-stage1.zsh
+     ```
 
--   **Autonomous AI**: Operates independently, bridging the gap between system commands and user intent.
+2. **Edit Variables and Settings**:
+   - In `syn-stage0.zsh`, you might adjust partitioning and package arrays.
+   - In `syn-stage1.zsh`, you can set user account details and any other custom settings.
 
--   **Dynamic System Querying**: Fetches live data directly from the system, ensuring real-time accuracy without pre-stored outputs.
+3. **Save Changes**:
+   - After editing, press `CTRL + O`, then `Enter` to save.
+   - Exit `nano` with `CTRL + X`.
 
--   **Conversational Interaction**: Communicate with SYNTERNAL using natural language for tasks like system monitoring, troubleshooting, and file management.
+Making these adjustments before running `syntax990` ensures that the installation process will be tailored to your environment and requirements.
 
--   **Low-Resource Optimisation**: Designed to run efficiently on systems with limited resources (2--4 GB of RAM).
+---
 
--   **Custom Command Support**: Easily extend its functionality by adding your own commands and workflows.
+## Package Collection
 
-* * * * *
+Packages are organized into arrays within the installation scripts, reflecting different system components for logical clarity.
 
-Prebuilt Integration
---------------------
+### Package Categories
 
-SYNTERNAL is a core component of ****[SYN-OS](https://github.com/syn990/SYN-OS)**** and is not available as an optional package. It is preinstalled and automatically configured during the operating system's setup, ensuring smooth integration with the OS architecture. This allows users immediate access to SYNTERNAL without any additional installation or configuration steps. It is fully self-contained and readily available for use.
+To enhance readability, the packages are presented in the following table format:
 
-### Key Advantages of Prebuilt Integration:
+| **Category**              | **Description**                                  | **Packages**                                                                                                                                                        |
+|---------------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Base Packages**         | Essential system components                      | `base`, `base-devel`, `linux`, `linux-firmware`, `archlinux-keyring`, `sudo`, `zsh`, `gcc`, `fakeroot`, `dosfstools`, `pacman-contrib`                              |
+| **System Utilities**      | Fundamental system functionalities               | `alsa-utils`, `dhcpcd`, `dnsmasq`, `hostapd`, `iwd`, `pulseaudio`, `python-pyalsa`, `kbd`, `archlinux-xdg-menu`                                                      |
+| **Control Center Apps**   | GUI tools for system settings                    | `lxrandr`, `obconf-qt`, `pavucontrol-qt`                                                                                                                            |
+| **Window Manager & GUI**  | Graphical interface and window management        | `openbox`, `xorg-server`, `xorg-xinit`, `qt5ct`, `xcompmgr`, `tint2`                                                                                                |
+| **CLI Tools**             | Command-line utilities                           | `git`, `htop`, `man`, `nano`, `reflector`, `rsync`, `wget`                                                                                                          |
+| **GUI Applications**      | User-friendly applications                       | `engrampa`, `feh`, `kitty`, `kwrite`, `pcmanfm-qt`                                                                                                                  |
+| **Fonts**                 | Visual appearance and compatibility              | `terminus-font`, `ttf-bitstream-vera`                                                                                                                               |
+| **Additional CLI Tools**  | Extra command-line utilities for advanced users  | `android-tools`, `archiso`, `binwalk`, `brightnessctl`, `hdparm`, `hexedit`, `lshw`, `ranger`, `sshfs`, `yt-dlp`                                                    |
+| **Additional GUI Apps**   | Enhanced functionality applications              | `audacity`, `chromium`, `gimp`, `kdenlive`, `obs-studio`, `openra`, `spectacle`, `vlc`                                                                              |
+| **Bootloader Packages**   | Bootloader installation packages                 | `systemd-boot` (for UEFI systems), `syslinux` (for BIOS/MBR systems)                                                                                                |
 
--   **Immediate Availability**: Ready to use out of the box upon installing **[SYN-OS](https://github.com/syn990/SYN-OS)**.
 
--   **Seamless Performance**: Optimised to work with **[SYN-OS](https://github.com/syn990/SYN-OS)**'s core components for maximum efficiency.
+---
 
--   **Unified Design**: Fully aligned with **[SYN-OS](https://github.com/syn990/SYN-OS)**'s aesthetic and functional principles.
+## Customization and Theming
 
-* * * * *
+### Dotfiles and Configuration
 
-How It Works
-------------
+SYN-OS comes with a comprehensive set of dotfiles located in the `DotfileOverlay` directory, providing pre-configured settings for:
 
-SYNTERNAL combines an intelligent decision-making core (powered by Synternal Core) with a conversational front-end.
+- Shell environment (`.zshrc`, `.bashrc`)
+- Editor configurations
+- Application settings
 
-1.  **Input**: Users issue commands or ask questions in plain English.
+These dotfiles are copied to the new system during installation, offering a consistent and personalized environment out-of-the-box.
 
-2.  **Interpretation**: The core processes the input, determines intent, and maps it to system commands.
+### Openbox Window Manager
 
-3.  **Execution**: Commands are executed on the host system, with outputs dynamically fetched and formatted for readability.
+Openbox is customized extensively in SYN-OS, offering:
 
-Examples:
+- **Custom Themes**: A selection of compiled themes to choose from.
+- **Keybindings**: Pre-configured keyboard shortcuts for efficient navigation.
+- **Menus**: Customized right-click menus for quick access to applications.
 
--   **Input**: "What is my disk usage?"
+![Openbox Customization](./Images/openbox-SYNOS-1.png)
 
-    -   **Output**: Fetches and displays live disk usage.
+### Tint2 Panel
 
--   **Input**: "Show running processes."
+The Tint2 panel is tailored to enhance usability:
 
-    -   **Output**: Executes `htop` or equivalent command and displays results.
+- **Custom Layout**: Adjusted panel size, position, and appearance.
+- **Specialized Menus**: Quick access to system controls and applications.
+- **Systray Integration**: Seamless integration with system notifications and indicators.
 
-* * * * *
+![Tint2 Panel](./Images/tint2-panel.png)
 
-Usage
------
+### xinitrc and Startup Scripts
 
-Once running **[SYN-OS](https://github.com/syn990/SYN-OS)**, you can interact with SYNTERNAL by typing commands such as:
+The `~/.xinitrc` file is customized to:
 
--   **"What is my IP address?"**
+- Launch Openbox with the preferred configurations.
+- Start background services and applications.
+- Provide an easy way to modify startup behavior.
 
--   **"Show my CPU temperature."**
+---
 
--   **"Find files larger than 1GB in /home."**
+## System Architecture
 
--   **"Monitor system logs in real time."**
+- **Core Base**: Built upon Arch Linux for simplicity and control.
+- **Terminal-Focused**: Boots into a terminal (TTY) environment by default.
+- **Optional GUI**: Start the graphical environment with `startx` when needed.
+- **Modular Components**: Packages and configurations are organized logically for easy modification.
 
-SYNTERNAL intelligently determines the appropriate system actions, executes them, and returns results in a user-friendly format.
+---
 
-* * * * *
+## Target Audience
 
-Customisation
--------------
+SYN-OS is designed for users who desire:
 
-SYNTERNAL is fully customisable:
+- **Granular Control**: Deep customization options over their operating system.
+- **Efficiency**: A minimal environment without unnecessary bloat.
+- **Customization**: A template to build upon vanilla Arch with pre-configured options.
+- **Learning Experience**: Insight into the build process and system configuration.
 
--   **Add Custom Commands**:\
-    Extend functionality by editing the `custom_commands.py` file.
+---
 
--   **Modify Configurations**:\
-    Adjust settings in `config.json` to match your environment and preferences.
+## Development Status
 
--   **Themes**:\
-    Update the appearance of SYNTERNAL's output via the `themes` directory.
+- **Active Development**: Ongoing improvements and updates.
+- **Latest Release**: **SYN-OS-M-141** (November 2024)
+- **Community Contributions**: Open to issues, feature requests, and pull requests.
+- **Single Developer**: Primarily developed by William Hayward-Holland (Syntax990).
 
-* * * * *
+---
 
-System Requirements
--------------------
+## Getting Started
 
--   **Operating System**: **[SYN-OS](https://github.com/syn990/SYN-OS)**.
+### Downloading the ISO
 
--   **Python**: Version 3.9 or higher.
+- **Latest Version**: [SYN-OS-M-141 Edition (November 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)
 
--   **Memory**: 2--4 GB of RAM (optimised for low-resource machines).
+Earlier versions:
 
--   **Dependencies**: Prebuilt and preconfigured as part of **[SYN-OS](https://github.com/syn990/SYN-OS)**.
+- **[SYN-OS-ArchTech Corp. Edition JULY 2024](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)**
+- **[SYN-OS-VOLITION JUNE 2024](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)**
+- **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)**
+- **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
 
-* * * * *
+### Creating a Bootable USB Drive
 
-Development Status
-------------------
+#### Mac Users
 
--   **Active Development**: Frequent updates and new features.
+1. **Insert a USB drive** with at least 4GB of storage.
+2. **Open Terminal** (Applications > Utilities).
+3. Identify your USB drive with `diskutil list`.
+4. Unmount the USB drive: `diskutil unmountDisk /dev/diskN` (replace `N` with your disk number).
+5. Write the ISO to the USB drive:
 
--   **Latest Version**: **SYNTERNAL 1.0.0** (January 2025).
+    ```bash
+    sudo dd if=/path/to/SYN-OS-M-141.iso of=/dev/diskN bs=1m
+    ```
+6. **Eject the USB drive** after the process completes.
 
--   **Future Roadmap**: Upcoming features include voice input, advanced AI workflows, and enhanced customisation.
+#### Windows Users
 
-* * * * *
+1. **Download and install Rufus** from the [official website](https://rufus.ie/).
+2. **Insert a USB drive** with at least 1GB of storage.
+3. **Open Rufus** and select your USB drive under "Device."
+4. **Select SYN-OS ISO**: Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
+5. **Partition Scheme**: Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
+6. **Click "Start"** to create the bootable USB drive.
 
-Contributing
-------------
+### Booting into the SYN-OS Live Environment
 
-Contributions are welcome!
+1. **Restart your computer** and boot from the USB drive.
+2. **Select SYN-OS** from the boot menu.
+3. **Enter the live environment**, which starts in a terminal (TTY).
 
--   **Report Issues**: Use the GitHub issue tracker.
+### Running the Installation
 
--   **Submit Pull Requests**: Share improvements or fixes.
+1. **Optional Customization**:
 
--   **Feature Requests**: Suggest new ideas or enhancements.
+   - **Edit Variables**: If necessary, edit the installation scripts to match your disk setup.
+   - **Check Disk Names**: Run `lsblk` to verify disk and partition names.
 
-* * * * *
+2. **Start Installation**:
+
+   - **Execute the Alias**: Simply type `syntax990` and press Enter.
+   - **Installation Begins**: The alias runs the installation scripts from start to finish.
+
+3. **Follow Prompts**:
+
+   - **Confirmation**: You'll be prompted to confirm disk wiping and other critical actions.
+   - **Automatic Configuration**: The script handles bootloader installation seamlessly.
+
+### Post-Installation
+
+1. **Reboot the System**:
+
+   - Remove the USB drive.
+   - Boot into your new SYN-OS installation.
+
+2. **First Login**:
+
+   - Log in with the credentials set during installation.
+
+3. **Start X Session** (if desired):
+
+   - At the terminal prompt, type `startx` to launch the graphical environment.
+
+4. **Further Customization**:
+
+   - Modify dotfiles, themes, and configurations to tailor the system to your preferences.
+
+---
+
+## Contributing
+
+Contributions are welcome! Feel free to:
+
+- **Report Issues**: Use the GitHub issue tracker to report bugs or request features.
+- **Submit Pull Requests**: Share improvements or fixes.
+- **Collaborate**: Join discussions and contribute to the project's growth.
 
 ---
 
@@ -184,14 +304,15 @@ Feel free to explore and customize SYN-OS to suit your preferences and requireme
 
 ---
 
-For support and inquiries:
+**Enjoy your journey with SYN-OS!**
 
--   **Email**: `william@npc.syntax990.com`
+---
 
--   **GitHub Repository**: <https://github.com/syn990/SYNTERNAL>
+**Note**: This README is intended for the GitHub project of SYN-OS. The latest release is **SYN-OS-M-141**, reflecting the most recent updates and enhancements.
 
--   **Community**: Join discussions and share insights on the project page.
+---
 
-* * * * *
+### Additional Information
 
-**Elevate your system interaction with SYNTERNAL. Experience the future of user interfaces.**
+- **GitHub Repository**: [https://github.com/syn990/SYN-OS](https://github.com/syn990/SYN-OS)
+- **Issue Tracker**: [GitHub Issues](https://github.com/syn990/SYN-OS/issues)
