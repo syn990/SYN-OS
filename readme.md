@@ -104,21 +104,15 @@ Packages are organized into arrays within the installation scripts, reflecting d
 
 ### Package Categories
 
-To enhance readability, the packages are presented in the following table format:
-
-| **Category**              | **Description**                                  | **Packages**                                                                                                                                                        |
-|---------------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Base Packages**         | Essential system components                      | `base`, `base-devel`, `linux`, `linux-firmware`, `archlinux-keyring`, `sudo`, `zsh`, `gcc`, `fakeroot`, `dosfstools`, `pacman-contrib`                              |
-| **System Utilities**      | Fundamental system functionalities               | `alsa-utils`, `dhcpcd`, `dnsmasq`, `hostapd`, `iwd`, `pulseaudio`, `python-pyalsa`, `kbd`, `archlinux-xdg-menu`                                                      |
-| **Control Center Apps**   | GUI tools for system settings                    | `lxrandr`, `obconf-qt`, `pavucontrol-qt`                                                                                                                            |
-| **Window Manager & GUI**  | Graphical interface and window management        | `openbox`, `xorg-server`, `xorg-xinit`, `qt5ct`, `xcompmgr`, `tint2`                                                                                                |
-| **CLI Tools**             | Command-line utilities                           | `git`, `htop`, `man`, `nano`, `reflector`, `rsync`, `wget`                                                                                                          |
-| **GUI Applications**      | User-friendly applications                       | `engrampa`, `feh`, `kitty`, `kwrite`, `pcmanfm-qt`                                                                                                                  |
-| **Fonts**                 | Visual appearance and compatibility              | `terminus-font`, `ttf-bitstream-vera`                                                                                                                               |
-| **Additional CLI Tools**  | Extra command-line utilities for advanced users  | `android-tools`, `archiso`, `binwalk`, `brightnessctl`, `hdparm`, `hexedit`, `lshw`, `ranger`, `sshfs`, `yt-dlp`                                                    |
-| **Additional GUI Apps**   | Enhanced functionality applications              | `audacity`, `chromium`, `gimp`, `kdenlive`, `obs-studio`, `openra`, `spectacle`, `vlc`                                                                              |
-| **Bootloader Packages**   | Bootloader installation packages                 | `systemd-boot` (for UEFI systems), `syslinux` (for BIOS/MBR systems)                                                                                                |
-
+| **Category**              | **Description**                                              | **Packages**                                                                                                                                                        |
+|---------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Core System**           | Essential for booting and running the OS                    | `base`, `linux`, `linux-firmware`, `archlinux-keyring`, `sudo`, `zsh`, `gcc`, `fakeroot`, `dosfstools`, `pacman-contrib`                                            |
+| **Services**              | Networking and system-level services                        | `dhcpcd`, `dnsmasq`, `hostapd`, `iwd`, `reflector`                                                                                                                  |
+| **Environment & Shell**   | Graphical and terminal interface packages                   | `openbox`, `xorg-server`, `xorg-xinit`, `qt5ct`, `xcompmgr`, `tint2`, `lxrandr`, `feh`, `kitty`, `archlinux-xdg-menu`                                                                    |
+| **User Applications**     | Tools and utilities for daily use                           | `nano`, `git`, `htop`, `pcmanfm-qt`, `engrampa`, `kwrite`                                                                                                           |
+| **Developer Tools**       | Software development and power-user utilities               | `gcc`, `fakeroot`, `android-tools`, `archiso`, `binwalk`, `hexedit`, `lshw`, `yt-dlp`                                                                               |
+| **Fonts & Localization**  | Fonts and language support for broader compatibility        | `terminus-font`, `ttf-bitstream-vera`, `ttf-dejavu`, `noto-fonts`, `noto-fonts-emoji`, `noto-fonts-cjk`, `ttf-liberation`                                           |
+| **Optional Features**     | Multimedia and additional applications for extended use     | `vlc`, `audacity`, `obs-studio`, `chromium`, `gimp`, `kdenlive`                                                                                                     |
 
 ---
 
@@ -187,7 +181,7 @@ SYN-OS is designed for users who desire:
 ## Development Status
 
 - **Active Development**: Ongoing improvements and updates.
-- **Latest Release**: **SYN-OS-M-141** (November 2024)
+- **Latest Release**: **SYN-OS-SYNTEX Edition** (April 2025)
 - **Community Contributions**: Open to issues, feature requests, and pull requests.
 - **Single Developer**: Primarily developed by William Hayward-Holland (Syntax990).
 
@@ -197,10 +191,11 @@ SYN-OS is designed for users who desire:
 
 ### Downloading the ISO
 
-- **Latest Version**: [SYN-OS-M-141 Edition (November 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)
+- **Latest Version**: [SYN-OS-SYNTEX Edition (April 2025)](https://drive.google.com/file/)
 
 Earlier versions:
 
+- **[SYN-OS-M-141 Edition (November 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)**
 - **[SYN-OS-ArchTech Corp. Edition JULY 2024](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)**
 - **[SYN-OS-VOLITION JUNE 2024](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)**
 - **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)**

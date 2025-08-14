@@ -54,9 +54,6 @@ run_dot_commands() {
         echo "$layout output generated."
     done
 
-    rm SYN-DIRDRAW.dot
-    feh SYN-DIRDRAW-*.png
-    rm SYN-DIRDRAW-*.png
 }
 
 generate_dot_file > SYN-DIRDRAW.dot
