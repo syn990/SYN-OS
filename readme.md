@@ -2,312 +2,192 @@
 
 ![SYN-OS Banner](./Images/SYN-BANNER.png)
 
-**SYN-OS** is a highly customizable Arch Linux-based operating system crafted by William Hayward-Holland (Syntax990). It leverages a collection of build scripts, dotfiles, and custom theming to provide a streamlined, efficient, and personalized computing experience. With a focus on modularity and user control, SYN-OS bridges the gap between the minimalism of vanilla Arch and a functional desktop environment.
+**SYN-OS** is a highly customizable Arch Linux–based operating system crafted by **William Hayward-Holland** (*Syntax990*).  
+It combines Arch’s minimal base with curated build scripts, dotfiles, and custom theming to deliver a streamlined, efficient, and personalized environment.
+
+SYN-OS is designed for those who want:
+- **Full control** over packages, themes, and configurations.
+- **Terminal-first efficiency** with optional GUI via Openbox.
+- **A ready-to-use base** that’s still true to Arch principles.
+
+> **Note:** The live installer runs entirely in a command-line (CLI) environment. You can install SYN-OS on real hardware or test it first in a virtual machine (VirtualBox, VMware, QEMU, etc.) before committing. Once installed, you can launch the graphical desktop with `startx`, which opens a lightweight **Openbox** session with a **Tint2** panel across the top. Tint2 is XML-configured, making it easy to adjust layout, colors, and widgets.
 
 ---
 
-## Table of Contents
+## 🚀 Download & Quick Start
 
-- [Key Features](#key-features)
-- [Installation Overview](#installation-overview)
-- [Package Collection](#package-collection)
-  - [Package Categories](#package-categories)
-- [Customization and Theming](#customization-and-theming)
-  - [Dotfiles and Configuration](#dotfiles-and-configuration)
-  - [Openbox Window Manager](#openbox-window-manager)
-  - [Tint2 Panel](#tint2-panel)
-  - [xinitrc and Startup Scripts](#xinitrc-and-startup-scripts)
-- [System Architecture](#system-architecture)
-- [Target Audience](#target-audience)
-- [Development Status](#development-status)
-- [Getting Started](#getting-started)
-  - [Downloading the ISO](#downloading-the-iso)
-  - [Creating a Bootable USB Drive](#creating-a-bootable-usb-drive)
-    - [Mac Users](#mac-users)
-    - [Windows Users](#windows-users)
-  - [Booting into the SYN-OS Live Environment](#booting-into-the-syn-os-live-environment)
-  - [Running the Installation](#running-the-installation)
-  - [Post-Installation](#post-installation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Support](#support)
+**Latest Release:**  
+- **Name:** SYN-OS SYNTEX Edition (April 2025)  
+- **File:** `SYN-OS_SYNTEX_2025-04.iso`  
+- **Size:** ~0.9 GB  
+- **Download:** [SYN-OS_SYNTEX_2025-04.iso](https://drive.google.com/file/d/1CcPMeKCBjdqz6OJCzm1JcLhxzKSHe7ra/view?usp=sharing)
+
+**Older Releases:**
+- [SYN-OS M-141 (Nov 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)  
+- [ArchTech Corp. Edition (Jul 2024)](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)  
+- [VOLITION (Jun 2024)](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)  
+- [Soam-Do-Huawei (May 2024)](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)  
+- [Chronomorph (Feb 2024)](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)
 
 ---
 
-## Key Features
+### Create a Bootable USB
 
-- **Modular Package Collection**: Carefully curated packages categorized for logical system components.
-- **Custom Dotfiles and Theming**: Pre-configured settings and themes for an out-of-the-box personalized experience.
-- **Two-Stage Installation Process**: Automated scripts that streamline setup.
-- **Terminal-Centric Design**: Starts in a terminal environment by default, emphasizing efficiency.
-- **Flexible GUI Options**:
-  - Transition to X session via `startx`.
-  - Customized Openbox window manager with extensive theming.
-  - Custom Tint2 panel with specialized menus.
-- **Highly Customizable**: Easily modify variables, scripts, and configurations to tailor the system to your needs.
-- **Root Overlay Feature**: Add custom files and configurations during installation for further personalization.
+#### Linux
+    lsblk                                   # Identify your USB device (e.g., /dev/sdX)
+    sudo dd if=SYN-OS_SYNTEX_2025-04.iso of=/dev/sdX bs=4M status=progress oflag=sync
+*(Replace `sdX` with your USB device — not a partition like `sdX1`.)*
 
----
+#### macOS
+    diskutil list
+    diskutil unmountDisk /dev/diskN
+    sudo dd if=SYN-OS_SYNTEX_2025-04.iso of=/dev/rdiskN bs=4m
+    sync
+    diskutil eject /dev/diskN
+*(Replace `N` with your USB disk number.)*
 
-## Installation Overview
-
-The SYN-OS installation is handled through a streamlined two-script process that automates system setup while allowing for customization:
-
-1. **Stage 0 (`syn-stage0.zsh`)**:
-   - Initiated with the command `syntax990` (an alias in `.zshrc` on the installation media).
-   - Prepares the system by configuring disk partitions, setting up the environment, and installing packages.
-   - Organizes packages into logical arrays for clarity and modularity.
-   - Executes `arch-chroot` to enter the installation environment and automatically runs `syn-stage1.zsh` for the next stage.
-
-2. **Stage 1 (`syn-stage1.zsh`)**:
-   - Finalizes the installation within the chroot environment.
-   - Contains user account variables that can be customized prior to execution, allowing for personalized setup.
-   - Sets up users, installs the bootloader, and applies configurations.
-
-**Note**: The MBR/UEFI boot process has been unified, so separate scripts for each boot method are no longer required. The installation scripts handle bootloader installation seamlessly.
+#### Windows (Rufus)
+1. Insert USB drive.  
+2. Open [Rufus](https://rufus.ie/).  
+3. Select device → choose ISO → set Partition Scheme:  
+   - GPT for UEFI systems  
+   - MBR for legacy BIOS  
+4. Click **Start**.
 
 ---
 
-### Customizing Installation Scripts
+### Boot & Install
 
-Before running `syntax990` to initiate the installation, you may want to customize certain settings in both `syn-stage0.zsh` and `syn-stage1.zsh` to fit your specific requirements, such as disk partitioning, package selection, and user account details.
+1. Boot your system or VM from the prepared USB stick.  
+2. Select **SYN-OS** in the boot menu.  
+3. You’ll be dropped into the live installer — a clean command-line environment.  
+4. *(Optional)* Edit install scripts before starting:  
 
-#### Editing Stage 0 and Stage 1 Scripts
+        nano /root/syn-resources/scripts/syn-stage0.zsh
+        nano /root/syn-resources/scripts/syn-stage1.zsh
 
-Both scripts are located in `/root/syn-resources/scripts/`. You can use `nano`, a simple command-line editor, to make these edits.
+5. Begin installation:
 
-1. **Open the scripts** with `nano`:
-   - For Stage 0:
-     ```bash
-     nano /root/syn-resources/scripts/syn-stage0.zsh
-     ```
-   - For Stage 1:
-     ```bash
-     nano /root/syn-resources/scripts/syn-stage1.zsh
-     ```
+        syntax990
 
-2. **Edit Variables and Settings**:
-   - In `syn-stage0.zsh`, you might adjust partitioning and package arrays.
-   - In `syn-stage1.zsh`, you can set user account details and any other custom settings.
-
-3. **Save Changes**:
-   - After editing, press `CTRL + O`, then `Enter` to save.
-   - Exit `nano` with `CTRL + X`.
-
-Making these adjustments before running `syntax990` ensures that the installation process will be tailored to your environment and requirements.
+6. Follow prompts — the installer handles partitioning, packages, and bootloader automatically.
 
 ---
 
-## Package Collection
+### First Boot After Install
 
-Packages are organized into arrays within the installation scripts, reflecting different system components for logical clarity.
+- Remove USB and reboot.  
+- Log in with the credentials you set during install.  
+- Start the graphical environment:
 
-### Package Categories
+        startx
 
-| **Category**              | **Description**                                              | **Packages**                                                                                                                                                        |
-|---------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Core System**           | Essential for booting and running the OS                    | `base`, `linux`, `linux-firmware`, `archlinux-keyring`, `sudo`, `zsh`, `gcc`, `fakeroot`, `dosfstools`, `pacman-contrib`                                            |
-| **Services**              | Networking and system-level services                        | `dhcpcd`, `dnsmasq`, `hostapd`, `iwd`, `reflector`                                                                                                                  |
-| **Environment & Shell**   | Graphical and terminal interface packages                   | `openbox`, `xorg-server`, `xorg-xinit`, `qt5ct`, `xcompmgr`, `tint2`, `lxrandr`, `feh`, `kitty`, `archlinux-xdg-menu`                                                                    |
-| **User Applications**     | Tools and utilities for daily use                           | `nano`, `git`, `htop`, `pcmanfm-qt`, `engrampa`, `kwrite`                                                                                                           |
-| **Developer Tools**       | Software development and power-user utilities               | `gcc`, `fakeroot`, `android-tools`, `archiso`, `binwalk`, `hexedit`, `lshw`, `yt-dlp`                                                                               |
-| **Fonts & Localization**  | Fonts and language support for broader compatibility        | `terminus-font`, `ttf-bitstream-vera`, `ttf-dejavu`, `noto-fonts`, `noto-fonts-emoji`, `noto-fonts-cjk`, `ttf-liberation`                                           |
-| **Optional Features**     | Multimedia and additional applications for extended use     | `vlc`, `audacity`, `obs-studio`, `chromium`, `gimp`, `kdenlive`                                                                                                     |
+- This opens **Openbox** with a **Tint2** top panel — a clean, lightweight desktop ready to customize.  
 
----
+![Openbox Desktop](./Images/openbox-SYNOS-1.png)
 
-## Customization and Theming
-
-### Dotfiles and Configuration
-
-SYN-OS comes with a comprehensive set of dotfiles located in the `DotfileOverlay` directory, providing pre-configured settings for:
-
-- Shell environment (`.zshrc`, `.bashrc`)
-- Editor configurations
-- Application settings
-
-These dotfiles are copied to the new system during installation, offering a consistent and personalized environment out-of-the-box.
-
-### Openbox Window Manager
-
-Openbox is customized extensively in SYN-OS, offering:
-
-- **Custom Themes**: A selection of compiled themes to choose from.
-- **Keybindings**: Pre-configured keyboard shortcuts for efficient navigation.
-- **Menus**: Customized right-click menus for quick access to applications.
-
-![Openbox Customization](./Images/openbox-SYNOS-1.png)
-
-### Tint2 Panel
-
-The Tint2 panel is tailored to enhance usability:
-
-- **Custom Layout**: Adjusted panel size, position, and appearance.
-- **Specialized Menus**: Quick access to system controls and applications.
-- **Systray Integration**: Seamless integration with system notifications and indicators.
+- Tint2’s XML-based configuration allows quick changes to theme, position, fonts, and widgets.
 
 ![Tint2 Panel](./Images/tint2-panel.png)
 
-### xinitrc and Startup Scripts
+---
 
-The `~/.xinitrc` file is customized to:
+## 📦 Package Collection
 
-- Launch Openbox with the preferred configurations.
-- Start background services and applications.
-- Provide an easy way to modify startup behavior.
+Packages in SYN-OS are organized into arrays within the installation scripts, grouped by their purpose for logical clarity.
+
+| **Category**              | **Description**                                              | **Packages**                                                                                                                                                        |
+|---------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Core System**           | Essential for booting and running the OS                    | base, linux, linux-firmware, archlinux-keyring, sudo, zsh, gcc, fakeroot, dosfstools, pacman-contrib                                                                |
+| **Services**              | Networking and system-level services                        | dhcpcd, dnsmasq, hostapd, iwd, reflector                                                                                                                            |
+| **Environment & Shell**   | Graphical and terminal interface packages                   | openbox, xorg-server, xorg-xinit, qt5ct, xcompmgr, tint2, lxrandr, feh, kitty, archlinux-xdg-menu                                                                  |
+| **User Applications**     | Tools and utilities for daily use                           | nano, git, htop, pcmanfm-qt, engrampa, kwrite                                                                                                                       |
+| **Developer Tools**       | Software development and power-user utilities               | gcc, fakeroot, android-tools, archiso, binwalk, hexedit, lshw, yt-dlp                                                                                               |
+| **Fonts & Localization**  | Fonts and language support for broader compatibility        | terminus-font, ttf-bitstream-vera, ttf-dejavu, noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-liberation                                                         |
+| **Optional Features**     | Multimedia and additional applications for extended use     | vlc, audacity, obs-studio, chromium, gimp, kdenlive                                                                                                                 |
 
 ---
 
-## System Architecture
+## 💡 Philosophy
 
-- **Core Base**: Built upon Arch Linux for simplicity and control.
-- **Terminal-Focused**: Boots into a terminal (TTY) environment by default.
-- **Optional GUI**: Start the graphical environment with `startx` when needed.
-- **Modular Components**: Packages and configurations are organized logically for easy modification.
+SYN-OS is not just “Arch with a desktop preinstalled.” You could do that in an afternoon, but you’d miss the entire point — the insight, control, and hands-on wiring that comes from building your environment piece by piece.
 
----
+Think of it like the alien tech in *District 9* — parts scavenged, rewired, and assembled into something uniquely functional. Every script, array, and configuration is chosen to fit together with intention, but you can rip it apart, swap components, and make it entirely your own.
 
-## Target Audience
+Key principles:
+1. **Barebones Foundation**  
+   Starts as close to the metal as possible — no excess services, no bloated DEs, no assumptions. You build from the ground up.
 
-SYN-OS is designed for users who desire:
+2. **Modular by Design**  
+   Everything is organized into logical arrays and overlay directories. Want to swap a window manager, remove a service, or change the panel? It’s a matter of editing a few lines, not unpicking tangled dependencies.
 
-- **Granular Control**: Deep customization options over their operating system.
-- **Efficiency**: A minimal environment without unnecessary bloat.
-- **Customization**: A template to build upon vanilla Arch with pre-configured options.
-- **Learning Experience**: Insight into the build process and system configuration.
+3. **Transparency**  
+   All installation logic is in plain, readable shell scripts. You see *every* command that touches your system.
 
----
+4. **Terminal-First Workflow**  
+   SYN-OS boots to TTY for speed and control. The GUI is there when you want it, but never in the way.
 
-## Development Status
+5. **User Empowerment**  
+   You don’t just get an OS — you learn *why* it’s set up the way it is, and how to change it. The system never hides its wiring.
 
-- **Active Development**: Ongoing improvements and updates.
-- **Latest Release**: **SYN-OS-SYNTEX Edition** (April 2025)
-- **Community Contributions**: Open to issues, feature requests, and pull requests.
-- **Single Developer**: Primarily developed by William Hayward-Holland (Syntax990).
+6. **Creative Freedom**  
+   The included Openbox + Tint2 environment is just a starter kit — a functional skeleton. From there, you can morph it into a minimal command center or layer on full desktop environments without losing the modular backbone.
 
 ---
 
-## Getting Started
+## 🛠 Building Your Own ISO
 
-### Downloading the ISO
+SYN-OS is built using **ArchISO**, the official Arch Linux live environment creation tool. At its core, SYN-OS is simply an **ArchISO profile** — a collection of package lists, configurations, and overlays that tell ArchISO how to assemble the final image.
 
-- **Latest Version**: [SYN-OS-SYNTEX Edition (April 2025)](https://drive.google.com/file/)
+If you:
+- Test and adjust the install scripts,
+- Remove or replace packages in the profile arrays,
+- Update `/root/syn-resources/DotFileOverlay` and `/etc/skel` with your own configurations,
 
-Earlier versions:
+…then run the included build script:
 
-- **[SYN-OS-M-141 Edition (November 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)**
-- **[SYN-OS-ArchTech Corp. Edition JULY 2024](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)**
-- **[SYN-OS-VOLITION JUNE 2024](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)**
-- **[SYN-OS-Soam-Do-Huawei MAY 2024](https://drive.google.com/file/d/1bsa85uXRdrfxPydkVNI-oQnpGj4JmeQi/view?usp=sharing)**
-- **[SYN-OS-Chronomorph FEB 2024](https://drive.google.com/file/d/142U6-w2CNOiL2jRPlHmfqcYTlEmTBXow/view?usp=drive_link)**
+    ./BUILD-SYNOS-ISO.zsh
 
-### Creating a Bootable USB Drive
+You can produce a completely fresh ISO image — your own operating system — from scratch.
 
-#### Mac Users
-
-1. **Insert a USB drive** with at least 4GB of storage.
-2. **Open Terminal** (Applications > Utilities).
-3. Identify your USB drive with `diskutil list`.
-4. Unmount the USB drive: `diskutil unmountDisk /dev/diskN` (replace `N` with your disk number).
-5. Write the ISO to the USB drive:
-
-    ```bash
-    sudo dd if=/path/to/SYN-OS-M-141.iso of=/dev/diskN bs=1m
-    ```
-6. **Eject the USB drive** after the process completes.
-
-#### Windows Users
-
-1. **Download and install Rufus** from the [official website](https://rufus.ie/).
-2. **Insert a USB drive** with at least 1GB of storage.
-3. **Open Rufus** and select your USB drive under "Device."
-4. **Select SYN-OS ISO**: Click on the "Select" button next to "Boot selection" and choose the downloaded SYN-OS ISO file.
-5. **Partition Scheme**: Ensure that the partition scheme is set to "MBR" for BIOS or "GPT" for UEFI systems.
-6. **Click "Start"** to create the bootable USB drive.
-
-### Booting into the SYN-OS Live Environment
-
-1. **Restart your computer** and boot from the USB drive.
-2. **Select SYN-OS** from the boot menu.
-3. **Enter the live environment**, which starts in a terminal (TTY).
-
-### Running the Installation
-
-1. **Optional Customization**:
-
-   - **Edit Variables**: If necessary, edit the installation scripts to match your disk setup.
-   - **Check Disk Names**: Run `lsblk` to verify disk and partition names.
-
-2. **Start Installation**:
-
-   - **Execute the Alias**: Simply type `syntax990` and press Enter.
-   - **Installation Begins**: The alias runs the installation scripts from start to finish.
-
-3. **Follow Prompts**:
-
-   - **Confirmation**: You'll be prompted to confirm disk wiping and other critical actions.
-   - **Automatic Configuration**: The script handles bootloader installation seamlessly.
-
-### Post-Installation
-
-1. **Reboot the System**:
-
-   - Remove the USB drive.
-   - Boot into your new SYN-OS installation.
-
-2. **First Login**:
-
-   - Log in with the credentials set during installation.
-
-3. **Start X Session** (if desired):
-
-   - At the terminal prompt, type `startx` to launch the graphical environment.
-
-4. **Further Customization**:
-
-   - Modify dotfiles, themes, and configurations to tailor the system to your preferences.
+If you replace every reference to “SYN-OS” in the scripts, boot themes, and documentation, you don’t even need to credit me. That’s the power and freedom of this design. I will never make this commercial because SYN-OS is not a “product” or “service” — it’s a teaching tool. It’s about **axiomatic consciousness** and **process over product**: understanding the principles, not just consuming a pre-built environment.
 
 ---
 
-## Contributing
+### Why This Matters
 
-Contributions are welcome! Feel free to:
+When you build your own ISO this way, you gain something you can’t get from simply “installing a DE on vanilla Arch.” You see the wiring — the package choices, the configuration hierarchy, the build order. You’re not just putting a desktop on top of a base; you’re constructing the base itself, deciding *what exists at all* in your environment.
 
-- **Report Issues**: Use the GitHub issue tracker to report bugs or request features.
-- **Submit Pull Requests**: Share improvements or fixes.
-- **Collaborate**: Join discussions and contribute to the project's growth.
+The value isn’t just in “learning Linux” or feeling clever. The real goal is that *ah-ha* moment where you see that this is **your platform**. Not mine. Not Arch’s. Not some company’s. Yours.
+
+That insight changes how you look at every piece of software you touch. You stop thinking like a “user” and start thinking like a *maintainer*. You develop the muscle memory of that old-school, event-driven 90s dev style — test something, iterate, test again, no bloat, no magic black boxes, just you and the system evolving together.
 
 ---
 
-## License
+### What You Can Do With This
+
+Once you’ve grasped this workflow, SYN-OS becomes a springboard for *serious* projects as well as creative experimentation:
+
+- **Bare-metal minimalism** — a stripped system with only the tools you *actually* need.  
+- **Your own distro** — rebrand, reshape, and ship your own ArchISO-based OS.  
+- **Critical systems** — create a rock-solid base for specialized tasks like robotics, drone control, industrial monitoring, or embedded hardware interfaces.  
+- **Custom POS & UX platforms** — build point-of-sale systems, kiosks, or control dashboards where the *entire* UI/UX is yours to design from scratch.  
+- **A personal server OS** — repurpose the same modular system to run as a secure, maintainable backend.  
+- **Multi-environment host** — one system image hosting multiple custom environments for work, play, or development.  
+- **A permanent escape hatch** — build your own OS pipeline and you’ll never be trapped by commercial, proprietary, or infohazard software again.  
+- **A creative sandbox** — experiment without fear. If it breaks, rebuild in minutes.
+
+The beauty of this approach is that SYN-OS gives you the *barebones control layer*, but the personality — the UI, the interaction model, the experience — is entirely on you. That’s the art.
+
+A drone controller, a music performance workstation, a touchscreen kiosk, or a hacker’s terminal — all of these could share the exact same modular base. The difference is the *vision* you layer on top.
+
+This isn’t just about *using* Arch — it’s about *owning* Arch, bending it to your will, and having the confidence to know you could rebuild the same environment from nothing at any time. That’s real freedom.
+
+And if you get it right, you’ll never look at an operating system the same way again.
+
+
+## 📜 License
 
 SYN-OS is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
 ![MIT License](./Images/LICENSE.png)
-
----
-
-## Support
-
-For support and inquiries:
-
-- **Email**: `william@npc.syntax990.com`
-- **LinkedIn**: [William Hayward-Holland](https://www.linkedin.com/in/william-hayward-holland-990/)
-- **Arch Wiki**: Refer to [The Arch Wiki](https://wiki.archlinux.org) for general guidance.
-
-Feel free to explore and customize SYN-OS to suit your preferences and requirements. Your feedback and contributions are highly appreciated!
-
----
-
-**Enjoy your journey with SYN-OS!**
-
----
-
-**Note**: This README is intended for the GitHub project of SYN-OS. The latest release is **SYN-OS-M-141**, reflecting the most recent updates and enhancements.
-
----
-
-### Additional Information
-
-- **GitHub Repository**: [https://github.com/syn990/SYN-OS](https://github.com/syn990/SYN-OS)
-- **Issue Tracker**: [GitHub Issues](https://github.com/syn990/SYN-OS/issues)
