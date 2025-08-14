@@ -1,0 +1,4 @@
+*.iso
+*.qcow2
+SYN-OS/SYN-ISO-PROFILE/airootfs/root
+WORKDIR/
