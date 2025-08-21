@@ -191,3 +191,43 @@ And if you get it right, you’ll never look at an operating system the same way
 SYN-OS is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
 ![MIT License](./Images/LICENSE.png)
+
+## Project history and installer evolution
+
+SYN‑OS grew out of an experimental project named **SYN‑RTOS**, which used simple shell scripts to bootstrap an Arch Linux system with a custom set of packages and dotfiles.  Over time, lessons from those early installers shaped the modular architecture and user experience found in modern SYN‑OS releases.
+
+### Release timeline
+
+| Release | Date / version | Key focus |
+| --- | --- | --- |
+| SYN‑RTOS | V1–V3 | Two‑script installer; manual partition variables; long package list; copied root overlay by hand. |
+| SYN‑OS V4 | 2023–2024 | First modular build with separate shell components; clearer directory structure; early `syn-stage0.sh` script. |
+| Chronomorph | Feb 2024 | Initial named release; refined V4 installer; minimal GUI via Openbox and Tint2. |
+| Soam‑Do‑Huawei | May 2024 | Incremental improvements to scripts and package selection. |
+| VOLITION | Jun 2024 | Further refinement of build process and default theme. |
+| ArchTech Corp. | Jul 2024 | Corporate‑oriented customization with additional utilities. |
+| M‑141 | Nov 2024 | Polished release ahead of the canonical edition; improved documentation. |
+| SYNTEX Edition | Apr 2025 | Latest edition; runs under zsh; modular installer; dynamic UEFI/MBR detection; Openbox + Polybar by default. |
+
+### How and why the installer changed
+
+The **syn‑stage0** script is at the heart of SYN‑OS’s installation process.  Its evolution reflects a shift from quick experiments toward maintainability, clarity and user safety.
+
+| Aspect | Early `syn-stage0.sh` | Modern `syn-stage0.zsh` |
+| --- | --- | --- |
+| Interpreter | `/bin/sh` | `/bin/zsh` with better scripting features |
+| Structure | Linear script with global variables | Modular functions (`syn_os_environment_prep`, `disk_processing`, `pacstrap_sync`, etc.) |
+| Boot mode | Assumed GPT / UEFI only | Detects UEFI vs MBR and branches accordingly |
+| Package lists | Single long string (`SYNSTALL`) | Arrays grouped by purpose (core system, services, environment, user applications, developer tools, fonts, optional extras) |
+| User prompts | Hard‑coded `read -p` confirmations | ASCII art warnings, coloured output and controlled confirmation logic |
+| Dotfiles & scripts | Copied `/root/SYN-OS-V4/root_overlay` and separate `syn-stage1.sh` | Copies curated dotfiles from `/root/syn-resources/DotfileOverlay` and unified stage scripts (`syn-stage0.zsh`, `syn-stage1.zsh`) |
+| Error handling | Minimal checks, simple exit on failure | Centralised `check_success` function after every critical command |
+| Motivation for change | Fast prototype to get a custom Arch system running | Maintainability, safety, easier customisation; make it obvious how to adjust package arrays or replace components |
+
+### Rationale
+
+Early scripts were written quickly to automate William Hayward-Holland’s personal installation process.  As more people expressed interest in building their own versions of SYN‑OS, the need for a cleaner and safer installer became clear.  Switching to zsh allowed the use of associative arrays and other features that simplify complex scripts.  Breaking the process into functions made it easier to test and modify one piece without disturbing the rest.  Detecting the boot environment (UEFI vs MBR) removed hard‑coded assumptions that could brick a system.  Grouping packages into arrays lets users add or remove categories (developer tools, optional extras) with a single edit instead of parsing a monolithic string.  Finally, copying dotfiles and scripts from clearly named overlay directories encourages users to personalise the system without digging through obscure paths.
+
+These changes reflect the project’s philosophy: **teaching by example**.  A well‑structured installer shows how to assemble a distribution from ArchISO building blocks, while still leaving the door open for experimentation.  The history of `syn-stage0` captures that journey from a hobbyist script to a robust, modular tool that invites hacking and learning.
+
+---
