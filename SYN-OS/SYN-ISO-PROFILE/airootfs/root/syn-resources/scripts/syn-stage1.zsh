@@ -14,6 +14,13 @@
 
 clear
 
+# Load disk configuration variables defined in syn-disk-config.zsh
+DISK_CONFIG_FILE="/root/syn-resources/scripts/syn-disk-config.zsh"
+if [ -f "$DISK_CONFIG_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$DISK_CONFIG_FILE"
+fi
+
 # Main script variables
 echo "Setting up new system variables"
 
@@ -32,17 +39,32 @@ if [ -z "$SYNOS_ENV" ]; then
     exit 1
 fi
 
-# Set ROOT_PART_990 based on SYNOS_ENV
+# Ensure disk vars exist if config was not sourced
+if [ -z "$WIPE_DISK_990" ]; then
+    WIPE_DISK_990="/dev/vda"
+fi
+
+# Derive partition defaults only if not provided
 if [ "$SYNOS_ENV" = "UEFI" ]; then
-    ROOT_PART_990="/dev/vda2"
     BOOTLOADER="systemd-boot"
-    BOOT_PART_990="/dev/vda1"
+    : "${BOOT_PART_990:=${WIPE_DISK_990}1}"
+    : "${ROOT_PART_990:=${WIPE_DISK_990}2}"
 else
-    ROOT_PART_990="/dev/vda1"
     BOOTLOADER="Syslinux"
+    # MBR layout has a single root partition by default
+    : "${ROOT_PART_990:=${WIPE_DISK_990}1}"
+    # BOOT_PART_990 is not used for MBR installs
 fi
 
 # Display configuration settings
+    echo ""
+    printf "\033[32m• Root: %s mounted at %s\033[0m\n" "$ROOT_PART_990" "$ROOT_MOUNT_LOCATION_990"
+    if [ "$SYNOS_ENV" = "UEFI" ]; then
+        printf "\033[32m• Boot: %s mounted at %s (fs=%s)\033[0m\n" "$BOOT_PART_990" "$BOOT_MOUNT_LOCATION_990" "$BOOT_FILESYSTEM_990"
+    fi
+    printf "\033[32m• Root FS: %s\033[0m\n" "$ROOT_FILESYSTEM_990"
+    printf "\033[32m• fstab generated, packages installed, scripts copied.\033[0m\n\n"
+    sleep 2
 echo "Proceeding to finalize installation."
 echo
 echo "Configuration settings:"
@@ -53,8 +75,10 @@ echo " - Locale Generation: $LOCALE_GEN_990"
 echo " - Locale Configuration and Language: $LOCALE_CONF_990"
 echo " - Zone: $ZONE_INFO990"
 echo " - Shell: $SHELL_CHOICE_990"
-echo " - Network Interface Detected: $NETWORK_INTERFACE_990"
+echo " - Network Interface Detected: ${NETWORK_INTERFACE_990:-none}"
 echo " - Bootloader: $BOOTLOADER"
+echo " - Root Partition: $ROOT_PART_990"
+[ -n "$BOOT_PART_990" ] && echo " - Boot Partition: $BOOT_PART_990"
 echo ""
 echo "PRESS CTRL+C TO ABORT RIGHT NOW IF THESE ARE INCORRECT"
 sleep 3
@@ -91,9 +115,21 @@ echo "Set password for user $DEFAULT_USER_990:"
 passwd "$DEFAULT_USER_990"
 chown -R "$DEFAULT_USER_990:$DEFAULT_USER_990" "/home/$DEFAULT_USER_990"
 
+    # Ensure custom SYN‑OS scripts are executable.  When the skeleton is
+    # copied into the new user’s home and Polybar launch
+    # script may not have execute permissions by default.  Fix them here.
+
+    if [ -f "/home/$DEFAULT_USER_990/.config/polybar/launch.sh" ]; then
+        chmod +x "/home/$DEFAULT_USER_990/.config/polybar/launch.sh" 2>/dev/null || true
+    fi
+
 # Enable systemd services for DHCP and Wi-Fi
 echo "Enabling systemd services for networking"
-systemctl enable "dhcpcd@$NETWORK_INTERFACE_990.service"
+if [ -n "$NETWORK_INTERFACE_990" ]; then
+    systemctl enable "dhcpcd@${NETWORK_INTERFACE_990}.service" || systemctl enable dhcpcd.service
+else
+    systemctl enable dhcpcd.service
+fi
 systemctl enable iwd.service
 
 # Bootloader setup based on SYNOS_ENV
@@ -102,7 +138,7 @@ if [ "$SYNOS_ENV" = "UEFI" ]; then
     bootctl --path=/boot install
 
     # Get UUID of the root partition
-    ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
+    ROOT_REAL_UUID_990=$(blkid -s UUID -o value "$ROOT_PART_990")
 
     # Write bootloader configurations
     echo "default  syn.conf" > /boot/loader/loader.conf
@@ -110,10 +146,12 @@ if [ "$SYNOS_ENV" = "UEFI" ]; then
     echo "editor   0" >> /boot/loader/loader.conf
 
     mkdir -p /boot/loader/entries
-    echo "title    SYN-OS" > /boot/loader/entries/syn.conf
-    echo "linux    /vmlinuz-linux" >> /boot/loader/entries/syn.conf
-    echo "initrd   /initramfs-linux.img" >> /boot/loader/entries/syn.conf
-    echo "options  root=UUID=$ROOT_REAL_UUID_990 rw" >> /boot/loader/entries/syn.conf
+    {
+        echo "title    SYN-OS"
+        echo "linux    /vmlinuz-linux"
+        echo "initrd   /initramfs-linux.img"
+        echo "options  root=UUID=$ROOT_REAL_UUID_990 rw"
+    } > /boot/loader/entries/syn.conf
 
     # Configure mkinitcpio
     sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)/' /etc/mkinitcpio.conf
@@ -129,16 +167,21 @@ else
     fi
 
     # Get UUID of the root partition
-    ROOT_REAL_UUID_990=$(blkid -s UUID -o value $ROOT_PART_990)
+    ROOT_REAL_UUID_990=$(blkid -s UUID -o value "$ROOT_PART_990")
 
-    # Configure syslinux.cfg
-    sed -i "s|root=/dev/vda1|root=UUID=$ROOT_REAL_UUID_990|" /boot/syslinux/syslinux.cfg
-    echo "Syslinux configuration updated with root UUID."
+    # Configure syslinux.cfg to use root UUID
+    # Replace any existing root=... with root=UUID=<uuid>
+    if [ -f /boot/syslinux/syslinux.cfg ]; then
+        sed -i -E "s|root=[^ ]+|root=UUID=$ROOT_REAL_UUID_990|g" /boot/syslinux/syslinux.cfg
+        echo "Syslinux configuration updated with root UUID."
+    else
+        echo "Warning: /boot/syslinux/syslinux.cfg not found."
+    fi
 fi
 
 # Install microcode packages (optional, recommended for stability)
 echo "Installing microcode packages for CPU"
-CPU_VENDOR=$(lscpu | grep "Vendor ID:" | awk '{print $3}')
+CPU_VENDOR=$(lscpu | awk -F: '/Vendor ID:/ {gsub(/^ +| +$/,\"\",$2); print $2}')
 if [ "$CPU_VENDOR" = "GenuineIntel" ]; then
     pacman -S --noconfirm intel-ucode
 elif [ "$CPU_VENDOR" = "AuthenticAMD" ]; then
@@ -146,9 +189,9 @@ elif [ "$CPU_VENDOR" = "AuthenticAMD" ]; then
 fi
 
 # Enable multilib repository if needed
-if ! grep -q "\[multilib\]" /etc/pacman.conf; then
+if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
     echo "Enabling multilib repository"
-    echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+    printf "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n" >> /etc/pacman.conf
     pacman -Syy
 fi
 
@@ -199,7 +242,7 @@ echo "
 # Display final instructions
 echo "
 SUMMARY: Stage One Complete, Congratulations! You have successfully installed SYN-OS with $BOOTLOADER bootloader.
-Please ensure that your computer's BIOS/UEFI or Virtual Machine is configured to boot from the newly installed disk.
+Please ensure that your computer's BIOS or UEFI or Virtual Machine is configured to boot from the newly installed disk.
 After verifying the boot configuration, you can now exit and reboot to start using SYN-OS.
 
 To exit the chroot environment, type: exit

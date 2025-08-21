@@ -10,7 +10,7 @@ SYN-OS is designed for those who want:
 - **Terminal-first efficiency** with optional GUI via Openbox.
 - **A ready-to-use base** that’s still true to Arch principles.
 
-> **Note:** The live installer runs entirely in a command-line (CLI) environment. You can install SYN-OS on real hardware or test it first in a virtual machine (VirtualBox, VMware, QEMU, etc.) before committing. Once installed, you can launch the graphical desktop with `startx`, which opens a lightweight **Openbox** session with a **Tint2** panel across the top. Tint2 is XML-configured, making it easy to adjust layout, colors, and widgets.
+> **Note:** The live installer runs entirely in a command-line (CLI) environment. You can install SYN-OS on real hardware or test it first in a virtual machine (VirtualBox, VMware, QEMU, etc.) before committing. Once installed, you can launch the graphical desktop with `startx`, which opens a lightweight **Openbox** session with a **Polybar** panel across the top. Polybar uses simple ini-style configuration, making it easy to adjust modules, colours and layout without touching XML.
 
 ---
 
@@ -82,13 +82,13 @@ SYN-OS is designed for those who want:
 
         startx
 
-- This opens **Openbox** with a **Tint2** top panel — a clean, lightweight desktop ready to customize.  
+- This opens **Openbox** with a **Polybar** top panel — a clean, lightweight desktop ready to customise.  
 
 ![Openbox Desktop](./Images/openbox-SYNOS-1.png)
 
-- Tint2’s XML-based configuration allows quick changes to theme, position, fonts, and widgets.
+- Polybar's configuration is ini-like and allows quick changes to modules, colours, fonts and layout.
 
-![Tint2 Panel](./Images/tint2-panel.png)
+<!-- The original Tint2 panel screenshot has been removed because SYN‑OS now ships with Polybar instead. -->
 
 ---
 
@@ -100,7 +100,7 @@ Packages in SYN-OS are organized into arrays within the installation scripts, gr
 |---------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Core System**           | Essential for booting and running the OS                    | base, linux, linux-firmware, archlinux-keyring, sudo, zsh, gcc, fakeroot, dosfstools, pacman-contrib                                                                |
 | **Services**              | Networking and system-level services                        | dhcpcd, dnsmasq, hostapd, iwd, reflector                                                                                                                            |
-| **Environment & Shell**   | Graphical and terminal interface packages                   | openbox, xorg-server, xorg-xinit, qt5ct, xcompmgr, tint2, lxrandr, feh, kitty, archlinux-xdg-menu                                                                  |
+| **Environment & Shell**   | Graphical and terminal interface packages                   | openbox, xorg-server, xorg-xinit, qt5ct, qt6ct, kvantum, kvantum-qt5, kvantum-qt6, polybar, lxrandr, xcompmgr, feh, kitty, archlinux-xdg-menu, adw-gtk3, papirus-icon-theme, bibata-cursor-theme, obconf-qt, zenity, flatpak                                                                  |
 | **User Applications**     | Tools and utilities for daily use                           | nano, git, htop, pcmanfm-qt, engrampa, kwrite                                                                                                                       |
 | **Developer Tools**       | Software development and power-user utilities               | gcc, fakeroot, android-tools, archiso, binwalk, hexedit, lshw, yt-dlp                                                                                               |
 | **Fonts & Localization**  | Fonts and language support for broader compatibility        | terminus-font, ttf-bitstream-vera, ttf-dejavu, noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-liberation                                                         |
@@ -131,7 +131,7 @@ Key principles:
    You don’t just get an OS — you learn *why* it’s set up the way it is, and how to change it. The system never hides its wiring.
 
 6. **Creative Freedom**  
-   The included Openbox + Tint2 environment is just a starter kit — a functional skeleton. From there, you can morph it into a minimal command center or layer on full desktop environments without losing the modular backbone.
+   The included Openbox + Polybar environment is just a starter kit — a functional skeleton. From there, you can morph it into a minimal command centre or layer on full desktop environments without losing the modular backbone.
 
 ---
 

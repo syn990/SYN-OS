@@ -1,29 +1,71 @@
-#!/bin/zsh
 # =============================================================================
 #                                 SYN-OS .zshrc
-#                      Zsh Configuration for SYN-OS Users
+#             Official Zsh Configuration for the SYN-OS Environment
 # -----------------------------------------------------------------------------
-#   This file sets up the Zsh environment for users in SYN-OS, including 
-#   Oh-My-Zsh configuration, plugins, and language settings.
+#   Branded Zsh setup for SYN-OS. Provides completions, autosuggestions,
+#   syntax highlighting, git integration, custom prompt, and useful defaults.
+#   Designed to be fast, clean, and self-contained (no external frameworks).
 #   Author: William Hayward-Holland (Syntax990)
 #   License: MIT
 # =============================================================================
 
-# Define path to Oh-My-Zsh installation for the default user
-DEFAULT_USER_990=$USER
-export ZSH="/home/$DEFAULT_USER_990/.oh-my-zsh"
 
-# Set Zsh theme (random for variety)
-ZSH_THEME="random"
-
-# Load plugins (keep it minimal to optimize startup time)
-plugins=(git)
-
-# Source Oh-My-Zsh configuration
-source $ZSH/oh-my-zsh.sh
-
-# Set language environment
+# Locale and editor
 export LANG=en_GB.UTF-8
-
-# Define nano as the default text editor
 export EDITOR='nano'
+
+# Completion
+autoload -Uz compinit bashcompinit
+zmodload -i zsh/complist
+compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+setopt auto_menu complete_in_word
+
+# Keybinds
+bindkey -e
+bindkey '^H' backward-kill-word
+bindkey '^[[3;5~' kill-word
+
+# Useful defaults
+setopt prompt_subst
+setopt nocaseglob
+setopt interactivecomments
+unsetopt beep
+
+# Tools
+if command -v fzf >/dev/null 2>&1; then
+  [[ -r /usr/share/fzf/completion.zsh ]] && source /usr/share/fzf/completion.zsh
+  [[ -r /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
+
+# Autosuggestions then syntax highlighting
+[[ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+  source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+[[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+  source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# -------------------------------------------------------------------
+# SYN-OS Prompt
+# user@host = red | directory = dark red | git = cyan | time = white
+# brackets = blue | success ✔ = green | fail ✘ = red
+# -------------------------------------------------------------------
+autoload -Uz vcs_info
+precmd() { vcs_info }
+
+zstyle ':vcs_info:git:*' formats '(%b)'
+
+PROMPT='%F{blue}[%f%F{red}%n@%m%f %F{160}%~%f ${vcs_info_msg_0_} %F{white}%D{%H:%M:%S}%f %F{blue}]%f %(?.%F{green}✔%f.%F{red}✘%f) %# '
+
+# Aliases
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias please='sudo'
+alias cat='bat --paging=never' 2>/dev/null || true
+alias grep='rg' 2>/dev/null || true
+
+mkcd() { mkdir -p "$1" && cd "$1"; }
