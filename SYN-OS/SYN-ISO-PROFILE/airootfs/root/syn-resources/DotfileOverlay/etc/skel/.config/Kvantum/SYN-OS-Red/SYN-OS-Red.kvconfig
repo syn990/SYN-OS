@@ -1,0 +1,21 @@
+[General]
+author=SYN-OS
+theme=KvLibadwaitaDark
+comment=Red accent set
+
+[Colors]
+# Base colours are deep black for a high contrast dark theme.  The
+# highlight is bright red for selections and accent.  Link colour
+# matches the highlight.
+window.color=#000000
+base.color=#000000
+button.color=#0d0d0d
+text.color=#ffffff
+windowText.color=#ffffff
+buttonText.color=#ffffff
+highlight.color=#ff0000
+highlight.text.color=#ffffff
+link.color=#ff0000
+alternateBase.color=#0d0d0d
+toolTipBase.color=#0d0d0d
+toolTipText.color=#ffffff

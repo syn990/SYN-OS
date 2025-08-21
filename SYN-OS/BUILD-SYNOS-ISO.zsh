@@ -25,6 +25,38 @@ CYAN='\e[1;36m'
 WHITE='\e[1;37m'
 NC='\e[0m' # No Color
 
+# ------------------------------------------------------------------------------
+# Import central package definitions and ISO package list
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PACKAGES_FILE="$SCRIPT_DIR/SYN-ISO-PROFILE/airootfs/root/syn-resources/scripts/syn-packages.zsh"
+if [ -f "$PACKAGES_FILE" ]; then
+    source "$PACKAGES_FILE"
+else
+    echo -e "${RED}Error: Could not find package definitions at $PACKAGES_FILE${NC}"
+    exit 1
+fi
+
+# Load disk configuration from the same location used by the installer. This file defines
+# WIPE_DISK_990, BOOT_PART_990, ROOT_PART_990, BOOT_MOUNT_LOCATION_990,
+# ROOT_MOUNT_LOCATION_990, BOOT_FILESYSTEM_990 and ROOT_FILESYSTEM_990. By
+# sourcing this file here we ensure that the build summary reflects any
+# customisations the user has made to the disk layout. If the file is not
+# found, reasonable defaults will be set within it.
+DISK_CONFIG_FILE="$SCRIPT_DIR/SYN-ISO-PROFILE/airootfs/root/syn-resources/scripts/syn-disk-config.zsh"
+if [ -f "$DISK_CONFIG_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$DISK_CONFIG_FILE"
+fi
+ISO_LIST_FILE="$SCRIPT_DIR/SYN-ISO-PROFILE/packages.x86_64"
+isoPackages=()
+if [ -f "$ISO_LIST_FILE" ]; then
+    while IFS= read -r pkg; do
+        # skip empty lines and comments
+        [[ -z "$pkg" || "$pkg" == \#* ]] && continue
+        isoPackages+=("$pkg")
+    done < "$ISO_LIST_FILE"
+fi
+
 # Function to display build summary information
 displayBuildSummary() {
     echo -e "${CYAN}================================================================================${NC}"
@@ -33,61 +65,45 @@ displayBuildSummary() {
     
     # Disk Configuration Summary
     echo -e "${YELLOW}Disk Configuration:${NC}"
-    echo -e "${WHITE}WIPE_DISK_990:${NC} ${MAGENTA}/dev/sda${NC} - The disk that will be wiped and partitioned."
-    echo -e "${WHITE}BOOT_PART_990:${NC} ${MAGENTA}/dev/sda1${NC} - Boot partition."
-    echo -e "${WHITE}ROOT_PART_990:${NC} ${MAGENTA}/dev/sda2${NC} - Root partition."
-    echo -e "${WHITE}BOOT_MOUNT_LOCATION_990:${NC} ${MAGENTA}/mnt/boot${NC} - Boot partition mount point."
-    echo -e "${WHITE}ROOT_MOUNT_LOCATION_990:${NC} ${MAGENTA}/mnt${NC} - Root partition mount point."
-    echo -e "${WHITE}BOOT_FILESYSTEM_990:${NC} ${MAGENTA}fat32${NC} - Filesystem for the boot partition."
-    echo -e "${WHITE}ROOT_FILESYSTEM_990:${NC} ${MAGENTA}f2fs${NC} - Filesystem for the root partition.\n"
+    echo -e "${WHITE}WIPE_DISK_990:${NC} ${MAGENTA}${WIPE_DISK_990}${NC} - The disk that will be wiped and partitioned."
+    echo -e "${WHITE}BOOT_PART_990:${NC} ${MAGENTA}${BOOT_PART_990}${NC} - Boot partition."
+    echo -e "${WHITE}ROOT_PART_990:${NC} ${MAGENTA}${ROOT_PART_990}${NC} - Root partition."
+    echo -e "${WHITE}BOOT_MOUNT_LOCATION_990:${NC} ${MAGENTA}${BOOT_MOUNT_LOCATION_990}${NC} - Boot partition mount point."
+    echo -e "${WHITE}ROOT_MOUNT_LOCATION_990:${NC} ${MAGENTA}${ROOT_MOUNT_LOCATION_990}${NC} - Root partition mount point."
+    echo -e "${WHITE}BOOT_FILESYSTEM_990:${NC} ${MAGENTA}${BOOT_FILESYSTEM_990}${NC} - Filesystem for the boot partition."
+    echo -e "${WHITE}ROOT_FILESYSTEM_990:${NC} ${MAGENTA}${ROOT_FILESYSTEM_990}${NC} - Filesystem for the root partition.\n"
     
-    # Package Arrays Summary
+    # Packages summary sourced from syn-packages.zsh
     echo -e "${YELLOW}Packages to be Installed:${NC}"
-    
-    # Base Packages
-    echo -e "${GREEN}Base Packages:${NC}"
-    basePackages=("base" "base-devel" "dosfstools" "fakeroot" "gcc" "linux" "linux-firmware" "archlinux-keyring" "pacman-contrib" "sudo" "zsh")
-    echo -e "${WHITE}${(j: :)basePackages}${NC}\n"
-    
-    # System Packages
-    echo -e "${GREEN}System Packages:${NC}"
-    systemPackages=("alsa-utils" "archlinux-xdg-menu" "dhcpcd" "dnsmasq" "hostapd" "iwd" "pulseaudio" "python-pyalsa")
-    echo -e "${WHITE}${(j: :)systemPackages}${NC}\n"
-    
-    # Control Packages
-    echo -e "${GREEN}Control Packages:${NC}"
-    controlPackages=("lxrandr" "obconf-qt" "pavucontrol-qt")
-    echo -e "${WHITE}${(j: :)controlPackages}${NC}\n"
-    
-    # Window Manager Packages
-    echo -e "${GREEN}Window Manager Packages:${NC}"
-    wmPackages=("openbox" "qt5ct" "xcompmgr" "xorg-server" "xorg-xinit" "tint2")
-    echo -e "${WHITE}${(j: :)wmPackages}${NC}\n"
-    
-    # CLI Packages
-    echo -e "${GREEN}CLI Packages:${NC}"
-    cliPackages=("git" "htop" "man" "nano" "reflector" "rsync" "wget")
-    echo -e "${WHITE}${(j: :)cliPackages}${NC}\n"
-    
-    # GUI Packages
-    echo -e "${GREEN}GUI Packages:${NC}"
-    guiPackages=("engrampa" "feh" "kitty" "kwrite" "pcmanfm-qt")
-    echo -e "${WHITE}${(j: :)guiPackages}${NC}\n"
-    
-    # Font Packages
-    echo -e "${GREEN}Font Packages:${NC}"
-    fontPackages=("terminus-font" "ttf-bitstream-vera")
-    echo -e "${WHITE}${(j: :)fontPackages}${NC}\n"
-    
-    # CLI Extra Packages
-    echo -e "${GREEN}CLI Extra Packages:${NC}"
-    cliExtraPackages=("android-tools" "archiso" "binwalk" "brightnessctl" "hdparm" "hexedit" "lshw" "ranger" "sshfs" "yt-dlp")
-    echo -e "${WHITE}${(j: :)cliExtraPackages}${NC}\n"
-    
-    # GUI Extra Packages
-    echo -e "${GREEN}GUI Extra Packages:${NC}"
-    guiExtraPackages=("audacity" "chromium" "gimp" "kdenlive" "obs-studio" "openra" "spectacle" "vlc")
-    echo -e "${WHITE}${(j: :)guiExtraPackages}${NC}\n"
+
+    # Display package categories defined in syn-packages.zsh
+    echo -e "${GREEN}Core System:${NC}"
+    echo -e "${WHITE}${(j: :)coreSystem}${NC}\n"
+
+    echo -e "${GREEN}Services:${NC}"
+    echo -e "${WHITE}${(j: :)services}${NC}\n"
+
+    echo -e "${GREEN}Environment & Shell:${NC}"
+    echo -e "${WHITE}${(j: :)environmentShell}${NC}\n"
+
+    echo -e "${GREEN}User Applications:${NC}"
+    echo -e "${WHITE}${(j: :)userApplications}${NC}\n"
+
+    echo -e "${GREEN}Developer Tools:${NC}"
+    echo -e "${WHITE}${(j: :)developerTools}${NC}\n"
+
+    echo -e "${GREEN}Fonts & Localisation:${NC}"
+    echo -e "${WHITE}${(j: :)fontsLocalization}${NC}\n"
+
+    echo -e "${GREEN}Optional Features:${NC}"
+    echo -e "${WHITE}${(j: :)optionalFeatures}${NC}\n"
+
+    echo -e "${GREEN}ISO Packages (live environment only):${NC}"
+    if (( ${#isoPackages[@]} )); then
+        echo -e "${WHITE}${(j: :)isoPackages}${NC}\n"
+    else
+        echo -e "${WHITE}No ISO-specific packages found${NC}\n"
+    fi
     
     # Bootloader Packages
     echo -e "${YELLOW}Bootloader Packages (Based on System Environment):${NC}"
@@ -97,10 +113,10 @@ displayBuildSummary() {
     # Build Steps Summary
     echo -e "${YELLOW}Build Steps Overview:${NC}"
     echo -e "${CYAN}1. Environment Preparation:${NC} Configure keyboard layout, enable NTP, and start DHCP service."
-    echo -e "${CYAN}2. Disk Partitioning and Formatting:${NC} Wipe ${MAGENTA}/dev/sda${NC}, create partitions, and format them."
-    echo -e "${CYAN}   - For UEFI systems:${NC} Create GPT partition table, boot partition (${MAGENTA}/dev/sda1${NC}), and root partition (${MAGENTA}/dev/sda2${NC})."
+    echo -e "${CYAN}2. Disk Partitioning and Formatting:${NC} Wipe ${MAGENTA}${WIPE_DISK_990}${NC}, create partitions, and format them."
+    echo -e "${CYAN}   - For UEFI systems:${NC} Create GPT partition table, boot partition (${MAGENTA}${BOOT_PART_990}${NC}), and root partition (${MAGENTA}${ROOT_PART_990}${NC})."
     echo -e "${CYAN}   - For MBR systems:${NC} Create MS-DOS partition table and a single root partition."
-    echo -e "${CYAN}3. Mount Partitions:${NC} Mount root partition to ${MAGENTA}/mnt${NC} and boot partition to ${MAGENTA}/mnt/boot${NC} (if UEFI)."
+    echo -e "${CYAN}3. Mount Partitions:${NC} Mount root partition to ${MAGENTA}${ROOT_MOUNT_LOCATION_990}${NC} and boot partition to ${MAGENTA}${BOOT_MOUNT_LOCATION_990}${NC} (if UEFI)."
     echo -e "${CYAN}4. Pacstrap Sync:${NC} Install packages to the new system using pacstrap."
     echo -e "${CYAN}5. Generate fstab:${NC} Generate filesystem table with UUIDs."
     echo -e "${CYAN}6. Copy Dotfiles and Scripts:${NC} Copy configuration files and installation scripts to the new system."

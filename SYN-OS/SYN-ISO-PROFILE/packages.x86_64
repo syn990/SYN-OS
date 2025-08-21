@@ -37,3 +37,11 @@ virtualbox-guest-utils-nox
 wireless_tools
 wpa_supplicant
 zsh
+zsh-completions
+zsh-syntax-highlighting
+zsh-autosuggestions
+fzf
+zoxide
+ripgrep
+fd
+bat
