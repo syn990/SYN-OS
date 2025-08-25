@@ -231,4 +231,6 @@ Early scripts were written quickly to automate William Hayward-Holland’s perso
 These changes reflect the project’s philosophy: **teaching by example**.  A well‑structured installer shows how to assemble a distribution from ArchISO building blocks, while still leaving the door open for experimentation.  The history of `syn-stage0` captures that journey from a hobbyist script to a robust, modular tool that invites hacking and learning.
 
 ---
+[Click to view vector map of SYN-OS structure](https://raw.githubusercontent.com/syn990/SYN-OS/078920fac9381bd52b37b4c975daf4ddea8b4cc2/SYN-OS/Graphviz/SYN-OS.svg)  
+
 ![GRAPHVIZ STRUCTURE](./SYN-OS/Graphviz/SYN-OS.svg)
