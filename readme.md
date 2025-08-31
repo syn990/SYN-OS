@@ -2,8 +2,9 @@
 
 ![SYN-OS Banner](./Images/SYN-BANNER.png)
 
-**SYN-OS** is a highly customizable Arch Linux–based operating system crafted by **William Hayward-Holland** (*Syntax990*).  
-It combines Arch’s minimal base with curated build scripts, dotfiles, and custom theming to deliver a streamlined, efficient, and personalized environment.
+**SYN-OS** is a highly customizable Arch Linux–based operating system by **William Hayward-Holland** (*Syntax990*).
+
+It combines Arch’s minimal base with curated build scripts, dotfiles, and custom theming to deliver a streamlined and efficient environment.
 
 SYN-OS is designed for those who want:
 - **Full control** over packages, themes, and configurations.
@@ -94,7 +95,7 @@ SYN-OS is designed for those who want:
 
 ## 📦 Package Collection
 
-Packages in SYN-OS are organized into arrays within the installation scripts, grouped by their purpose for logical clarity.
+Packages in SYN-OS are put into arrays within the installation scripts, grouped by their purpose for logical clarity.
 
 | **Category**              | **Description**                                              | **Packages**                                                                                                                                                        |
 |---------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -110,18 +111,18 @@ Packages in SYN-OS are organized into arrays within the installation scripts, gr
 
 ## 💡 Philosophy
 
-SYN-OS is not just “Arch with a desktop preinstalled.” You could do that in an afternoon, but you’d miss the entire point — the insight, control, and hands-on wiring that comes from building your environment piece by piece.
+SYN-OS is not just “Arch with a desktop preinstalled.” You could do that in an afternoon, but you’d miss the insight, control, and hands-on wiring that comes from building your environment piece by piece.
 
-Think of it like the alien tech in *District 9* — parts scavenged, rewired, and assembled into something uniquely functional. Every script, array, and configuration is chosen to fit together with intention, but you can rip it apart, swap components, and make it entirely your own.
+Think of it like the alien tech in *District 9* - parts scavenged, rewired, and assembled into something uniquely functional. Every script, array, and configuration is chosen to fit together with intention, but you can rip it apart, swap components, and make it entirely your own.
 
 Key principles:
-1. **Barebones Foundation**  
+1. **Barebones**  
    Starts as close to the metal as possible — no excess services, no bloated DEs, no assumptions. You build from the ground up.
 
-2. **Modular by Design**  
+2. **Modular**  
    Everything is organized into logical arrays and overlay directories. Want to swap a window manager, remove a service, or change the panel? It’s a matter of editing a few lines, not unpicking tangled dependencies.
 
-3. **Transparency**  
+3. **Transparent**  
    All installation logic is in plain, readable shell scripts. You see *every* command that touches your system.
 
 4. **Terminal-First Workflow**  
