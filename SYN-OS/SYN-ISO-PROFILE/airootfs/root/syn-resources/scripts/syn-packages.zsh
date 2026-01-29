@@ -33,6 +33,7 @@
 coreSystem=(
     "base"                  # Core Arch Linux base system
     "base-devel"            # Essential development tools (make, gcc, etc.)
+    "bat"                   # cat-like application
     "linux"                 # Linux kernel
     "linux-firmware"        # Common device firmware
     "archlinux-keyring"     # Official Arch Linux package signing keys
@@ -68,6 +69,7 @@ environmentShell=(
     "xorg-xinit"          # X session startup
     "polybar"               # Panel and taskbar
     "lxrandr"             # Display configuration GUI
+    "pavucontrol-qt"      # PulseAudio configuration tool
     "qt5ct"               # Qt5 configuration tool
     "qt6ct"               # Qt6 configuration tool
     "kvantum"             # Kvantum theme engine for Qt

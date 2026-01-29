@@ -13,7 +13,7 @@
 feh --bg-scale --randomize ~/.wallpaper/* &
 
 # Launch Polybar.  
-(sleep 2s && sh ~/.config/polybar/launch.sh --hack) &
+sh ~/.config/polybar/launch.sh &
 
 # Display/Resolution setup fallback
 # Keep this if you do not use autorandr or another display manager to set the resolution
