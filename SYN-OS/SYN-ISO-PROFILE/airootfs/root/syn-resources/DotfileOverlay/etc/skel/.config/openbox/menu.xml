@@ -3,6 +3,12 @@
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="Openbox 3">
   <menu id="dynamic_menu" label="Dynamic Menu" execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
+  <item label="Shadow">
+    <action name="Execute">
+      <command>/home/syntax990/Downloads/squashfs-root/./shadow-launcher</command>
+      <startupnotify><enabled>yes</enabled></startupnotify>
+    </action>
+  </item>
   <separator label="UI Settings" />
     <item label="Reconfigure Openbox">
       <action name="Reconfigure" />
@@ -13,8 +19,12 @@
         <startupnotify><enabled>yes</enabled></startupnotify>
       </action>
     </item>
-    <!-- Theme switcher: dynamically apply SYN‑OS colour presets -->
-    <separator label="SYN‑OS" />
+    <item label="Tint 2 Panel Configurator">
+      <action name="Execute">
+        <command>tint2conf</command>
+        <startupnotify><enabled>yes</enabled></startupnotify>
+      </action>
+    </item>
     <item label="QT5 Controls">
       <action name="Execute">
         <command>qt5ct</command>

@@ -115,13 +115,12 @@ echo "Set password for user $DEFAULT_USER_990:"
 passwd "$DEFAULT_USER_990"
 chown -R "$DEFAULT_USER_990:$DEFAULT_USER_990" "/home/$DEFAULT_USER_990"
 
-    # Ensure custom SYN‑OS scripts are executable.  When the skeleton is
-    # copied into the new user’s home and Polybar launch
-    # script may not have execute permissions by default.  Fix them here.
+# Ensure custom SYN‑OS scripts are executable.  When the skeleton is
+# copied into the new user’s home and Polybar launch
+# script may not have execute permissions by default. 
+chmod +x -R "/home/$DEFAULT_USER_990/.config/polybar/"
 
-    if [ -f "/home/$DEFAULT_USER_990/.config/polybar/launch.sh" ]; then
-        chmod +x "/home/$DEFAULT_USER_990/.config/polybar/launch.sh" 2>/dev/null || true
-    fi
+
 
 # Enable systemd services for DHCP and Wi-Fi
 echo "Enabling systemd services for networking"

@@ -24,7 +24,7 @@
 #   "/dev/vda"  – Typical for virtual disks
 #   "/dev/sda"  – SATA drives
 #   "/dev/nvme0n1" – NVMe devices
-WIPE_DISK_990="/dev/vda"
+WIPE_DISK_990="/dev/sda"
 
 # Boot partition (suffix differs between SATA/virtual vs NVMe).
 BOOT_PART_990="${WIPE_DISK_990}1"

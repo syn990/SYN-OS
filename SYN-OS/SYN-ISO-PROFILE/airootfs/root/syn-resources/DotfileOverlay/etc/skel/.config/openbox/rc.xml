@@ -42,7 +42,7 @@
                   'Active' - where the active window is -->
   </placement>
   <theme>
-    <name>Clearlooks-Olive</name>
+    <name>SYN-RTOS-DARK-RED</name>
     <titleLayout>NLIMC</titleLayout>
     <!--
       available characters are NDSLIMC, each can occur at most once.
@@ -126,7 +126,7 @@
       <name>0x00 [Terminal]</name>
       <name>0x01 [Web Browser]</name>
       <name>0x02 [Media Workspace]</name>
-      <name>0x03 [External Workspace]</name>
+      <name>0x03 [EXT WORKSPACE]</name>
     </names>
     <popupTime>875</popupTime>
     <!-- The number of milliseconds to show the popup for when switching

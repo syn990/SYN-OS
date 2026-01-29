@@ -4,8 +4,10 @@ alsa-utils
 arch-install-scripts
 archlinux-keyring
 base
+bat
 bind
 broadcom-wl
+curl
 dhclient
 dhcpcd
 dnsmasq

@@ -2,9 +2,9 @@
 #                                 SYN-OS .zshrc
 #             Official Zsh Configuration for the SYN-OS Environment
 # -----------------------------------------------------------------------------
-#   Branded Zsh setup for SYN-OS. Provides completions, autosuggestions,
+#   Zsh setup for SYN-OS. Provides completions, autosuggestions,
 #   syntax highlighting, git integration, custom prompt, and useful defaults.
-#   Designed to be fast, clean, and self-contained (no external frameworks).
+#   Designed to be fast, clean, and self-contained.
 #   Author: William Hayward-Holland (Syntax990)
 #   License: MIT
 # =============================================================================

@@ -18,12 +18,12 @@ SYN-OS is designed for those who want:
 ## 🚀 Download & Quick Start
 
 **Latest Release:**  
-- **Name:** SYN-OS SYNTEX Edition (April 2025)  
-- **File:** `SYN-OS_SYNTEX_2025-04.iso`  
-- **Size:** ~0.9 GB  
-- **Download:** [SYN-OS_SYNTEX_2025-04.iso](https://drive.google.com/file/d/1CcPMeKCBjdqz6OJCzm1JcLhxzKSHe7ra/view?usp=sharing)
+- **Name:** SYN-OS XENITH Edition
+- **Size:** ~1.1 GB  
+- **Download:** [SYN-OS XENITH (JAN 2026).iso](https://drive.google.com/file/d/1bbKsw2FQ7d2Pb8Os1lwERGEyG5j3pnpg/view?usp=sharing)
 
 **Older Releases:**
+- [SYN-OS SYNTEX (April 2025).iso](https://drive.google.com/file/d/1CcPMeKCBjdqz6OJCzm1JcLhxzKSHe7ra/view?usp=sharing)
 - [SYN-OS M-141 (Nov 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)  
 - [ArchTech Corp. Edition (Jul 2024)](https://drive.google.com/file/d/1WRDf0JfCCNhYJJkFUXb3Xheb3YInys52/view?usp=sharing)  
 - [VOLITION (Jun 2024)](https://drive.google.com/file/d/16ETNY4jlTK_UCGEwBxMTTFMn0Mf7rrTR/view?usp=sharing)  
