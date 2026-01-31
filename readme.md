@@ -15,7 +15,7 @@ SYN-OS is designed for those who want:
 
 ---
 
-## 🚀 Download & Quick Start
+## Download & Quick Start
 
 **Latest Release:**  
 - **Name:** SYN-OS XENITH Edition
@@ -93,7 +93,7 @@ SYN-OS is designed for those who want:
 
 ---
 
-## 📦 Package Collection
+## Package Collection
 
 Packages in SYN-OS are put into arrays within the installation scripts, grouped by their purpose for logical clarity.
 
@@ -109,7 +109,7 @@ Packages in SYN-OS are put into arrays within the installation scripts, grouped 
 
 ---
 
-## 💡 Philosophy
+## Philosophy
 
 SYN-OS is not just “Arch with a desktop preinstalled.” You could do that in an afternoon, but you’d miss the insight, control, and hands-on wiring that comes from building your environment piece by piece.
 
@@ -136,7 +136,7 @@ Key principles:
 
 ---
 
-## 🛠 Building Your Own ISO
+## Building Your Own ISO
 
 SYN-OS is built using **ArchISO**, the official Arch Linux live environment creation tool. At its core, SYN-OS is simply an **ArchISO profile** — a collection of package lists, configurations, and overlays that tell ArchISO how to assemble the final image.
 
@@ -153,15 +153,6 @@ You can produce a completely fresh ISO image — your own operating system — f
 
 If you replace every reference to “SYN-OS” in the scripts, boot themes, and documentation, you don’t even need to credit me. That’s the power and freedom of this design. I will never make this commercial because SYN-OS is not a “product” or “service” — it’s a teaching tool. It’s about **axiomatic consciousness** and **process over product**: understanding the principles, not just consuming a pre-built environment.
 
----
-
-### Why This Matters
-
-When you build your own ISO this way, you gain something you can’t get from simply “installing a DE on vanilla Arch.” You see the wiring — the package choices, the configuration hierarchy, the build order. You’re not just putting a desktop on top of a base; you’re constructing the base itself, deciding *what exists at all* in your environment.
-
-The value isn’t just in “learning Linux” or feeling clever. The real goal is that *ah-ha* moment where you see that this is **your platform**. Not mine. Not Arch’s. Not some company’s. Yours.
-
-That insight changes how you look at every piece of software you touch. You stop thinking like a “user” and start thinking like a *maintainer*. You develop the muscle memory of that old-school, event-driven 90s dev style — test something, iterate, test again, no bloat, no magic black boxes, just you and the system evolving together.
 
 ---
 
@@ -187,7 +178,7 @@ This isn’t just about *using* Arch — it’s about *owning* Arch, bending it 
 And if you get it right, you’ll never look at an operating system the same way again.
 
 
-## 📜 License
+## License
 
 SYN-OS is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
@@ -210,7 +201,6 @@ SYN‑OS grew out of an experimental project named **SYN‑RTOS**, which used si
 | M‑141 | Nov 2024 | Polished release ahead of the canonical edition; improved documentation. |
 | SYNTEX Edition | Apr 2025 | Latest edition; runs under zsh; modular installer; dynamic UEFI/MBR detection; Openbox + Polybar by default. |
 
-### How and why the installer changed
 
 The **syn‑stage0** script is at the heart of SYN‑OS’s installation process.  Its evolution reflects a shift from quick experiments toward maintainability, clarity and user safety.
 
