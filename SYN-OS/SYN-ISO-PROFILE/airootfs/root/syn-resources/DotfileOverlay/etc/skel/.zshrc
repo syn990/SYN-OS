@@ -67,5 +67,7 @@ alias l='ls -CF'
 alias please='sudo'
 alias cat='bat --paging=never' 2>/dev/null || true
 alias grep='rg' 2>/dev/null || true
+alias synos="dbus-run-session -- env XDG_SESSION_TYPE=wayland labwc"
+alias redshirt=~~zsh ~/./.SYN-REDSHIRT.zsh # Introversion Software Encryption
 
 mkcd() { mkdir -p "$1" && cd "$1"; }

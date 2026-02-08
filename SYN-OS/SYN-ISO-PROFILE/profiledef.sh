@@ -7,7 +7,7 @@
 #   Author: Syntax990
 # =============================================================================
 
-iso_name="SYN-OS-XENITH-EDITION"
+iso_name="SYN-OS-SYNAPTIC-EDITION"
 iso_label="SYNOS_$(date +%Y%m)"
 iso_publisher="Syntax990"
 iso_application="SYN-OS - Installation Media"
@@ -15,12 +15,8 @@ iso_version="$(date +%Y.%m.%d)"
 install_dir="arch"
 buildmodes=('iso')
 bootmodes=(
-  'bios.syslinux.mbr'
-  'bios.syslinux.eltorito'
-  'uefi-ia32.grub.esp'
-  'uefi-x64.grub.esp'
-  'uefi-ia32.grub.eltorito'
-  'uefi-x64.grub.eltorito'
+  'bios.syslinux'
+  'uefi.grub'
 )
 arch="x86_64"
 pacman_conf="pacman.conf"
