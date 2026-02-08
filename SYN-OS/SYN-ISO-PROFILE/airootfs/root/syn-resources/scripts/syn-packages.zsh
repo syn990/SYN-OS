@@ -45,10 +45,8 @@ coreSystem=(
     "zoxide"                # Smarter cd command replacement
     "ripgrep"               # Fast text search tool (like grep)
     "fd"                    # Simple, fast alternative to find
-    "bat"                   # cat clone with syntax highlighting
     "sudo"                  # Privilege escalation tool
 )
-
 
 ########################################################################################################
 # Services
@@ -58,30 +56,25 @@ services=(
     "hostapd"    # Userspace access point
     "iwd"        # Wi-Fi management
     "reflector"  # Mirrorlist updater for pacman
+    "openvpn"    # VPN client
 )
 
 ########################################################################################################
 # Environment & Shell
 environmentShell=(
-    "openbox"             # Lightweight window manager
-    "archlinux-xdg-menu"  # Dynamic menu for Openbox
-    "xorg-server"         # Display server
-    "xorg-xinit"          # X session startup
-    "polybar"               # Panel and taskbar
-    "lxrandr"             # Display configuration GUI
-    "pavucontrol-qt"      # PulseAudio configuration tool
-    "qt5ct"               # Qt5 configuration tool
-    "qt6ct"               # Qt6 configuration tool
-    "kvantum"             # Kvantum theme engine for Qt
-    "kvantum-qt5"         # Qt5 Kvantum integration
-    "xcompmgr"            # Simple compositor
-    "feh"                 # Image viewer and wallpaper
-    "kitty"               # Terminal emulator
-    "inetutils"           # ftp, telnet, hostname, etc.
-    "obconf-qt"           # Openbox configuration GUI
-    "rofi"
-    "python-pywal"
-    "calc"
+    "labwc"             # Wayland Openbox-like window manager
+    "wmenu"             # Dynamic menu for Wayland
+    "waybar"            # Panel and taskbar
+    "pavucontrol-qt"    # PulseAudio configuration tool
+    "qt5ct"             # Qt5 configuration tool
+    "qt6ct"             # Qt6 configuration tool
+    "kvantum"           # Kvantum theme engine for Qt
+    "kvantum-qt5"       # Qt5 Kvantum integration
+    "feh"               # Image viewer and wallpaper
+    "kitty"             # Terminal emulator
+    "inetutils"         # ftp, telnet, hostname, etc.
+    "rofi"              # Window switcher, run dialog, ssh-launcher and dmenu replacement
+    "calc"              # Arbitrary precision console calculator
 )
 
 ########################################################################################################
@@ -93,6 +86,7 @@ userApplications=(
     "pcmanfm-qt"  # File manager
     "engrampa"    # Archive manager
     "kwrite"      # Text editor
+    "ranger"      # Terminal File Explorer
 )
 
 ########################################################################################################
@@ -118,6 +112,8 @@ fontsLocalization=(
     "noto-fonts-emoji"   # Emoji
     "noto-fonts-cjk"     # Chinese Japanese Korean
     "ttf-liberation"     # Liberation family
+    "ttf-terminus-nerd"  # Awesome family of fonts for waybar (UI)
+    "otf-font-awesome"   # Additional Nerd Fonts (UI)
 )
 
 ########################################################################################################

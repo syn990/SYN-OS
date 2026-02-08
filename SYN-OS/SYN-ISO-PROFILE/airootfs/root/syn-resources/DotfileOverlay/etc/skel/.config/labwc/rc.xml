@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<labwc_config>
+  <!-- THEME -->
+  <theme>
+    <name>SYN-RTOS-DARK-RED</name>
+    <titleLayout>NLIMC</titleLayout>
+    <!-- For finer tweaks, use ~/.config/labwc/themerc-override -->
+  </theme>
+
+  <!-- DESKTOPS / WORKSPACES -->
+  <desktops number="4">
+    <names>
+      <name>🃁 [Terminal]</name>
+      <name>ℐ [Web Browser]</name>
+      <name>ℕ [Media]</name>
+      <name>⌘ [External / Misc]</name>
+    </names>
+  </desktops>
+
+  <!-- KEYBOARD -->
+  <keyboard>
+    <!-- Menu -->
+    <keybind key="W-space">
+      <action name="ShowMenu" menu="root-menu"/>
+    </keybind>
+
+    <!-- Core apps (change to your prefs if needed) -->
+    <keybind key="W-Return">
+      <action name="Execute" command="foot"/>
+    </keybind>
+    <keybind key="W-a">
+      <action name="Execute" command="fuzzel"/>
+    </keybind>
+    <keybind key="W-q">
+      <action name="Close"/>
+    </keybind>
+
+    <!-- Window switching -->
+    <keybind key="A-Tab">
+      <action name="NextWindow"/>
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="PreviousWindow"/>
+    </keybind>
+    <keybind key="W-Tab">
+      <action name="ToggleMaximize"/>
+    </keybind>
+
+    <!-- Desktop navigation (left/right & direct 1-4) -->
+    <keybind key="C-A-Left">
+      <action name="GoToDesktop" to="left" wrap="no"/>
+    </keybind>
+    <keybind key="C-A-Right">
+      <action name="GoToDesktop" to="right" wrap="no"/>
+    </keybind>
+    <keybind key="S-A-Left">
+      <action name="SendToDesktop" to="left" wrap="no"/>
+    </keybind>
+    <keybind key="S-A-Right">
+      <action name="SendToDesktop" to="right" wrap="no"/>
+    </keybind>
+    <keybind key="W-1"><action name="GoToDesktop" to="1"/></keybind>
+    <keybind key="W-2"><action name="GoToDesktop" to="2"/></keybind>
+    <keybind key="W-3"><action name="GoToDesktop" to="3"/></keybind>
+    <keybind key="W-4"><action name="GoToDesktop" to="4"/></keybind>
+
+    <!-- Brightness (percentage for wider hardware compatibility) -->
+    <keybind key="W-Up">
+      <action name="Execute" command="brightnessctl set +10%"/>
+    </keybind>
+    <keybind key="W-Down">
+      <action name="Execute" command="brightnessctl set 10%-"/>
+    </keybind>
+
+    <!-- Screenshot (grim + slurp; creates timestamped file in ~/Pictures/Screenshots) -->
+    <keybind key="W-p">
+      <action name="Execute"
+              command="sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g &quot;$(slurp)&quot; ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'"/>
+    </keybind>
+  </keyboard>
+</labwc_config>
