@@ -1,0 +1,889 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2036pt" height="2180pt" viewBox="0.00 0.00 2036.00 2180.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 2175.63)">
+<title>SYNOS_Expanded_Flow_Dark_v4</title>
+<polygon fill="#000000" stroke="none" points="-4,4 -4,-2175.63 2031.64,-2175.63 2031.64,4 -4,4"/>
+<g id="clust1" class="cluster">
+<title>cluster_shell</title>
+<path fill="#000000" stroke="#444444" d="M258,-1779.83C258,-1779.83 439,-1779.83 439,-1779.83 445,-1779.83 451,-1785.83 451,-1791.83 451,-1791.83 451,-2025.83 451,-2025.83 451,-2031.83 445,-2037.83 439,-2037.83 439,-2037.83 258,-2037.83 258,-2037.83 252,-2037.83 246,-2031.83 246,-2025.83 246,-2025.83 246,-1791.83 246,-1791.83 246,-1785.83 252,-1779.83 258,-1779.83"/>
+<text xml:space="preserve" text-anchor="middle" x="348.5" y="-2021.23" font-family="Times,serif" font-size="14.00" fill="white">Live Shell (airootfs)</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_pkg</title>
+<path fill="#000000" stroke="#444444" d="M787,-1961.03C787,-1961.03 1852,-1961.03 1852,-1961.03 1858,-1961.03 1864,-1967.03 1864,-1973.03 1864,-1973.03 1864,-2151.63 1864,-2151.63 1864,-2157.63 1858,-2163.63 1852,-2163.63 1852,-2163.63 787,-2163.63 787,-2163.63 781,-2163.63 775,-2157.63 775,-2151.63 775,-2151.63 775,-1973.03 775,-1973.03 775,-1967.03 781,-1961.03 787,-1961.03"/>
+<text xml:space="preserve" text-anchor="middle" x="1319.5" y="-2147.03" font-family="Times,serif" font-size="14.00" fill="white">Package Arrays (syn-packages.zsh)</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_build</title>
+<path fill="#000000" stroke="#444444" d="M471,-1779.83C471,-1779.83 755,-1779.83 755,-1779.83 761,-1779.83 767,-1785.83 767,-1791.83 767,-1791.83 767,-2035.83 767,-2035.83 767,-2041.83 761,-2047.83 755,-2047.83 755,-2047.83 471,-2047.83 471,-2047.83 465,-2047.83 459,-2041.83 459,-2035.83 459,-2035.83 459,-1791.83 459,-1791.83 459,-1785.83 465,-1779.83 471,-1779.83"/>
+<text xml:space="preserve" text-anchor="middle" x="613" y="-2031.23" font-family="Times,serif" font-size="14.00" fill="white">ISO Build (optional)</text>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_stage0</title>
+<path fill="#000000" stroke="#444444" d="M409,-876C409,-876 717,-876 717,-876 723,-876 729,-882 729,-888 729,-888 729,-1741.43 729,-1741.43 729,-1747.43 723,-1753.43 717,-1753.43 717,-1753.43 409,-1753.43 409,-1753.43 403,-1753.43 397,-1747.43 397,-1741.43 397,-1741.43 397,-888 397,-888 397,-882 403,-876 409,-876"/>
+<text xml:space="preserve" text-anchor="middle" x="563" y="-1736.83" font-family="Times,serif" font-size="14.00" fill="white">Stage 0 (Pre‑chroot)</text>
+</g>
+<g id="clust5" class="cluster">
+<title>cluster_stage1</title>
+<path fill="#000000" stroke="#444444" d="M145,-411.4C145,-411.4 377,-411.4 377,-411.4 383,-411.4 389,-417.4 389,-423.4 389,-423.4 389,-942.03 389,-942.03 389,-948.03 383,-954.03 377,-954.03 377,-954.03 145,-954.03 145,-954.03 139,-954.03 133,-948.03 133,-942.03 133,-942.03 133,-423.4 133,-423.4 133,-417.4 139,-411.4 145,-411.4"/>
+<text xml:space="preserve" text-anchor="middle" x="261" y="-937.43" font-family="Times,serif" font-size="14.00" fill="white">Stage 1 (In‑chroot)</text>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_boot</title>
+<path fill="#000000" stroke="#444444" d="M20,-8C20,-8 372,-8 372,-8 378,-8 384,-14 384,-20 384,-20 384,-373 384,-373 384,-379 378,-385 372,-385 372,-385 20,-385 20,-385 14,-385 8,-379 8,-373 8,-373 8,-20 8,-20 8,-14 14,-8 20,-8"/>
+<text xml:space="preserve" text-anchor="middle" x="196" y="-368.4" font-family="Times,serif" font-size="14.00" fill="white">Boot &amp; Desktop (Installed System)</text>
+</g>
+<!-- file_zshrc -->
+<g id="node1" class="node">
+<title>file_zshrc</title>
+<polygon fill="#260101" stroke="#800000" points="303.55,-2005.03 254.45,-2005.03 254.45,-1969.03 309.55,-1969.03 309.55,-1999.03 303.55,-2005.03"/>
+<polyline fill="none" stroke="#800000" points="303.55,-2005.03 303.55,-1999.03"/>
+<polyline fill="none" stroke="#800000" points="309.55,-1999.03 303.55,-1999.03"/>
+<text xml:space="preserve" text-anchor="middle" x="282" y="-1984.63" font-family="Times,serif" font-size="8.00" fill="white">.zshrc (ISO)</text>
+</g>
+<!-- root_zsh -->
+<g id="node2" class="node">
+<title>root_zsh</title>
+<polygon fill="#260101" stroke="#800000" points="433.55,-1909.43 330.45,-1909.43 330.45,-1873.43 439.55,-1873.43 439.55,-1903.43 433.55,-1909.43"/>
+<polyline fill="none" stroke="#800000" points="433.55,-1909.43 433.55,-1903.43"/>
+<polyline fill="none" stroke="#800000" points="439.55,-1903.43 433.55,-1903.43"/>
+<text xml:space="preserve" text-anchor="middle" x="385" y="-1893.83" font-family="Times,serif" font-size="8.00" fill="white">.zshrc banner &amp; warning</text>
+<text xml:space="preserve" text-anchor="middle" x="385" y="-1884.23" font-family="Times,serif" font-size="8.00" fill="white">syntax990 alias runs installer</text>
+</g>
+<!-- file_zshrc&#45;&gt;root_zsh -->
+<g id="edge1" class="edge">
+<title>file_zshrc-&gt;root_zsh</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M300.89,-1968.87C316.76,-1954.44 339.65,-1933.64 357.55,-1917.38"/>
+<polygon fill="#888888" stroke="#888888" points="359.71,-1920.14 364.76,-1910.83 355,-1914.96 359.71,-1920.14"/>
+<text xml:space="preserve" text-anchor="middle" x="344.33" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">file</text>
+</g>
+<!-- run_alias -->
+<g id="node3" class="node">
+<title>run_alias</title>
+<ellipse fill="#400101" stroke="#800000" cx="401" cy="-1805.83" rx="36.81" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="401" y="-1803.43" font-family="Times,serif" font-size="8.00" fill="white">Run syntax990</text>
+</g>
+<!-- root_zsh&#45;&gt;run_alias -->
+<g id="edge3" class="edge">
+<title>root_zsh-&gt;run_alias</title>
+<path fill="none" stroke="#aaaaaa" d="M388.32,-1873.11C390.4,-1862.24 393.13,-1847.95 395.53,-1835.43"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="398.96,-1836.1 397.4,-1825.62 392.09,-1834.78 398.96,-1836.1"/>
+</g>
+<!-- load_cfg -->
+<g id="node23" class="node">
+<title>load_cfg</title>
+<path fill="#2c0101" stroke="#800000" d="M674.88,-1720.63C674.88,-1720.63 635.12,-1720.63 635.12,-1720.63 629.12,-1720.63 623.12,-1714.63 623.12,-1708.63 623.12,-1708.63 623.12,-1696.63 623.12,-1696.63 623.12,-1690.63 629.12,-1684.63 635.12,-1684.63 635.12,-1684.63 674.88,-1684.63 674.88,-1684.63 680.88,-1684.63 686.88,-1690.63 686.88,-1696.63 686.88,-1696.63 686.88,-1708.63 686.88,-1708.63 686.88,-1714.63 680.88,-1720.63 674.88,-1720.63"/>
+<text xml:space="preserve" text-anchor="middle" x="655" y="-1700.23" font-family="Times,serif" font-size="8.00" fill="white">Source configs</text>
+</g>
+<!-- run_alias&#45;&gt;load_cfg -->
+<g id="edge47" class="edge">
+<title>run_alias-&gt;load_cfg</title>
+<path fill="none" stroke="#aaaaaa" d="M426.66,-1792.51C435.57,-1788.35 445.67,-1783.76 455,-1779.83 508.63,-1757.23 571.51,-1733.76 612.24,-1718.95"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="613.23,-1722.31 621.44,-1715.61 610.84,-1715.73 613.23,-1722.31"/>
+<text xml:space="preserve" text-anchor="middle" x="526.21" y="-1763.53" font-family="Times,serif" font-size="7.00" fill="white">exec syn-stage0.zsh</text>
+</g>
+<!-- autologin -->
+<g id="node4" class="node">
+<title>autologin</title>
+<polygon fill="#260101" stroke="#800000" points="436.77,-2005.03 327.23,-2005.03 327.23,-1969.03 442.77,-1969.03 442.77,-1999.03 436.77,-2005.03"/>
+<polyline fill="none" stroke="#800000" points="436.77,-2005.03 436.77,-1999.03"/>
+<polyline fill="none" stroke="#800000" points="442.77,-1999.03 436.77,-1999.03"/>
+<text xml:space="preserve" text-anchor="middle" x="385" y="-1989.43" font-family="Times,serif" font-size="8.00" fill="white">archiso autologin as root → zsh</text>
+<text xml:space="preserve" text-anchor="middle" x="385" y="-1979.83" font-family="Times,serif" font-size="8.00" fill="white">sources /root/.zshrc</text>
+</g>
+<!-- autologin&#45;&gt;root_zsh -->
+<g id="edge2" class="edge">
+<title>autologin-&gt;root_zsh</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M385,-1968.87C385,-1955.49 385,-1936.63 385,-1921"/>
+<polygon fill="#888888" stroke="#888888" points="388.5,-1921.32 385,-1911.32 381.5,-1921.32 388.5,-1921.32"/>
+<text xml:space="preserve" text-anchor="middle" x="397.05" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">executes</text>
+</g>
+<!-- disk_vars -->
+<g id="node5" class="node">
+<title>disk_vars</title>
+<polygon fill="#260101" stroke="#800000" points="753.37,-2015.03 652.63,-2015.03 652.63,-1959.03 759.37,-1959.03 759.37,-2009.03 753.37,-2015.03"/>
+<polyline fill="none" stroke="#800000" points="753.37,-2015.03 753.37,-2009.03"/>
+<polyline fill="none" stroke="#800000" points="759.37,-2009.03 753.37,-2009.03"/>
+<text xml:space="preserve" text-anchor="middle" x="706" y="-2003.83" font-family="Times,serif" font-size="8.00" fill="white">Disk vars (example):</text>
+<text xml:space="preserve" text-anchor="middle" x="706" y="-1994.23" font-family="Times,serif" font-size="8.00" fill="white">BOOT_MOUNT=/mnt/boot</text>
+<text xml:space="preserve" text-anchor="middle" x="706" y="-1984.63" font-family="Times,serif" font-size="8.00" fill="white">ROOT_MOUNT=/mnt</text>
+<text xml:space="preserve" text-anchor="middle" x="706" y="-1975.03" font-family="Times,serif" font-size="8.00" fill="white">BOOT_FS=fat32</text>
+<text xml:space="preserve" text-anchor="middle" x="706" y="-1965.43" font-family="Times,serif" font-size="8.00" fill="white">ROOT_FS=f2fs</text>
+</g>
+<!-- build_start -->
+<g id="node21" class="node">
+<title>build_start</title>
+<path fill="#2c0101" stroke="#800000" d="M567.45,-1914.63C567.45,-1914.63 478.55,-1914.63 478.55,-1914.63 472.55,-1914.63 466.55,-1908.63 466.55,-1902.63 466.55,-1902.63 466.55,-1880.23 466.55,-1880.23 466.55,-1874.23 472.55,-1868.23 478.55,-1868.23 478.55,-1868.23 567.45,-1868.23 567.45,-1868.23 573.45,-1868.23 579.45,-1874.23 579.45,-1880.23 579.45,-1880.23 579.45,-1902.63 579.45,-1902.63 579.45,-1908.63 573.45,-1914.63 567.45,-1914.63"/>
+<text xml:space="preserve" text-anchor="middle" x="523" y="-1903.43" font-family="Times,serif" font-size="8.00" fill="white">Run BUILD-SYNOS-ISO.zsh</text>
+<text xml:space="preserve" text-anchor="middle" x="523" y="-1893.83" font-family="Times,serif" font-size="8.00" fill="white">• prepare ArchISO work dir</text>
+<text xml:space="preserve" text-anchor="middle" x="523" y="-1884.23" font-family="Times,serif" font-size="8.00" fill="white">• copy airootfs profile</text>
+<text xml:space="preserve" text-anchor="middle" x="523" y="-1874.63" font-family="Times,serif" font-size="8.00" fill="white">• run mkarchiso</text>
+</g>
+<!-- disk_vars&#45;&gt;build_start -->
+<g id="edge15" class="edge">
+<title>disk_vars-&gt;build_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M652.58,-1958.71C628.96,-1946.63 601.22,-1932.44 577.48,-1920.3"/>
+<polygon fill="#888888" stroke="#888888" points="579.08,-1917.18 568.58,-1915.75 575.89,-1923.42 579.08,-1917.18"/>
+<text xml:space="preserve" text-anchor="middle" x="620.33" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">vars</text>
+</g>
+<!-- disk_proc -->
+<g id="node26" class="node">
+<title>disk_proc</title>
+<path fill="#2c0101" stroke="#800000" d="M634.72,-1471.75C634.72,-1471.75 582.18,-1452.72 582.18,-1452.72 576.54,-1450.68 576.54,-1446.59 582.18,-1444.55 582.18,-1444.55 634.72,-1425.52 634.72,-1425.52 640.36,-1423.48 651.64,-1423.48 657.28,-1425.52 657.28,-1425.52 709.82,-1444.55 709.82,-1444.55 715.46,-1446.59 715.46,-1450.68 709.82,-1452.72 709.82,-1452.72 657.28,-1471.75 657.28,-1471.75 651.64,-1473.79 640.36,-1473.79 634.72,-1471.75"/>
+<text xml:space="preserve" text-anchor="middle" x="646" y="-1451.03" font-family="Times,serif" font-size="8.00" fill="white">Partition &amp; format</text>
+<text xml:space="preserve" text-anchor="middle" x="646" y="-1441.43" font-family="Times,serif" font-size="8.00" fill="white">disks</text>
+</g>
+<!-- disk_vars&#45;&gt;disk_proc -->
+<g id="edge26" class="edge">
+<title>disk_vars-&gt;disk_proc</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M759.83,-1960.06C805.96,-1936.95 865,-1904.93 865,-1892.43 865,-1892.43 865,-1892.43 865,-1764.63 865,-1649.27 1000.1,-1602.88 928,-1512.83 902.09,-1480.47 792.1,-1463.55 717.4,-1455.63"/>
+<polygon fill="#888888" stroke="#888888" points="718,-1452.17 707.69,-1454.63 717.28,-1459.13 718,-1452.17"/>
+<text xml:space="preserve" text-anchor="middle" x="894.72" y="-1700.53" font-family="Times,serif" font-size="7.00" fill="white">feeds</text>
+</g>
+<!-- core -->
+<g id="node6" class="node">
+<title>core</title>
+<polygon fill="#260101" stroke="#800000" points="1573.65,-2130.83 1388.35,-2130.83 1388.35,-2074.83 1579.65,-2074.83 1579.65,-2124.83 1573.65,-2130.83"/>
+<polyline fill="none" stroke="#800000" points="1573.65,-2130.83 1573.65,-2124.83"/>
+<polyline fill="none" stroke="#800000" points="1579.65,-2124.83 1573.65,-2124.83"/>
+<text xml:space="preserve" text-anchor="middle" x="1484" y="-2119.63" font-family="Times,serif" font-size="8.00" fill="white">coreSystem:</text>
+<text xml:space="preserve" text-anchor="middle" x="1484" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white"> base, base-devel, linux,</text>
+<text xml:space="preserve" text-anchor="middle" x="1484" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> linux-firmware, archlinux-keyring,</text>
+<text xml:space="preserve" text-anchor="middle" x="1484" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> zsh, zsh-completions, zsh-syntax-highlighting,</text>
+<text xml:space="preserve" text-anchor="middle" x="1484" y="-2081.23" font-family="Times,serif" font-size="8.00" fill="white"> zsh-autosuggestions, fzf, zoxide, ripgrep, fd, bat, sudo</text>
+</g>
+<!-- synstall -->
+<g id="node13" class="node">
+<title>synstall</title>
+<polygon fill="#260101" stroke="#800000" points="1325.65,-2005.03 1214.35,-2005.03 1214.35,-1969.03 1331.65,-1969.03 1331.65,-1999.03 1325.65,-2005.03"/>
+<polyline fill="none" stroke="#800000" points="1325.65,-2005.03 1325.65,-1999.03"/>
+<polyline fill="none" stroke="#800000" points="1331.65,-1999.03 1325.65,-1999.03"/>
+<text xml:space="preserve" text-anchor="middle" x="1273" y="-1984.63" font-family="Times,serif" font-size="8.00" fill="white">SYNSTALL (combined arrays)</text>
+</g>
+<!-- core&#45;&gt;synstall -->
+<g id="edge4" class="edge">
+<title>core-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1433.19,-2074.43C1397.17,-2055 1349.38,-2029.23 1315.4,-2010.9"/>
+<polygon fill="#888888" stroke="#888888" points="1317.12,-2007.85 1306.66,-2006.19 1313.8,-2014.01 1317.12,-2007.85"/>
+</g>
+<!-- services -->
+<g id="node7" class="node">
+<title>services</title>
+<polygon fill="#260101" stroke="#800000" points="1695.99,-2121.23 1598.01,-2121.23 1598.01,-2084.43 1701.99,-2084.43 1701.99,-2115.23 1695.99,-2121.23"/>
+<polyline fill="none" stroke="#800000" points="1695.99,-2121.23 1695.99,-2115.23"/>
+<polyline fill="none" stroke="#800000" points="1701.99,-2115.23 1695.99,-2115.23"/>
+<text xml:space="preserve" text-anchor="middle" x="1650" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white">services:</text>
+<text xml:space="preserve" text-anchor="middle" x="1650" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> dhcpcd, dnsmasq, hostapd,</text>
+<text xml:space="preserve" text-anchor="middle" x="1650" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> iwd, reflector, openvpn</text>
+</g>
+<!-- services&#45;&gt;synstall -->
+<g id="edge5" class="edge">
+<title>services-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1611.95,-2083.96C1604.43,-2080.71 1596.53,-2077.52 1589,-2074.83 1505.92,-2045.22 1407.57,-2019.64 1342.92,-2004.07"/>
+<polygon fill="#888888" stroke="#888888" points="1344.06,-2000.74 1333.52,-2001.82 1342.43,-2007.55 1344.06,-2000.74"/>
+</g>
+<!-- envshell -->
+<g id="node8" class="node">
+<title>envshell</title>
+<polygon fill="#260101" stroke="#800000" points="1849.98,-2130.83 1720.02,-2130.83 1720.02,-2074.83 1855.98,-2074.83 1855.98,-2124.83 1849.98,-2130.83"/>
+<polyline fill="none" stroke="#800000" points="1849.98,-2130.83 1849.98,-2124.83"/>
+<polyline fill="none" stroke="#800000" points="1855.98,-2124.83 1849.98,-2124.83"/>
+<text xml:space="preserve" text-anchor="middle" x="1788" y="-2119.63" font-family="Times,serif" font-size="8.00" fill="white">environmentShell (Wayland):</text>
+<text xml:space="preserve" text-anchor="middle" x="1788" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white"> labwc, wmenu, archlinux-xdg-menu,</text>
+<text xml:space="preserve" text-anchor="middle" x="1788" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> waybar, swaybg, pavucontrol-qt,</text>
+<text xml:space="preserve" text-anchor="middle" x="1788" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> qt5ct, qt6ct, kvantum, kvantum-qt5,</text>
+<text xml:space="preserve" text-anchor="middle" x="1788" y="-2081.23" font-family="Times,serif" font-size="8.00" fill="white"> feh, kitty, inetutils, rofi, calc</text>
+</g>
+<!-- envshell&#45;&gt;synstall -->
+<g id="edge6" class="edge">
+<title>envshell-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1719.72,-2077.33C1716.79,-2076.45 1713.87,-2075.62 1711,-2074.83 1583.07,-2039.92 1430.53,-2012.9 1343.39,-1998.83"/>
+<polygon fill="#888888" stroke="#888888" points="1343.98,-1995.38 1333.56,-1997.25 1342.88,-2002.29 1343.98,-1995.38"/>
+</g>
+<!-- apps -->
+<g id="node9" class="node">
+<title>apps</title>
+<polygon fill="#260101" stroke="#800000" points="921.43,-2121.23 782.57,-2121.23 782.57,-2084.43 927.43,-2084.43 927.43,-2115.23 921.43,-2121.23"/>
+<polyline fill="none" stroke="#800000" points="921.43,-2121.23 921.43,-2115.23"/>
+<polyline fill="none" stroke="#800000" points="927.43,-2115.23 921.43,-2115.23"/>
+<text xml:space="preserve" text-anchor="middle" x="855" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white">userApplications:</text>
+<text xml:space="preserve" text-anchor="middle" x="855" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> nano, git, htop, pcmanfm-qt, engrampa,</text>
+<text xml:space="preserve" text-anchor="middle" x="855" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> kwrite, ranger</text>
+</g>
+<!-- apps&#45;&gt;synstall -->
+<g id="edge7" class="edge">
+<title>apps-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M907.33,-2084.04C917.16,-2080.86 927.36,-2077.66 937,-2074.83 1028.32,-2048.04 1134.86,-2021.26 1203.08,-2004.68"/>
+<polygon fill="#888888" stroke="#888888" points="1203.74,-2008.13 1212.64,-2002.37 1202.09,-2001.32 1203.74,-2008.13"/>
+</g>
+<!-- devtools -->
+<g id="node10" class="node">
+<title>devtools</title>
+<polygon fill="#260101" stroke="#800000" points="1080.32,-2121.23 945.68,-2121.23 945.68,-2084.43 1086.32,-2084.43 1086.32,-2115.23 1080.32,-2121.23"/>
+<polyline fill="none" stroke="#800000" points="1080.32,-2121.23 1080.32,-2115.23"/>
+<polyline fill="none" stroke="#800000" points="1086.32,-2115.23 1080.32,-2115.23"/>
+<text xml:space="preserve" text-anchor="middle" x="1016" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white">developerTools:</text>
+<text xml:space="preserve" text-anchor="middle" x="1016" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> gcc, fakeroot, android-tools,</text>
+<text xml:space="preserve" text-anchor="middle" x="1016" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> archiso, binwalk, hexedit, lshw, yt-dlp</text>
+</g>
+<!-- devtools&#45;&gt;synstall -->
+<g id="edge8" class="edge">
+<title>devtools-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1056.16,-2084.05C1101.27,-2064.08 1174.54,-2031.63 1223.24,-2010.07"/>
+<polygon fill="#888888" stroke="#888888" points="1224.44,-2013.37 1232.16,-2006.12 1221.6,-2006.96 1224.44,-2013.37"/>
+</g>
+<!-- fonts -->
+<g id="node11" class="node">
+<title>fonts</title>
+<polygon fill="#260101" stroke="#800000" points="1243.88,-2130.83 1104.12,-2130.83 1104.12,-2074.83 1249.88,-2074.83 1249.88,-2124.83 1243.88,-2130.83"/>
+<polyline fill="none" stroke="#800000" points="1243.88,-2130.83 1243.88,-2124.83"/>
+<polyline fill="none" stroke="#800000" points="1249.88,-2124.83 1243.88,-2124.83"/>
+<text xml:space="preserve" text-anchor="middle" x="1177" y="-2119.63" font-family="Times,serif" font-size="8.00" fill="white">fontsLocalization:</text>
+<text xml:space="preserve" text-anchor="middle" x="1177" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white"> terminus-font, ttf-bitstream-vera,</text>
+<text xml:space="preserve" text-anchor="middle" x="1177" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> ttf-dejavu, noto-fonts, noto-fonts-emoji,</text>
+<text xml:space="preserve" text-anchor="middle" x="1177" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> noto-fonts-cjk, ttf-liberation,</text>
+<text xml:space="preserve" text-anchor="middle" x="1177" y="-2081.23" font-family="Times,serif" font-size="8.00" fill="white"> ttf-terminus-nerd, otf-font-awesome</text>
+</g>
+<!-- fonts&#45;&gt;synstall -->
+<g id="edge9" class="edge">
+<title>fonts-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1199.99,-2074.58C1215.53,-2056.15 1235.93,-2031.98 1251.21,-2013.87"/>
+<polygon fill="#888888" stroke="#888888" points="1253.51,-2016.57 1257.28,-2006.67 1248.16,-2012.06 1253.51,-2016.57"/>
+</g>
+<!-- optional -->
+<g id="node12" class="node">
+<title>optional</title>
+<polygon fill="#260101" stroke="#800000" points="1364.44,-2121.23 1267.56,-2121.23 1267.56,-2084.43 1370.44,-2084.43 1370.44,-2115.23 1364.44,-2121.23"/>
+<polyline fill="none" stroke="#800000" points="1364.44,-2121.23 1364.44,-2115.23"/>
+<polyline fill="none" stroke="#800000" points="1370.44,-2115.23 1364.44,-2115.23"/>
+<text xml:space="preserve" text-anchor="middle" x="1319" y="-2110.03" font-family="Times,serif" font-size="8.00" fill="white">optionalFeatures:</text>
+<text xml:space="preserve" text-anchor="middle" x="1319" y="-2100.43" font-family="Times,serif" font-size="8.00" fill="white"> vlc, audacity, obs-studio,</text>
+<text xml:space="preserve" text-anchor="middle" x="1319" y="-2090.83" font-family="Times,serif" font-size="8.00" fill="white"> chromium, gimp, kdenlive</text>
+</g>
+<!-- optional&#45;&gt;synstall -->
+<g id="edge10" class="edge">
+<title>optional-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1311.81,-2084.05C1304.44,-2065.82 1292.88,-2037.21 1284.29,-2015.96"/>
+<polygon fill="#888888" stroke="#888888" points="1287.55,-2014.68 1280.55,-2006.72 1281.06,-2017.3 1287.55,-2014.68"/>
+</g>
+<!-- synstall&#45;&gt;build_start -->
+<g id="edge14" class="edge">
+<title>synstall-&gt;build_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1214.1,-1984.35C1096.55,-1980.04 824.68,-1965.25 590.96,-1915.08"/>
+<polygon fill="#888888" stroke="#888888" points="591.86,-1911.69 581.34,-1912.99 590.37,-1918.53 591.86,-1911.69"/>
+<text xml:space="preserve" text-anchor="middle" x="725.93" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">arrays</text>
+</g>
+<!-- combine -->
+<g id="node29" class="node">
+<title>combine</title>
+<polygon fill="#260101" stroke="#800000" points="715.04,-1238.43 592.96,-1238.43 592.96,-1202.43 721.04,-1202.43 721.04,-1232.43 715.04,-1238.43"/>
+<polyline fill="none" stroke="#800000" points="715.04,-1238.43 715.04,-1232.43"/>
+<polyline fill="none" stroke="#800000" points="721.04,-1232.43 715.04,-1232.43"/>
+<text xml:space="preserve" text-anchor="middle" x="657" y="-1218.03" font-family="Times,serif" font-size="8.00" fill="white">Combine SYNSTALL + boot pkgs</text>
+</g>
+<!-- synstall&#45;&gt;combine -->
+<g id="edge27" class="edge">
+<title>synstall-&gt;combine</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1268.2,-1968.59C1263.49,-1949.9 1257,-1919.31 1257,-1892.43 1257,-1892.43 1257,-1892.43 1257,-1329.43 1257,-1261.08 1178.51,-1294.94 1113,-1275.43 983.13,-1236.77 824.68,-1225.64 732.87,-1222.53"/>
+<polygon fill="#888888" stroke="#888888" points="733.07,-1219.04 722.97,-1222.22 732.86,-1226.03 733.07,-1219.04"/>
+<text xml:space="preserve" text-anchor="middle" x="1264.38" y="-1568.93" font-family="Times,serif" font-size="7.00" fill="white">feeds</text>
+</g>
+<!-- dotfiles -->
+<g id="node14" class="node">
+<title>dotfiles</title>
+<polygon fill="#260101" stroke="#800000" points="567.09,-1165.43 404.91,-1165.43 404.91,-1061.43 573.09,-1061.43 573.09,-1159.43 567.09,-1165.43"/>
+<polyline fill="none" stroke="#800000" points="567.09,-1165.43 567.09,-1159.43"/>
+<polyline fill="none" stroke="#800000" points="573.09,-1159.43 567.09,-1159.43"/>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1154.23" font-family="Times,serif" font-size="8.00" fill="white">DotfileOverlay (post-install)</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1144.63" font-family="Times,serif" font-size="8.00" fill="white">• etc: motd, os-release, vconsole.conf, skel/</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1135.03" font-family="Times,serif" font-size="8.00" fill="white">• skel/.config/* (user defaults):</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1125.43" font-family="Times,serif" font-size="8.00" fill="white">  labwc/{rc.xml,menu.xml,environment}</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1115.83" font-family="Times,serif" font-size="8.00" fill="white">  waybar/{config.jsonc,style.css}</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1106.23" font-family="Times,serif" font-size="8.00" fill="white">  kitty/kitty.conf</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1096.63" font-family="Times,serif" font-size="8.00" fill="white">  ranger/{rc.conf,rifle.conf}</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1087.03" font-family="Times,serif" font-size="8.00" fill="white">  qt5ct/qt5ct.conf, qt6ct/qt6ct.conf</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1077.43" font-family="Times,serif" font-size="8.00" fill="white">  htop/htoprc</text>
+<text xml:space="preserve" text-anchor="middle" x="489" y="-1067.83" font-family="Times,serif" font-size="8.00" fill="white">• usr/share/themes/* (legacy Openbox themes)</text>
+</g>
+<!-- copy_files -->
+<g id="node31" class="node">
+<title>copy_files</title>
+<path fill="#2c0101" stroke="#800000" d="M689.88,-1017.03C689.88,-1017.03 622.12,-1017.03 622.12,-1017.03 616.12,-1017.03 610.12,-1011.03 610.12,-1005.03 610.12,-1005.03 610.12,-993.03 610.12,-993.03 610.12,-987.03 616.12,-981.03 622.12,-981.03 622.12,-981.03 689.88,-981.03 689.88,-981.03 695.88,-981.03 701.88,-987.03 701.88,-993.03 701.88,-993.03 701.88,-1005.03 701.88,-1005.03 701.88,-1011.03 695.88,-1017.03 689.88,-1017.03"/>
+<text xml:space="preserve" text-anchor="middle" x="656" y="-1001.43" font-family="Times,serif" font-size="8.00" fill="white">genfstab → /mnt</text>
+<text xml:space="preserve" text-anchor="middle" x="656" y="-991.83" font-family="Times,serif" font-size="8.00" fill="white">copy overlays &amp; scripts</text>
+</g>
+<!-- dotfiles&#45;&gt;copy_files -->
+<g id="edge28" class="edge">
+<title>dotfiles-&gt;copy_files</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M565.17,-1061.17C584.73,-1048 604.83,-1034.47 621.13,-1023.5"/>
+<polygon fill="#888888" stroke="#888888" points="622.66,-1026.69 629.01,-1018.2 618.75,-1020.88 622.66,-1026.69"/>
+<text xml:space="preserve" text-anchor="middle" x="622.1" y="-1037.13" font-family="Times,serif" font-size="7.00" fill="white">overlay merge</text>
+</g>
+<!-- file_syn_disk -->
+<g id="node15" class="node">
+<title>file_syn_disk</title>
+<polygon fill="#260101" stroke="#800000" points="539.44,-2005.03 466.56,-2005.03 466.56,-1969.03 545.44,-1969.03 545.44,-1999.03 539.44,-2005.03"/>
+<polyline fill="none" stroke="#800000" points="539.44,-2005.03 539.44,-1999.03"/>
+<polyline fill="none" stroke="#800000" points="545.44,-1999.03 539.44,-1999.03"/>
+<text xml:space="preserve" text-anchor="middle" x="506" y="-1984.63" font-family="Times,serif" font-size="8.00" fill="white">syn-disk-config.zsh</text>
+</g>
+<!-- file_syn_disk&#45;&gt;build_start -->
+<g id="edge12" class="edge">
+<title>file_syn_disk-&gt;build_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M509.12,-1968.87C511.3,-1956.87 514.28,-1940.47 516.92,-1925.93"/>
+<polygon fill="#888888" stroke="#888888" points="520.32,-1926.75 518.67,-1916.28 513.44,-1925.5 520.32,-1926.75"/>
+<text xml:space="preserve" text-anchor="middle" x="528.06" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">disk vars</text>
+</g>
+<!-- file_syn_disk&#45;&gt;load_cfg -->
+<g id="edge52" class="edge">
+<title>file_syn_disk-&gt;load_cfg</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M534.04,-1968.54C540.44,-1965.04 547.32,-1961.64 554,-1959.03 617.17,-1934.35 661.42,-1970.42 700,-1914.63 739.27,-1857.86 698.67,-1773.47 672.85,-1730.65"/>
+<polygon fill="#888888" stroke="#888888" points="675.87,-1728.88 667.62,-1722.23 669.93,-1732.58 675.87,-1728.88"/>
+<text xml:space="preserve" text-anchor="middle" x="730.53" y="-1843.93" font-family="Times,serif" font-size="7.00" fill="white">config file</text>
+</g>
+<!-- file_syn_pkg -->
+<g id="node16" class="node">
+<title>file_syn_pkg</title>
+<polygon fill="#260101" stroke="#800000" points="628.88,-2005.03 563.12,-2005.03 563.12,-1969.03 634.88,-1969.03 634.88,-1999.03 628.88,-2005.03"/>
+<polyline fill="none" stroke="#800000" points="628.88,-2005.03 628.88,-1999.03"/>
+<polyline fill="none" stroke="#800000" points="634.88,-1999.03 628.88,-1999.03"/>
+<text xml:space="preserve" text-anchor="middle" x="599" y="-1984.63" font-family="Times,serif" font-size="8.00" fill="white">syn-packages.zsh</text>
+</g>
+<!-- file_syn_pkg&#45;&gt;build_start -->
+<g id="edge13" class="edge">
+<title>file_syn_pkg-&gt;build_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M585.06,-1968.87C574.74,-1956.16 560.41,-1938.5 548.11,-1923.36"/>
+<polygon fill="#888888" stroke="#888888" points="551.13,-1921.53 542.11,-1915.97 545.7,-1925.94 551.13,-1921.53"/>
+<text xml:space="preserve" text-anchor="middle" x="573.83" y="-1934.73" font-family="Times,serif" font-size="7.00" fill="white">packages</text>
+</g>
+<!-- file_syn_pkg&#45;&gt;load_cfg -->
+<g id="edge53" class="edge">
+<title>file_syn_pkg-&gt;load_cfg</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M624.4,-1968.75C630.61,-1965.11 637.37,-1961.6 644,-1959.03 681.63,-1944.44 704.82,-1969.93 733,-1941.03 788.73,-1883.89 775.72,-1828.86 733,-1761.43 724.07,-1747.34 710.39,-1735.51 696.96,-1726.29"/>
+<polygon fill="#888888" stroke="#888888" points="698.87,-1723.36 688.57,-1720.87 695.07,-1729.23 698.87,-1723.36"/>
+<text xml:space="preserve" text-anchor="middle" x="787.84" y="-1843.93" font-family="Times,serif" font-size="7.00" fill="white">packages file</text>
+</g>
+<!-- file_stage0 -->
+<g id="node17" class="node">
+<title>file_stage0</title>
+<polygon fill="#260101" stroke="#800000" points="1082.99,-1823.83 995.01,-1823.83 995.01,-1787.83 1088.99,-1787.83 1088.99,-1817.83 1082.99,-1823.83"/>
+<polyline fill="none" stroke="#800000" points="1082.99,-1823.83 1082.99,-1817.83"/>
+<polyline fill="none" stroke="#800000" points="1088.99,-1817.83 1082.99,-1817.83"/>
+<text xml:space="preserve" text-anchor="middle" x="1042" y="-1803.43" font-family="Times,serif" font-size="8.00" fill="white">syn-stage0.zsh (Stage 0)</text>
+</g>
+<!-- file_stage0&#45;&gt;load_cfg -->
+<g id="edge54" class="edge">
+<title>file_stage0-&gt;load_cfg</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M994.58,-1797.7C956.74,-1791.57 902.54,-1781.85 855.9,-1769.83 800.64,-1755.6 738.44,-1734.25 698.09,-1719.68"/>
+<polygon fill="#888888" stroke="#888888" points="699.33,-1716.4 688.74,-1716.27 696.94,-1722.98 699.33,-1716.4"/>
+<text xml:space="preserve" text-anchor="middle" x="874.95" y="-1763.53" font-family="Times,serif" font-size="7.00" fill="white">Stage 0 script</text>
+</g>
+<!-- detect_fw -->
+<g id="node24" class="node">
+<title>detect_fw</title>
+<path fill="#2c0101" stroke="#800000" d="M641.85,-1643.19C641.85,-1643.19 595.95,-1624.88 595.95,-1624.88 590.38,-1622.66 590.38,-1618.21 595.95,-1615.99 595.95,-1615.99 641.85,-1597.68 641.85,-1597.68 647.43,-1595.46 658.57,-1595.46 664.15,-1597.68 664.15,-1597.68 710.05,-1615.99 710.05,-1615.99 715.62,-1618.21 715.62,-1622.66 710.05,-1624.88 710.05,-1624.88 664.15,-1643.19 664.15,-1643.19 658.57,-1645.41 647.43,-1645.41 641.85,-1643.19"/>
+<text xml:space="preserve" text-anchor="middle" x="653" y="-1622.83" font-family="Times,serif" font-size="8.00" fill="white">Detect firmware</text>
+<text xml:space="preserve" text-anchor="middle" x="653" y="-1613.23" font-family="Times,serif" font-size="8.00" fill="white">(UEFI / MBR)</text>
+</g>
+<!-- file_stage0&#45;&gt;detect_fw -->
+<g id="edge55" class="edge">
+<title>file_stage0-&gt;detect_fw</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M994.65,-1797.85C973.68,-1792.84 949.8,-1784.31 932,-1769.83 898.28,-1742.41 918.27,-1711.36 884,-1684.63 837.46,-1648.34 771.52,-1632.86 721.99,-1626.28"/>
+<polygon fill="#888888" stroke="#888888" points="722.59,-1622.82 712.23,-1625.08 721.73,-1629.77 722.59,-1622.82"/>
+</g>
+<!-- env_prep -->
+<g id="node25" class="node">
+<title>env_prep</title>
+<path fill="#2c0101" stroke="#800000" d="M683.77,-1548.83C683.77,-1548.83 622.23,-1548.83 622.23,-1548.83 616.23,-1548.83 610.23,-1542.83 610.23,-1536.83 610.23,-1536.83 610.23,-1524.83 610.23,-1524.83 610.23,-1518.83 616.23,-1512.83 622.23,-1512.83 622.23,-1512.83 683.77,-1512.83 683.77,-1512.83 689.77,-1512.83 695.77,-1518.83 695.77,-1524.83 695.77,-1524.83 695.77,-1536.83 695.77,-1536.83 695.77,-1542.83 689.77,-1548.83 683.77,-1548.83"/>
+<text xml:space="preserve" text-anchor="middle" x="653" y="-1528.43" font-family="Times,serif" font-size="8.00" fill="white">Set keyboard, mirrors</text>
+</g>
+<!-- file_stage0&#45;&gt;env_prep -->
+<g id="edge56" class="edge">
+<title>file_stage0-&gt;env_prep</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M997.67,-1787.51C988.26,-1782.64 978.83,-1776.75 971,-1769.83 937.04,-1739.83 947.89,-1715.81 915,-1684.63 852.35,-1625.25 762.5,-1579.26 705.98,-1553.86"/>
+<polygon fill="#888888" stroke="#888888" points="707.42,-1550.68 696.86,-1549.83 704.59,-1557.08 707.42,-1550.68"/>
+</g>
+<!-- file_stage0&#45;&gt;disk_proc -->
+<g id="edge57" class="edge">
+<title>file_stage0-&gt;disk_proc</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1023,-1787.48C1017.96,-1782.18 1012.85,-1776.09 1009,-1769.83 992.59,-1743.18 985,-1734.93 985,-1703.63 985,-1703.63 985,-1703.63 985,-1529.83 985,-1510.6 977.28,-1504.07 961,-1493.83 922.43,-1469.59 802.73,-1458.24 722.5,-1453.23"/>
+<polygon fill="#888888" stroke="#888888" points="723.16,-1449.76 712.97,-1452.65 722.74,-1456.75 723.16,-1449.76"/>
+</g>
+<!-- mount_fs -->
+<g id="node27" class="node">
+<title>mount_fs</title>
+<path fill="#2c0101" stroke="#800000" d="M690.77,-1384.43C690.77,-1384.43 635.23,-1384.43 635.23,-1384.43 629.23,-1384.43 623.23,-1378.43 623.23,-1372.43 623.23,-1372.43 623.23,-1360.43 623.23,-1360.43 623.23,-1354.43 629.23,-1348.43 635.23,-1348.43 635.23,-1348.43 690.77,-1348.43 690.77,-1348.43 696.77,-1348.43 702.77,-1354.43 702.77,-1360.43 702.77,-1360.43 702.77,-1372.43 702.77,-1372.43 702.77,-1378.43 696.77,-1384.43 690.77,-1384.43"/>
+<text xml:space="preserve" text-anchor="middle" x="663" y="-1364.03" font-family="Times,serif" font-size="8.00" fill="white">Mount target (/mnt)</text>
+</g>
+<!-- file_stage0&#45;&gt;mount_fs -->
+<g id="edge58" class="edge">
+<title>file_stage0-&gt;mount_fs</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1036.71,-1787.47C1031.09,-1767.46 1023,-1733.49 1023,-1703.63 1023,-1703.63 1023,-1703.63 1023,-1447.63 1023,-1385.19 814.06,-1371.34 714.54,-1368.29"/>
+<polygon fill="#888888" stroke="#888888" points="714.86,-1364.8 704.76,-1368.02 714.66,-1371.79 714.86,-1364.8"/>
+</g>
+<!-- boot_pkgs -->
+<g id="node28" class="node">
+<title>boot_pkgs</title>
+<polygon fill="#260101" stroke="#800000" points="708.55,-1311.43 611.45,-1311.43 611.45,-1275.43 714.55,-1275.43 714.55,-1305.43 708.55,-1311.43"/>
+<polyline fill="none" stroke="#800000" points="708.55,-1311.43 708.55,-1305.43"/>
+<polyline fill="none" stroke="#800000" points="714.55,-1305.43 708.55,-1305.43"/>
+<text xml:space="preserve" text-anchor="middle" x="663" y="-1295.83" font-family="Times,serif" font-size="8.00" fill="white">Select boot pkgs</text>
+<text xml:space="preserve" text-anchor="middle" x="663" y="-1286.23" font-family="Times,serif" font-size="8.00" fill="white">(systemd-boot or Syslinux)</text>
+</g>
+<!-- file_stage0&#45;&gt;boot_pkgs -->
+<g id="edge59" class="edge">
+<title>file_stage0-&gt;boot_pkgs</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1047.29,-1787.47C1052.91,-1767.46 1061,-1733.49 1061,-1703.63 1061,-1703.63 1061,-1703.63 1061,-1365.43 1061,-1331.84 838.46,-1308.79 726.19,-1299.3"/>
+<polygon fill="#888888" stroke="#888888" points="726.8,-1295.83 716.54,-1298.49 726.21,-1302.81 726.8,-1295.83"/>
+</g>
+<!-- file_stage0&#45;&gt;combine -->
+<g id="edge60" class="edge">
+<title>file_stage0-&gt;combine</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1059.1,-1787.48C1075.89,-1768.54 1099,-1736.5 1099,-1703.63 1099,-1703.63 1099,-1703.63 1099,-1292.43 1099,-1255.79 859.07,-1234.6 732.76,-1225.98"/>
+<polygon fill="#888888" stroke="#888888" points="732.99,-1222.49 722.78,-1225.32 732.52,-1229.48 732.99,-1222.49"/>
+</g>
+<!-- pacstrap -->
+<g id="node30" class="node">
+<title>pacstrap</title>
+<path fill="#2c0101" stroke="#800000" d="M708.72,-1131.43C708.72,-1131.43 603.28,-1131.43 603.28,-1131.43 597.28,-1131.43 591.28,-1125.43 591.28,-1119.43 591.28,-1119.43 591.28,-1107.43 591.28,-1107.43 591.28,-1101.43 597.28,-1095.43 603.28,-1095.43 603.28,-1095.43 708.72,-1095.43 708.72,-1095.43 714.72,-1095.43 720.72,-1101.43 720.72,-1107.43 720.72,-1107.43 720.72,-1119.43 720.72,-1119.43 720.72,-1125.43 714.72,-1131.43 708.72,-1131.43"/>
+<text xml:space="preserve" text-anchor="middle" x="656" y="-1111.03" font-family="Times,serif" font-size="8.00" fill="white">pacstrap -K /mnt &lt;combined pkgs&gt;</text>
+</g>
+<!-- file_stage0&#45;&gt;pacstrap -->
+<g id="edge61" class="edge">
+<title>file_stage0-&gt;pacstrap</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1074.69,-1787.45C1102.17,-1770.21 1137,-1740.98 1137,-1703.63 1137,-1703.63 1137,-1703.63 1137,-1219.43 1137,-1137.6 867.87,-1119.44 732.23,-1115.49"/>
+<polygon fill="#888888" stroke="#888888" points="732.72,-1112 722.63,-1115.23 732.53,-1119 732.72,-1112"/>
+</g>
+<!-- file_stage0&#45;&gt;copy_files -->
+<g id="edge62" class="edge">
+<title>file_stage0-&gt;copy_files</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1089.27,-1790.43C1127.49,-1775.5 1175,-1748.03 1175,-1703.63 1175,-1703.63 1175,-1703.63 1175,-1112.43 1175,-1018.82 848.39,-1003 713.36,-1000.46"/>
+<polygon fill="#888888" stroke="#888888" points="713.63,-996.96 703.57,-1000.29 713.51,-1003.96 713.63,-996.96"/>
+</g>
+<!-- chroot -->
+<g id="node32" class="node">
+<title>chroot</title>
+<ellipse fill="#400101" stroke="#800000" cx="656" cy="-903.23" rx="49.17" ry="19.23"/>
+<text xml:space="preserve" text-anchor="middle" x="656" y="-905.63" font-family="Times,serif" font-size="8.00" fill="white">arch-chroot /mnt</text>
+<text xml:space="preserve" text-anchor="middle" x="656" y="-896.03" font-family="Times,serif" font-size="8.00" fill="white">→ run Stage 1</text>
+</g>
+<!-- file_stage0&#45;&gt;chroot -->
+<g id="edge63" class="edge">
+<title>file_stage0-&gt;chroot</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1089.43,-1798.44C1141.86,-1788.4 1219,-1763.45 1219,-1703.63 1219,-1703.63 1219,-1703.63 1219,-1329.43 1219,-1281.36 1225,-1269.51 1225,-1221.43 1225,-1221.43 1225,-1221.43 1225,-998.03 1225,-942.6 780.14,-972.87 728,-954.03 712.01,-948.26 696.25,-938.02 683.57,-928.33"/>
+<polygon fill="#888888" stroke="#888888" points="686.11,-925.87 676.1,-922.38 681.74,-931.35 686.11,-925.87"/>
+</g>
+<!-- file_stage1 -->
+<g id="node18" class="node">
+<title>file_stage1</title>
+<polygon fill="#260101" stroke="#800000" points="1084.99,-921.23 997.01,-921.23 997.01,-885.23 1090.99,-885.23 1090.99,-915.23 1084.99,-921.23"/>
+<polyline fill="none" stroke="#800000" points="1084.99,-921.23 1084.99,-915.23"/>
+<polyline fill="none" stroke="#800000" points="1090.99,-915.23 1084.99,-915.23"/>
+<text xml:space="preserve" text-anchor="middle" x="1044" y="-900.83" font-family="Times,serif" font-size="8.00" fill="white">syn-stage1.zsh (Stage 1)</text>
+</g>
+<!-- set_vars -->
+<g id="node33" class="node">
+<title>set_vars</title>
+<path fill="#2c0101" stroke="#800000" d="M368.55,-839.6C368.55,-839.6 315.45,-839.6 315.45,-839.6 309.45,-839.6 303.45,-833.6 303.45,-827.6 303.45,-827.6 303.45,-815.6 303.45,-815.6 303.45,-809.6 309.45,-803.6 315.45,-803.6 315.45,-803.6 368.55,-803.6 368.55,-803.6 374.55,-803.6 380.55,-809.6 380.55,-815.6 380.55,-815.6 380.55,-827.6 380.55,-827.6 380.55,-833.6 374.55,-839.6 368.55,-839.6"/>
+<text xml:space="preserve" text-anchor="middle" x="342" y="-819.2" font-family="Times,serif" font-size="8.00" fill="white">Apply Stage 1 vars</text>
+</g>
+<!-- file_stage1&#45;&gt;set_vars -->
+<g id="edge64" class="edge">
+<title>file_stage1-&gt;set_vars</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1012.19,-884.86C1004.47,-881.35 996.11,-878.09 988,-876 924.12,-859.5 905.67,-871.09 839.9,-866 676.01,-853.33 482.02,-835.64 392.23,-827.3"/>
+<polygon fill="#888888" stroke="#888888" points="392.82,-823.84 382.54,-826.4 392.17,-830.81 392.82,-823.84"/>
+<text xml:space="preserve" text-anchor="middle" x="858.95" y="-859.7" font-family="Times,serif" font-size="7.00" fill="white">Stage 1 script</text>
+</g>
+<!-- config_sys -->
+<g id="node34" class="node">
+<title>config_sys</title>
+<path fill="#2c0101" stroke="#800000" d="M368.87,-766.6C368.87,-766.6 293.13,-766.6 293.13,-766.6 287.13,-766.6 281.13,-760.6 281.13,-754.6 281.13,-754.6 281.13,-742.6 281.13,-742.6 281.13,-736.6 287.13,-730.6 293.13,-730.6 293.13,-730.6 368.87,-730.6 368.87,-730.6 374.87,-730.6 380.87,-736.6 380.87,-742.6 380.87,-742.6 380.87,-754.6 380.87,-754.6 380.87,-760.6 374.87,-766.6 368.87,-766.6"/>
+<text xml:space="preserve" text-anchor="middle" x="331" y="-746.2" font-family="Times,serif" font-size="8.00" fill="white">Write locale, tz, hostname</text>
+</g>
+<!-- file_stage1&#45;&gt;config_sys -->
+<g id="edge65" class="edge">
+<title>file_stage1-&gt;config_sys</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1011.18,-884.87C1003.72,-881.49 995.72,-878.29 988,-876 957.02,-866.82 947.8,-871.71 916,-866 898.98,-862.94 894.93,-861.14 878,-857.6 702.15,-820.81 493.77,-780.6 392.46,-761.26"/>
+<polygon fill="#888888" stroke="#888888" points="393.19,-757.84 382.72,-759.41 391.88,-764.72 393.19,-757.84"/>
+</g>
+<!-- add_user -->
+<g id="node35" class="node">
+<title>add_user</title>
+<path fill="#2c0101" stroke="#800000" d="M369.4,-693.6C369.4,-693.6 264.6,-693.6 264.6,-693.6 258.6,-693.6 252.6,-687.6 252.6,-681.6 252.6,-681.6 252.6,-669.6 252.6,-669.6 252.6,-663.6 258.6,-657.6 264.6,-657.6 264.6,-657.6 369.4,-657.6 369.4,-657.6 375.4,-657.6 381.4,-663.6 381.4,-669.6 381.4,-669.6 381.4,-681.6 381.4,-681.6 381.4,-687.6 375.4,-693.6 369.4,-693.6"/>
+<text xml:space="preserve" text-anchor="middle" x="317" y="-678" font-family="Times,serif" font-size="8.00" fill="white">useradd &lt;DEFAULT_USER_990&gt;</text>
+<text xml:space="preserve" text-anchor="middle" x="317" y="-668.4" font-family="Times,serif" font-size="8.00" fill="white">set password &amp; shell</text>
+</g>
+<!-- file_stage1&#45;&gt;add_user -->
+<g id="edge66" class="edge">
+<title>file_stage1-&gt;add_user</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1008.8,-884.75C1001.98,-881.65 994.83,-878.59 988,-876 973.27,-870.42 969.1,-870.47 954,-866 747.41,-804.91 503.29,-732.17 386.31,-697.28"/>
+<polygon fill="#888888" stroke="#888888" points="387.42,-693.96 376.84,-694.46 385.42,-700.67 387.42,-693.96"/>
+</g>
+<!-- enable_net -->
+<g id="node36" class="node">
+<title>enable_net</title>
+<path fill="#2c0101" stroke="#800000" d="M363.54,-620.6C363.54,-620.6 270.46,-620.6 270.46,-620.6 264.46,-620.6 258.46,-614.6 258.46,-608.6 258.46,-608.6 258.46,-595.8 258.46,-595.8 258.46,-589.8 264.46,-583.8 270.46,-583.8 270.46,-583.8 363.54,-583.8 363.54,-583.8 369.54,-583.8 375.54,-589.8 375.54,-595.8 375.54,-595.8 375.54,-608.6 375.54,-608.6 375.54,-614.6 369.54,-620.6 363.54,-620.6"/>
+<text xml:space="preserve" text-anchor="middle" x="317" y="-609.4" font-family="Times,serif" font-size="8.00" fill="white">Enable services:</text>
+<text xml:space="preserve" text-anchor="middle" x="317" y="-599.8" font-family="Times,serif" font-size="8.00" fill="white"> iwd, dhcpcd, systemd-resolved</text>
+<text xml:space="preserve" text-anchor="middle" x="317" y="-590.2" font-family="Times,serif" font-size="8.00" fill="white"> (and others as needed)</text>
+</g>
+<!-- file_stage1&#45;&gt;enable_net -->
+<g id="edge67" class="edge">
+<title>file_stage1-&gt;enable_net</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1011.77,-884.77C991.06,-870.97 968,-849.55 968,-822.6 968,-822.6 968,-822.6 968,-674.6 968,-616.69 555.76,-605.73 387.37,-603.67"/>
+<polygon fill="#888888" stroke="#888888" points="387.47,-600.17 377.43,-603.56 387.39,-607.17 387.47,-600.17"/>
+</g>
+<!-- choose_boot -->
+<g id="node37" class="node">
+<title>choose_boot</title>
+<path fill="#2c0101" stroke="#800000" d="M282.55,-543.21C282.55,-543.21 218.57,-523.19 218.57,-523.19 212.84,-521.39 212.84,-517.81 218.57,-516.01 218.57,-516.01 282.55,-495.99 282.55,-495.99 288.27,-494.19 299.73,-494.19 305.45,-495.99 305.45,-495.99 369.43,-516.01 369.43,-516.01 375.16,-517.81 375.16,-521.39 369.43,-523.19 369.43,-523.19 305.45,-543.21 305.45,-543.21 299.73,-545.01 288.27,-545.01 282.55,-543.21"/>
+<text xml:space="preserve" text-anchor="middle" x="294" y="-522" font-family="Times,serif" font-size="8.00" fill="white">UEFI → systemd-boot</text>
+<text xml:space="preserve" text-anchor="middle" x="294" y="-512.4" font-family="Times,serif" font-size="8.00" fill="white">MBR → Syslinux</text>
+</g>
+<!-- file_stage1&#45;&gt;choose_boot -->
+<g id="edge68" class="edge">
+<title>file_stage1-&gt;choose_boot</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1030.28,-885.01C1019.4,-869.59 1006,-845.88 1006,-822.6 1006,-822.6 1006,-822.6 1006,-601.2 1006,-539.68 580.9,-525.11 387.64,-521.66"/>
+<polygon fill="#888888" stroke="#888888" points="387.94,-518.17 377.88,-521.5 387.82,-525.17 387.94,-518.17"/>
+</g>
+<!-- finish1 -->
+<g id="node38" class="node">
+<title>finish1</title>
+<ellipse fill="#400101" stroke="#800000" cx="321" cy="-437.4" rx="34.39" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="321" y="-435" font-family="Times,serif" font-size="8.00" fill="white">Exit &amp; reboot</text>
+</g>
+<!-- file_stage1&#45;&gt;finish1 -->
+<g id="edge69" class="edge">
+<title>file_stage1-&gt;finish1</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1044,-884.83C1044,-868.7 1044,-844.03 1044,-822.6 1044,-822.6 1044,-822.6 1044,-518.6 1044,-450.14 525.35,-440.12 366.61,-438.65"/>
+<polygon fill="#888888" stroke="#888888" points="366.93,-435.15 356.9,-438.57 366.87,-442.15 366.93,-435.15"/>
+</g>
+<!-- file_stage1_vars -->
+<g id="node19" class="node">
+<title>file_stage1_vars</title>
+<polygon fill="#260101" stroke="#800000" points="375.1,-921.23 140.9,-921.23 140.9,-885.23 381.1,-885.23 381.1,-915.23 375.1,-921.23"/>
+<polyline fill="none" stroke="#800000" points="375.1,-921.23 375.1,-915.23"/>
+<polyline fill="none" stroke="#800000" points="381.1,-915.23 375.1,-915.23"/>
+<text xml:space="preserve" text-anchor="middle" x="261" y="-905.63" font-family="Times,serif" font-size="8.00" fill="white">Stage 1 variables</text>
+<text xml:space="preserve" text-anchor="middle" x="261" y="-896.03" font-family="Times,serif" font-size="8.00" fill="white">(DEFAULT_USER_990, HOSTNAME, LOCALE, TZ, SHELL, etc.)</text>
+</g>
+<!-- file_stage1_vars&#45;&gt;set_vars -->
+<g id="edge34" class="edge">
+<title>file_stage1_vars-&gt;set_vars</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M278.58,-884.95C289.61,-874.1 304.04,-859.92 316.35,-847.82"/>
+<polygon fill="#888888" stroke="#888888" points="318.7,-850.41 323.38,-840.91 313.79,-845.42 318.7,-850.41"/>
+<text xml:space="preserve" text-anchor="middle" x="313.73" y="-859.7" font-family="Times,serif" font-size="7.00" fill="white">feeds</text>
+</g>
+<!-- download_iso -->
+<g id="node20" class="node">
+<title>download_iso</title>
+<polygon fill="#260101" stroke="#800000" points="684.88,-1909.43 597.12,-1909.43 597.12,-1873.43 690.88,-1873.43 690.88,-1903.43 684.88,-1909.43"/>
+<polyline fill="none" stroke="#800000" points="684.88,-1909.43 684.88,-1903.43"/>
+<polyline fill="none" stroke="#800000" points="690.88,-1903.43 684.88,-1903.43"/>
+<text xml:space="preserve" text-anchor="middle" x="644" y="-1889.03" font-family="Times,serif" font-size="8.00" fill="white">Download pre-built ISO</text>
+</g>
+<!-- iso_ready -->
+<g id="node22" class="node">
+<title>iso_ready</title>
+<ellipse fill="#400101" stroke="#800000" cx="591" cy="-1805.83" rx="27.89" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="591" y="-1803.43" font-family="Times,serif" font-size="8.00" fill="white">ISO ready</text>
+</g>
+<!-- download_iso&#45;&gt;iso_ready -->
+<g id="edge16" class="edge">
+<title>download_iso-&gt;iso_ready</title>
+<path fill="none" stroke="#888888" stroke-dasharray="5,2" d="M623.07,-1873.29C616.13,-1866.7 608.91,-1858.71 603.87,-1850.23 601.13,-1845.63 598.93,-1840.39 597.19,-1835.19"/>
+<polygon fill="#888888" stroke="#888888" points="600.56,-1834.25 594.47,-1825.58 593.83,-1836.15 600.56,-1834.25"/>
+<text xml:space="preserve" text-anchor="middle" x="622.43" y="-1843.93" font-family="Times,serif" font-size="7.00" fill="white">pre-built ISO</text>
+</g>
+<!-- download_iso&#45;&gt;load_cfg -->
+<g id="edge49" class="edge">
+<title>download_iso-&gt;load_cfg</title>
+<path fill="none" stroke="#888888" stroke-dasharray="5,2" d="M645.02,-1873.19C646.91,-1841.1 650.98,-1771.86 653.3,-1732.51"/>
+<polygon fill="#888888" stroke="#888888" points="656.79,-1732.8 653.88,-1722.61 649.8,-1732.39 656.79,-1732.8"/>
+<text xml:space="preserve" text-anchor="middle" x="663.15" y="-1803.73" font-family="Times,serif" font-size="7.00" fill="white">boot ISO</text>
+</g>
+<!-- build_start&#45;&gt;iso_ready -->
+<g id="edge11" class="edge">
+<title>build_start-&gt;iso_ready</title>
+<path fill="none" stroke="#aaaaaa" d="M541.22,-1868.03C550.54,-1856.58 561.88,-1842.64 571.38,-1830.95"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="573.99,-1833.3 577.58,-1823.33 568.55,-1828.88 573.99,-1833.3"/>
+<text xml:space="preserve" text-anchor="middle" x="575.65" y="-1843.93" font-family="Times,serif" font-size="7.00" fill="white">mkarchiso</text>
+</g>
+<!-- iso_ready&#45;&gt;load_cfg -->
+<g id="edge48" class="edge">
+<title>iso_ready-&gt;load_cfg</title>
+<path fill="none" stroke="#aaaaaa" d="M599.76,-1788.57C604.31,-1780.34 610.04,-1770.25 615.53,-1761.43 621.91,-1751.17 629.29,-1740.16 635.93,-1730.53"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="638.81,-1732.53 641.65,-1722.33 633.06,-1728.53 638.81,-1732.53"/>
+<text xml:space="preserve" text-anchor="middle" x="628.26" y="-1763.53" font-family="Times,serif" font-size="7.00" fill="white">boot ISO</text>
+</g>
+<!-- load_cfg&#45;&gt;detect_fw -->
+<g id="edge17" class="edge">
+<title>load_cfg-&gt;detect_fw</title>
+<path fill="none" stroke="#aaaaaa" d="M654.57,-1684.23C654.38,-1676.8 654.16,-1667.82 653.94,-1659"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="657.44,-1659.07 653.69,-1649.16 650.44,-1659.24 657.44,-1659.07"/>
+</g>
+<!-- detect_fw&#45;&gt;env_prep -->
+<g id="edge18" class="edge">
+<title>detect_fw-&gt;env_prep</title>
+<path fill="none" stroke="#aaaaaa" d="M653,-1593.15C653,-1582.94 653,-1571.2 653,-1560.75"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="656.5,-1560.75 653,-1550.75 649.5,-1560.75 656.5,-1560.75"/>
+</g>
+<!-- env_prep&#45;&gt;disk_proc -->
+<g id="edge19" class="edge">
+<title>env_prep-&gt;disk_proc</title>
+<path fill="none" stroke="#aaaaaa" d="M651.48,-1512.43C650.83,-1504.94 650.03,-1495.86 649.26,-1486.97"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="652.75,-1486.7 648.39,-1477.04 645.78,-1487.31 652.75,-1486.7"/>
+</g>
+<!-- disk_proc&#45;&gt;mount_fs -->
+<g id="edge20" class="edge">
+<title>disk_proc-&gt;mount_fs</title>
+<path fill="none" stroke="#aaaaaa" d="M651.19,-1423.13C653.01,-1414.55 655.07,-1404.84 656.95,-1395.95"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="660.33,-1396.9 658.98,-1386.4 653.48,-1395.45 660.33,-1396.9"/>
+</g>
+<!-- mount_fs&#45;&gt;boot_pkgs -->
+<g id="edge21" class="edge">
+<title>mount_fs-&gt;boot_pkgs</title>
+<path fill="none" stroke="#aaaaaa" d="M663,-1348.25C663,-1340.66 663,-1331.53 663,-1322.97"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="666.5,-1322.98 663,-1312.98 659.5,-1322.98 666.5,-1322.98"/>
+</g>
+<!-- boot_pkgs&#45;&gt;combine -->
+<g id="edge22" class="edge">
+<title>boot_pkgs-&gt;combine</title>
+<path fill="none" stroke="#aaaaaa" d="M661.55,-1275.25C660.9,-1267.57 660.12,-1258.32 659.39,-1249.68"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="662.9,-1249.64 658.57,-1239.97 655.92,-1250.23 662.9,-1249.64"/>
+</g>
+<!-- combine&#45;&gt;pacstrap -->
+<g id="edge23" class="edge">
+<title>combine-&gt;pacstrap</title>
+<path fill="none" stroke="#aaaaaa" d="M656.83,-1202.09C656.68,-1186.14 656.45,-1162.15 656.27,-1143.31"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="659.77,-1143.28 656.18,-1133.31 652.78,-1143.34 659.77,-1143.28"/>
+</g>
+<!-- pacstrap&#45;&gt;copy_files -->
+<g id="edge24" class="edge">
+<title>pacstrap-&gt;copy_files</title>
+<path fill="none" stroke="#aaaaaa" d="M656,-1095.36C656,-1077.7 656,-1049.81 656,-1028.75"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="659.5,-1028.78 656,-1018.78 652.5,-1028.78 659.5,-1028.78"/>
+</g>
+<!-- copy_files&#45;&gt;chroot -->
+<g id="edge25" class="edge">
+<title>copy_files-&gt;chroot</title>
+<path fill="none" stroke="#aaaaaa" d="M656,-980.83C656,-967.76 656,-949.48 656,-934.05"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="659.5,-934.45 656,-924.45 652.5,-934.45 659.5,-934.45"/>
+</g>
+<!-- chroot&#45;&gt;set_vars -->
+<g id="edge50" class="edge">
+<title>chroot-&gt;set_vars</title>
+<path fill="none" stroke="#aaaaaa" d="M615.59,-891.99C558.37,-877.47 453.79,-850.95 391.83,-835.24"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="392.8,-831.87 382.24,-832.81 391.07,-838.66 392.8,-831.87"/>
+<text xml:space="preserve" text-anchor="middle" x="524.36" y="-859.7" font-family="Times,serif" font-size="7.00" fill="white">run Stage 1</text>
+</g>
+<!-- set_vars&#45;&gt;config_sys -->
+<g id="edge29" class="edge">
+<title>set_vars-&gt;config_sys</title>
+<path fill="none" stroke="#aaaaaa" d="M339.34,-803.41C338.15,-795.74 336.72,-786.49 335.38,-777.84"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="338.86,-777.47 333.87,-768.12 331.94,-778.54 338.86,-777.47"/>
+</g>
+<!-- config_sys&#45;&gt;add_user -->
+<g id="edge30" class="edge">
+<title>config_sys-&gt;add_user</title>
+<path fill="none" stroke="#aaaaaa" d="M327.61,-730.41C326.1,-722.74 324.27,-713.49 322.57,-704.84"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="326.02,-704.25 320.65,-695.11 319.15,-705.6 326.02,-704.25"/>
+</g>
+<!-- add_user&#45;&gt;enable_net -->
+<g id="edge31" class="edge">
+<title>add_user-&gt;enable_net</title>
+<path fill="none" stroke="#aaaaaa" d="M317,-657.32C317,-649.85 317,-640.91 317,-632.47"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="320.5,-632.58 317,-622.58 313.5,-632.58 320.5,-632.58"/>
+</g>
+<!-- enable_net&#45;&gt;choose_boot -->
+<g id="edge32" class="edge">
+<title>enable_net-&gt;choose_boot</title>
+<path fill="none" stroke="#aaaaaa" d="M311.9,-583.31C309.57,-575.18 306.74,-565.26 304.03,-555.73"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="307.45,-554.97 301.34,-546.31 300.72,-556.89 307.45,-554.97"/>
+</g>
+<!-- choose_boot&#45;&gt;finish1 -->
+<g id="edge33" class="edge">
+<title>choose_boot-&gt;finish1</title>
+<path fill="none" stroke="#aaaaaa" d="M302.1,-494.54C305.1,-485.62 308.54,-475.42 311.64,-466.2"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="314.86,-467.6 314.74,-457 308.23,-465.36 314.86,-467.6"/>
+</g>
+<!-- login -->
+<g id="node39" class="node">
+<title>login</title>
+<path fill="#2c0101" stroke="#800000" d="M351.1,-352.2C351.1,-352.2 290.9,-352.2 290.9,-352.2 284.9,-352.2 278.9,-346.2 278.9,-340.2 278.9,-340.2 278.9,-328.2 278.9,-328.2 278.9,-322.2 284.9,-316.2 290.9,-316.2 290.9,-316.2 351.1,-316.2 351.1,-316.2 357.1,-316.2 363.1,-322.2 363.1,-328.2 363.1,-328.2 363.1,-340.2 363.1,-340.2 363.1,-346.2 357.1,-352.2 351.1,-352.2"/>
+<text xml:space="preserve" text-anchor="middle" x="321" y="-331.8" font-family="Times,serif" font-size="8.00" fill="white">Login as created user</text>
+</g>
+<!-- finish1&#45;&gt;login -->
+<g id="edge51" class="edge">
+<title>finish1-&gt;login</title>
+<path fill="none" stroke="#aaaaaa" d="M321,-419.23C321,-404.11 321,-381.78 321,-363.94"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="324.5,-363.96 321,-353.96 317.5,-363.96 324.5,-363.96"/>
+<text xml:space="preserve" text-anchor="middle" x="350.55" y="-395.1" font-family="Times,serif" font-size="7.00" fill="white">boot installed system</text>
+</g>
+<!-- update -->
+<g id="node40" class="node">
+<title>update</title>
+<path fill="#2c0101" stroke="#800000" d="M354.77,-278.8C354.77,-278.8 287.23,-278.8 287.23,-278.8 281.23,-278.8 275.23,-272.8 275.23,-266.8 275.23,-266.8 275.23,-254.8 275.23,-254.8 275.23,-248.8 281.23,-242.8 287.23,-242.8 287.23,-242.8 354.77,-242.8 354.77,-242.8 360.77,-242.8 366.77,-248.8 366.77,-254.8 366.77,-254.8 366.77,-266.8 366.77,-266.8 366.77,-272.8 360.77,-278.8 354.77,-278.8"/>
+<text xml:space="preserve" text-anchor="middle" x="321" y="-258.4" font-family="Times,serif" font-size="8.00" fill="white">(optional) pacman -Syu</text>
+</g>
+<!-- login&#45;&gt;update -->
+<g id="edge35" class="edge">
+<title>login-&gt;update</title>
+<path fill="none" stroke="#aaaaaa" d="M321,-315.92C321,-308.26 321,-299.04 321,-290.4"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="324.5,-290.69 321,-280.69 317.5,-290.69 324.5,-290.69"/>
+</g>
+<!-- synos_cmd -->
+<g id="node41" class="node">
+<title>synos_cmd</title>
+<ellipse fill="#400101" stroke="#800000" cx="321" cy="-180" rx="27" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="321" y="-177.6" font-family="Times,serif" font-size="8.00" fill="white">synos</text>
+</g>
+<!-- update&#45;&gt;synos_cmd -->
+<g id="edge36" class="edge">
+<title>update-&gt;synos_cmd</title>
+<path fill="none" stroke="#aaaaaa" d="M321,-242.31C321,-232.72 321,-220.59 321,-209.66"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="324.5,-209.95 321,-199.95 317.5,-209.95 324.5,-209.95"/>
+</g>
+<!-- labwc_start -->
+<g id="node42" class="node">
+<title>labwc_start</title>
+<path fill="#2c0101" stroke="#800000" d="M334.26,-125C334.26,-125 263.74,-125 263.74,-125 257.74,-125 251.74,-119 251.74,-113 251.74,-113 251.74,-101 251.74,-101 251.74,-95 257.74,-89 263.74,-89 263.74,-89 334.26,-89 334.26,-89 340.26,-89 346.26,-95 346.26,-101 346.26,-101 346.26,-113 346.26,-113 346.26,-119 340.26,-125 334.26,-125"/>
+<text xml:space="preserve" text-anchor="middle" x="299" y="-109.4" font-family="Times,serif" font-size="8.00" fill="white">Start LabWC session</text>
+<text xml:space="preserve" text-anchor="middle" x="299" y="-99.8" font-family="Times,serif" font-size="8.00" fill="white">(~/.config/labwc/rc.xml)</text>
+</g>
+<!-- synos_cmd&#45;&gt;labwc_start -->
+<g id="edge37" class="edge">
+<title>synos_cmd-&gt;labwc_start</title>
+<path fill="none" stroke="#aaaaaa" d="M315.79,-162.17C313.4,-154.48 310.51,-145.14 307.8,-136.4"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="311.16,-135.41 304.85,-126.89 304.47,-137.48 311.16,-135.41"/>
+</g>
+<!-- swaybg_set -->
+<g id="node43" class="node">
+<title>swaybg_set</title>
+<path fill="#2c0101" stroke="#800000" d="M191.99,-52C191.99,-52 128.01,-52 128.01,-52 122.01,-52 116.01,-46 116.01,-40 116.01,-40 116.01,-28 116.01,-28 116.01,-22 122.01,-16 128.01,-16 128.01,-16 191.99,-16 191.99,-16 197.99,-16 203.99,-22 203.99,-28 203.99,-28 203.99,-40 203.99,-40 203.99,-46 197.99,-52 191.99,-52"/>
+<text xml:space="preserve" text-anchor="middle" x="160" y="-31.6" font-family="Times,serif" font-size="8.00" fill="white">swaybg sets wallpaper</text>
+</g>
+<!-- labwc_start&#45;&gt;swaybg_set -->
+<g id="edge38" class="edge">
+<title>labwc_start-&gt;swaybg_set</title>
+<path fill="none" stroke="#aaaaaa" d="M265,-88.63C246.74,-79.31 224.01,-67.7 204.38,-57.67"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="205.98,-54.56 195.48,-53.12 202.8,-60.79 205.98,-54.56"/>
+</g>
+<!-- waybar_start -->
+<g id="node44" class="node">
+<title>waybar_start</title>
+<path fill="#2c0101" stroke="#800000" d="M364.1,-52C364.1,-52 233.9,-52 233.9,-52 227.9,-52 221.9,-46 221.9,-40 221.9,-40 221.9,-28 221.9,-28 221.9,-22 227.9,-16 233.9,-16 233.9,-16 364.1,-16 364.1,-16 370.1,-16 376.1,-22 376.1,-28 376.1,-28 376.1,-40 376.1,-40 376.1,-46 370.1,-52 364.1,-52"/>
+<text xml:space="preserve" text-anchor="middle" x="299" y="-36.4" font-family="Times,serif" font-size="8.00" fill="white">Start Waybar</text>
+<text xml:space="preserve" text-anchor="middle" x="299" y="-26.8" font-family="Times,serif" font-size="8.00" fill="white">(~/.config/waybar/{config.jsonc,style.css})</text>
+</g>
+<!-- labwc_start&#45;&gt;waybar_start -->
+<g id="edge40" class="edge">
+<title>labwc_start-&gt;waybar_start</title>
+<path fill="none" stroke="#aaaaaa" d="M299,-88.81C299,-81.23 299,-72.1 299,-63.54"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="302.5,-63.54 299,-53.54 295.5,-63.54 302.5,-63.54"/>
+</g>
+<!-- xdg_menu -->
+<g id="node45" class="node">
+<title>xdg_menu</title>
+<path fill="#2c0101" stroke="#800000" d="M85.66,-52C85.66,-52 28.34,-52 28.34,-52 22.34,-52 16.34,-46 16.34,-40 16.34,-40 16.34,-28 16.34,-28 16.34,-22 22.34,-16 28.34,-16 28.34,-16 85.66,-16 85.66,-16 91.66,-16 97.66,-22 97.66,-28 97.66,-28 97.66,-40 97.66,-40 97.66,-46 91.66,-52 85.66,-52"/>
+<text xml:space="preserve" text-anchor="middle" x="57" y="-36.4" font-family="Times,serif" font-size="8.00" fill="white">archlinux-xdg-menu</text>
+<text xml:space="preserve" text-anchor="middle" x="57" y="-26.8" font-family="Times,serif" font-size="8.00" fill="white">→ menu.xml entries</text>
+</g>
+<!-- labwc_start&#45;&gt;xdg_menu -->
+<g id="edge39" class="edge">
+<title>labwc_start-&gt;xdg_menu</title>
+<path fill="none" stroke="#aaaaaa" d="M251.45,-93.39C214.9,-83.52 162.94,-69.13 108.96,-52.53"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="110.18,-49.24 99.59,-49.63 108.11,-55.93 110.18,-49.24"/>
+</g>
+<!-- help_disk -->
+<g id="node46" class="node">
+<title>help_disk</title>
+<polygon fill="#260101" stroke="#800000" points="913.33,-1548.83 736.67,-1548.83 736.67,-1512.83 919.33,-1512.83 919.33,-1542.83 913.33,-1548.83"/>
+<polyline fill="none" stroke="#800000" points="913.33,-1548.83 913.33,-1542.83"/>
+<polyline fill="none" stroke="#800000" points="919.33,-1542.83 913.33,-1542.83"/>
+<text xml:space="preserve" text-anchor="middle" x="828" y="-1533.23" font-family="Times,serif" font-size="8.00" fill="white">Edit disk vars in syn-disk-config.zsh.</text>
+<text xml:space="preserve" text-anchor="middle" x="828" y="-1523.63" font-family="Times,serif" font-size="8.00" fill="white">Changing FS/partitions → update disk_processing().</text>
+</g>
+<!-- help_disk&#45;&gt;disk_proc -->
+<g id="edge41" class="edge">
+<title>help_disk-&gt;disk_proc</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M788.51,-1512.43C759.24,-1499.53 719.36,-1481.96 689.24,-1468.69"/>
+<polygon fill="#888888" stroke="#888888" points="690.97,-1465.62 680.4,-1464.79 688.14,-1472.03 690.97,-1465.62"/>
+</g>
+<!-- help_pkgs -->
+<g id="node47" class="node">
+<title>help_pkgs</title>
+<polygon fill="#260101" stroke="#800000" points="2021.64,-2120.83 1874.36,-2120.83 1874.36,-2084.83 2027.64,-2084.83 2027.64,-2114.83 2021.64,-2120.83"/>
+<polyline fill="none" stroke="#800000" points="2021.64,-2120.83 2021.64,-2114.83"/>
+<polyline fill="none" stroke="#800000" points="2027.64,-2114.83 2021.64,-2114.83"/>
+<text xml:space="preserve" text-anchor="middle" x="1951" y="-2105.23" font-family="Times,serif" font-size="8.00" fill="white">Add/remove packages in syn-packages.zsh</text>
+<text xml:space="preserve" text-anchor="middle" x="1951" y="-2095.63" font-family="Times,serif" font-size="8.00" fill="white">(arrays).</text>
+</g>
+<!-- help_pkgs&#45;&gt;synstall -->
+<g id="edge42" class="edge">
+<title>help_pkgs-&gt;synstall</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M1902.23,-2084.45C1891.08,-2080.9 1879.21,-2077.46 1868,-2074.83 1680.79,-2031.06 1454.99,-2005.34 1343.02,-1994.36"/>
+<polygon fill="#888888" stroke="#888888" points="1343.69,-1990.91 1333.4,-1993.43 1343.01,-1997.88 1343.69,-1990.91"/>
+</g>
+<!-- help_stage1 -->
+<g id="node48" class="node">
+<title>help_stage1</title>
+<polygon fill="#260101" stroke="#800000" points="973.09,-921.23 736.91,-921.23 736.91,-885.23 979.09,-885.23 979.09,-915.23 973.09,-921.23"/>
+<polyline fill="none" stroke="#800000" points="973.09,-921.23 973.09,-915.23"/>
+<polyline fill="none" stroke="#800000" points="979.09,-915.23 973.09,-915.23"/>
+<text xml:space="preserve" text-anchor="middle" x="858" y="-900.83" font-family="Times,serif" font-size="8.00" fill="white">Change DEFAULT_USER_990, hostname, locale, TZ in Stage 1 vars.</text>
+</g>
+<!-- help_stage1&#45;&gt;set_vars -->
+<g id="edge43" class="edge">
+<title>help_stage1-&gt;set_vars</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M779.15,-884.8C763.87,-881.67 747.97,-878.59 733,-876 611.25,-854.94 466.98,-837.05 392.35,-828.32"/>
+<polygon fill="#888888" stroke="#888888" points="392.83,-824.85 382.49,-827.17 392.02,-831.8 392.83,-824.85"/>
+</g>
+<!-- help_labwc -->
+<g id="node49" class="node">
+<title>help_labwc</title>
+<polygon fill="#260101" stroke="#800000" points="559.76,-198 392.24,-198 392.24,-162 565.76,-162 565.76,-192 559.76,-198"/>
+<polyline fill="none" stroke="#800000" points="559.76,-198 559.76,-192"/>
+<polyline fill="none" stroke="#800000" points="565.76,-192 559.76,-192"/>
+<text xml:space="preserve" text-anchor="middle" x="479" y="-182.4" font-family="Times,serif" font-size="8.00" fill="white">LabWC config:</text>
+<text xml:space="preserve" text-anchor="middle" x="479" y="-172.8" font-family="Times,serif" font-size="8.00" fill="white">~/.config/labwc/{rc.xml,menu.xml,environment}</text>
+</g>
+<!-- help_labwc&#45;&gt;labwc_start -->
+<g id="edge44" class="edge">
+<title>help_labwc-&gt;labwc_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M434.97,-161.63C410.45,-151.96 379.72,-139.84 353.67,-129.56"/>
+<polygon fill="#888888" stroke="#888888" points="355.2,-126.4 344.61,-125.99 352.63,-132.92 355.2,-126.4"/>
+</g>
+<!-- help_waybar -->
+<g id="node50" class="node">
+<title>help_waybar</title>
+<polygon fill="#260101" stroke="#800000" points="534.43,-125 391.57,-125 391.57,-89 540.43,-89 540.43,-119 534.43,-125"/>
+<polyline fill="none" stroke="#800000" points="534.43,-125 534.43,-119"/>
+<polyline fill="none" stroke="#800000" points="540.43,-119 534.43,-119"/>
+<text xml:space="preserve" text-anchor="middle" x="466" y="-109.4" font-family="Times,serif" font-size="8.00" fill="white">Waybar config/theme:</text>
+<text xml:space="preserve" text-anchor="middle" x="466" y="-99.8" font-family="Times,serif" font-size="8.00" fill="white">~/.config/waybar/{config.jsonc,style.css}</text>
+</g>
+<!-- help_waybar&#45;&gt;waybar_start -->
+<g id="edge45" class="edge">
+<title>help_waybar-&gt;waybar_start</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M425.15,-88.63C402.6,-79.05 374.39,-67.05 350.37,-56.84"/>
+<polygon fill="#888888" stroke="#888888" points="351.97,-53.72 341.4,-53.03 349.24,-60.16 351.97,-53.72"/>
+</g>
+<!-- help_kitty -->
+<g id="node51" class="node">
+<title>help_kitty</title>
+<polygon fill="#260101" stroke="#800000" points="486.1,-279.2 391.9,-279.2 391.9,-242.4 492.1,-242.4 492.1,-273.2 486.1,-279.2"/>
+<polyline fill="none" stroke="#800000" points="486.1,-279.2 486.1,-273.2"/>
+<polyline fill="none" stroke="#800000" points="492.1,-273.2 486.1,-273.2"/>
+<text xml:space="preserve" text-anchor="middle" x="442" y="-268" font-family="Times,serif" font-size="8.00" fill="white">Kitty:</text>
+<text xml:space="preserve" text-anchor="middle" x="442" y="-258.4" font-family="Times,serif" font-size="8.00" fill="white">~/.config/kitty/kitty.conf</text>
+<text xml:space="preserve" text-anchor="middle" x="442" y="-248.8" font-family="Times,serif" font-size="8.00" fill="white">Qt theming via qt5ct/qt6ct</text>
+</g>
+<!-- help_kitty&#45;&gt;synos_cmd -->
+<g id="edge46" class="edge">
+<title>help_kitty-&gt;synos_cmd</title>
+<path fill="none" stroke="#888888" stroke-dasharray="1,5" d="M414.54,-241.92C395.07,-229.24 369,-212.26 349.33,-199.45"/>
+<polygon fill="#888888" stroke="#888888" points="351.26,-196.53 340.97,-194 347.44,-202.39 351.26,-196.53"/>
+<text xml:space="preserve" text-anchor="middle" x="401.17" y="-218.1" font-family="Times,serif" font-size="7.00" fill="white">session env</text>
+</g>
+</g>
+</svg>

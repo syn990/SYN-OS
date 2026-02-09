@@ -1,4 +1,3 @@
 *.iso
 *.qcow2
-SYN-OS-2035/SYN-ISO-PROFILE/airootfs/root
 WORKDIR/

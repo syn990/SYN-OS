@@ -39,12 +39,8 @@
     <!-- System Controls -->
     <separator label="System" />
 
-    <item label="Restart Labwc">
-      <action name="Execute" command="pkill -HUP labwc"/>
-    </item>
-
     <item label="Return to TTY">
-      <action name="Execute" command="pkill -KILL -u $USER"/>
+      <action name="Execute" command="pkill labwc"/>
     </item>
 
     <item label="Reboot">
