@@ -64,6 +64,7 @@ services=(
 environmentShell=(
     "labwc"             # Wayland Openbox-like window manager
     "wmenu"             # Dynamic menu for Wayland
+    "archlinux-xdg-menu" # Required for right-click menu on labwc
     "waybar"            # Panel and taskbar
     "pavucontrol-qt"    # PulseAudio configuration tool
     "qt5ct"             # Qt5 configuration tool
@@ -75,6 +76,8 @@ environmentShell=(
     "inetutils"         # ftp, telnet, hostname, etc.
     "rofi"              # Window switcher, run dialog, ssh-launcher and dmenu replacement
     "calc"              # Arbitrary precision console calculator
+    "swaybg"            # Allows painting wallpapers for the desktop used in labwc autostart
+
 )
 
 ########################################################################################################

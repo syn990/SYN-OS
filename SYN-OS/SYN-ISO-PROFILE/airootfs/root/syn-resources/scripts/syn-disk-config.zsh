@@ -1,49 +1,37 @@
-#!/bin/zsh
 # =============================================================================
-#                              SYN-OS Disk Config
+# SYN-OS Disk Inputs
 #
-# Purpose:
-#   Central place for disk and partition variables used by the installer
-#   and ISO build scripts. By editing this file you can change the target
-#   storage configuration (e.g. SATA vs NVMe) without modifying multiple scripts.
+# Edit these values to control the target disk and filesystems.
+# This file is sourced by stage0. Do not add logic here.
 #
-# Advisory:
-#   Keep this file limited to **simple variable assignments** only.  
-#   Adding commands, conditionals, or runtime logic here can cause staging
-#   scripts (stage0/stage1) to misbehave or break.  
-#   All logic (detection, chroot-only actions, etc.) belongs in the staging
-#   scripts themselves. This ensures sourcing this file is always safe.
-#
-# Meta:
-#   SYN-OS      : The Syntax Operating System
-#   Author      : William Hayward-Holland (Syntax990)
-#   License     : MIT License
+# ⚠️ DESTRUCTIVE: The disk specified in DISK will be wiped.
 # =============================================================================
 
-# Primary storage device to be wiped. Change to match your system:
-#   "/dev/vda"  – Typical for virtual disks
-#   "/dev/sda"  – SATA drives
-#   "/dev/nvme0n1" – NVMe devices
-WIPE_DISK_990="/dev/sda"
+# -----------------------------------------------------------------------------#
+# (EDIT THESE HERE FOR YOUR PERSONAL PREFERENCES)
+# -----------------------------------------------------------------------------#
 
-# Boot partition (suffix differs between SATA/virtual vs NVMe).
-BOOT_PART_990="${WIPE_DISK_990}1"
+# Target block device (WILL BE WIPED)
+# Examples:
+#   /dev/vda      (virtio)
+#   /dev/sda      (SATA/SCSI)
+#   /dev/nvme0n1  (NVMe)
+DISK="/dev/sda"          # e.g. /dev/sda, /dev/vda, /dev/nvme0n1
 
-# Root partition (again, suffix differs with NVMe).
-ROOT_PART_990="${WIPE_DISK_990}2"
+# UEFI ESP size
+BOOT_SIZE="512MiB"
 
-# Mount points. The installer will create these directories if missing.
-BOOT_MOUNT_LOCATION_990="/mnt/boot"
-ROOT_MOUNT_LOCATION_990="/mnt"
+# Filesystems
+BOOT_FS="fat32"          # For UEFI, keep fat32/vfat
+ROOT_FS="f2fs"           # ext4 | f2fs | btrfs | xfs
 
-# Filesystem types. FAT32 is standard for UEFI boot partitions.
-# Root can be f2fs, ext4, btrfs, etc.
-BOOT_FILESYSTEM_990="fat32"
-ROOT_FILESYSTEM_990="f2fs"
+# Mount points
+ROOT_MOUNT_LOCATION="/mnt"
+BOOT_MOUNT_LOCATION="/mnt/boot"
 
-# Export so all sourced scripts (stage0/stage1/build) can use them.
-export WIPE_DISK_990 BOOT_PART_990 ROOT_PART_990 \
-       BOOT_MOUNT_LOCATION_990 ROOT_MOUNT_LOCATION_990 \
-       BOOT_FILESYSTEM_990 ROOT_FILESYSTEM_990
+# Require explicit opt-in before wiping (SHOULD SAY YES BUT THIS IS A DEV BUILD!!!)
+REQUIRE_WIPE_CONFIRM="NO"  # YES|NO
 
-# vim: set ft=zsh tw=0 nowrap:
+export DISK BOOT_SIZE BOOT_FS ROOT_FS \
+       ROOT_MOUNT_LOCATION BOOT_MOUNT_LOCATION \
+       REQUIRE_WIPE_CONFIRM
