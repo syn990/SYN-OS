@@ -13,12 +13,12 @@ SYN-OS is designed for those who want:
 > **Note:** The live installer runs entirely in a command-line (CLI) environment. Once installed, you may launch the graphical session using **LabWC**, a lightweight Wayland window manager that provides a simple Openbox‑like workflow with modern Wayland support.  
 > The included **Waybar** panel uses JSON + CSS for straightforward module, layout, and theme customization.
 
-![SYN-OS Banner](./Images/SYN-BANNER.png)
+![SYN-OS Banner](./Images/SYN-BANNER1.png)
 
 ## Download & Quick Start
 
 **Latest Release:**  
-- **Name:** SYN-OS XENITH Edition
+- **Name:** SYN-OS SYNAPTICS Edition
 - **Size:** ~1.1 GB  
 - **Download:** [SYN-OS SYNAPTICS (FEB 2026).iso](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
 
