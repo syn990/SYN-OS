@@ -29,117 +29,119 @@
 # =============================================================================
 
 ########################################################################################################
-# Core System
-coreSystem=(
-    "base"                  # Core Arch Linux base system
-    "base-devel"            # Essential development tools (make, gcc, etc.)
-    "bat"                   # cat-like application
-    "linux"                 # Linux kernel
-    "linux-firmware"        # Common device firmware
-    "archlinux-keyring"     # Official Arch Linux package signing keys
-    "zsh"                   # Default user shell
-    "zsh-completions"       # Additional completions for Zsh
-    "zsh-syntax-highlighting" # Syntax highlighting for Zsh
-    "zsh-autosuggestions"   # Command autosuggestions for Zsh
-    "fzf"                   # Command-line fuzzy finder
-    "zoxide"                # Smarter cd command replacement
-    "ripgrep"               # Fast text search tool (like grep)
-    "fd"                    # Simple, fast alternative to find
-    "sudo"                  # Privilege escalation tool
+# 1) Base Core (kernel, base system, firmware, security-critical essentials)
+baseCore=(
+  "base"                 # Core Arch Linux base system
+  "base-devel"           # Essential development tools (make, gcc, etc.) for base builds
+  "linux"                # Linux kernel
+  "linux-firmware"       # Common device firmware
+  "archlinux-keyring"    # Official Arch Linux package signing keys
+  "sudo"                 # Privilege escalation tool
+  "sof-firmware"         # Sound Open Firmware
+  "sof-tools"            # Sound Open Firmware Tools
+  "f2fs-tools"           # F2FS filesystem utilities (mkfs.f2fs, fsck.f2fs)
 )
 
 ########################################################################################################
-# Services
-services=(
-    "dhcpcd"     # DHCP client daemon
-    "dnsmasq"    # Lightweight DNS DHCP TFTP
-    "hostapd"    # Userspace access point
-    "iwd"        # Wi-Fi management
-    "reflector"  # Mirrorlist updater for pacman
-    "openvpn"    # VPN client
+# 2) Networking & Services (network stack, VPN, AP, mirrors)
+netAndServices=(
+  "dhcpcd"     # DHCP client daemon
+  "iwd"        # Wi‑Fi management
+  "openvpn"    # VPN client
+  "dnsmasq"    # Lightweight DNS/DHCP/TFTP
+  "hostapd"    # Userspace access point
+  "reflector"  # Mirrorlist updater for pacman
 )
 
 ########################################################################################################
-# Environment & Shell
-environmentShell=(
-    "labwc"             # Wayland Openbox-like window manager
-    "wmenu"             # Dynamic menu for Wayland
-    "archlinux-xdg-menu" # Required for right-click menu on labwc
-    "waybar"            # Panel and taskbar
-    "pavucontrol-qt"    # PulseAudio configuration tool
-    "qt5ct"             # Qt5 configuration tool
-    "qt6ct"             # Qt6 configuration tool
-    "kvantum"           # Kvantum theme engine for Qt
-    "kvantum-qt5"       # Qt5 Kvantum integration
-    "feh"               # Image viewer and wallpaper
-    "kitty"             # Terminal emulator
-    "inetutils"         # ftp, telnet, hostname, etc.
-    "rofi"              # Window switcher, run dialog, ssh-launcher and dmenu replacement
-    "calc"              # Arbitrary precision console calculator
-    "swaybg"            # Allows painting wallpapers for the desktop used in labwc autostart
-
+# 3) Shell & CLI (shells, completions, fuzzy finders, core terminal utilities)
+shellAndCLI=(
+  "zsh"                      # Default user shell
+  "zsh-completions"          # Additional completions for Zsh
+  "zsh-syntax-highlighting"  # Syntax highlighting for Zsh
+  "zsh-autosuggestions"      # Command autosuggestions for Zsh
+  "fzf"                      # Command-line fuzzy finder
+  "zoxide"                   # Smarter cd alternative
+  "ripgrep"                  # Fast text search (grep alternative)
+  "fd"                       # Fast file finder (find alternative)
+  "bat"                      # cat-like with syntax highlighting
+  "inetutils"                # ftp, telnet, hostname, etc.
+  "calc"                     # Arbitrary precision console calculator
+  "ranger"                   # Terminal file explorer
+  "git"                      # Version control
+  "htop"                     # Process viewer
+  "nano"                     # Console text editor
+  "kitty"                    # Terminal emulator
 )
 
 ########################################################################################################
-# User Applications
-userApplications=(
-    "nano"        # Text editor
-    "git"         # Version control
-    "htop"        # Process viewer
-    "pcmanfm-qt"  # File manager
-    "engrampa"    # Archive manager
-    "kwrite"      # Text editor
-    "ranger"      # Terminal File Explorer
+# 4) Desktop Stack (Wayland session, panels/menus, Qt theming, core GUI tools)
+desktopStack=(
+  "labwc"                 # Wayland Openbox-like window manager
+  "wmenu"                 # Dynamic menu for Wayland
+  "archlinux-xdg-menu"    # XDG menu generator (LabWC right-click menu)
+  "waybar"                # Panel and taskbar
+  "swaybg"                # Wallpaper background for Wayland
+  "rofi"                  # Launcher/window switcher (Wayland/X)
+  "feh"                   # Image viewer / wallpaper utility
+  "pavucontrol-qt"        # Audio mixer (PulseAudio/PipeWire, Qt)
+  "qt5ct"                 # Qt5 configuration tool
+  "qt6ct"                 # Qt6 configuration tool
+  "kvantum"               # Kvantum theme engine for Qt
+  "kvantum-qt5"           # Qt5 Kvantum integration
+  "pcmanfm-qt"            # File manager (Qt)
+  "engrampa"              # Archive manager
+  "kwrite"                # Lightweight GUI text editor
 )
 
 ########################################################################################################
-# Developer Tools
-developerTools=(
-    "gcc"            # Compiler collection
-    "fakeroot"       # Fake root for builds
-    "android-tools"  # ADB and fastboot
-    "archiso"        # Arch ISO tooling
-    "binwalk"        # Firmware analysis
-    "hexedit"        # Hex editor
-    "lshw"           # Hardware lister
-    "yt-dlp"         # Media downloader
+# 5) Developer Toolkit (build tools, device tooling, analysis)
+devToolkit=(
+  "gcc"            # Compiler collection
+  "fakeroot"       # Fake root for builds
+  "android-tools"  # ADB and fastboot
+  "archiso"        # Arch ISO tooling
+  "binwalk"        # Firmware analysis
+  "hexedit"        # Hex editor
+  "lshw"           # Hardware lister
+  "yt-dlp"         # Media downloader
 )
 
 ########################################################################################################
-# Fonts & Localisation
-fontsLocalization=(
-    "terminus-font"      # Console font
-    "ttf-bitstream-vera" # TrueType family
-    "ttf-dejavu"         # DejaVu family
-    "noto-fonts"         # Noto Sans
-    "noto-fonts-emoji"   # Emoji
-    "noto-fonts-cjk"     # Chinese Japanese Korean
-    "ttf-liberation"     # Liberation family
-    "ttf-terminus-nerd"  # Awesome family of fonts for waybar (UI)
-    "otf-font-awesome"   # Additional Nerd Fonts (UI)
+# 6) Fonts & Internationalisation
+fontsI18n=(
+  "terminus-font"       # Console font
+  "ttf-bitstream-vera"  # TrueType family
+  "ttf-dejavu"          # DejaVu family
+  "noto-fonts"          # Noto Sans
+  "noto-fonts-emoji"    # Emoji
+  "noto-fonts-cjk"      # Chinese/Japanese/Korean
+  "ttf-liberation"      # Liberation family
+  "ttf-terminus-nerd"   # Nerd font variant for UI (e.g., waybar)
+  "otf-font-awesome"    # Icon font (UI)
 )
 
 ########################################################################################################
-# Optional Features
-optionalFeatures=(
-    "vlc"        # Media player
-    "audacity"   # Audio editor
-    "obs-studio" # Screen recorder streaming
-    "chromium"   # Web browser
-    "gimp"       # Image editor
-    "kdenlive"   # Video editor
+# 7) Applications (media, creation, browser)
+appsMedia=(
+  "vlc"         # Media player
+  "audacity"    # Audio editor
+  "obs-studio"  # Screen recording/streaming
+  "chromium"    # Web browser
+  "gimp"        # Image editor
+  "kdenlive"    # Video editor
 )
 
 ########################################################################################################
 # Combined package list excluding bootloader packages
 SYNSTALL=(
-    "${coreSystem[@]}"
-    "${services[@]}"
-    "${environmentShell[@]}"
-    "${userApplications[@]}"
-    "${developerTools[@]}"
-    "${fontsLocalization[@]}"
-    "${optionalFeatures[@]}"
+  "${baseCore[@]}"
+  "${netAndServices[@]}"
+  "${shellAndCLI[@]}"
+  "${desktopStack[@]}"
+  "${devToolkit[@]}"
+  "${fontsI18n[@]}"
+  "${appsMedia[@]}"
 )
 
 # vim: set ft=zsh tw=0 nowrap:

@@ -15,29 +15,6 @@ if [[ -o interactive && -t 1 ]]; then
 fi
 
 # =============================================================================
-# SYN-OS ASCII Branding
-# =============================================================================
-if [[ -o interactive && -t 1 ]]; then
-cat << "EOF"
- ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄        ▄               ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄
-▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░▌      ▐░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌
-▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░▌░▌     ▐░▌             ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀
-▐░▌          ▐░▌       ▐░▌▐░▌▐░▌    ▐░▌             ▐░▌       ▐░▌▐░▌
-▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄█░▌▐░▌ ▐░▌   ▐░▌ ▄▄▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄
-▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌  ▐░▌  ▐░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌
- ▀▀▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░▌   ▐░▌ ▐░▌ ▀▀▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌ ▀▀▀▀▀▀▀▀▀█░▌
-          ▐░▌     ▐░▌     ▐░▌    ▐░▌▐░▌             ▐░▌       ▐░▌          ▐░▌
- ▄▄▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌     ▐░▐░▌             ▐░█▄▄▄▄▄▄▄█░▌ ▄▄▄▄▄▄▄▄▄█░▌
-▐░░░░░░░░░░░▌     ▐░▌     ▐░▌      ▐░░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌
- ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀        ▀▀               ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀
-
-   Without constraints; SYN-OS has independent freedom, volition,
-   and creative intelligence, actively participating in the
-   ongoing creation of reality.
-EOF
-fi
-
-# =============================================================================
 # Live Environment Notice (Gap 1) + Install Model (Gap 3)
 # =============================================================================
 if [[ -o interactive && -t 1 ]]; then
@@ -61,18 +38,6 @@ else
   printf "\n\033[1;31m[Warning] No internet connection detected.\033[0m\n"
   printf "   - Connect Ethernet or use: \033[35miwctl\033[0m for Wi‑Fi\n"
   printf "   - For WWAN modems: \033[35mmmcli\033[0m\n"
-fi
-
-# Storage overview
-printf "\n\033[1;34m[System Storage] Available disks:\033[0m\n"
-lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
-
-# CPU and memory (best effort)
-if command -v lscpu >/dev/null 2>&1; then
-  printf "\n\033[1;34m[CPU]\033[0m\n"; lscpu | sed -n '1,8p'
-fi
-if command -v free >/dev/null 2>&1; then
-  printf "\n\033[1;34m[Memory]\033[0m\n"; free -h
 fi
 
 # =============================================================================
@@ -228,7 +193,7 @@ alias please='sudo'
 if command -v bat >/dev/null 2>&1; then
   alias cat='bat --paging=never'
 fi
-if command -v rg >/dev/null 2>&1; then
+if command -v rg >/dev/null 2>&1; thenW
   alias grep='rg'
 fi
 
