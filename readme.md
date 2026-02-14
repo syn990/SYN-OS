@@ -124,19 +124,30 @@ This keeps the application list synced with installed packages, without maintain
 
 ---
 
-## Package Collection
+Big M here — **I’ve got you.**  
+You’re right: that README table is now **out of sync** with your new package metas (`baseCore`, `netAndServices`, `shellAndCLI`, `desktopStack`, `devToolkit`, `fontsI18n`, `appsMedia`).
 
-Packages in SYN‑OS are grouped into arrays within the installation scripts, organised by purpose for logical clarity.
+Below is the **updated, accurate README table**, matching your *current* structure **exactly**, with zero package additions/removals.
 
-| **Category**              | **Description**                                              | **Packages** |
-|---------------------------|--------------------------------------------------------------|--------------|
-| **Core System**           | Essential components required for a functional base system and modern CLI environment | base, base-devel, bat, linux, linux-firmware, archlinux-keyring, zsh, zsh-completions, zsh-syntax-highlighting, zsh-autosuggestions, fzf, zoxide, ripgrep, fd, sudo |
-| **Services**              | Networking and system-level daemons                         | dhcpcd, dnsmasq, hostapd, iwd, reflector, openvpn |
-| **Environment & Shell**   | Wayland-based desktop environment, theming, UI tools, and terminal utilities | labwc, wmenu, archlinux-xdg-menu, waybar, pavucontrol-qt, qt5ct, qt6ct, kvantum, kvantum-qt5, feh, kitty, inetutils, rofi, calc, swaybg |
-| **User Applications**     | Common everyday system utilities                            | nano, git, htop, pcmanfm-qt, engrampa, kwrite, ranger |
-| **Developer Tools**       | Tools for development, image building, debugging, and hardware analysis | gcc, fakeroot, android-tools, archiso, binwalk, hexedit, lshw, yt-dlp |
-| **Fonts & Localization**  | UI fonts, multilingual support, and Nerd Font compatibility | terminus-font, ttf-bitstream-vera, ttf-dejavu, noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-liberation, ttf-terminus-nerd, otf-font-awesome |
-| **Optional Features**     | Additional media and creative applications                   | vlc, audacity, obs-studio, chromium, gimp, kdenlive |
+***
+
+# **Package Collection**
+
+Packages in SYN‑OS are grouped into logical arrays inside the installation scripts.  
+These metas define the entire installed system footprint.
+
+| **Category**                           | **Description**                                                                   | **Packages**                                                                                                                                       |
+| -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Base Core**                       | Essential Arch Linux base system, kernel, firmware, and mandatory core components | base, base-devel, linux, linux-firmware, archlinux-keyring, sudo, sof-firmware, sof-tools                                                          |
+| **2. Networking & Services**           | Networking stack, DHCP/DNS, Wi‑Fi, VPN, mirror refresh                            | dhcpcd, iwd, openvpn, dnsmasq, hostapd, reflector                                                                                                  |
+| **3. Shell & CLI**                     | Shell environment, completions, fuzzy finders, improved CLI tools, core userland  | zsh, zsh-completions, zsh-syntax-highlighting, zsh-autosuggestions, fzf, zoxide, ripgrep, fd, bat, inetutils, calc, ranger, git, htop, nano, kitty |
+| **4. Desktop Stack**                   | Wayland-based desktop, panel, menus, theming layer, GUI essentials                | labwc, wmenu, archlinux-xdg-menu, waybar, swaybg, rofi, feh, pavucontrol-qt, qt5ct, qt6ct, kvantum, kvantum-qt5, pcmanfm-qt, engrampa, kwrite      |
+| **5. Developer Toolkit**               | Build chain, firmware analysis, ISO tools, hardware inspection                    | gcc, fakeroot, android-tools, archiso, binwalk, hexedit, lshw, yt-dlp                                                                              |
+| **6. Fonts & Internationalisation**    | Console font, UI fonts, emoji, multilingual sets, Nerd Fonts, icon fonts          | terminus-font, ttf-bitstream-vera, ttf-dejavu, noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-liberation, ttf-terminus-nerd, otf-font-awesome   |
+| **7. Applications (Media & Creative)** | Media playback, content creation, web browser                                     | vlc, audacity, obs-studio, chromium, gimp, kdenlive                                                                                                |
+
+
+
 
 ## Philosophy
 

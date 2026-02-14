@@ -36,27 +36,44 @@ digraph SYNOS_Expanded_Flow_Dark_v3 {
   // Disk variables
   disk_vars [shape=note, fillcolor="#260101", label="Disk vars:\nWIPE_DISK_990=/dev/vda\nBOOT_PART_990=/dev/vda1\nROOT_PART_990=/dev/vda2\nBOOT_MOUNT=/mnt/boot\nROOT_MOUNT=/mnt\nBOOT_FS=fat32\nROOT_FS=f2fs"];
 
-  // Package arrays
+// Package arrays (UPDATED to new structure)
   subgraph cluster_pkg {
     label="Package arrays";
     style="rounded";
     color="#444444";
     fontcolor="white";
-    core      [shape=note, fillcolor="#260101", label="coreSystem:\n base, base-devel, linux,\n linux-firmware, archlinux-keyring,\n zsh, zsh-completions,\n zsh-syntax-highlighting, fzf,\n zoxide, ripgrep, fd, bat, sudo"];
-    services  [shape=note, fillcolor="#260101", label="services:\n dhcpcd, dnsmasq, hostapd, iwd, reflector"];
-    envshell  [shape=note, fillcolor="#260101", label="environmentShell:\n openbox, archlinux-xdg-menu,\n xorg-server, xorg-xinit, polybar,\n lxrandr, qt5ct, qt6ct, kvantum,\n kvantum-qt5, xcompmgr, feh, kitty,\n inetutils, obconf-qt, rofi,\n python-pywal, calc"];
-    apps      [shape=note, fillcolor="#260101", label="userApplications:\n nano, git, htop, pcmanfm-qt, engrampa, kwrite"];
-    devtools  [shape=note, fillcolor="#260101", label="developerTools:\n gcc, fakeroot, android-tools,\n archiso, binwalk, hexedit, lshw,\n yt-dlp"];
-    fonts     [shape=note, fillcolor="#260101", label="fontsLocalization:\n terminus-font,\n ttf-bitstream-vera,\n ttf-dejavu, noto-fonts,\n noto-fonts-emoji,\n noto-fonts-cjk, ttf-liberation"];
-    optional  [shape=note, fillcolor="#260101", label="optionalFeatures:\n vlc, audacity,\n obs-studio, chromium,\n gimp, kdenlive"];
+
+    baseCore [shape=note, fillcolor="#260101",
+      label="baseCore:\n base, base-devel,\n linux, linux-firmware,\n archlinux-keyring,\n sudo,\n sof-firmware,\n sof-tools"];
+
+    netAndServices [shape=note, fillcolor="#260101",
+      label="netAndServices:\n dhcpcd, iwd,\n openvpn,\n dnsmasq, hWostapd,\n reflector"];
+
+    shellAndCLI [shape=note, fillcolor="#260101",
+      label="shellAndCLI:\n zsh, zsh-completions,\n zsh-syntax-highlighting,\n zsh-autosuggestions,\n fzf, zoxide,\n ripgrep, fd,\n bat, inetutils,\n calc, ranger,\n git, htop,\n nano, kitty"];
+
+    desktopStack [shape=note, fillcolor="#260101",
+      label="desktopStack:\n labwc, wmenu,\n archlinux-xdg-menu,\n waybar, swaybg,\n rofi, feh,\n pavucontrol-qt,\n qt5ct, qt6ct,\n kvantum, kvantum-qt5,\n pcmanfm-qt,\n engrampa, kwrite"];
+
+    devToolkit [shape=note, fillcolor="#260101",
+      label="devToolkit:\n gcc, fakeroot,\n android-tools,\n archiso, binwalk,\n hexedit, lshw,\n yt-dlp"];
+
+    fontsI18n [shape=note, fillcolor="#260101",
+      label="fontsI18n:\n terminus-font,\n ttf-bitstream-vera,\n ttf-dejavu,\n noto-fonts,\n noto-fonts-emoji,\n noto-fonts-cjk,\n ttf-liberation,\n ttf-terminus-nerd,\n otf-font-awesome"];
+
+    appsMedia [shape=note, fillcolor="#260101",
+      label="appsMedia:\n vlc, audacity,\n obs-studio,\n chromium,\n gimp, kdenlive"];
+
     synstall  [shape=note, fillcolor="#260101", label="SYNSTALL"];
-    core     -> synstall [style=dotted, color="#888888"];
-    services -> synstall [style=dotted, color="#888888"];
-    envshell -> synstall [style=dotted, color="#888888"];
-    apps     -> synstall [style=dotted, color="#888888"];
-    devtools -> synstall [style=dotted, color="#888888"];
-    fonts    -> synstall [style=dotted, color="#888888"];
-    optional -> synstall [style=dotted, color="#888888"];
+
+    // connections
+    baseCore       -> synstall [style=dotted, color="#888888"];
+    netAndServices -> synstall [style=dotted, color="#888888"];
+    shellAndCLI    -> synstall [style=dotted, color="#888888"];
+    desktopStack   -> synstall [style=dotted, color="#888888"];
+    devToolkit     -> synstall [style=dotted, color="#888888"];
+    fontsI18n      -> synstall [style=dotted, color="#888888"];
+    appsMedia      -> synstall [style=dotted, color="#888888"];
   }
 
   // Dotfile overlay node
