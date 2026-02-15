@@ -220,7 +220,6 @@ You have successfully installed SYN-OS with $BOOTLOADER bootloader.
 Please ensure that your computer's BIOS or UEFI or Virtual Machine is configured to boot from the newly installed disk.
 After verifying the boot configuration, you can now exit and reboot to start using SYN-OS.
 
-To exit the chroot environment, type: exit
-Then, to reboot the system, type: reboot
+To reboot the system, type: reboot
 
 EOF

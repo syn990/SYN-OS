@@ -16,7 +16,7 @@ install_dir="arch"
 buildmodes=('iso')
 bootmodes=(
   'bios.syslinux'
-  'uefi.grub'
+  'uefi.systemd-boot'
 )
 arch="x86_64"
 pacman_conf="pacman.conf"

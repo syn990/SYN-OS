@@ -193,7 +193,7 @@ alias please='sudo'
 if command -v bat >/dev/null 2>&1; then
   alias cat='bat --paging=never'
 fi
-if command -v rg >/dev/null 2>&1; thenW
+if command -v rg >/dev/null 2>&1; then
   alias grep='rg'
 fi
 
