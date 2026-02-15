@@ -17,8 +17,6 @@ fd
 fzf
 gparted
 grml-zsh-config
-grub
-hyperv
 iwd
 kbd
 linux
@@ -29,6 +27,7 @@ mkinitcpio
 mkinitcpio-archiso
 modemmanager
 nano
+openbsd-netcat
 open-vm-tools
 openssh
 parted
