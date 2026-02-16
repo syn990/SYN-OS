@@ -1,55 +1,102 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
 
-  <menu id="root-menu" label="SYN-OS Menu">
+  <menu id="root-menu" label="SYN-OS">
 
-    <!-- Dynamic XDG-based applications menu -->
-    <menu id="dynamic_menu"
-          label="Applications"
-          execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
-
-    <!-- Apps -->
-    <separator label="Applications" />
-    <item label="Shadow">
+    <separator label=" EXECUTION " />
+    <item label="TERMINAL">
+      <action name="Execute" command="kitty"/>
+    </item>
+    <item label="SHADOW">
       <action name="Execute" command="/home/syntax990/Downloads/squashfs-root/shadow-launcher"/>
     </item>
 
-    <item label="Terminal">
-      <action name="Execute" command="kitty"/>
+    <separator label=" SOFTWARE " />
+    <menu id="dynamic_menu"
+          label="APPLICATIONS"
+          execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
+
+    <separator label=" SYSTEM CONTROL " />
+    <menu id="control-center" label="CONTROL CENTER">
+
+      <separator label=" MONITOR SETUP " />
+      <menu id="display-settings" label="DISPLAY &amp; SCREENS">
+        <item label="INTERNAL (eDP-1) ON">
+          <action name="Execute" command="wlr-randr --output eDP-1 --on"/>
+        </item>
+        <item label="INTERNAL (eDP-1) OFF">
+          <action name="Execute" command="wlr-randr --output eDP-1 --off"/>
+        </item>
+        <separator />
+        <item label="EXTERNAL (DP-1) ON">
+          <action name="Execute" command="wlr-randr --output DP-1 --on"/>
+        </item>
+        <item label="EXTERNAL (DP-1) OFF">
+          <action name="Execute" command="wlr-randr --output DP-1 --off"/>
+        </item>
+        <separator />
+        <item label="HDMI-A-1 ON">
+          <action name="Execute" command="wlr-randr --output HDMI-A-1 --on"/>
+        </item>
+        <item label="HDMI-A-1 OFF">
+          <action name="Execute" command="wlr-randr --output HDMI-A-1 --off"/>
+        </item>
+      </menu>
+
+      <separator label=" UI PREFERENCES " />
+      <menu id="gui-settings" label="SYSTEM SETTINGS">
+        <item label="QT5 CONTROLS">
+          <action name="Execute" command="qt5ct"/>
+        </item>
+        <item label="QT6 CONTROLS">
+          <action name="Execute" command="qt6ct"/>
+        </item>
+        <item label="AUDIO MIXER">
+          <action name="Execute" command="pavucontrol-qt"/>
+        </item>
+      </menu>
+
+      <separator label=" SOURCE CODE " />
+      <menu id="edit-configs-sub" label="THEMING &amp; DEVELOPMENT">
+        <item label="WAYBAR CONFIG">
+          <action name="Execute" command="kwrite ~/.config/waybar/config.jsonc"/>
+        </item>
+        <item label="WAYBAR STYLE">
+          <action name="Execute" command="kwrite ~/.config/waybar/style.css"/>
+        </item>
+        <item label="LABWC MENU">
+          <action name="Execute" command="kwrite ~/.config/labwc/menu.xml"/>
+        </item>
+        <item label="LABWC CONFIG (RC)">
+          <action name="Execute" command="kwrite ~/.config/labwc/rc.xml"/>
+        </item>
+        <item label="LABWC AUTOSTART">
+          <action name="Execute" command="kwrite ~/.config/labwc/autostart"/>
+        </item>
+        <item label="SYN-OS THEME (RED)">
+          <action name="Execute" command="kwrite /usr/share/themes/SYN-OS-RED/openbox-3/themerc"/>
+        </item>
+      </menu>
+
+    </menu>
+
+    <separator label=" INTERFACE " />
+    <item label="RELOAD UI">
+      <action name="Reconfigure" />
     </item>
 
-    <!-- UI Settings -->
-    <separator label="UI Settings" />
-
-    <item label="QT5 Controls">
-      <action name="Execute" command="qt5ct"/>
-    </item>
-
-    <item label="QT6 Controls">
-      <action name="Execute" command="qt6ct"/>
-    </item>
-
-    <!-- Audio / Visual -->
-    <separator label="Audio / Visual" />
-
-    <item label="Audio Mixer">
-      <action name="Execute" command="pavucontrol-qt"/>
-    </item>
-
-    <!-- System Controls -->
-    <separator label="System" />
-
-    <item label="Return to TTY">
-      <action name="Execute" command="pkill labwc"/>
-    </item>
-
-    <item label="Reboot">
-      <action name="Execute" command="systemctl reboot"/>
-    </item>
-
-    <item label="Poweroff">
-      <action name="Execute" command="systemctl poweroff"/>
-    </item>
+    <separator label=" POWER " />
+    <menu id="power-menu" label="POWER OPTIONS">
+      <item label="RETURN TO TTY">
+        <action name="Execute" command="pkill labwc"/>
+      </item>
+      <item label="REBOOT">
+        <action name="Execute" command="systemctl reboot"/>
+      </item>
+      <item label="POWEROFF">
+        <action name="Execute" command="systemctl poweroff"/>
+      </item>
+    </menu>
 
   </menu>
 

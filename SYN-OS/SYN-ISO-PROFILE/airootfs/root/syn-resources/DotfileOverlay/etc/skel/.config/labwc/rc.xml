@@ -1,41 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <labwc_config>
-  <!-- THEME -->
+
   <theme>
-    <name>SYN-RTOS-DARK-RED</name>
+    <name>SYN-OS-RED</name>
     <titleLayout>NLIMC</titleLayout>
-    <!-- For finer tweaks, use ~/.config/labwc/themerc-override -->
+
+    <font place="ActiveWindow">
+      <name>Terminus</name>
+      <size>10</size>
+      <weight>Bold</weight>
+    </font>
+    <font place="InactiveWindow">
+      <name>Terminus</name>
+      <size>10</size>
+    </font>
+    <font place="MenuHeader">
+      <name>Terminus</name>
+      <size>10</size>
+      <weight>Bold</weight>
+    </font>
+    <font place="MenuItem">
+      <name>Terminus</name>
+      <size>10</size>
+    </font>
+    <font place="OnScreenDisplay">
+      <name>Terminus</name>
+      <size>10</size>
+    </font>
   </theme>
 
-  <!-- DESKTOPS / WORKSPACES -->
   <desktops number="4">
     <names>
       <name>🃁 [Terminal]</name>
-      <name>ℐ [Web Browser]</name>
+      <name>ℐ [Web]</name>
       <name>ℕ [Media]</name>
-      <name>⌘ [External / Misc]</name>
+      <name>⌘ [External]</name>
     </names>
   </desktops>
+  
+<mouse>
+  <mousebind button="A-Left" action="Move"/>
+  <mousebind button="A-Right" action="Resize"/>
+  <mousebind button="A-Middle" action="Lower"/> 
+</mouse>
 
-  <!-- KEYBOARD -->
   <keyboard>
-    <!-- Menu -->
+
     <keybind key="W-space">
       <action name="ShowMenu" menu="root-menu"/>
     </keybind>
 
-    <!-- Core apps (change to your prefs if needed) -->
+    <keybind key="W-Escape">
+      <action name="Reconfigure"/>
+    </keybind>
+
+    <keybind key="W-l">
+      <action name="Execute" command="swaylock -f -c 1a0000"/>
+    </keybind>
+
+    <keybind key="W-S-e">
+      <action name="Exit"/>
+    </keybind>
+
     <keybind key="W-Return">
       <action name="Execute" command="foot"/>
     </keybind>
+
     <keybind key="W-a">
       <action name="Execute" command="fuzzel"/>
     </keybind>
+
     <keybind key="W-q">
       <action name="Close"/>
     </keybind>
 
-    <!-- Window switching -->
     <keybind key="A-Tab">
       <action name="NextWindow"/>
     </keybind>
@@ -46,36 +84,29 @@
       <action name="ToggleMaximize"/>
     </keybind>
 
-    <!-- Desktop navigation (left/right & direct 1-4) -->
-    <keybind key="C-A-Left">
-      <action name="GoToDesktop" to="left" wrap="no"/>
-    </keybind>
-    <keybind key="C-A-Right">
-      <action name="GoToDesktop" to="right" wrap="no"/>
-    </keybind>
-    <keybind key="S-A-Left">
-      <action name="SendToDesktop" to="left" wrap="no"/>
-    </keybind>
-    <keybind key="S-A-Right">
-      <action name="SendToDesktop" to="right" wrap="no"/>
-    </keybind>
+    <keybind key="W-S-Left"><action name="MoveToEdge" direction="left"/></keybind>
+    <keybind key="W-S-Right"><action name="MoveToEdge" direction="right"/></keybind>
+    <keybind key="W-S-Up"><action name="MoveToEdge" direction="up"/></keybind>
+    <keybind key="W-S-Down"><action name="MoveToEdge" direction="down"/></keybind>
+
+    <keybind key="C-A-Left"><action name="GoToDesktop" to="left" wrap="no"/></keybind>
+    <keybind key="C-A-Right"><action name="GoToDesktop" to="right" wrap="no"/></keybind>
+    <keybind key="S-A-Left"><action name="SendToDesktop" to="left" wrap="no"/></keybind>
+    <keybind key="S-A-Right"><action name="SendToDesktop" to="right" wrap="no"/></keybind>
+
     <keybind key="W-1"><action name="GoToDesktop" to="1"/></keybind>
     <keybind key="W-2"><action name="GoToDesktop" to="2"/></keybind>
     <keybind key="W-3"><action name="GoToDesktop" to="3"/></keybind>
     <keybind key="W-4"><action name="GoToDesktop" to="4"/></keybind>
 
-    <!-- Brightness (percentage for wider hardware compatibility) -->
-    <keybind key="W-Up">
-      <action name="Execute" command="brightnessctl set +10%"/>
-    </keybind>
-    <keybind key="W-Down">
-      <action name="Execute" command="brightnessctl set 10%-"/>
-    </keybind>
+    <keybind key="W-Up"><action name="Execute" command="brightnessctl set +10%"/></keybind>
+    <keybind key="W-Down"><action name="Execute" command="brightnessctl set 10%"/></keybind>
 
-    <!-- Screenshot (grim + slurp; creates timestamped file in ~/Pictures/Screenshots) -->
     <keybind key="W-p">
       <action name="Execute"
-              command="sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g &quot;$(slurp)&quot; ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'"/>
+        command="sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g &quot;$(slurp)&quot; ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'"/>
     </keybind>
+
   </keyboard>
+
 </labwc_config>
