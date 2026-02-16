@@ -11,7 +11,7 @@
 # =============================================================================
 
 # Set random wallpaper found in the directory
-#feh --bg-scale --randomize ~/.wallpaper/* &
+swaybg -i .wallpaper/SYN-OS-Synaptics.png &
 
 # Launch waybar.  
 waybar

@@ -69,7 +69,7 @@ shellAndCLI=(
   "calc"                     # Arbitrary precision console calculator
   "ranger"                   # Terminal file explorer
   "git"                      # Version control
-  "htop"                     # Process viewer
+  "btop"                     # Process viewer
   "nano"                     # Console text editor
   "kitty"                    # Terminal emulator
 )
@@ -92,6 +92,7 @@ desktopStack=(
   "pcmanfm-qt"            # File manager (Qt)
   "engrampa"              # Archive manager
   "kwrite"                # Lightweight GUI text editor
+  "slurp"                 # Select a region in a Wayland compositor a.k.a Screenshots
 )
 
 ########################################################################################################
