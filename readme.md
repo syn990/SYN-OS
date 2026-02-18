@@ -122,6 +122,13 @@ LabWC’s menu system can incorporate automatically generated XDG menus from:
 
 This keeps the application list synced with installed packages, without maintaining menu items manually.
 
+---
+
+Big M here — **I’ve got you.**  
+You’re right: that README table is now **out of sync** with your new package metas (`baseCore`, `netAndServices`, `shellAndCLI`, `desktopStack`, `devToolkit`, `fontsI18n`, `appsMedia`).
+
+Below is the **updated, accurate README table**, matching your *current* structure **exactly**, with zero package additions/removals.
+
 ***
 
 # **Package Collection**
@@ -133,7 +140,7 @@ These metas define the entire installed system footprint.
 | -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1. Base Core**                       | Essential Arch Linux base system, kernel, firmware, and mandatory core components | base, base-devel, linux, linux-firmware, archlinux-keyring, sudo, sof-firmware, sof-tools                                                          |
 | **2. Networking & Services**           | Networking stack, DHCP/DNS, Wi‑Fi, VPN, mirror refresh                            | dhcpcd, iwd, openvpn, dnsmasq, hostapd, reflector                                                                                                  |
-| **3. Shell & CLI**                     | Shell environment, completions, fuzzy finders, improved CLI tools, core userland  | zsh, zsh-completions, zsh-syntax-highlighting, zsh-autosuggestions, fzf, zoxide, ripgrep, fd, bat, inetutils, calc, ranger, git, htop, nano, kitty |
+| **3. Shell & CLI**                     | Shell environment, completions, fuzzy finders, improved CLI tools, core userland  | zsh, zsh-completions, zsh-syntax-highlighting, zsh-autosuggestions, fzf, zoxide, ripgrep, fd, bat, inetutils, calc, ranger, git, btop, nano, foot  |
 | **4. Desktop Stack**                   | Wayland-based desktop, panel, menus, theming layer, GUI essentials                | labwc, wmenu, archlinux-xdg-menu, waybar, swaybg, rofi, feh, pavucontrol-qt, qt5ct, qt6ct, kvantum, kvantum-qt5, pcmanfm-qt, engrampa, kwrite      |
 | **5. Developer Toolkit**               | Build chain, firmware analysis, ISO tools, hardware inspection                    | gcc, fakeroot, android-tools, archiso, binwalk, hexedit, lshw, yt-dlp                                                                              |
 | **6. Fonts & Internationalisation**    | Console font, UI fonts, emoji, multilingual sets, Nerd Fonts, icon fonts          | terminus-font, ttf-bitstream-vera, ttf-dejavu, noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-liberation, ttf-terminus-nerd, otf-font-awesome   |
@@ -241,8 +248,8 @@ SYN-OS/
 │   │   │           │   ├─ os-release
 │   │   │           │   ├─ skel/          # -> becomes /etc/skel
 │   │   │           │   │   └─ .config/
-│   │   │           │   │       ├─ htop/
-│   │   │           │   │       ├─ kitty/
+│   │   │           │   │       ├─ btop/
+│   │   │           │   │       ├─ foot/
 │   │   │           │   │       ├─ labwc/
 │   │   │           │   │       ├─ pcmanfm-qt/
 │   │   │           │   │       ├─ qt5ct/
@@ -252,12 +259,8 @@ SYN-OS/
 │   │   │           │
 │   │   │           └─ usr/
 │   │   │               └─ share/
-│   │   │                   └─ themes/    # Legacy/Openbox themes retained for users
-│   │   │                       ├─ Retro 1 (Terminal)
-│   │   │                       ├─ Retro 5 (Classic 98) ObiWine
-│   │   │                       ├─ SYN-RTOS
-│   │   │                       ├─ SYN-RTOS-DARK-GREEN
-│   │   │                       └─ SYN-RTOS-DARK-RED
+│   │   │                   └─ themes/    # Single Default Labwc/Openbox theme
+│   │   │                       └─ SYN-OS-RED
 │   │   │
 │   │   └─ usr/local/bin/
 │   │       └─ choose-mirror              # Tool used in the ISO runtime
@@ -265,7 +268,6 @@ SYN-OS/
 │   ├─ packages.x86_64                    # Packages in the LIVE ISO
 │   ├─ bootstrap_packages.x86_64          # Early bootstrap packages
 │   ├─ efiboot/                           # UEFI bootloader (systemd-boot)
-│   ├─ grub/                              # GRUB BIOS bootloader
 │   ├─ syslinux/                          # Syslinux BIOS bootloader
 │   ├─ pacman.conf                        # Pacman config used during ISO build
 │   └─ profiledef.sh                      # ArchISO profile definition
@@ -294,7 +296,7 @@ This is the **installed system’s defaults**:
 - `/etc/skel/.config/*`  
 - LabWC config  
 - Waybar modules + CSS  
-- Kitty, Qt5ct, Ranger configs  
+- Foot, Qt5ct, Ranger configs  
 - themes added under `/usr/share/themes`  
 
 These are merged by Stage 1 into the target system’s filesystem.
@@ -367,7 +369,7 @@ scripts/syn-stage1.zsh
 **Change default configs / dotfiles / desktop layout:**
 
 ```
-overlays/DotfileOverlay/skel/.config/*       (LabWC, Waybar, Kitty, Qt5ct, etc.)
+overlays/DotfileOverlay/skel/.config/*       (LabWC, Waybar, Foot, Qt5ct, etc.)
 overlays/etc/*                               (system configs)
 syn-resources/*                              (menus, scripts, assets)
 ```
