@@ -34,13 +34,12 @@ echo "Setting up new system variables"
 # -----------------------------------------------------------------------------#
 # Simple, local config (EDIT THESE HERE FOR YOUR PERSONAL PREFERENCES)
 # -----------------------------------------------------------------------------#
-DEFAULT_USER="syntax990"
-FINAL_HOSTNAME="SYN-TESTBUILD"
+DEFAULT_USER="syntax990"                #  THIS WILL BE YOUR USERNAME
+FINAL_HOSTNAME="SYN-TESTBUILD"          #  THIS WILL BE YOUR HOSTNAME
 LOCALE_GEN="en_GB.UTF-8 UTF-8"
 LOCALE_CONF="LANG=en_GB.UTF-8"
 ZONE_INFO="GB"
-SHELL_CHOICE="/bin/zsh"
-NETWORK_INTERFACE="$(ip -o -4 route show to default 2>/dev/null | awk '{print $5}')"
+SHELL_CHOICE="/bin/zsh"                 #  DO NOT CHANGE UNLESS YOU HAVE REPLACEMENT DOTFILES
 # -----------------------------------------------------------------------------#
 # -----------------------------------------------------------------------------#
 # Detect SYNOS_ENV to determine UEFI or MBR setup
@@ -120,11 +119,7 @@ chmod +x "/home/$DEFAULT_USER/.config/ranger/scope.sh"
 
 # Networking
 echo "Enabling systemd services for networking"
-if [ -n "$NETWORK_INTERFACE" ]; then
-    systemctl enable "dhcpcd@${NETWORK_INTERFACE}.service" || systemctl enable dhcpcd.service
-else
-    systemctl enable dhcpcd.service
-fi
+systemctl enable dhcpcd.service
 systemctl enable iwd.service
 
 # Bootloader setup based on SYNOS_ENV
@@ -145,7 +140,8 @@ if [ "$SYNOS_ENV" = "UEFI" ]; then
         echo "title    SYN-OS"
         echo "linux    /vmlinuz-linux"
         echo "initrd   /initramfs-linux.img"
-        echo "options  root=UUID=$ROOT_UUID rw"
+        echo "options  root=UUID=$ROOT_UUID rw vconsole.font=ter-v16n vconsole.keymap=us
+"
     } > /boot/loader/entries/syn.conf
 
     # mkinitcpio

@@ -71,7 +71,9 @@ shellAndCLI=(
   "git"                      # Version control
   "btop"                     # Process viewer
   "nano"                     # Console text editor
-  "kitty"                    # Terminal emulator
+  "foot"                     # Terminal emulator
+  "brightnessctl"            # Brightness Control
+  "pamixer"                  # Volume Control
 )
 
 ########################################################################################################

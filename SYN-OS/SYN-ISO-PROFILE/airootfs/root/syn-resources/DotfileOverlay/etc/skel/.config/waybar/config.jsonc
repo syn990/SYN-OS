@@ -1,14 +1,9 @@
-// -*- mode: jsonc -*-
 {
     "height": 28,
     "spacing": 6,
 
-    /* =====================
-       LAYOUT
-       ===================== */
-
     "modules-left": [
-        "custom/obmenu",
+        "custom/glyph",
         "wlr/workspaces"
     ],
 
@@ -21,6 +16,9 @@
         "network",
         "cpu",
         "memory",
+        "temperature",
+        "backlight",
+        "custom/disk",
         "battery",
         "clock",
         "custom/power"
@@ -30,12 +28,12 @@
        CUSTOM MODULES
        ===================== */
 
-    "custom/obmenu": {
+    "custom/glyph": {
         "return-type": "json",
         "format": "{}",
+        "exec": "$HOME/.config/waybar/glyph-rotator.sh",
+        "interval": 1,
         "tooltip": false,
-        "exec": "$HOME/.config/waybar/daynight-obmenu.sh",
-        "interval": 60,
         "on-click": "wmenu-run -N '#000000' -n '#ffffff' -S '#400101' -s '#ffffff' -M '#260101' -m '#ffffff'"
     },
 
@@ -53,7 +51,7 @@
     },
 
     /* =====================
-       MODULE CONFIG
+       CORE MODULE SETTINGS
        ===================== */
 
     "wlr/workspaces": {
@@ -64,7 +62,8 @@
             "1": "🃁",
             "2": "ℐ",
             "3": "ℕ",
-            "4": "⌘"
+            "4": "⌘",
+            "default": "•"
         }
     },
 
@@ -79,14 +78,18 @@
         "format-icons": {
             "default": ["", "", ""]
         },
-        "on-click": "pavucontrol"
+        "on-click": "pavucontrol",
+        "on-click-middle": "pamixer -t",
+        "on-scroll-up": "pamixer -i 5",
+        "on-scroll-down": "pamixer -d 5",
+        "scroll-step": 5
     },
 
     "network": {
         "format-wifi": "  {essid}",
-        "format-ethernet": "󰈀  {ipaddr}",
+        "format-ethernet": "󰈀 {ipaddr}",
         "format-disconnected": "󰤮",
-        "tooltip-format": "{ifname}\n{ipaddr}/{cidr}"
+        "tooltip-format": "{ifname} {ipaddr}/{cidr}\n↓ {bandwidthDownBits} ↑ {bandwidthUpBits}"
     },
 
     "cpu": {
@@ -98,7 +101,29 @@
 
     "memory": {
         "interval": 5,
-        "format": "{}% ",
+        "format": "{percentage}% ",
+        "tooltip": false,
+        "on-click": "kitty -e btop"
+    },
+
+    "temperature": {
+        "critical-threshold": 80,
+        "format": "{temperatureC}°C ",
+        "interval": 5,
+        "tooltip": false
+    },
+
+    "backlight": {
+        "device": "intel_backlight",
+        "format": "{percent}% ",
+        "on-scroll-up": "brightnessctl set +5%",
+        "on-scroll-down": "brightnessctl set 5%-"
+    },
+
+    "custom/disk": {
+        "interval": 30,
+        "format": " {}",
+        "exec": "df -h --output=used,size / | awk 'NR==2{print $1\"/\"$2}'",
         "tooltip": false,
         "on-click": "kitty -e btop"
     },

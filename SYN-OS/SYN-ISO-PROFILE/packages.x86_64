@@ -38,6 +38,7 @@ reflector
 ripgrep
 syslinux
 systemd-resolvconf
+terminus-font
 testdisk
 virtualbox-guest-utils-nox
 wireless_tools

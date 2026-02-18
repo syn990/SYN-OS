@@ -3,98 +3,71 @@
 
   <menu id="root-menu" label="SYN-OS">
 
-    <separator label=" EXECUTION " />
-    <item label="TERMINAL">
-      <action name="Execute" command="kitty"/>
+    <!-- Applications -->
+    <separator label=" APPLICATIONS " />
+    <item label="Terminal">
+      <action name="Execute"><command>foot</command></action>
     </item>
-    <item label="SHADOW">
-      <action name="Execute" command="/home/syntax990/Downloads/squashfs-root/shadow-launcher"/>
+    <item label="File browser">
+      <action name="Execute"><command>pcmanfm-qt</command></action>
+    </item>
+    <item label="Shadow Launcher">
+      <action name="Execute"><command>/home/syntax990/Downloads/squashfs-root/shadow-launcher</command></action>
     </item>
 
-    <separator label=" SOFTWARE " />
-    <menu id="dynamic_menu"
-          label="APPLICATIONS"
+    <menu id="dynamic_apps"
+          label="All Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
 
+    <!-- System Control -->
     <separator label=" SYSTEM CONTROL " />
-    <menu id="control-center" label="CONTROL CENTER">
 
-      <separator label=" MONITOR SETUP " />
-      <menu id="display-settings" label="DISPLAY &amp; SCREENS">
-        <item label="INTERNAL (eDP-1) ON">
-          <action name="Execute" command="wlr-randr --output eDP-1 --on"/>
-        </item>
-        <item label="INTERNAL (eDP-1) OFF">
-          <action name="Execute" command="wlr-randr --output eDP-1 --off"/>
-        </item>
-        <separator />
-        <item label="EXTERNAL (DP-1) ON">
-          <action name="Execute" command="wlr-randr --output DP-1 --on"/>
-        </item>
-        <item label="EXTERNAL (DP-1) OFF">
-          <action name="Execute" command="wlr-randr --output DP-1 --off"/>
-        </item>
-        <separator />
-        <item label="HDMI-A-1 ON">
-          <action name="Execute" command="wlr-randr --output HDMI-A-1 --on"/>
-        </item>
-        <item label="HDMI-A-1 OFF">
-          <action name="Execute" command="wlr-randr --output HDMI-A-1 --off"/>
-        </item>
-      </menu>
+    <menu id="audio-pipe" label="Audio Settings (Dynamic)"
+          execute="~/.config/labwc/labwc-audio-menu.zsh" />
 
-      <separator label=" UI PREFERENCES " />
-      <menu id="gui-settings" label="SYSTEM SETTINGS">
-        <item label="QT5 CONTROLS">
-          <action name="Execute" command="qt5ct"/>
-        </item>
-        <item label="QT6 CONTROLS">
-          <action name="Execute" command="qt6ct"/>
-        </item>
-        <item label="AUDIO MIXER">
-          <action name="Execute" command="pavucontrol-qt"/>
-        </item>
-      </menu>
+    <menu id="displays-pipe" label="Display &amp; Screens (Dynamic)"
+          execute="~/.config/labwc/labwc-wlr-menu.zsh" />
 
-      <separator label=" SOURCE CODE " />
-      <menu id="edit-configs-sub" label="THEMING &amp; DEVELOPMENT">
-        <item label="WAYBAR CONFIG">
-          <action name="Execute" command="kwrite ~/.config/waybar/config.jsonc"/>
-        </item>
-        <item label="WAYBAR STYLE">
-          <action name="Execute" command="kwrite ~/.config/waybar/style.css"/>
-        </item>
-        <item label="LABWC MENU">
-          <action name="Execute" command="kwrite ~/.config/labwc/menu.xml"/>
-        </item>
-        <item label="LABWC CONFIG (RC)">
-          <action name="Execute" command="kwrite ~/.config/labwc/rc.xml"/>
-        </item>
-        <item label="LABWC AUTOSTART">
-          <action name="Execute" command="kwrite ~/.config/labwc/autostart"/>
-        </item>
-        <item label="SYN-OS THEME (RED)">
-          <action name="Execute" command="kwrite /usr/share/themes/SYN-OS-RED/openbox-3/themerc"/>
-        </item>
-      </menu>
-
+    <!-- Config / Editing -->
+    <separator label=" CONFIGURATION " />
+    <menu id="edit-configs" label="Edit Configuration Files">
+      <item label="Waybar Config">
+        <action name="Execute"><command>kwrite ~/.config/waybar/config.jsonc</command></action>
+      </item>
+      <item label="Waybar Style">
+        <action name="Execute"><command>kwrite ~/.config/waybar/style.css</command></action>
+      </item>
+      <item label="Labwc Menu">
+        <action name="Execute"><command>kwrite ~/.config/labwc/menu.xml</command></action>
+      </item>
+      <item label="Labwc RC">
+        <action name="Execute"><command>kwrite ~/.config/labwc/rc.xml</command></action>
+      </item>
+      <item label="Labwc Autostart">
+        <action name="Execute"><command>kwrite ~/.config/labwc/autostart</command></action>
+      </item>
+      <item label="SYN‑OS Theme (RED)">
+        <action name="Execute"><command>kwrite /usr/share/themes/SYN-OS-RED/openbox-3/themerc</command></action>
+      </item>
     </menu>
 
+    <!-- Interface -->
     <separator label=" INTERFACE " />
-    <item label="RELOAD UI">
+    <item label="Reload UI">
       <action name="Reconfigure" />
     </item>
 
+    <!-- Power -->
     <separator label=" POWER " />
-    <menu id="power-menu" label="POWER OPTIONS">
-      <item label="RETURN TO TTY">
-        <action name="Execute" command="pkill labwc"/>
+    <menu id="power-menu" label="Power Options">
+      <item label="Return to TTY">
+        <action name="Execute"><command>pkill labwc</command></action>
       </item>
-      <item label="REBOOT">
-        <action name="Execute" command="systemctl reboot"/>
+      <item label="Reboot">
+        <action name="Execute"><command>systemctl reboot</command></action>
       </item>
-      <item label="POWEROFF">
-        <action name="Execute" command="systemctl poweroff"/>
+      <item label="Power Off">
+        <action name="Execute"><command>systemctl poweroff</command></action>
       </item>
     </menu>
 
