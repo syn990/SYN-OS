@@ -124,13 +124,6 @@ This keeps the application list synced with installed packages, without maintain
 
 ---
 
-Big M here — **I’ve got you.**  
-You’re right: that README table is now **out of sync** with your new package metas (`baseCore`, `netAndServices`, `shellAndCLI`, `desktopStack`, `devToolkit`, `fontsI18n`, `appsMedia`).
-
-Below is the **updated, accurate README table**, matching your *current* structure **exactly**, with zero package additions/removals.
-
-***
-
 # **Package Collection**
 
 Packages in SYN‑OS are grouped into logical arrays inside the installation scripts.  
