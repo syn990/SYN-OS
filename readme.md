@@ -20,7 +20,7 @@ SYN-OS is designed for those who want:
 **Latest Release:**  
 - **Name:** SYN-OS SYNAPTICS Edition
 - **Size:** ~1.1 GB  
-- **Download:** [SYN-OS SYNAPTICS (FEB 2026).iso](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
+- **Download:** [SYN-OS SYNAPTICS (FEB 2026).iso](https://drive.google.com/file/d/1WoAZEUe2TMsc_FsH-JCjo8ZFIjcHK3SU/view?usp=sharing)
 
 **Older Releases:**
 - [SYN-OS XENITH (JAN 2026).iso](https://drive.google.com/file/d/1bbKsw2FQ7d2Pb8Os1lwERGEyG5j3pnpg/view?usp=sharing)
