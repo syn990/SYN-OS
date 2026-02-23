@@ -36,7 +36,7 @@ baseCore=(
   "linux"                # Linux kernel
   "linux-firmware"       # Common device firmware
   "archlinux-keyring"    # Official Arch Linux package signing keys
-  "sudo"                 # Privilege escalation tool
+  "opendoas"             # Privilege escalation tool
   "sof-firmware"         # Sound Open Firmware
   "sof-tools"            # Sound Open Firmware Tools
   "f2fs-tools"           # F2FS filesystem utilities (mkfs.f2fs, fsck.f2fs)

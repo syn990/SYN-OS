@@ -102,20 +102,27 @@ echo "$LOCALE_CONF" > /etc/locale.conf
 echo "$FINAL_HOSTNAME" > /etc/hostname
 ln -sf "/usr/share/zoneinfo/$ZONE_INFO" /etc/localtime
 
-# Sudoers for wheel
-echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/990_wheel
-chmod 440 /etc/sudoers.d/990_wheel
+# Doas configuration for wheel group
+echo "permit persist :wheel" > /etc/doas.conf
+chmod 600 /etc/doas.conf
+
+# Sudo Pseudo spoofer for doas (arch linux expects sudo)
+printf '#!/bin/sh\nexec doas "$@"\n' | tee /usr/bin/sudo > /dev/null
+chmod 755 /usr/bin/sudo
+pacman -Rdd --noconfirm sudo
 
 # User account
 echo "Creating user $DEFAULT_USER's account"
 useradd -m -G wheel -s "$SHELL_CHOICE" "$DEFAULT_USER"
 echo "Set password for user $DEFAULT_USER:"
 passwd "$DEFAULT_USER"
-chown -R "$DEFAULT_USER:$DEFAULT_USER" "/home/$DEFAULT_USER"
 
-# Ensure custom SYN‑OS scripts are executable (if present)
-chmod +x "/home/$DEFAULT_USER/.config/waybar/daynight-obmenu.sh"
+# Ensure custom SYN‑OS scripts are executable
+chown -R "$DEFAULT_USER:$DEFAULT_USER" "/home/$DEFAULT_USER"
+chmod +x "/home/$DEFAULT_USER/.config/labwc/labwc-audio-menu.sh"
+chmod +x "/home/$DEFAULT_USER/.config/labwc/labwc-wlr-menu.sh"
 chmod +x "/home/$DEFAULT_USER/.config/ranger/scope.sh"
+chmod +x "/home/$DEFAULT_USER/.config/waybar/glyph-rotator.sh"
 
 # Networking
 echo "Enabling systemd services for networking"

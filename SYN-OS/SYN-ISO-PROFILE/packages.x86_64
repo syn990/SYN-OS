@@ -3,7 +3,6 @@ arch-install-scripts
 archlinux-keyring
 base
 bat
-bat
 bind
 broadcom-wl
 curl
@@ -12,15 +11,14 @@ dhcpcd
 dnsmasq
 dosfstools
 edk2-shell
+e2fsprogs
 f2fs-tools
 fd
 fzf
 gparted
-grml-zsh-config
 iwd
 kbd
 linux
-linux-atm
 linux-firmware
 linux-firmware-marvell
 mkinitcpio
@@ -40,7 +38,6 @@ syslinux
 systemd-resolvconf
 terminus-font
 testdisk
-virtualbox-guest-utils-nox
 wireless_tools
 wpa_supplicant
 zoxide
@@ -48,3 +45,8 @@ zsh
 zsh-autosuggestions
 zsh-completions
 zsh-syntax-highlighting
+lvm2
+device-mapper
+cryptsetup
+btrfs-progs
+xfsprogs
