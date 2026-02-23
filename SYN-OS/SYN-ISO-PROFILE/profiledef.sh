@@ -26,7 +26,9 @@ airootfs_image_tool_options=('-comp' 'xz' '-b' '256K' '-Xbcj' 'x86')
 # File Permissions
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
-  ["/root/syn-resources/scripts/syn-stage0.zsh"]="0:0:755"
-  ["/root/syn-resources/scripts/syn-lanbridge.sh"]="0:0:755"
-  ["/root/syn-resources/scripts/syn-stage1.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-stage0.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-stage1.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-config.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-packages.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/ui.zsh"]="0:0:755"
 )

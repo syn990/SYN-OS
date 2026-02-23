@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+
+  <menu id="root-menu" label="SYN-OS">
+
+    <!-- Applications -->
+    <separator label=" APPLICATIONS " />
+    <item label="Terminal">
+      <action name="Execute"><command>foot</command></action>
+    </item>
+    <item label="File browser">
+      <action name="Execute"><command>pcmanfm-qt</command></action>
+    </item>
+    <item label="Shadow Launcher">
+      <action name="Execute"><command>/home/syntax990/Downloads/squashfs-root/shadow-launcher</command></action>
+    </item>
+
+    <menu id="dynamic_apps"
+          label="All Applications"
+          execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
+
+    <!-- System Control -->
+    <separator label=" SYSTEM CONTROL " />
+
+    <menu id="audio-pipe" label="Audio Settings (Dynamic)"
+          execute="~/.config/labwc/labwc-audio-menu.zsh" />
+
+    <menu id="displays-pipe" label="Display &amp; Screens (Dynamic)"
+          execute="~/.config/labwc/labwc-wlr-menu.zsh" />
+
+    <!-- Config / Editing -->
+    <separator label=" CONFIGURATION " />
+    <menu id="edit-configs" label="Edit Configuration Files">
+      <item label="Waybar Config">
+        <action name="Execute"><command>kwrite ~/.config/waybar/config.jsonc</command></action>
+      </item>
+      <item label="Waybar Style">
+        <action name="Execute"><command>kwrite ~/.config/waybar/style.css</command></action>
+      </item>
+      <item label="Labwc Menu">
+        <action name="Execute"><command>kwrite ~/.config/labwc/menu.xml</command></action>
+      </item>
+      <item label="Labwc RC">
+        <action name="Execute"><command>kwrite ~/.config/labwc/rc.xml</command></action>
+      </item>
+      <item label="Labwc Autostart">
+        <action name="Execute"><command>kwrite ~/.config/labwc/autostart</command></action>
+      </item>
+      <item label="SYN‑OS Theme (RED)">
+        <action name="Execute"><command>kwrite /usr/share/themes/SYN-OS-RED/openbox-3/themerc</command></action>
+      </item>
+    </menu>
+
+    <!-- Interface -->
+    <separator label=" INTERFACE " />
+    <item label="Reload UI">
+      <action name="Reconfigure" />
+    </item>
+
+    <!-- Power -->
+    <separator label=" POWER " />
+    <menu id="power-menu" label="Power Options">
+      <item label="Return to TTY">
+        <action name="Execute"><command>pkill labwc</command></action>
+      </item>
+      <item label="Reboot">
+        <action name="Execute"><command>systemctl reboot</command></action>
+      </item>
+      <item label="Power Off">
+        <action name="Execute"><command>systemctl poweroff</command></action>
+      </item>
+    </menu>
+
+  </menu>
+
+</openbox_menu>
