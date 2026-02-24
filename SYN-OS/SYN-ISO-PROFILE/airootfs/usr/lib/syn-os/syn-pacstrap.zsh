@@ -46,11 +46,18 @@ pacstrapMain() {
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
   done
 
-  # Deploy dotfile overlay to target system to customize environment for new user accounts
-  if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
-    echo "Deploying dotfile overlay to ${RootMountLocation}…"
-    cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
-  fi
+# Deploy dotfile overlay to target system to customize environment for new user accounts
+if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
+  echo "Deploying dotfile overlay to ${RootMountLocation}…"
+  cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
+
+  # Make all the good stuff executable
+  chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
+  chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
+  chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
+  chmod -R +x "${RootMountLocation}/etc/skel/.config/ranger"
+  chmod -R +x "${RootMountLocation}/etc/skel/.SYN-REDSHIRT.ZSH"
+fi
 
   # Persist state for Stage 1
   local State="${RootMountLocation}/etc/syn-os/install.state"
