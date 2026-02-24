@@ -7,7 +7,7 @@
 #   Author: Syntax990
 # =============================================================================
 
-iso_name="SYN-OS-SYNAPTIC-EDITION"
+iso_name="SYN-OS AEGIS - $(date +%Y.%m.%d)"
 iso_label="SYNOS_$(date +%Y%m)"
 iso_publisher="Syntax990"
 iso_application="SYN-OS - Installation Media"

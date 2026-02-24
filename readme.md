@@ -18,11 +18,12 @@ SYN-OS is designed for those who want:
 ## Download & Quick Start
 
 **Latest Release:**  
-- **Name:** SYN-OS SYNAPTICS Edition
-- **Size:** ~1.1 GB  
-- **Download:** [SYN-OS SYNAPTICS (FEB 2026).iso](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
+- **Name:** SYN-OS AEGIS
+- **Size:** ~1.1 GB  [SYN-OS AEGIS (LATE-FEB 2026).iso](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
+- **Download:** 
 
 **Older Releases:**
+- [SYN-OS SYNAPTICS (EARLY-FEB 2026).iso](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
 - [SYN-OS XENITH (JAN 2026).iso](https://drive.google.com/file/d/1bbKsw2FQ7d2Pb8Os1lwERGEyG5j3pnpg/view?usp=sharing)
 - [SYN-OS SYNTEX (April 2025).iso](https://drive.google.com/file/d/1CcPMeKCBjdqz6OJCzm1JcLhxzKSHe7ra/view?usp=sharing)
 - [SYN-OS M-141 (Nov 2024)](https://drive.google.com/file/d/1oX-hyHrG4M2JqXwFH2p5DxjbFT656jWH/view?usp=sharing)  
@@ -62,10 +63,11 @@ SYN-OS is designed for those who want:
 1. Boot your system or VM from the prepared USB stick.  
 2. Select **SYN‑OS** in the boot menu.  
 3. The live environment loads into a clean shell.  
-4. *(Optional)* You may inspect or modify the installer scripts before beginning:
+4. *(Optional)* You may inspect or modify the installer configuration before beginning:
 
-        nano /root/syn-resources/scripts/syn-stage0.zsh
-        nano /root/syn-resources/scripts/syn-stage1.zsh
+        nano /etc/syn-os/synos.conf
+
+   The installer scripts themselves are in `/usr/lib/syn-os/` if you need to check them.
 
 5. Start the installer:
 
@@ -144,9 +146,19 @@ These metas define the entire installed system footprint.
 
 ## Philosophy
 
-SYN‑OS is built to be a transparent and predictable system. All behaviour is defined by shell scripts, package arrays, and staged overlay directories. Nothing is hidden behind wrappers or helpers — every file that ends up on the final system exists in this repository and is copied or generated during installation.
+SYN‑OS is built to be a transparent and predictable system. All behaviour is defined by:
+- **Shell scripts** (orchestrators + modular strategy functions)  
+- **Package arrays** (category-based, reusable, documented)  
+- **Staged overlay directories** (dotfiles, configs, themes)  
+- **Declarative config** (synos.conf selects which strategies to run)  
 
-The goal is not to automate Arch installation for convenience, but to provide a clean, modular framework where every component is inspectable, replaceable, and easy to reason about.
+Nothing is hidden behind wrappers or helpers — every file that ends up on the final system exists in this repository and is copied or generated during installation.
+
+The goal is not to automate Arch installation for convenience, but to provide a **clean, modular, strategy-driven framework** where:
+- Every component is inspectable and replaceable  
+- New features can be added as isolated strategy functions  
+- Changes are declarative (edit `synos.conf`, not imperative script logic)  
+- The installer is easy to reason about and extend for your own OS variant
 
 ---
 
@@ -157,124 +169,59 @@ Booting the SYN‑OS ISO loads a minimal live system containing the `syntax990` 
 
 ---
 
-### Stage 0 — Pre‑Chroot Setup
+### Stage 0 — Pre‑Chroot Setup (Orchestrator + Modular Strategies)
 Executed directly from the live environment.
 
 **Purpose:**  
-Prepare the disk, create the target filesystem, install base packages, and assemble the new system structure.
+Prepare the disk, create the target filesystem, install base packages, and assemble the new system structure — all via modular, reusable strategy functions.
 
-**Stage 0 uses:**
-- `scripts/syn-disk-config.zsh` — partitioning and formatting  
-- `scripts/syn-packages.zsh` — category‑based package arrays  
-- `overlays/` — filesystem content copied into the target root  
-- `syn-resources/` — supporting files such as defaults, configs, and menu definitions  
+**Architecture:**  
+Stage 0 is now a thin **orchestrator** that calls specialized strategy scripts in sequence. Strategy selection is declarative via `synos.conf`:
+
+```zsh
+PartitionStrat="uefi-bootctl"  # or mbr-syslinux
+VolumeStrat="luks-lvm"         # or luks-only, lvm-only, plain
+FilesystemStrat="f2fs"          # or ext4, btrfs, xfs
+BootloaderStrat="auto"          # or systemd-boot, syslinux, grub
+```
+
+**Modular Strategy Scripts:**
+- `syn-partition.zsh` — Partition strategies (UEFI/GPT, MBR/MSDOS)  
+- `syn-volume.zsh` — Volume strategies (LUKS+LVM, LUKS-only, LVM-only, plain)  
+- `syn-filesystem.zsh` — Filesystem strategies (ext4, f2fs, btrfs, xfs)  
+- `syn-mount.zsh` — Mount orchestration  
+- `syn-pacstrap.zsh` — Base install + state handoff  
+- `syn-packages.zsh` — Category‑based package arrays  
 
 **Main actions:**
-1. Disk layout and filesystem creation  
-2. Mounting the target root  
-3. Installing packages from the defined arrays  
-4. Copying overlay directories:  
-   - `/etc/` base configuration  
-   - `/root/` resources  
-   - `skel/` user defaults (`~/.config/*`, labwc configs, waybar, qt5ct, pcmanfm‑qt, ranger, etc.)  
-5. Preparing the environment for Stage 1
+1. Load `synos.conf` and validate all strategy selections  
+2. Execute partition strategy (GPT or MSDOS)  
+3. Execute volume strategy (LUKS/LVM combinations)  
+4. Execute filesystem strategy (format root + swap)  
+5. Execute mount strategy (mount root, boot, swap)  
+6. Execute pacstrap strategy (install, genfstab, copy scripts, persist state)  
+7. Enter `arch-chroot` to Stage 1  
 
-After Stage 0 completes, the script enters the new system via `arch-chroot`.
+**Why Strategies Matter:**  
+Each strategy function is independent and testable. Adding a new storage layout (e.g., ZFS, Btrfs subvolumes) requires only a new function in `syn-volume.zsh`. No monolithic refactoring needed.
 
 ---
 
 ### Stage 1 — In‑Chroot Configuration
-Stage 1 performs all configuration inside the target filesystem.
+Stage 1 performs all configuration inside the target filesystem, using the persisted state from Stage 0.
 
 **Main actions:**
 - Creating users and assigning shells  
+- Applying user dotfile overlays from `DotfileOverlay/` into the user environment  
+- Configuring mkinitcpio HOOKS (dynamically selected based on `PartitionStrat` + `VolumeStrat`)  
 - Enabling services  
 - Applying localisation (locale, console, timezone)  
 - Deploying desktop environment components (LabWC, waybar, swaybg, QT settings, etc.)  
-- Applying dotfile overlays from `DotfileOverlay/` into the user environment  
-- Bootloader installation (UEFI/BIOS detected automatically)  
+- Installing and configuring bootloader (systemd-boot for UEFI, syslinux for BIOS; LUKS/LVM kernel params auto-applied)  
 - Final cleanup
 
 ---
 
-
-### Directory Structure
-
-SYN‑OS is built from two major filesystem roots:
-
-1. **The live ISO filesystem** (`airootfs/`)  
-   → This is what you boot into when running the SYN‑OS ISO.
-
-2. **The post‑install overlay** (`DotfileOverlay/`)  
-   → These files are merged into the target system during Stage 1
-     (e.g., `/etc`, `/etc/skel`, `/usr/share`).
-
-Both appear inside this repository and are copied intentionally by the installer.
-Nothing is auto‑generated or hidden.
-
-```
-SYN-OS/
-│
-├─ BUILD-SYNOS-ISO.zsh                     # Builds the entire ISO (mkarchiso wrapper)
-│
-├─ SYN-ISO-PROFILE/                        # Full ArchISO profile
-│   ├─ airootfs/                           # (A) LIVE ISO ROOT FILESYSTEM
-│   │   ├─ etc/
-│   │   │   ├─ hostname
-│   │   │   ├─ locale.conf
-│   │   │   ├─ localtime
-│   │   │   ├─ mkinitcpio.conf.d/
-│   │   │   ├─ mkinitcpio.d/
-│   │   │   ├─ modprobe.d/
-│   │   │   ├─ pacman.d/
-│   │   │   ├─ ssh/
-│   │   │   ├─ systemd/                   # Live services, overrides, networking
-│   │   │   ├─ vconsole.conf
-│   │   │   └─ xdg/
-│   │   │
-│   │   ├─ root/
-│   │   │   └─ syn-resources/             # Installer + overlays copied into the ISO
-│   │   │       ├─ scripts/               # syn-stage0, syn-stage1, disk, packages, etc.
-│   │   │       └─ DotfileOverlay/        # (B) POST-INSTALL OVERLAY ROOT
-│   │   │           ├─ etc/               # -> becomes /etc on installed system
-│   │   │           │   ├─ motd
-│   │   │           │   ├─ os-release
-│   │   │           │   ├─ skel/          # -> becomes /etc/skel
-│   │   │           │   │   └─ .config/
-│   │   │           │   │       ├─ btop/
-│   │   │           │   │       ├─ foot/
-│   │   │           │   │       ├─ labwc/
-│   │   │           │   │       ├─ pcmanfm-qt/
-│   │   │           │   │       ├─ qt5ct/
-│   │   │           │   │       ├─ ranger/
-│   │   │           │   │       └─ waybar/
-│   │   │           │   └─ vconsole.conf
-│   │   │           │
-│   │   │           └─ usr/
-│   │   │               └─ share/
-│   │   │                   └─ themes/    # Single Default Labwc/Openbox theme
-│   │   │                       └─ SYN-OS-RED
-│   │   │
-│   │   └─ usr/local/bin/
-│   │       └─ choose-mirror              # Tool used in the ISO runtime
-│   │
-│   ├─ packages.x86_64                    # Packages in the LIVE ISO
-│   ├─ bootstrap_packages.x86_64          # Early bootstrap packages
-│   ├─ efiboot/                           # UEFI bootloader (systemd-boot)
-│   ├─ syslinux/                          # Syslinux BIOS bootloader
-│   ├─ pacman.conf                        # Pacman config used during ISO build
-│   └─ profiledef.sh                      # ArchISO profile definition
-│
-├─ ISO_OUTPUT/                            # Completed ISOs placed here
-│
-├─ Graphviz/                              # Visual docs
-│   ├─ syn-os.dot
-│   └─ SYN-OS.svg
-```
-
----
-
-### What This Shows (the important distinction)
 
 #### **(A) airootfs/**
 This is the **ISO’s live system**:  
@@ -352,19 +299,43 @@ You can adjust anything inside the repo to make the ISO “your own OS”:
 syn-packages.zsh
 ```
 
+**Customize installer strategies:**
+
+```
+synos.conf                                   # Select PartitionStrat, VolumeStrat, etc.
+syn-partition.zsh, syn-volume.zsh, etc.      # Add or modify strategy functions
+```
+
 **Edit installer behaviour:**
 
 ```
-scripts/syn-stage0.zsh
-scripts/syn-stage1.zsh
+syn-stage0.zsh                               # Thin orchestrator; usually unchanged
+syn-stage1.zsh                               # Bootloader, users, services, overlays
 ```
 
 **Change default configs / dotfiles / desktop layout:**
 
 ```
-overlays/DotfileOverlay/skel/.config/*       (LabWC, Waybar, Foot, Qt5ct, etc.)
-overlays/etc/*                               (system configs)
+DotfileOverlay/skel/.config/*                (LabWC, Waybar, Foot, Qt5ct, etc.)
+DotfileOverlay/etc/*                         (system configs)
 syn-resources/*                              (menus, scripts, assets)
+```
+
+**Example: Add a new volume strategy (e.g., ZFS):**
+
+Simply add a function to `syn-volume.zsh`:
+
+```zsh
+volumeStrat_zfs() {
+  # Your ZFS setup logic here
+  ...
+}
+```
+
+Then select it in `synos.conf`:
+
+```zsh
+VolumeStrat="zfs"
 ```
 
 Everything copied into the final system is visible and editable right here.
@@ -449,7 +420,8 @@ SYN‑OS began as an experimental bootstrap project called **SYN‑RTOS**, built
 | **M‑141** | Nov 2024 | Pre‑canonical release; improved documentation and general polish. |
 | **SYNTEX** | Apr 2025 | Removal of AI‑generated code; return to minimal, intentional installer logic. |
 | **XENITH** | Jan 2026 | Start of the transition away from X11; Openbox + Polybar deprecated. Experimental Wayland groundwork. |
-| **SYNAPTICS** | Feb 2026 | Comprehensive overhaul; full Wayland integration; LabWC default session; legacy Openbox themes maintained for compatibility. |
+| **SYNAPTICS** | Early Feb 2026 | Comprehensive overhaul; full Wayland integration; LabWC default session; legacy Openbox themes maintained for compatibility. |
+| **AEGIS** | Late Feb 2026 | Storage and security consolidation; LUKS strategies integrated; installer framework rebuilt. |
 
 ---
 
@@ -473,6 +445,6 @@ The **`syn-stage0`** script is the core of the installation pipeline. Its evolut
 Breaking the process into functions made it easier to test and modify one piece without disturbing the rest.  Detecting the boot environment (UEFI vs MBR) removed hard‑coded assumptions that could brick a system.  Grouping packages into arrays lets users add or remove categories (developer tools, optional extras) with a single edit instead of parsing a monolithic string.  Finally, copying dotfiles and scripts from clearly named overlay directories encourages users to personalise the system without digging through obscure paths.
 
 ---
-[Click to view vector map of SYN-OS structure](https://raw.githubusercontent.com/syn990/SYN-OS/078920fac9381bd52b37b4c975daf4ddea8b4cc2/SYN-OS/Graphviz/SYN-OS-wayland.svg)  
+[Right-Click to view vector map of SYN-OS structure]
 
-![GRAPHVIZ STRUCTURE](./SYN-OS/Graphviz/SYN-OS-wayland.svg)
+![GRAPHVIZ STRUCTURE](./Graphviz/SYN-OS-wayland.svg)

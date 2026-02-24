@@ -1,9 +1,9 @@
 NAME="SYN-OS"
-PRETTY_NAME="SYN-OS - Live Installer"
+PRETTY_NAME="SYN-OS - AEGIS Live Installer"
 ID=arch
 BUILD_ID=rolling
 ANSI_COLOR="0;31;40"
-HOME_URL="https://github.com/syn990"
+HOME_URL="https://github.com/syn990/syn-os.git"
 DOCUMENTATION_URL="https://wiki.archlinux.org/"
 SUPPORT_URL="https://bbs.archlinux.org/"
 BUG_REPORT_URL="https://gitlab.archlinux.org/groups/archlinux/-/issues"

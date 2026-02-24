@@ -42,7 +42,7 @@ if [ "$(lower "${BootMode:-auto}")" = "auto" ]; then
   else
     SynosEnv="MBR"
   fi
-else
+else 
   case "$(lower "${BootMode}")" in
     uefi) SynosEnv="UEFI" ;;
     bios|mbr|legacy) SynosEnv="MBR" ;;
