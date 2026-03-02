@@ -105,7 +105,7 @@ case "${VolumeStrat}" in
     ;;
 esac
 
-# --- export for Stage 0/1 (CamelCase only) --------------------------------
+# --- export for Stage 0/1 --------------------------------
 export \
   SynosEnv \
   Hostname UserAccountName UserShell \

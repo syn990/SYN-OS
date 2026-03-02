@@ -99,9 +99,6 @@
     <keybind key="W-3"><action name="GoToDesktop" to="3"/></keybind>
     <keybind key="W-4"><action name="GoToDesktop" to="4"/></keybind>
 
-    <keybind key="W-Up"><action name="Execute" command="brightnessctl set +10%"/></keybind>
-    <keybind key="W-Down"><action name="Execute" command="brightnessctl set 10%"/></keybind>
-
     <keybind key="W-p">
       <action name="Execute"
         command="sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g &quot;$(slurp)&quot; ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'"/>

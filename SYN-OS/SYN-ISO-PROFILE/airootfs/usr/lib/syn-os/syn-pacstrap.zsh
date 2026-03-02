@@ -2,6 +2,9 @@
 # SYN‑OS Base Install & State Handoff
 # /usr/lib/syn-os/syn-pacstrap.zsh
 
+# This script handles the base installation of the Arch Linux system onto the target root partition using `pacstrap`. It also generates the fstab and saves the installation state to a file that will be used by Stage 1 after chrooting.
+# Additionally, it deploys a dotfile overlay to the target system to customize the environment for new user accounts, and ensures that the necessary scripts and configuration are copied over for Stage 1 to access.
+
 set -euo pipefail
 
 # =========================================================
@@ -29,13 +32,13 @@ pacstrapMain() {
       fi
       ;;
     systemd-boot) bootPkgs=(efibootmgr systemd) ;;
-    grub)         bootPkgs=(grub) ;;
     syslinux)     bootPkgs=(syslinux) ;;
     *)            bootPkgs=() ;;
   esac
 
   SYNSTALL+=("${bootPkgs[@]}")
-
+# Use syn-packages.zsh arrays to determine the final package list to install with pacstrap
+# Pacstrap those packages to the location defined in synos.conf
   echo "Installing to ${RootMountLocation}…"
   pacstrap -K "${RootMountLocation}" "${SYNSTALL[@]}"
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
@@ -55,8 +58,7 @@ if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
   chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
-  chmod -R +x "${RootMountLocation}/etc/skel/.config/ranger"
-  chmod -R +x "${RootMountLocation}/etc/skel/.SYN-REDSHIRT.ZSH"
+  chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
 fi
 
   # Persist state for Stage 1

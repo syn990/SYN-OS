@@ -1,0 +1,72 @@
+/* Main Window & Global */
+QWidget {
+    background-color: #121212;
+    color: #E0E0E0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10pt;
+}
+
+/* Input Fields */
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QComboBox {
+    background-color: #1E1E1E;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+QLineEdit:focus, QComboBox:focus { border: 1px solid #BB86FC; }
+
+/* Buttons with Custom SVG Icons */
+QPushButton, QToolButton {
+    background-color: #1F1F1F;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    padding: 5px;
+    min-width: 32px;
+}
+QPushButton:hover { background-color: #333333; }
+
+/* Mapping SVG Icons to Specific Roles (Selective) */
+QPushButton#home { qproperty-icon: url("house-solid-full.svg"); }
+QPushButton#settings { qproperty-icon: url("sliders-solid-full.svg"); }
+QPushButton#tools { qproperty-icon: url("screwdriver-wrench-solid-full.svg"); }
+QPushButton#download { qproperty-icon: url("download-solid-full.svg"); }
+QPushButton#refresh { qproperty-icon: url("arrow-rotate-right-solid-full.svg"); }
+
+/* Navigation Icons */
+QPushButton#back { qproperty-icon: url("arrow-left-solid-full.svg"); }
+QPushButton#forward { qproperty-icon: url("arrow-right-solid-full.svg"); }
+
+/* Specialized Containers */
+QGroupBox, QFrame#card {
+    background-color: #1A1A1A;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 8px;
+    /* Using the semi-transparent image as background pattern if needed */
+    background-image: url("images/semi-transp.png");
+}
+
+/* Tables & Lists */
+QHeaderView::section { background-color: #2C2C2C; padding: 4px; border: 1px solid #121212; }
+QTableView {
+    background-color: #1F1F1F;
+    border: 1px solid #333333;
+    gridline-color: #2A2A2A;
+    selection-background-color: #900D09;
+}
+
+/* Custom Rating/Star System */
+#StarRating {
+    qproperty-icon: url("images/star.svg");
+}
+#StarRating:checked {
+    qproperty-icon: url("images/star-a.svg");
+}
+
+/* Compact Scrollbars */
+QScrollBar:vertical { background: #121212; width: 8px; }
+QScrollBar::handle:vertical { background: #333333; border-radius: 4px; min-height: 20px; }
+QScrollBar::add-line, QScrollBar::sub-line { background: none; height: 0px; }
+
+/* Utility Classes */
+.accent { color: #900D09; }

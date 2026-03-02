@@ -15,6 +15,7 @@
 # -----------------------------------------------------------------------------
 export LANG=en_GB.UTF-8
 export EDITOR='nano'
+export QT_QPA_PLATFORMTHEME=gtk2
 
 # XDG paths (cleaner filesystem layout)
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -131,15 +132,17 @@ PROMPT='%F{blue}[%f%F{red}%n@%m%f %F{160}%~%f${vcs_info_msg_0_} %F{white}%D{%H:%
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'
-alias please='doas'
 alias sudo='doas'
+alias please='sudo'
 
 # Only override if tools exist
 command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
 command -v rg  >/dev/null 2>&1 && alias grep='rg'
 
 alias synos="dbus-run-session -- env XDG_SESSION_TYPE=wayland labwc"
-alias redshirt='sudo zsh ~/.SYN-REDSHIRT.zsh'
+alias syn-crypter='/usr/lib/syn-os/syn-crypter.zsh'
+alias syn-redshirt='/usr/lib/syn-os/syn-redshirt.zsh'
+alias syn-mapper='/usr/lib/syn-os/syn-mapper.zsh'
 
 # -----------------------------------------------------------------------------
 # Functions
@@ -151,5 +154,4 @@ mkcd() {
 # =============================================================================
 # End of SYN-OS Configuration
 # =============================================================================
-export PATH="$HOME/bin:$PATH"
 export PATH="$HOME/bin:$PATH"
