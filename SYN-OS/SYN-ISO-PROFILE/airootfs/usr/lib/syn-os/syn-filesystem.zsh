@@ -2,6 +2,10 @@
 # SYN‑OS Filesystem Strategies
 # /usr/lib/syn-os/syn-filesystem.zsh
 
+# This script provides a unified interface for formatting filesystems and swap partitions during the SYN-OS installation process.
+# it is used by multiple installation scripts to ensure consistent formatting logic across different filesystem types and swap configurations.
+# You may need to modify this script if you want to add support for additional filesystems or customize the formatting options for existing ones.
+
 set -euo pipefail
 
 # =========================================================

@@ -421,7 +421,7 @@ SYN‑OS began as an experimental bootstrap project called **SYN‑RTOS**, built
 | **SYNTEX** | Apr 2025 | Removal of AI‑generated code; return to minimal, intentional installer logic. |
 | **XENITH** | Jan 2026 | Start of the transition away from X11; Openbox + Polybar deprecated. Experimental Wayland groundwork. |
 | **SYNAPTICS** | Early Feb 2026 | Comprehensive overhaul; full Wayland integration; LabWC default session; legacy Openbox themes maintained for compatibility. |
-| **AEGIS** | Late Feb 2026 | Storage and security consolidation; LUKS strategies integrated; installer framework rebuilt. |
+| **AEGIS** | Late Feb 2026 | Defensive architecture release; modular storage strategies formalised; installer pipeline hardened; encryption integrated as a first-class workflow. |
 
 ---
 
@@ -448,3 +448,139 @@ Breaking the process into functions made it easier to test and modify one piece 
 [Right-Click to view vector map of SYN-OS structure]
 
 ![GRAPHVIZ STRUCTURE](./Graphviz/SYN-OS-wayland.svg)
+
+
+# SYN‑OS ARCHIVAL EDITIONS
+These editions represent canonical snapshots of earlier SYN‑OS architectures.  
+They are reconstructed states that reflect how each era behaved in practice,  
+not how the Git history recorded it.
+
+---
+
+# 0.9 — Unified Boot Path Edition
+
+**Directory:** `archives/0.9-unified-boot-path-edition/`  
+**Era:** First coherent installer; EFI/MBR awareness; early polybar; maturing structure.
+
+## Layout
+```
+
+Edition-0.9/
+├─ syn-stage0.sh
+├─ syn-stage1.sh
+├─ Overlays/
+│   ├─ root/
+│   └─ etc/
+├─ Dotfiles/
+│   ├─ openbox/
+│   ├─ tint2/
+│   ├─ polybar/
+│   └─ theme-old/
+├─ Packages/
+│   ├─ base.lst
+│   ├─ services.lst
+│   └─ gui.lst
+└─ README-0.9.md
+
+```
+
+## Key Traits
+- `/bin/sh` interpreter  
+- EFI vs MBR detection with simple directory checks  
+- `SYNSTALL` still a giant single string  
+- No arrays yet  
+- Early polybar experiments  
+- Tint2/Openbox hybrid environment  
+- Bootloader logic finally stable  
+
+---
+
+# 0.7 — Variable Storm Edition
+
+**Directory:** `archives/0.7-variable-storm-edition/`  
+**Era:** Explosion of globals; duplicated scripts; rolling-release chaos.
+
+## Layout
+```
+
+Edition-0.7/
+├─ syn-stage0.zsh
+├─ syn-stage1.zsh
+├─ syn-packages.zsh/
+├─ root_overlay/
+├─ gui-experiments/
+└─ README-0.7.md
+
+```
+
+## Key Traits
+- Multiple variable files  
+- No consistent naming or grouping  
+- Early attempts at modularity  
+- Several abandoned GUI experiments  
+- Accidental logic regressions common  
+- Dotfiles drifting between commits  
+
+---
+
+# 0.4 — ISO‑Genesis Edition
+
+**Directory:** `archives/0.4-iso-genesis-edition/`  
+**Era:** First self-built ISO; installer packaged into the live environment.
+
+## Layout
+```
+
+Edition-0.4/
+├─ archiso/
+│   ├─ profiledef.sh
+│   ├─ airootfs/
+│   │   ├─ root/
+│   │   └─ etc/
+├─ syn-stage0.sh
+├─ syn-stage1.sh
+└─ README-0.4.md
+
+```
+
+## Key Traits
+- ArchISO profile created manually  
+- Git finally included in ISO  
+- Stage0/Stage1 shipped together  
+- Minimal theming  
+- Linear bootloader logic  
+- First time SYN‑OS felt like "a distro"  
+
+---
+
+# 0.1 — Stage0 Text‑Loader Edition
+
+**Directory:** `archives/0.1-text-loader-edition/`  
+**Era:** Installer run from vanilla Arch ISO, fetching scripts manually.
+
+## Layout
+```
+
+0.1/
+├─ stage0.sh
+├─ stage1.sh
+└─ README-0.1.md
+
+```
+
+## Key Traits
+- `pacman -Sy git` just to fetch scripts  
+- Two-script installer  
+- No variables  
+- Hardcoded partitions  
+- No theming  
+- Primitive filesystem copying  
+- Install completed in minutes with zero safety checks  
+
+---
+
+# Notes
+These reconstructed editions document the *evolution* of SYN‑OS,  
+not a literal commit-by-commit timeline.  
+They serve as reference models for how each stage of the project functioned.
+

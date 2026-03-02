@@ -5,14 +5,24 @@
 
     <!-- Applications -->
     <separator label=" APPLICATIONS " />
+
     <item label="Terminal">
-      <action name="Execute"><command>foot</command></action>
+      <action name="Execute">
+        <command>foot</command>
+      </action>
     </item>
+
+    <!-- File Browser -->
     <item label="File browser">
-      <action name="Execute"><command>pcmanfm-qt</command></action>
+      <action name="Execute">
+        <command>/home/syntax990/.config/labwc/spf-menu.zsh</command>
+      </action>
     </item>
+
     <item label="Shadow Launcher">
-      <action name="Execute"><command>/home/syntax990/Downloads/squashfs-root/shadow-launcher</command></action>
+      <action name="Execute">
+        <command>/home/syntax990/Downloads/squashfs-root/shadow-launcher</command>
+      </action>
     </item>
 
     <menu id="dynamic_apps"
@@ -22,52 +32,104 @@
     <!-- System Control -->
     <separator label=" SYSTEM CONTROL " />
 
-    <menu id="audio-pipe" label="Audio Settings (Dynamic)"
-          execute="~/.config/labwc/labwc-audio-menu.zsh" />
+    <menu id="audio-pipe"
+          label="Audio Settings (Dynamic)"
+          execute="/home/syntax990/.config/labwc/labwc-audio-menu.zsh" />
 
-    <menu id="displays-pipe" label="Display &amp; Screens (Dynamic)"
-          execute="~/.config/labwc/labwc-wlr-menu.zsh" />
+    <menu id="displays-pipe"
+          label="Display &amp; Screens (Dynamic)"
+          execute="/home/syntax990/.config/labwc/labwc-wlr-menu.zsh" />
 
-    <!-- Config / Editing -->
+    <!-- Configuration (Interface and System) -->
     <separator label=" CONFIGURATION " />
+
     <menu id="edit-configs" label="Edit Configuration Files">
-      <item label="Waybar Config">
-        <action name="Execute"><command>kwrite ~/.config/waybar/config.jsonc</command></action>
-      </item>
-      <item label="Waybar Style">
-        <action name="Execute"><command>kwrite ~/.config/waybar/style.css</command></action>
-      </item>
-      <item label="Labwc Menu">
-        <action name="Execute"><command>kwrite ~/.config/labwc/menu.xml</command></action>
-      </item>
-      <item label="Labwc RC">
-        <action name="Execute"><command>kwrite ~/.config/labwc/rc.xml</command></action>
-      </item>
-      <item label="Labwc Autostart">
-        <action name="Execute"><command>kwrite ~/.config/labwc/autostart</command></action>
-      </item>
+
+      <!-- Waybar Configurations -->
+      <menu id="waybar-config" label="Waybar Configurations">
+        <item label="Waybar Config">
+          <action name="Execute">
+            <command>featherpad /home/syntax990/.config/waybar/config.jsonc</command>
+          </action>
+        </item>
+        <item label="Waybar Style">
+          <action name="Execute">
+            <command>featherpad /home/syntax990/.config/waybar/style.css</command>
+          </action>
+        </item>
+      </menu>
+
+      <!-- LabWC Configurations -->
+      <menu id="labwc-config" label="LabWC Configurations">
+        <item label="Labwc Menu">
+          <action name="Execute">
+            <command>featherpad /home/syntax990/.config/labwc/menu.xml</command>
+          </action>
+        </item>
+
+        <item label="Labwc RC">
+          <action name="Execute">
+            <command>featherpad /home/syntax990/.config/labwc/rc.xml</command>
+          </action>
+        </item>
+
+        <item label="Labwc Autostart">
+          <action name="Execute">
+            <command>featherpad /home/syntax990/.config/labwc/autostart</command>
+          </action>
+        </item>
+      </menu>
+
+      <!-- Other Configurations -->
       <item label="SYN‑OS Theme (RED)">
-        <action name="Execute"><command>kwrite /usr/share/themes/SYN-OS-RED/openbox-3/themerc</command></action>
+        <action name="Execute">
+          <command>featherpad /usr/share/themes/SYN-OS-RED/openbox-3/themerc</command>
+        </action>
       </item>
+
     </menu>
 
     <!-- Interface -->
     <separator label=" INTERFACE " />
-    <item label="Reload UI">
-      <action name="Reconfigure" />
-    </item>
+
+    <menu id="waybar-labwc" label="Waybar &amp; LabWC">
+      <item label="Reload LabWC Configuration">
+        <action name="Reconfigure" />
+      </item>
+
+      <item label="Return to Tty1 (Kill LabWC)">
+        <action name="Execute">
+          <command>pkill labwc</command>
+        </action>
+      </item>
+
+      <item label="Launch Waybar">
+        <action name="Execute">
+          <command>waybar</command>
+        </action>
+      </item>
+
+      <item label="Kill Waybar">
+        <action name="Execute">
+          <command>kill waybar</command>
+        </action>
+      </item>
+    </menu>
 
     <!-- Power -->
     <separator label=" POWER " />
+
     <menu id="power-menu" label="Power Options">
-      <item label="Return to TTY">
-        <action name="Execute"><command>pkill labwc</command></action>
-      </item>
       <item label="Reboot">
-        <action name="Execute"><command>systemctl reboot</command></action>
+        <action name="Execute">
+          <command>systemctl reboot</command>
+        </action>
       </item>
+
       <item label="Power Off">
-        <action name="Execute"><command>systemctl poweroff</command></action>
+        <action name="Execute">
+          <command>systemctl poweroff</command>
+        </action>
       </item>
     </menu>
 

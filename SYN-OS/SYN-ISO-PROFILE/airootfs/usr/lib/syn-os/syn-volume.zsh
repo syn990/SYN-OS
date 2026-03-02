@@ -2,6 +2,12 @@
 # SYN‑OS Volume Strategies (LUKS / LVM)
 # /usr/lib/syn-os/syn-volume.zsh
 
+# This script defines the volume management strategies for the SYN-OS installation process. It supports combinations of LUKS encryption and LVM, as well as plain setups without either. 
+# The main function `volumeMain` dispatches to the appropriate strategy based on the configuration set in Stage 0. It also handles formatting the ESP for UEFI systems if a separate boot partition is used.
+# Goto synos.config.zsh to see how VolumeStrat is set based on user choices during the installation prompts.
+
+
+
 set -euo pipefail
 
 # =========================================================

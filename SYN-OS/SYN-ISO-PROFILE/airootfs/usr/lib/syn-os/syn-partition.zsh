@@ -2,6 +2,9 @@
 # SYN‑OS Partition Strategies
 # /usr/lib/syn-os/syn-partition.zsh
 
+# This script defines the partitioning strategies for the SYN-OS installation process. It supports both UEFI with systemd-boot (GPT) and legacy BIOS with syslinux (MBR).
+# The main function `partitionMain` dispatches to the appropriate strategy based on the configuration set in Stage 0.
+# 
 set -euo pipefail
 
 # =========================================================

@@ -1,7 +1,0 @@
-NAME="SYN-OS"
-PRETTY_NAME="SYN-OS Syntaptics"
-ID=arch
-BUILD_ID=rolling
-ANSI_COLOR="0;31;40"
-HOME_URL="https://github.com/syn990/syn-os"
-LOGO=archlinux-logo
