@@ -21,6 +21,8 @@ When installation is complete, you have a minimal but fully functional desktop:
 - A curated set of applications: browser, media player, image editor, terminal, file manager, and more
 - **Full source visibility** — every file on your system came from this repository
 
+![SYN-OS Installation Steps](./Images/Install-Stages.png)
+
 ---
 
 ## Download
@@ -178,6 +180,10 @@ MIT — see [LICENSE](LICENSE).
 ## Documentation
 
 The README covers getting started. Everything below goes deeper — how the system actually works, what each component does, and how to modify or extend it. These documents are written so that following along will teach you how Linux desktops are constructed, even if that was not your intention.
+
+![SYN-OS Install](./Images/SYNOS-AGEIS.png)
+![SYN-OS Install](./Images/Package-Listings.png)
+
 
 ### The Installer (They do not exist yet!)
 
