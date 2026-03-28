@@ -83,12 +83,13 @@
         "scroll-step": 5
     },
 
-    "network": {
-        "format-wifi": "  {essid}",
-        "format-ethernet": "󰈀 {ipaddr}",
-        "format-disconnected": "󰤮",
-        "tooltip-format": "{ifname} {ipaddr}/{cidr}\n↓ {bandwidthDownBits} ↑ {bandwidthUpBits}"
-    },
+"network": {
+    "format-wifi": "  {essid}",
+    "format-ethernet": "󰈀 {ipaddr}",
+    "format-disconnected": "󰤮",
+    "tooltip-format": "{ifname} {ipaddr}/{cidr}",
+    "on-click": "$HOME/.config/waybar/wifi-menu.sh" 
+},
 
     "cpu": {
         "interval": 2,
