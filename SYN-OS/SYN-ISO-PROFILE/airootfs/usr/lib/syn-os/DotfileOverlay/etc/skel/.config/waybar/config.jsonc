@@ -1,147 +1,155 @@
 {
-    "height": 28,
-    "spacing": 6,
+  "height": 28,
+  "spacing": 6,
 
-    "modules-left": [
-        "custom/glyph",
-        "wlr/workspaces",
-        "wlr/taskbar"
-    ],
+  "modules-left": [
+    "custom/glyph",
+    "wlr/workspaces"
+  ],
 
-    "modules-center": [
-        "wlr/window"
-    ],
+  "modules-center": [
+    "wlr/window"
+  ],
 
-    "modules-right": [
-        "pulseaudio",
-        "network",
-        "cpu",
-        "memory",
-        "temperature",
-        "backlight",
-        "custom/disk",
-        "battery",
-        "clock"
-    ],
+  "modules-right": [
+    "custom/recording",
+    "custom/synshare",
+    "custom/vpn",
+    "network",
+    "backlight",
+    "pulseaudio",
+    "cpu",
+    "memory",
+    "temperature",
+    "custom/disk",
+    "battery",
+    "clock",
+    "custom/power"
+  ],
 
-    /* =====================
-       CUSTOM MODULES
-       ===================== */
+  "custom/glyph": {
+    "format": "{}",
+    "exec": "cat $HOME/.config/waybar/glyph 2>/dev/null || echo ●",
+    "signal": 2,
+    "tooltip": false,
+    "on-click": "/usr/lib/syn-os/syn-bar-launcher.zsh"
+  },
 
-    "custom/glyph": {
-        "return-type": "json",
-        "format": "{}",
-        "exec": "$HOME/.config/waybar/glyph-rotator.sh",
-        "interval": 20,
-        "tooltip": false,
-        "on-click": "wmenu-run -N '#000000' -n '#ffffff' -S '#400101' -s '#ffffff' -M '#260101' -m '#ffffff'"
+  "custom/recording": {
+    "format": "{}",
+    "exec": "PIDFILE=\"$XDG_RUNTIME_DIR/syn-screen-recorder.pid\"; [ -f \"$PIDFILE\" ] && kill -0 \"$(cat \"$PIDFILE\")\" 2>/dev/null && echo 'Recording' || echo ''",
+    "interval": 2,
+    "tooltip-format": "Recording \u2014 click to stop",
+    "on-click": "/usr/lib/syn-os/screen-recorder.zsh full"
+  },
+
+  "custom/synshare": {
+    "return-type": "json",
+    "format": "{}",
+    "interval": 5,
+    "exec": "/usr/lib/syn-os/syn-bar-share-status.zsh",
+    "on-click": "/usr/lib/syn-os/syn-bar-share-quickmenu.zsh"
+  },
+
+  "custom/vpn": {
+    "format": "",
+    "exec": "ip link show wg0 >/dev/null 2>&1 && echo on || echo ''",
+    "interval": 5
+  },
+
+  "custom/disk": {
+    "interval": 60,
+    "return-type": "json",
+    "format": " {}",
+    "exec": "/usr/lib/syn-os/syn-bar-disk.zsh",
+    "on-click": "foot -e spf /"
+  },
+
+  "custom/power": {
+    "format": "⏻",
+    "on-click": "/usr/lib/syn-os/syn-bar-power.zsh"
+  },
+
+  "pulseaudio": {
+    "format": "{volume}% {icon}",
+    "format-muted": "",
+    "format-icons": {
+      "default": ["", "", ""]
     },
+    "on-click": "pavucontrol",
+    "on-click-middle": "pamixer -t",
+    "on-scroll-up": "pamixer -i 5",
+    "on-scroll-down": "pamixer -d 5",
+    "scroll-step": 5
+  },
 
-
-   /* =====================
-       CORE MODULE SETTINGS
-       ===================== */
-
-    "wlr/workspaces": {
-        "disable-scroll": false,
-        "all-outputs": true,
-        "format": "{icon}",
-        "format-icons": {
-            "1": "🃁",
-            "2": "ℐ",
-            "3": "ℕ",
-            "4": "⌘",
-            "default": "•"
-        }
-    },
-
-    "wlr/taskbar": {
-        "format": "{icon}",
-        "icon-size": 16,
-        "icon-theme": "hicolor",
-        "tooltip-format": "{title}",
-        "on-click": "activate",
-        "on-click-middle": "close",
-        "ignore-list": ["waybar"]
-    },
-
-    "wlr/window": {
-        "max-length": 60,
-        "separate-outputs": true
-    },
-
-    "pulseaudio": {
-        "format": "{volume}% {icon}",
-        "format-muted": "",
-        "format-icons": {
-            "default": ["", "", ""]
-        },
-        "on-click": "pavucontrol",
-        "on-click-middle": "pamixer -t",
-        "on-scroll-up": "pamixer -i 5",
-        "on-scroll-down": "pamixer -d 5",
-        "scroll-step": 5
-    },
-
-"network": {
-    "format-wifi": "  {essid}",
-    "format-ethernet": "󰈀 {ipaddr}",
+  "network": {
+    "format-wifi": "  {essid}  {bandwidthUpBytes}/{bandwidthDownBytes}",
+    "format-ethernet": "󰈀 {ipaddr}  {bandwidthUpBytes}/{bandwidthDownBytes}",
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
-    "on-click": "$HOME/.config/waybar/wifi-menu.sh" 
-},
+    "interval": 2,
+    "on-click": "/usr/lib/syn-os/syn-bar-wifi.zsh"
+  },
 
-    "cpu": {
-        "interval": 2,
-        "format": "{usage}% ",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
+  "cpu": {
+    "interval": 2,
+    "format": "{usage}% ",
+    "tooltip-format": "Load average: {load}",
+    "states": { "warning": 70, "critical": 90 },
+    "on-click": "foot -e btop"
+  },
 
-    "memory": {
-        "interval": 5,
-        "format": "{percentage}% ",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
+  "memory": {
+    "interval": 5,
+    "format": "{percentage}% ",
+    "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G",
+    "states": { "warning": 75, "critical": 90 },
+    "on-click": "foot -e btop"
+  },
 
-    "temperature": {
-        "critical-threshold": 80,
-        "format": "{temperatureC}°C ",
-        "interval": 5,
-        "tooltip": false
-    },
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "{temperatureC}°C ",
+    "tooltip-format": "{temperatureC}°C ({temperatureF}°F)",
+    "interval": 5,
+    "on-click": "foot -e btop"
+  },
 
-    "backlight": {
-        "device": "intel_backlight",
-        "format": "{percent}% ",
-        "on-scroll-up": "brightnessctl set +5%",
-        "on-scroll-down": "brightnessctl set 5%-"
-    },
+  "backlight": {
+    "device": "intel_backlight",
+    "format": "{percent}% ",
+    "on-scroll-up": "brightnessctl set +5%",
+    "on-scroll-down": "brightnessctl set 5%-"
+  },
 
-    "custom/disk": {
-        "interval": 30,
-        "format": " {}",
-        "exec": "df -h --output=used,size / | awk 'NR==2{print $1\"/\"$2}'",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
-    
-    "battery": {
-        "states": {
-            "warning": 30,
-            "critical": 15
-        },
-        "format": "{capacity}% {icon}",
-        "format-charging": "{capacity}% ",
-        "format-plugged": "{capacity}% ",
-        "format-icons": ["", "", "", "", ""]
-    },
+  "battery": {
+    "states": { "warning": 30, "critical": 15 },
+    "format": "{capacity}% {icon}",
+    "format-charging": "{capacity}% ",
+    "format-plugged": "{capacity}% ",
+    "format-icons": ["", "", "", "", ""]
+  },
 
+  "clock": {
+    "interval": 1,
+    "format": "{:%H:%M:%S}",
+    "format-alt": "{:%Y-%m-%d %H:%M:%S}",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  },
 
-    "clock": {
-        "format": "{:%H:%M}",
-        "format-alt": "{:%Y-%m-%d %H:%M}",
-        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  "wlr/workspaces": {
+    "disable-scroll": false,
+    "all-outputs": true,
+    "format": "{icon}",
+    "format-icons": {
+      "1": "🃁",
+      "2": "ℐ",
+      "3": "ℕ",
+      "4": "⌘",
+      "default": "•"
     }
+  },
+
+  "wlr/window": { "max-length": 60, "separate-outputs": true }
 }

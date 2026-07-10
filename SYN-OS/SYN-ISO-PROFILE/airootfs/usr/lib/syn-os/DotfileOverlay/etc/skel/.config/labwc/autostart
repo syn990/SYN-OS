@@ -10,6 +10,46 @@
 #
 # =============================================================================
 
+# Apply any outputs the user has persisted as "always OFF at boot" via the
+# Display & Screens menu (~/.config/syn-os/disabled-outputs, one real
+# wlr-randr output name per line — e.g. an AiO's unwanted built-in panel).
+# No hardware-naming assumptions here (eDP/LVDS/DSI/etc. all vary by
+# machine) — this only ever acts on names the user chose themselves.
+#
+# SYN-OS principle, not just an Arch default: the session should never
+# leave you with zero visible output. So a persisted output is only
+# actually turned off if some OTHER output is confirmed enabled first;
+# if nothing else is on (that output got unplugged, or this file ended
+# up on different hardware), it's turned back ON instead of silently
+# leaving a black screen.
+DISABLED_OUTPUTS_FILE="$HOME/.config/syn-os/disabled-outputs"
+if [ -f "$DISABLED_OUTPUTS_FILE" ] && command -v wlr-randr >/dev/null 2>&1; then
+  wlr_state="$(wlr-randr 2>/dev/null)"
+  # Per-output "<name>|yes" or "<name>|no", one line each — anchored on
+  # each output's real block boundary (a line starting with its name),
+  # not proximity-based grep, so this doesn't depend on how many lines
+  # sit between the name and its Enabled: field (varies by output).
+  per_output_state="$(echo "$wlr_state" | awk '
+    /^[A-Za-z]/ { name = $1 }
+    /Enabled:/ { print name "|" $2 }
+  ')"
+  total_enabled="$(echo "$per_output_state" | grep -c "|yes" || true)"
+
+  while IFS= read -r out_name; do
+    [ -z "$out_name" ] && continue
+    out_line="$(echo "$per_output_state" | grep "^${out_name}|" || true)"
+    [ -z "$out_line" ] && continue  # not a currently-detected output, skip
+    out_is_enabled="no"
+    case "$out_line" in *"|yes") out_is_enabled="yes" ;; esac
+
+    if [ "$out_is_enabled" = "yes" ] && [ "${total_enabled:-0}" -gt 1 ]; then
+      wlr-randr --output "$out_name" --off 2>/dev/null
+    elif [ "${total_enabled:-0}" -eq 0 ]; then
+      wlr-randr --output "$out_name" --on 2>/dev/null
+    fi
+  done < "$DISABLED_OUTPUTS_FILE"
+fi
+
 # First login: stamp the default theme into every app's own config format
 # (qt5ct needs an absolute, user-specific path here; see docs/theming.md).
 # syn-theme-apply also starts swaybg with that theme's wallpaper, so on

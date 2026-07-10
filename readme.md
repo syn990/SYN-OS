@@ -1,10 +1,10 @@
 # SYN-OS
 
-**William Hayward-Holland's (Syntax990) Arch Linux build.**
+**A highly customisable, efficient Arch Linux build by William Hayward-Holland (Syntax990).**
 
-This isn't a distro trying to be a product. It's Arch with an installer that does what I'd otherwise do by hand, a package list I've been arguing with myself over since 2021, and a desktop built out of whatever was lean enough to justify keeping around. No installer wizard, no app store, nothing hidden behind a GUI that you can't also just go read.
+This is for people who want to manage their own machine, not have it managed for them. No installer wizard, no app store, nothing hidden behind a GUI. It's Arch with an installer that does what I'd otherwise do by hand, a package list I've been arguing with myself over since 2021, and a desktop built from whatever was lean enough to keep around.
 
-Boot the ISO, run one command, and you get a working system where every file that put it together is sitting right there in this repository if you want to know why it behaves the way it does.
+Boot the ISO, run one command, and you get a working system. Every file that built it is in this repository, so you can always go check why it behaves the way it does.
 
 ![SYN-OS Banner](./Images/SYN-BANNER1.png)
 
@@ -20,7 +20,7 @@ Once it's installed, this is what you're looking at:
 | **spf (Superfile)** | Terminal-based file manager |
 | **Zsh** | Shell with autosuggestions, syntax highlighting, and fuzzy search built in |
 
-Plus a browser, media player, image editor, and whatever else made it into the package list (see [Package Collection](./docs/packages.md)). Every file on the installed system came from this repository, no exceptions. See [Philosophy](#philosophy).
+Plus a browser, media player, image editor, and whatever else made it into the package list (see [Package Collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md)). Every file on the installed system came from this repository. See [Philosophy](#philosophy).
 
 ![SYN-OS Desktop](./Images/labwc-SYNOS-1.png)
 
@@ -79,7 +79,7 @@ diskutil eject /dev/diskN
    - Config and dotfile deployment
    - Bootloader setup
 
-See [How the Installer Works](./docs/installer-overview.md) for the full pipeline, or [synos.conf](./docs/synos-conf.md) for every config option.
+See [How the Installer Works](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) for the full pipeline, or [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) for every config option.
 
 ---
 
@@ -98,17 +98,17 @@ This starts the **LabWC** Wayland session. Your panel, wallpaper, menus, and app
 
 ## Philosophy
 
-Most distros make the choices for you and then hide where those choices live. This one doesn't, mostly because I never wanted to have to reverse-engineer my own system six months later.
-
-Every package is in [`syn-packages.zsh`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-packages.zsh), commented, in plain arrays. Every config ships from [`DotfileOverlay/`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay/) and is just the file, not a template that generates one. The install runs through named stage scripts you can open and read start to finish. If something behaves oddly, the file that caused it is in this repo somewhere, and now there's [documentation](#documentation) too, for the parts that aren't obvious from the code alone.
-
-I've rebuilt this system from nothing more times than I'd like to admit, going back to before this repository existed, before any repository existed. [Project History](./docs/history.md) has the real version of that, sourced from the actual commits and file contents across both the current repo and the one before it, not a tidied-up summary.
+Most distros make the choices for you and then hide where those choices live. This one doesn't — every package, config, and install step is a plain file in this repo, not something the installer decides on its own. Full argument, with the diagram, is in [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md).
 
 ---
 
 ## Build Your Own ISO
 
-SYN-OS is a complete [ArchISO](https://wiki.archlinux.org/title/Archiso) profile. If you are on Arch Linux or any Arch-based system, you can rebuild the ISO yourself:
+SYN-OS is a complete [ArchISO](https://wiki.archlinux.org/title/Archiso) profile. `archiso` is Arch-only, so you need an Arch (or Arch-based) environment to build from — that's either an installed SYN-OS/Arch system, or the live ISO shell itself, which is a full Arch environment before you've even installed anything.
+
+**Already on an installed SYN-OS desktop:** open the root menu (`Super+Space`) → SYN-OS Tools → SYN-OS ISO Builder. First run clones this repo to `~/GithubProjects/SYN-OS` and launches the builder; no terminal needed.
+
+**From a terminal, on Arch/SYN-OS (installed or live ISO shell):**
 
 ```bash
 sudo pacman -S archiso grub git
@@ -117,7 +117,9 @@ cd SYN-OS/SYN-OS
 sudo zsh ./BUILD-SYNOS-ISO.zsh
 ```
 
-Output is written to `ISO_OUTPUT/*.iso`. Any changes you made to packages, configs, dotfiles, or installer logic will be reflected in the image. See [Building the ISO](./docs/building-the-iso.md) for full details.
+Output is written to `ISO_OUTPUT/*.iso`. Any changes you made to packages, configs, dotfiles, or installer logic will be reflected in the image. See [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) for full details.
+
+**From a Windows or Mac host:** there's no native way to run `BUILD-SYNOS-ISO.zsh` on Windows or macOS. Boot the ISO you already downloaded (real hardware via USB, or straight off the ISO in any VM tool — Hyper-V, VirtualBox, UTM, Parallels) and use either path above from inside that live shell.
 
 ---
 
@@ -129,39 +131,40 @@ The sections above cover getting started. Everything below goes deeper: how the 
 
 | Document | Description |
 |---|---|
-| [How the Installer Works](./docs/installer-overview.md) | End-to-end walkthrough of what happens when you run `synos-install` |
-| [Stage 0: Pre-Chroot Setup](./docs/stage0.md) | Disk partitioning, volume setup, filesystem creation, pacstrap. Everything before `arch-chroot` |
-| [Stage 1: In-Chroot Configuration](./docs/stage1.md) | Users, bootloader, services, dotfile deployment. Everything inside the new system |
-| [synos.conf: Declarative Strategy Selection](./docs/synos-conf.md) | How to choose partition, volume, filesystem, and bootloader strategies without touching script logic |
-| [Storage Strategies](./docs/storage-strategies.md) | LUKS encryption, LVM, F2FS, Btrfs, what each strategy does and when to use it |
-| [Building the ISO](./docs/building-the-iso.md) | How to rebuild SYN-OS from source and make it your own |
-| [Project History](./docs/history.md) | The real history, back to 2021. Actual file contents, diffs, and Graphviz diagrams, not a summary |
+| [How the Installer Works](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) | End-to-end walkthrough of what happens when you run `synos-install` |
+| [Stage 0: Pre-Chroot Setup](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) | Disk partitioning, volume setup, filesystem creation, pacstrap. Everything before `arch-chroot` |
+| [Stage 1: In-Chroot Configuration](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) | Users, bootloader, services, dotfile deployment. Everything inside the new system |
+| [synos.conf: Declarative Strategy Selection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) | How to choose partition, volume, filesystem, and bootloader strategies without touching script logic |
+| [Storage Strategies](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/storage-strategies.md) | LUKS encryption, LVM, F2FS, Btrfs, what each strategy does and when to use it |
+| [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) | How to rebuild SYN-OS from source and make it your own |
+| [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md) | Why decisions live in plain files, not installer logic, with the diagram |
+| [Project History](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/history.md) | The real history, back to 2021. Actual file contents, diffs, and Graphviz diagrams, not a summary |
 
 ### Packages
 
 | Document | Description |
 |---|---|
-| [Package Collection](./docs/packages.md) | Full breakdown of `syn-packages.zsh`: every category, every package, and why it is included |
+| [Package Collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md) | Full breakdown of `syn-packages.zsh`: every category, every package, and why it is included |
 
 ### The Desktop
 
 | Document | Description |
 |---|---|
-| [LabWC: Window Manager](./docs/labwc.md) | How LabWC works, key config files (`rc.xml`, `menu.xml`, `environment`), keybindings, and layout |
-| [Waybar: The Panel](./docs/waybar.md) | Module structure, `config.jsonc`, `style.css`, and how to add or restyle modules |
-| [Wayland vs X11: What Changed and Why](./docs/wayland.md) | Plain-English explanation of the display system, why SYN-OS moved to Wayland, and what that means in practice |
-| [Zsh Configuration](./docs/zsh.md) | Shell setup, aliases, plugins (autosuggestions, syntax highlighting, fzf, zoxide) |
-| [Dotfile Overlay](./docs/dotfile-overlay.md) | How `DotfileOverlay/` works, what gets deployed where, and how to customise defaults |
+| [LabWC: Window Manager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/labwc.md) | How LabWC works, key config files (`rc.xml`, `menu.xml`, `environment`), keybindings, and layout |
+| [Waybar: The Panel](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/waybar.md) | Module structure, `config.jsonc`, `style.css`, and how to add or restyle modules |
+| [Wayland vs X11: What Changed and Why](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/wayland.md) | Plain-English explanation of the display system, why SYN-OS moved to Wayland, and what that means in practice |
+| [Zsh Configuration](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/zsh.md) | Shell setup, aliases, plugins (autosuggestions, syntax highlighting, fzf, zoxide) |
+| [Dotfile Overlay](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/dotfile-overlay.md) | How `DotfileOverlay/` works, what gets deployed where, and how to customise defaults |
 
 ### Concepts
 
 | Document | Description |
 |---|---|
-| [What is a Window Manager?](./docs/concepts/window-manager.md) | The difference between a desktop environment, window manager, and compositor, explained plainly |
-| [What is Wayland?](./docs/concepts/wayland.md) | How the Linux display system works and why it matters |
-| [What is a Shell?](./docs/concepts/shell.md) | TTY, terminal emulator, shell, prompt: what each layer actually is |
-| [What is Arch Linux?](./docs/concepts/arch-linux.md) | The base SYN-OS is built on: rolling release, pacman, AUR, and the Arch philosophy |
-| [Filesystem Hierarchy](./docs/concepts/filesystem.md) | What `/etc`, `/usr`, `/home`, `/mnt` and the rest of the Linux directory tree actually mean |
+| [What is a Window Manager?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/window-manager.md) | The difference between a desktop environment, window manager, and compositor, explained plainly |
+| [What is Wayland?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/wayland.md) | How the Linux display system works and why it matters |
+| [What is a Shell?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/shell.md) | TTY, terminal emulator, shell, prompt: what each layer actually is |
+| [What is Arch Linux?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/arch-linux.md) | The base SYN-OS is built on: rolling release, pacman, AUR, and the Arch philosophy |
+| [Filesystem Hierarchy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/filesystem.md) | What `/etc`, `/usr`, `/home`, `/mnt` and the rest of the Linux directory tree actually mean |
 
 ---
 

@@ -9,7 +9,7 @@ set -euo pipefail
 # Load config + packages + UI scripts
 source /usr/lib/syn-os/syn-config.zsh
 source /usr/lib/syn-os/syn-packages.zsh
-source /usr/lib/syn-os/ui.zsh
+source /usr/lib/syn-os/syn-ui.zsh
 
 # Full install log — everything printed from here on (Stage 0's own output,
 # plus Stage 1's once chrooted, since arch-chroot execs it as a child process
@@ -44,11 +44,9 @@ syn_stage0::cleanup() {
 }
 trap syn_stage0::cleanup EXIT INT TERM
 
-# Load modular strategy scripts
-source /usr/lib/syn-os/syn-partition.zsh
-source /usr/lib/syn-os/syn-volume.zsh
-source /usr/lib/syn-os/syn-filesystem.zsh
-source /usr/lib/syn-os/syn-mount.zsh
+# Load the disk-prep pipeline (partition -> volume -> filesystem -> mount)
+# and the package/deploy stage
+source /usr/lib/syn-os/syn-disk.zsh
 source /usr/lib/syn-os/syn-pacstrap.zsh
 
 # Safety gate to stop idiots loosing all their data. Since SYN‑OS operates at

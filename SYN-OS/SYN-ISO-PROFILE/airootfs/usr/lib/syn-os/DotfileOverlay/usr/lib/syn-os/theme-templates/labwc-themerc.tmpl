@@ -25,6 +25,14 @@ menu.title.text.justify:        left
 
 menu.items.font:                Terminus 10
 
+# Default max is 200px — clips anything past ~28 characters at this font.
+# Several real entries run well past that (SYN-CRYPTER, SYN-NETSERVER,
+# "Record - select area / Stop", the longest Capture entries) — 340 was
+# tuned against the old menu's longest label and got outgrown the moment
+# Capture was added. 460 covers every current real label with margin.
+menu.width.min:                 200
+menu.width.max:                 460
+
 menu.border.width:              5
 menu.overlap.x:                 -10
 menu.overlap.y:                 -10
