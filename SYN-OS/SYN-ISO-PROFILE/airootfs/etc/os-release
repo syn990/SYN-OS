@@ -1,5 +1,5 @@
 NAME="SYN-OS"
-PRETTY_NAME="SYN-OS - AEGIS Live Installer"
+PRETTY_NAME="SYN-OS Live Installer"
 ID=arch
 BUILD_ID=rolling
 ANSI_COLOR="0;31;40"

@@ -1,0 +1,29 @@
+digraph shell_env {
+  rankdir=LR;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  subgraph cluster_old {
+    label="SYN-RTOS 2021-04 -> SYN-OS 2026-02-16 (deleted 92b5926)"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    zshrc_old [label=".zshrc", shape=note, fillcolor="#260101"];
+    omz [label="source .oh-my-zsh/oh-my-zsh.sh\n(vendored, committed in repo)"];
+    lib [label="lib/*.zsh\n(~20 files)"];
+    plugins [label="plugins/\n(dozens, most unused)"];
+    zshrc_old -> omz -> lib;
+    omz -> plugins;
+  }
+
+  subgraph cluster_new {
+    label="2026-02-16 -> present"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    zshrc_new [label=".zshrc\n157 lines, hand-written", shape=note, fillcolor="#260101"];
+    compinit [label="compinit + zstyle\n(native zsh builtins)"];
+    pacman_plugins [label="/usr/share/zsh/plugins/*\ninstalled by pacman,\nnot vendored"];
+    zshrc_new -> compinit;
+    zshrc_new -> pacman_plugins [label="source, guarded\nby [[ -r ... ]]"];
+  }
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Same functional result (autosuggestions, syntax\nhighlighting, fuzzy search) — delivery mechanism\nchanged from 'vendor a framework, enable its\nplugin system' to 'pacman-install individual\nplugins, wire them in by hand in one file.'"];
+}

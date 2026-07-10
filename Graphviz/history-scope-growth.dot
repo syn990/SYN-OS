@@ -1,0 +1,31 @@
+digraph scope_growth {
+  rankdir=LR;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  subgraph cluster_2021 {
+    label="2021-03-02  syn-installer0.sh  —  32 lines"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    disk21 [label="1 disk\n(/dev/sda, hardcoded)"];
+    fs21 [label="1 filesystem pairing\n(fat32 boot, ext4 root)"];
+    pkg21 [label="1 inline pacstrap line\nno arrays, no categories"];
+    enc21 [label="no encryption\nno LVM\nno firmware branching"];
+  }
+
+  subgraph cluster_2026 {
+    label="2026  syn-stage0/1/config/partition/volume.zsh  —  ~540 lines"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    disk26 [label="firmware auto-detect\n+ mismatch guard"];
+    fs26 [label="3 partition strategies\n4 volume strategies\n4 filesystem choices"];
+    pkg26 [label="7 categorised arrays\n(baseCore..appsMedia)\n+ inline comments"];
+    enc26 [label="LUKS2 + LVM,\nindependent yes/no flags,\nvalidated combinations"];
+  }
+
+  disk21 -> disk26 [label="  scope\n  growth", color="#d84a3f", fontcolor="#d84a3f"];
+  fs21 -> fs26 [label="  scope\n  growth", color="#d84a3f", fontcolor="#d84a3f"];
+  pkg21 -> pkg26 [label="  scope\n  growth", color="#d84a3f", fontcolor="#d84a3f"];
+  enc21 -> enc26 [label="  scope\n  growth", color="#d84a3f", fontcolor="#d84a3f"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Every added line corresponds to a\ncapability that did not exist in 2021 —\nnone of it is framework tax or unused\nabstraction. 2026's oh-my-zsh-equivalent\n(vendored, mostly-unused bulk) was\ndeleted, not added. Larger, not heavier."];
+}

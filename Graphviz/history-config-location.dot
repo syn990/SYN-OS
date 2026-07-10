@@ -1,0 +1,20 @@
+digraph config_location {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  c0 [label="SYN-RTOS, 2021-03\ninline shell variables\nno external file\n(/dev/sda hardcoded)"];
+  cA [label="SYN-RTOS, 2022-11\nsyn.conf bootloader entry\nfirst use of the name"];
+  c1 [label="SYN-OS-V4, 2023-06\nsyn.conf (top-level)\nflat KEY=value"];
+  c2 [label="SYN-OS-2035, 2023-09\nsyn.conf, same format\ncopied forward"];
+  c3 [label="SYN-OS, 2024-01\nsyn.conf, same format\ncopied forward"];
+  c4 [label="/etc/syn-os/synos.conf\n2026-02-23 (320cd47)\n+ syn-config.zsh loader:\ntoYesNo(), firmware detect,\nstrategy derivation,\nhard-fail validation", fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+
+  c0 -> cA -> c1 -> c2 -> c3 -> c4 [label="  copied forward,\n  format unchanged\n  at each hop"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Five years from 'no config file'\nto a validated one in the\ncorrect FHS location."];
+  c4 -> note [style=invis];
+}
