@@ -2,6 +2,8 @@
 
 SYN-OS installs in two stages, split by a chroot boundary. Stage 0 runs in the live ISO environment and prepares the disk; Stage 1 runs inside the freshly-installed system (via `arch-chroot`) and configures it. You never run Stage 1 yourself: Stage 0 invokes it automatically as its last step.
 
+![synos-install, start to finish: boot, edit synos.conf, Stage 0's five-function pipeline, the chroot handoff, Stage 1's six steps, installed system](../Graphviz/installer-overview.svg)
+
 ## Booting the ISO
 
 The ISO supports both boot modes (`profiledef.sh`'s `bootmodes=(bios.syslinux uefi.systemd-boot)`), each with its own menu:

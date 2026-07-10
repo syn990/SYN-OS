@@ -1,8 +1,8 @@
 # SYN-OS
 
-**William Hayward-Holland's (Syntax990) Arch Linux build.**
+**A highly customisable, efficient Arch Linux build by William Hayward-Holland (Syntax990).**
 
-This isn't a distro trying to be a product. It's Arch with an installer that does what I'd otherwise do by hand, a package list I've been arguing with myself over since 2021, and a desktop built out of whatever was lean enough to justify keeping around. No installer wizard, no app store, nothing hidden behind a GUI that you can't also just go read.
+This is for people who want to actively manage and operate their own machine, not have it managed for them. No installer wizard, no app store, nothing hidden behind a GUI you can't also just go read. It's Arch with an installer that does what I'd otherwise do by hand, a package list I've been arguing with myself over since 2021, and a desktop built out of whatever was lean enough to justify keeping around.
 
 Boot the ISO, run one command, and you get a working system where every file that put it together is sitting right there in this repository if you want to know why it behaves the way it does.
 
@@ -102,6 +102,8 @@ Most distros make the choices for you and then hide where those choices live. Th
 
 Every package is in [`syn-packages.zsh`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-packages.zsh), commented, in plain arrays. Every config ships from [`DotfileOverlay/`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay/) and is just the file, not a template that generates one. The install runs through named stage scripts you can open and read start to finish. If something behaves oddly, the file that caused it is in this repo somewhere, and now there's [documentation](#documentation) too, for the parts that aren't obvious from the code alone.
 
+![A typical distro hides decisions inside the installer; SYN-OS keeps them in plain files the installer just reads, so changing the files changes the result](./Graphviz/philosophy-simple.svg)
+
 I've rebuilt this system from nothing more times than I'd like to admit, going back to before this repository existed, before any repository existed. [Project History](./docs/history.md) has the real version of that, sourced from the actual commits and file contents across both the current repo and the one before it, not a tidied-up summary.
 
 ---
@@ -118,6 +120,12 @@ sudo zsh ./BUILD-SYNOS-ISO.zsh
 ```
 
 Output is written to `ISO_OUTPUT/*.iso`. Any changes you made to packages, configs, dotfiles, or installer logic will be reflected in the image. See [Building the ISO](./docs/building-the-iso.md) for full details.
+
+### From a Windows or Mac host
+
+`archiso` is Arch-only, so there's no native way to run `BUILD-SYNOS-ISO.zsh` directly on Windows or macOS. You don't need one: boot the ISO you already downloaded (real hardware via USB, or straight off the ISO in any VM tool, Hyper-V, VirtualBox, UTM, Parallels), and that live shell is itself a full Arch environment. Run the steps above from inside it.
+
+![Windows/Mac path: download the prebuilt ISO, boot it, then run the normal build script from inside that running SYN-OS environment](./Graphviz/windows-mac-build.svg)
 
 ---
 
