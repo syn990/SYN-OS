@@ -52,7 +52,7 @@ confirm_synos-install() {
   printf "Type \033[1msynos-install YES\033[0m to proceed: "
   read -r a b
   if [[ "$a $b" == "synos-install YES" ]]; then
-    /usr/lib/syn-os/syn-stage0.zsh
+    doas /usr/lib/syn-os/syn-stage0.zsh
   else
     printf "Aborted.\n"
   fi
@@ -188,7 +188,7 @@ zstyle ':vcs_info:git:*' actionformats '%F{cyan}(%b|%a)%f'
 # Left prompt: user@host + cwd + git + brackets
 PROMPT='%F{blue}[%f%F{red}%n@%m%f %F{160}%~%f${vcs_info_msg_0_} %F{blue}]%f %# '
 # Right prompt: time + status (✔/✘ + code)
-RPROMPT='%F{white}%D{%H:%M:%S}%f %(?..%F{red}✘%?%f:%F{green}✔%f)'
+RPROMPT='%F{white}%D{%H:%M:%S}%f %(?.%F{green}✔%f.%F{red}✘%?%f)'
 
 # =============================================================================
 # One line MOTD

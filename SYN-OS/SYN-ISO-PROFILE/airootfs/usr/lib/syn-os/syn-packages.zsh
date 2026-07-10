@@ -73,6 +73,8 @@ desktopStack=(
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
   swaybg              # Background setter for Sway and wlroots-based compositors
+  swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)
+  fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)
   rofi                # Window switcher, application launcher, and dmenu replacement
   feh                 # Lightweight image viewer and background setter
   pavucontrol-qt      # Qt port of the PulseAudio volume controller
