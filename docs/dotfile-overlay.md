@@ -1,6 +1,8 @@
 # Dotfile Overlay
 
-`DotfileOverlay/` (`SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay/`) is the *only* place dotfile and desktop-config edits should be made in this repo. It's a plain filesystem tree, structured to mirror where its contents land on the installed system:
+If you want to change a config file, a theme, or anything under `.config`, edit it in `DotfileOverlay/` (`SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay/`). That's the only place these edits belong in this repo.
+
+It's just a plain folder that's laid out exactly like the real filesystem it gets copied onto:
 
 ```
 DotfileOverlay/
@@ -26,22 +28,20 @@ DotfileOverlay/
                 └── openbox-3/    (LabWC reads Openbox-format theme dirs)
 ```
 
-## How it's deployed
+## How it actually gets onto a real system
 
-`syn-pacstrap.zsh`'s `pacstrapMain` (see [Stage 0](./stage0.md#5-pacstrapmain-syn-pacstrapzsh)) copies the entire tree onto the target system near the end of the base install:
+![DotfileOverlay: from repo to a real user's home directory, across the Stage 0/Stage 1 boundary](../Graphviz/dotfile-overlay.svg)
 
-```zsh
-cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
-```
+Two steps, in two different stages:
 
-Because the overlay's internal structure already mirrors absolute paths (`etc/skel/...`, `usr/local/bin/...`), this single `cp -r` is enough to place everything correctly, so there's no per-file mapping logic to maintain. Immediately after, the install script `chmod -R +x`'s a few specific directories (`/usr/lib/syn-os`, `/etc/skel/.config/labwc`, `/etc/skel/.config/waybar`, `/etc/skel/.config/superfile`) so scripts inside them are executable on the new system, since file permissions from the ISO build environment aren't guaranteed to survive the copy with execute bits intact.
+1. **Stage 0**, still in the live ISO, `pacstrapMain` in [`syn-pacstrap.zsh`](./stage0.md#5-pacstrapmain-syn-pacstrapzsh) runs one command: `cp -r DotfileOverlay/* "${RootMountLocation}/"`. Because the folder is already laid out like the real filesystem, this single copy puts everything in the right place, no per-file logic needed. Right after, it runs `chmod -R +x` on a few specific folders (`/usr/lib/syn-os`, and the `labwc`/`waybar`/`superfile` config folders under `/etc/skel`), because a plain file copy doesn't always keep the execute bit on scripts.
 
-## Why `/etc/skel` and not `/home/<user>` directly
+2. **Stage 1**, inside the chroot, creates the actual user account: `useradd -m -G wheel`. The `-m` flag is what copies `/etc/skel` into the new user's home directory. This is the real moment your dotfiles become someone's actual files, not the `cp -r` in Stage 0.
 
-Stage 1 creates the user account (`useradd -m`) *after* Stage 0's pacstrap step has already deployed the overlay into `/etc/skel`. `useradd -m` populates the new home directory from `/etc/skel` at account-creation time, so the overlay only needs to target `/etc/skel` once, and every user created afterward (including ones you add manually post-install) inherits the same defaults.
+Because this happens through `/etc/skel`, not `/home/<user>` directly, any user created afterward, including one you add by hand after install, gets the same defaults for free. The overlay only ever has to target `/etc/skel` once.
 
-## Critical caveat: this is not what's on your running dev machine
+## Your dev machine is not the source of truth
 
-If you're working on this repo from an already-installed SYN-OS system, your live `/etc/skel` (and your own `~/.config/...`) are a **snapshot from whenever that system's ISO was built or last reinstalled**. They do not auto-sync with edits to this repo, or even with commits already merged into it. Editing your live `~/.config/waybar/config.jsonc` changes only your running session; it has no effect on `DotfileOverlay/`, and won't be reflected in the next ISO build unless you also make the same edit here.
+If you're editing this repo from a computer that's already running SYN-OS, your live `~/.config` is a snapshot from whenever that machine's system was installed or last rebuilt. It does not update itself when you edit this repo, or even after you commit here.
 
-Conversely, editing `DotfileOverlay/` has zero effect on your current desktop session: it only changes what gets deployed to *newly installed or rebuilt* systems. Don't diff your live config against the repo and assume parity; check modification dates or diff explicitly if you need to know whether they've drifted.
+So: editing your live `~/.config/waybar/config.jsonc` changes your desktop right now, but does nothing to `DotfileOverlay/`, and won't show up in the next ISO unless you copy the same edit into the repo by hand. And editing `DotfileOverlay/` here does nothing to your current desktop; it only changes what future installs or rebuilds get. The two only ever meet at install or rebuild time, never while you're using the system. Don't assume they match just because they look similar. If you need to know whether they've drifted, diff them explicitly.
