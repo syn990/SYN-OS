@@ -1,10 +1,16 @@
-#!/bin/zsh
-# SYN‑OS Base Install & State Handoff
-# /usr/lib/syn-os/syn-pacstrap.zsh
-
-# This script handles the base installation of the Arch Linux system onto the target root partition using `pacstrap`. It also generates the fstab and saves the installation state to a file that will be used by Stage 1 after chrooting.
-# Additionally, it deploys a dotfile overlay to the target system to customize the environment for new user accounts, and ensures that the necessary scripts and configuration are copied over for Stage 1 to access.
-
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         S Y N - P A C S T R A P
+#
+#   Runs pacstrap onto the target root, generates fstab, deploys the
+#   dotfile overlay and docs, and writes install.state for Stage 1 to
+#   pick up after chrooting.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-PACSTRAP (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 # =========================================================
@@ -39,10 +45,8 @@ pacstrapMain() {
     *)            bootPkgs=() ;;
   esac
 
-  # PackageProfile picks which array in syn-packages.zsh actually gets
-  # installed — full (SYNSTALL, everything) or minimal (SYNMINIMAL, base +
-  # networking + shell + desktop stack only). Same install pipeline either
-  # way; this is the only place the two profiles diverge.
+  # Only place full (SYNSTALL) vs minimal (SYNMINIMAL) profiles diverge —
+  # same install pipeline either way, just a different package array.
   local -a packageList
   case "${PackageProfile}" in
     minimal) packageList=("${SYNMINIMAL[@]}") ;;
@@ -68,57 +72,38 @@ pacstrapMain() {
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
   done
 
-# Deploy dotfile overlay to target system to customize environment for new user accounts
-if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
-  syn_ui::info "Deploying dotfile overlay to ${RootMountLocation}…"
-  cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
+  if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
+    syn_ui::info "Deploying dotfile overlay to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
+    chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
+    chmod -R +x "${RootMountLocation}/usr/local/bin"
+    chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
+    chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
+    chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
+  fi
 
-  # Make all the good stuff executable
-  chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
-  chmod -R +x "${RootMountLocation}/usr/local/bin"
-  chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
-  chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
-  chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
-fi
+  # Docs are static system data, not a per-user dotfile, so they get their
+  # own copy to /usr/share rather than living inside DotfileOverlay above.
+  if [ -d /usr/share/syn-os/docs ]; then
+    syn_ui::info "Deploying docs to ${RootMountLocation}/usr/share/syn-os/docs…"
+    mkdir -p "${RootMountLocation}/usr/share/syn-os"
+    cp -r /usr/share/syn-os/docs "${RootMountLocation}/usr/share/syn-os/docs"
+  fi
 
-  # Persist state for Stage 1
+  # Persist state for Stage 1 — only facts stage0 computed at runtime
+  # (actual partition devices, the LUKS UUID cryptsetup just generated).
+  # Everything else Stage 1 needs (Hostname, KeyMap, UserAccountPassword...)
+  # is already in the synos.conf copy above, which Stage 1 re-sources via
+  # syn-config.zsh the same way Stage 0 did.
   local State="${RootMountLocation}/etc/syn-os/install.state"
   mkdir -p "$(dirname "$State")"
   cat > "$State" <<EOF
-PartitionStrat="${PartitionStrat}"
-VolumeStrat="${VolumeStrat}"
-Encryption="${Encryption}"
-UseLvm="${UseLvm}"
-FilesystemStrat="${FilesystemStrat}"
-BootloaderStrat="${BootloaderStrat}"
-
-Disk="${Disk}"
 BootPart="${BootPart:-}"
 RootPart="${RootPart:-}"
 RootMapper="${RootMapper:-}"
 RootFsDev="${RootFsDev}"
 SwapDev="${SwapDev:-}"
-
-LuksLabel="${LuksLabel:-cryptroot}"
 LuksUuid="${LuksUuid:-}"
-VgName="${VgName}"
-
-Hostname="${Hostname}"
-UserAccountName="${UserAccountName}"
-UserAccountPassword="${UserAccountPassword}"
-UserShell="${UserShell}"
-Locale="${Locale}"
-LocaleGen="${LocaleGen}"
-KeyMap="${KeyMap}"
-TimeZone="${TimeZone}"
-VconsoleFont="${VconsoleFont}"
-
-BootFs="${BootFs}"
-RootFs="${RootFs}"
-BootMountLocation="${BootMountLocation}"
-RootMountLocation="${RootMountLocation}"
-KernelOpts="${KernelOpts}"
-
 EOF
   chmod 600 "$State"
 

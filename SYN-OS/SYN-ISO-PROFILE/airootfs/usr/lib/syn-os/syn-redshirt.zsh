@@ -6,6 +6,7 @@
 # Encrypted files are marked with a custom header and include a SHA1 hash for integrity verification. The Zsh script handles orchestration, while a compiled C helper performs the byte transformation for speed.
 
 set -o errexit -o nounset -o pipefail
+source /usr/lib/syn-os/syn-ui.zsh
 
 marker1="REDSHIRT"$'\0'
 marker2="REDSHRT2"$'\0'
@@ -46,7 +47,7 @@ transform_bytes() {
 # --- usage -------------------------------------------------------------------
 [[ $# -lt 1 ]] && { echo "Usage: $0 filename"; exit 1; }
 file="$1"
-[[ ! -f "$file" ]] && { echo "File not found: $file" >&2; exit 1; }
+[[ ! -f "$file" ]] && { syn_ui::error "File not found: $file"; exit 1; }
 
 headbytes=$(dd if="$file" bs=$markersize count=1 2>/dev/null)
 if [[ "$headbytes" == "$marker2" ]]; then
@@ -61,7 +62,7 @@ tmpfile="${file}.tmp"
 
 # --- encrypt (always writes REDSHRT2+SHA1) -----------------------------------
 if [[ "$mode" == "encrypt" ]]; then
-  echo "Encrypting $file ..."
+  syn_ui::step "Encrypting $file"
   {
     printf "%s" "$marker2"
     dd if=/dev/zero bs=$hashsize count=1 2>/dev/null
@@ -73,28 +74,28 @@ if [[ "$mode" == "encrypt" ]]; then
     | xxd -r -p | dd of="$tmpfile" bs=1 seek=$markersize conv=notrunc 2>/dev/null
 
   mv "$tmpfile" "$file"
-  echo "done"
+  syn_ui::step_done "done"
 fi
 
 # --- decrypt v2 (with checksum) ----------------------------------------------
 if [[ "$mode" == "decrypt2" ]]; then
-  echo "Decrypting $file (v2) ..."
+  syn_ui::step "Decrypting $file (v2)"
   storedhash=$(dd if="$file" bs=1 skip=$markersize count=$hashsize 2>/dev/null | xxd -p -c $hashsize)
   datahash=$(tail -c +$((markersize+hashsize+1)) "$file" | sha1sum | awk '{print $1}')
   if [[ "$storedhash" != "$datahash" ]]; then
-    echo "WARNING: checksum mismatch" >&2
+    syn_ui::error "checksum mismatch"
   fi
   dd if="$file" bs=1 skip=$((markersize+hashsize)) 2>/dev/null \
     | transform_bytes decrypt > "$tmpfile"
   mv "$tmpfile" "$file"
-  echo "done"
+  syn_ui::step_done "done"
 fi
 
 # --- decrypt v1 (no checksum) ------------------------------------------------
 if [[ "$mode" == "decrypt1" ]]; then
-  echo "Decrypting $file (v1, no checksum) ..."
+  syn_ui::step "Decrypting $file (v1, no checksum)"
   dd if="$file" bs=1 skip=$markersize 2>/dev/null \
     | transform_bytes decrypt > "$tmpfile"
   mv "$tmpfile" "$file"
-  echo "done"
+  syn_ui::step_done "done"
 fi

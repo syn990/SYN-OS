@@ -15,7 +15,7 @@
     <!-- File Browser -->
     <item label="File browser">
       <action name="Execute">
-        <command>~/.config/labwc/spf-menu.zsh</command>
+        <command>/usr/lib/syn-os/syn-pipe-superfile.zsh</command>
       </action>
     </item>
 
@@ -23,184 +23,278 @@
           label="All Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
 
+    <!-- BLACKARCH-MENU-START/END: inserted/removed here by
+         syn-blackarch-toggle.zsh's Enable/Disable — not present until
+         toggled on, so nothing advertises BlackArch to a system that
+         doesn't have it. See Preferences > BlackArch. -->
+    <!-- BLACKARCH-MENU-END -->
+
+    <!-- Capture: "do something with what's on screen right now" from the
+         user's own seat, same shelf as Applications. screen-recorder.zsh
+         toggles: click Record once to start (backgrounded, PID tracked in
+         $XDG_RUNTIME_DIR), the same entry again to stop. Display & Screens
+         is actual output configuration, not a launched action — that
+         lives in Preferences below, not here. -->
+    <menu id="capture-menu" label="Capture">
+      <item label="Screenshot - full screen">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screenshot.zsh full</command>
+        </action>
+      </item>
+
+      <item label="Screenshot - select area">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screenshot.zsh region</command>
+        </action>
+      </item>
+
+      <item label="Record - full screen">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screen-recorder.zsh full</command>
+        </action>
+      </item>
+
+      <item label="Record - select area / Stop">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screen-recorder.zsh region</command>
+        </action>
+      </item>
+    </menu>
+
     <!-- SYN-OS Tools: the custom scripts in /usr/lib/syn-os/ have no other
          GUI entry point — without this menu the only way to find them is
          already knowing the filename. Each opens in a terminal since
-         they're all interactive TUIs, not GUI apps. -->
+         they're all interactive TUIs, not GUI apps. Every entry ends its
+         script with `; exec zsh` so an early failure (missing dependency,
+         permission error) leaves the terminal open with the error visible
+         instead of the window just vanishing. -->
     <separator label=" SYN-OS TOOLS " />
 
     <menu id="synos-tools" label="SYN-OS Tools">
-      <item label="SYN-SHARE (file transfer hub)">
-        <action name="Execute">
-          <command>foot -e zsh /usr/lib/syn-os/syn-share.zsh</command>
-        </action>
-      </item>
+      <menu id="syn-share-menu"
+            label="SYN-SHARE (file transfer hub)"
+            execute="zsh /usr/lib/syn-os/syn-pipe-share.zsh" />
 
-      <item label="SYN-NETCLIENT (probe/pull from a SYN-OS host)">
-        <action name="Execute">
-          <command>foot -e zsh /usr/lib/syn-os/syn-netclient.zsh</command>
-        </action>
-      </item>
-
-      <item label="SYN-NETSERVER (manage file-transfer services)">
-        <action name="Execute">
-          <command>foot -e doas zsh /usr/lib/syn-os/syn-netserver.zsh</command>
-        </action>
-      </item>
-
-      <!-- syn-crypter.zsh and syn-redshirt.zsh take flags and a file path
-           on the command line (no interactive prompts of their own) — there's
-           no sensible default file to run them against, so drop into a shell
-           with the usage banner already printed instead of launching them
-           directly, which would just flash-and-exit with an arg error. -->
+      <!-- syn-crypter-prompt.zsh / syn-redshirt-prompt.zsh collect
+           whatever the underlying tool needs (action, algorithm, file,
+           password/key) via rofi, then run the real work inside
+           syn_popup::run — same shape as SYN-SHARE's own prompt script,
+           and for the same reason: labwc's <command> goes straight to
+           execvp(), so every bit of prompt logic has to live in a script
+           keyed by a bare invocation, not a command string built here. -->
       <item label="SYN-CRYPTER (AES/Blowfish/RSA file encryption)">
         <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-crypter.zsh; exec zsh'</command>
+          <command>/usr/lib/syn-os/syn-crypter-prompt.zsh</command>
         </action>
       </item>
 
       <item label="SYN-REDSHIRT (Uplink-style XOR obfuscation)">
         <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-redshirt.zsh; exec zsh'</command>
-        </action>
-      </item>
-    </menu>
-
-    <!-- System Control -->
-    <separator label=" SYSTEM CONTROL " />
-
-    <item label="Lock Screen (Super+L)">
-      <action name="Execute">
-        <command>swaylock -f -c 1a0000</command>
-      </action>
-    </item>
-
-    <item label="Screenshot - select area (Super+P)">
-      <action name="Execute">
-        <command>sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g "$(slurp)" ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'</command>
-      </action>
-    </item>
-
-    <item label="Volume Mixer">
-      <action name="Execute">
-        <command>pavucontrol-qt</command>
-      </action>
-    </item>
-
-    <!-- Waybar/LabWC have their own kill entries above (Waybar & LabWC
-         submenu) — this is for the other common programs, kept to a short,
-         known list on purpose rather than a full process browser. -->
-    <menu id="kill-process" label="Kill Process">
-      <item label="Close Focused Window (Super+Q)">
-        <action name="Close" />
-      </item>
-
-      <item label="Kill All Terminals (foot)">
-        <action name="Execute">
-          <command>pkill foot</command>
+          <command>/usr/lib/syn-os/syn-redshirt-prompt.zsh</command>
         </action>
       </item>
 
-      <item label="Kill Web Browser (Falkon)">
-        <action name="Execute">
-          <command>pkill falkon</command>
-        </action>
-      </item>
-
-      <item label="Kill File Browser (Superfile)">
-        <action name="Execute">
-          <command>pkill spf</command>
-        </action>
-      </item>
-    </menu>
-
-    <menu id="audio-pipe"
-          label="Audio Settings (Dynamic)"
-          execute="~/.config/labwc/labwc-audio-menu.zsh" />
-
-    <menu id="displays-pipe"
-          label="Display &amp; Screens (Dynamic)"
-          execute="~/.config/labwc/labwc-wlr-menu.zsh" />
-
-    <!-- Themes: live switch, no hand-editing needed. See "Edit Configuration
-         Files" below only if you want to go past what a theme covers. -->
-    <menu id="themes-pipe"
-          label="Themes"
-          execute="~/.config/labwc/syn-theme-menu.zsh" />
-
-    <!-- Configuration (Interface and System) -->
-    <separator label=" CONFIGURATION " />
-
-    <menu id="edit-configs" label="Edit Configuration Files">
-
-      <!-- Waybar Configurations -->
-      <menu id="waybar-config" label="Waybar Configurations">
-        <item label="Waybar Config">
+      <!-- SYN-GRAPHMAP always prompts via rofi for the target directory
+           and output format (leaving both args empty triggers those
+           prompts); Quick/Full only differ in the max-depth passed
+           directly. Custom asks for a number via its own small prompt
+           script first. Output lands in ~/Pictures/SYN-GRAPHMAP/, same
+           convention as screenshots. -->
+      <menu id="graphmap-menu" label="SYN-GRAPHMAP (graph a directory tree)">
+        <item label="Quick (shallow scan)">
           <action name="Execute">
-            <command>featherpad ~/.config/waybar/config.jsonc</command>
+            <command>/usr/lib/syn-os/syn-graphmap-quick.zsh</command>
           </action>
         </item>
-        <!-- syn-theme-apply (see Themes above) overwrites this file
-             wholesale on every theme switch. Fine for a one-off tweak,
-             won't survive switching themes. -->
-        <item label="Waybar Style (overwritten by Themes switch)">
+
+        <item label="Full (deep scan)">
           <action name="Execute">
-            <command>featherpad ~/.config/waybar/style.css</command>
+            <command>/usr/lib/syn-os/syn-graphmap-full.zsh</command>
+          </action>
+        </item>
+
+        <item label="Custom (enter a depth)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-graphmap-custom.zsh</command>
           </action>
         </item>
       </menu>
 
-      <!-- LabWC Configurations -->
-      <menu id="labwc-config" label="LabWC Configurations">
-        <!-- This whole menu is this one plain text file. Add your own
-             launchers the same way every item above does: an <item> with
-             a <command>. Nothing here is special-cased or hidden from you. -->
-        <item label="Labwc Menu">
+      <!-- The ISO build itself stays a full, normal, decorated terminal —
+           it runs for minutes with real scrolling output, unlike every
+           other tool here's one-line result. syn-build-launcher.zsh
+           handles its own doas framing internally. -->
+      <item label="SYN-OS ISO Builder">
+        <action name="Execute">
+          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-build-launcher.zsh; exec zsh'</command>
+        </action>
+      </item>
+    </menu>
+
+    <!-- Audio / Display / Themes / Bar toggle / Docs: everything that's a
+         setting or reference rather than a thing you launch, tucked one
+         level deep instead of sitting bare at root. Audio/Display/Themes/
+         Docs are each a real dynamic pipe-menu (queries pactl/wlr-randr/
+         theme dir live). -->
+    <separator label=" SETTINGS " />
+
+    <menu id="preferences-menu" label="Preferences">
+      <menu id="audio-pipe"
+            label="Audio Settings"
+            execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
+
+      <menu id="displays-pipe"
+            label="Display &amp; Screens"
+            execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
+
+      <!-- Not part of the installer — genuinely a live toggle, on any
+           already-installed system, whenever it's actually wanted.
+           No foot wrapper: the rofi pickers are their own popups, and
+           the script opens its own syn_popup::run window for the actual
+           doas action once a choice is made. -->
+      <item label="BlackArch">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
+        </action>
+      </item>
+
+      <!-- sshd/bluetooth/qemu-guest-agent are all installed but disabled
+           by default (same reasoning EnableSsh=yes documents for sshd) —
+           this is the live version of that control, no reinstall needed. -->
+      <item label="Services (SSH, Bluetooth, QEMU Agent)">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
+        </action>
+      </item>
+
+      <menu id="themes-pipe"
+            label="Themes"
+            execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
+
+      <item label="Toggle Bar Position">
+        <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
+      </item>
+
+      <menu id="docs-pipe"
+            label="Docs"
+            execute="/usr/lib/syn-os/syn-pipe-docs.zsh" />
+    </menu>
+
+    <!-- System: everything that isn't reached for every day (lock/volume
+         are the exception since those genuinely are frequent, but folding
+         them in keeps root from growing every time something new needs a
+         home — kill-process/edit-configs/waybar-labwc were previously
+         three more flat root entries on top of these). -->
+    <separator label=" SYSTEM " />
+
+    <menu id="system-menu" label="System">
+      <item label="Lock Screen">
+        <action name="Execute">
+          <command>swaylock -f -c 1a0000</command>
+        </action>
+      </item>
+
+      <item label="Volume Mixer">
+        <action name="Execute">
+          <command>pavucontrol-qt</command>
+        </action>
+      </item>
+
+      <!-- Waybar/LabWC have their own kill entries below (Waybar & LabWC
+           submenu) — this is for the other common programs, kept to a short,
+           known list on purpose rather than a full process browser. -->
+      <menu id="kill-process" label="Kill Process">
+        <item label="Close Focused Window">
+          <action name="Close" />
+        </item>
+
+        <item label="Kill All Terminals (foot)">
           <action name="Execute">
-            <command>featherpad ~/.config/labwc/menu.xml</command>
+            <command>pkill foot</command>
           </action>
         </item>
 
-        <item label="Labwc RC">
+        <item label="Kill Web Browser (Falkon)">
           <action name="Execute">
-            <command>featherpad ~/.config/labwc/rc.xml</command>
+            <command>pkill falkon</command>
           </action>
         </item>
 
-        <item label="Labwc Autostart">
+        <item label="Kill File Browser (Superfile)">
           <action name="Execute">
-            <command>featherpad ~/.config/labwc/autostart</command>
+            <command>pkill spf</command>
           </action>
         </item>
       </menu>
 
-    </menu>
+      <menu id="edit-configs" label="Edit Configuration Files">
 
-    <!-- Interface -->
-    <separator label=" INTERFACE " />
+        <!-- Waybar Configurations -->
+        <menu id="waybar-config" label="Waybar Configurations">
+          <item label="Waybar Config">
+            <action name="Execute">
+              <command>featherpad ~/.config/waybar/config.jsonc</command>
+            </action>
+          </item>
+          <!-- syn-theme-apply (see Themes above) overwrites this file
+               wholesale on every theme switch. Fine for a one-off tweak,
+               won't survive switching themes. -->
+          <item label="Waybar Style (overwritten by Themes switch)">
+            <action name="Execute">
+              <command>featherpad ~/.config/waybar/style.css</command>
+            </action>
+          </item>
+        </menu>
 
-    <menu id="waybar-labwc" label="Waybar &amp; LabWC">
-      <item label="Reload LabWC Configuration">
-        <action name="Reconfigure" />
-      </item>
+        <!-- LabWC Configurations -->
+        <menu id="labwc-config" label="LabWC Configurations">
+          <!-- This whole menu is this one plain text file. Add your own
+               launchers the same way every item above does: an <item> with
+               a <command>. Nothing here is special-cased or hidden from you. -->
+          <item label="Labwc Menu">
+            <action name="Execute">
+              <command>featherpad ~/.config/labwc/menu.xml</command>
+            </action>
+          </item>
 
-      <item label="Return to Tty1 (Kill LabWC)">
-        <action name="Execute">
-          <command>pkill labwc</command>
-        </action>
-      </item>
+          <item label="Labwc RC">
+            <action name="Execute">
+              <command>featherpad ~/.config/labwc/rc.xml</command>
+            </action>
+          </item>
 
-      <item label="Launch Waybar">
-        <action name="Execute">
-          <command>waybar</command>
-        </action>
-      </item>
+          <item label="Labwc Autostart">
+            <action name="Execute">
+              <command>featherpad ~/.config/labwc/autostart</command>
+            </action>
+          </item>
+        </menu>
 
-      <item label="Kill Waybar">
-        <action name="Execute">
-          <command>pkill waybar</command>
-        </action>
-      </item>
+      </menu>
+
+      <menu id="waybar-labwc" label="Waybar &amp; LabWC">
+        <item label="Reload LabWC Configuration">
+          <action name="Reconfigure" />
+        </item>
+
+        <item label="Return to Tty1 (Kill LabWC)">
+          <action name="Execute">
+            <command>pkill labwc</command>
+          </action>
+        </item>
+
+        <item label="Launch Waybar">
+          <action name="Execute">
+            <command>waybar</command>
+          </action>
+        </item>
+
+        <item label="Kill Waybar">
+          <action name="Execute">
+            <command>pkill waybar</command>
+          </action>
+        </item>
+      </menu>
     </menu>
 
     <!-- Power -->

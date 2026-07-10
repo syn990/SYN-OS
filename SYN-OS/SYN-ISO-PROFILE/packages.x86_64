@@ -26,6 +26,7 @@ mkinitcpio-archiso
 modemmanager
 nano
 openbsd-netcat
+opendoas
 open-vm-tools
 openssh
 parted

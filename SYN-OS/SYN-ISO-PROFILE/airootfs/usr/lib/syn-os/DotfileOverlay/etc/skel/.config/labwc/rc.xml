@@ -29,6 +29,20 @@
     </font>
   </theme>
 
+  <!-- foot windows launched with app-id syn-os-popup (syn-popup-lib.zsh,
+       used by every menu.xml tool that runs a command and shows the
+       result — SYN-SHARE, BlackArch/services toggles, the ISO builder,
+       crypter/redshirt/graphmap) render as a small, undecorated,
+       centered popup instead of a normal terminal window — matches the
+       rofi popups' feel, not something meant to be resized/moved/left
+       open indefinitely. -->
+  <windowRules>
+    <windowRule identifier="syn-os-popup" serverDecoration="no">
+      <action name="ResizeTo" width="640" height="360" />
+      <action name="AutoPlace" policy="center" />
+    </windowRule>
+  </windowRules>
+
   <desktops number="4">
     <names>
       <name>🃁 [Terminal]</name>
@@ -100,8 +114,11 @@
     <keybind key="W-4"><action name="GoToDesktop" to="4"/></keybind>
 
     <keybind key="W-p">
-      <action name="Execute"
-        command="sh -lc 'mkdir -p ~/Pictures/Screenshots; grim -g &quot;$(slurp)&quot; ~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png'"/>
+      <action name="Execute" command="/usr/lib/syn-os/screenshot.zsh region"/>
+    </keybind>
+
+    <keybind key="W-S-p">
+      <action name="Execute" command="/usr/lib/syn-os/screen-recorder.zsh full"/>
     </keybind>
 
   </keyboard>

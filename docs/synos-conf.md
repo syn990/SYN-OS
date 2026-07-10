@@ -39,7 +39,7 @@ It's loaded and validated by `syn-config.zsh` (`SYN-ISO-PROFILE/airootfs/usr/lib
 | `BootloaderStrat` | `auto` \| `systemd-boot` \| `syslinux` \| `grub` |
 | `PackageProfile` | `full` (default): the whole `SYNSTALL` array in `syn-packages.zsh`. `minimal`: `SYNMINIMAL` — base system, networking, shell tools, and the desktop stack only, skipping `devToolkit` and `appsMedia`'s heavier packages. Same install pipeline either way; `syn-pacstrap.zsh` is the only place the two diverge. |
 
-`Encryption`/`UseLvm` are combined internally by `syn-config.zsh` into the `VolumeStrat` value (`luks-lvm`/`luks-only`/`lvm-only`/`plain`) that `syn-volume.zsh` actually dispatches on; you don't set `VolumeStrat` directly.
+`Encryption`/`UseLvm` are combined internally by `syn-config.zsh` into the `VolumeStrat` value (`luks-lvm`/`luks-only`/`lvm-only`/`plain`) that `syn-disk.zsh`'s `volumeMain` actually dispatches on; you don't set `VolumeStrat` directly.
 
 ### `PartitionStrat=auto`: how it resolves, and why it matters
 
@@ -55,7 +55,7 @@ This matters because `PartitionStrat` used to be a static value with **no connec
 
 If you set `PartitionStrat` explicitly (`uefi-bootctl`, `mbr-syslinux`, or `mbr-grub`), `syn-config.zsh` now cross-checks it against detected firmware and **refuses to proceed on a mismatch**: e.g. `uefi-bootctl` set on a machine that actually booted BIOS/legacy is a hard config-load error, not a silent build-then-fail. Set an explicit value only when you have a specific reason to override detection (e.g. testing, or firmware detection being wrong for unusual hardware).
 
-**Filesystems**: `BootFs` and `RootFs` are descriptive/matching fields (`BootFs` should be `fat32` for `uefi-bootctl`'s ESP, `ext4` for `mbr-grub`'s boot partition; `RootFs` should match `FilesystemStrat`); the actual `mkfs` calls in `syn-filesystem.zsh` branch on `FilesystemStrat`, not these two directly. `volumeMain` in `syn-volume.zsh` is what actually formats the boot partition, branching on `PartitionStrat` rather than reading `BootFs`.
+**Filesystems**: `BootFs` and `RootFs` are descriptive/matching fields (`BootFs` should be `fat32` for `uefi-bootctl`'s ESP, `ext4` for `mbr-grub`'s boot partition; `RootFs` should match `FilesystemStrat`); the actual `mkfs` calls in `syn-disk.zsh`'s `filesystemMain` branch on `FilesystemStrat`, not these two directly. `volumeMain`, also in `syn-disk.zsh`, is what actually formats the boot partition, branching on `PartitionStrat` rather than reading `BootFs`.
 
 **LUKS** (required if `Encryption=yes`): `LuksCipher`, `LuksKeySize`, `LuksPbkdf`, `LuksLabel`, passed straight through to `cryptsetup luksFormat`.
 
