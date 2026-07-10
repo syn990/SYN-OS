@@ -1,3 +1,4 @@
 *.iso
 *.qcow2
 WORKDIR/
+.claude
