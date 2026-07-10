@@ -1,147 +1,152 @@
 {
-    "height": 28,
-    "spacing": 6,
+  "height": 28,
+  "spacing": 6,
 
-    "modules-left": [
-        "custom/glyph",
-        "wlr/workspaces",
-        "wlr/taskbar"
-    ],
+  "modules-left": [
+    "custom/glyph",
+    "wlr/workspaces"
+  ],
 
-    "modules-center": [
-        "wlr/window"
-    ],
+  "modules-center": [
+    "wlr/window",
+    "custom/media"
+  ],
 
-    "modules-right": [
-        "pulseaudio",
-        "network",
-        "cpu",
-        "memory",
-        "temperature",
-        "backlight",
-        "custom/disk",
-        "battery",
-        "clock"
-    ],
+  "modules-right": [
+    "custom/vpn",
+    "network",
+    "custom/net",
+    "cpu",
+    "memory",
+    "temperature",
+    "custom/disk",
+    "backlight",
+    "pulseaudio",
+    "battery",
+    "clock",
+    "custom/power"
+  ],
 
-    /* =====================
-       CUSTOM MODULES
-       ===================== */
+  "custom/glyph": {
+    "return-type": "json",
+    "format": "{}",
+    "exec": "$HOME/.config/waybar/glyph-rotator.sh",
+    "interval": 20,
+    "tooltip": false,
+    "on-click": "wmenu-run -N '#000000' -n '#ffffff' -S '#400101' -s '#ffffff' -M '#260101' -m '#ffffff'"
+  },
 
-    "custom/glyph": {
-        "return-type": "json",
-        "format": "{}",
-        "exec": "$HOME/.config/waybar/glyph-rotator.sh",
-        "interval": 20,
-        "tooltip": false,
-        "on-click": "wmenu-run -N '#000000' -n '#ffffff' -S '#400101' -s '#ffffff' -M '#260101' -m '#ffffff'"
+  "custom/media": {
+    "format": " {}",
+    "exec": "playerctl metadata --format '{{title}}' 2>/dev/null || echo ''",
+    "interval": 2,
+    "max-length": 25,
+    "on-click": "playerctl play-pause",
+    "on-scroll-up": "playerctl next",
+    "on-scroll-down": "playerctl previous",
+    "tooltip": false
+  },
+
+  "custom/net": {
+    "format": " {}  {}",
+    "exec": "$HOME/.config/waybar/net-speed.sh",
+    "interval": 2,
+    "tooltip": false
+  },
+
+  "custom/vpn": {
+    "format": "",
+    "exec": "ip link show wg0 >/dev/null 2>&1 && echo on || echo ''",
+    "interval": 5
+  },
+
+  "custom/disk": {
+    "interval": 60,
+    "format": " {}",
+    "exec": "df -h / | awk 'NR==2{print $3\"/\"$2}'",
+    "tooltip": false
+  },
+
+  "custom/power": {
+    "format": "⏻",
+    "on-click": "wlogout"
+  },
+
+  "pulseaudio": {
+    "format": "{volume}% {icon}",
+    "format-muted": "",
+    "format-icons": {
+      "default": ["", "", ""]
     },
+    "on-click": "pavucontrol",
+    "on-click-middle": "pamixer -t",
+    "on-scroll-up": "pamixer -i 5",
+    "on-scroll-down": "pamixer -d 5",
+    "scroll-step": 5
+  },
 
-
-   /* =====================
-       CORE MODULE SETTINGS
-       ===================== */
-
-    "wlr/workspaces": {
-        "disable-scroll": false,
-        "all-outputs": true,
-        "format": "{icon}",
-        "format-icons": {
-            "1": "🃁",
-            "2": "ℐ",
-            "3": "ℕ",
-            "4": "⌘",
-            "default": "•"
-        }
-    },
-
-    "wlr/taskbar": {
-        "format": "{icon}",
-        "icon-size": 16,
-        "icon-theme": "hicolor",
-        "tooltip-format": "{title}",
-        "on-click": "activate",
-        "on-click-middle": "close",
-        "ignore-list": ["waybar"]
-    },
-
-    "wlr/window": {
-        "max-length": 60,
-        "separate-outputs": true
-    },
-
-    "pulseaudio": {
-        "format": "{volume}% {icon}",
-        "format-muted": "",
-        "format-icons": {
-            "default": ["", "", ""]
-        },
-        "on-click": "pavucontrol",
-        "on-click-middle": "pamixer -t",
-        "on-scroll-up": "pamixer -i 5",
-        "on-scroll-down": "pamixer -d 5",
-        "scroll-step": 5
-    },
-
-"network": {
+  "network": {
     "format-wifi": "  {essid}",
     "format-ethernet": "󰈀 {ipaddr}",
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
-    "on-click": "$HOME/.config/waybar/wifi-menu.sh" 
-},
+    "on-click": "$HOME/.config/waybar/wifi-menu.sh"
+  },
 
-    "cpu": {
-        "interval": 2,
-        "format": "{usage}% ",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
+  "cpu": {
+    "interval": 2,
+    "format": "{usage}% ",
+    "tooltip": false,
+    "on-click": "foot -e btop"
+  },
 
-    "memory": {
-        "interval": 5,
-        "format": "{percentage}% ",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
+  "memory": {
+    "interval": 5,
+    "format": "{percentage}% ",
+    "tooltip": false,
+    "on-click": "foot -e btop"
+  },
 
-    "temperature": {
-        "critical-threshold": 80,
-        "format": "{temperatureC}°C ",
-        "interval": 5,
-        "tooltip": false
-    },
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "{temperatureC}°C ",
+    "interval": 5,
+    "tooltip": false
+  },
 
-    "backlight": {
-        "device": "intel_backlight",
-        "format": "{percent}% ",
-        "on-scroll-up": "brightnessctl set +5%",
-        "on-scroll-down": "brightnessctl set 5%-"
-    },
+  "backlight": {
+    "device": "intel_backlight",
+    "format": "{percent}% ",
+    "on-scroll-up": "brightnessctl set +5%",
+    "on-scroll-down": "brightnessctl set 5%-"
+  },
 
-    "custom/disk": {
-        "interval": 30,
-        "format": " {}",
-        "exec": "df -h --output=used,size / | awk 'NR==2{print $1\"/\"$2}'",
-        "tooltip": false,
-        "on-click": "foot -e btop"
-    },
-    
-    "battery": {
-        "states": {
-            "warning": 30,
-            "critical": 15
-        },
-        "format": "{capacity}% {icon}",
-        "format-charging": "{capacity}% ",
-        "format-plugged": "{capacity}% ",
-        "format-icons": ["", "", "", "", ""]
-    },
+  "battery": {
+    "states": { "warning": 30, "critical": 15 },
+    "format": "{capacity}% {icon}",
+    "format-charging": "{capacity}% ",
+    "format-plugged": "{capacity}% ",
+    "format-icons": ["", "", "", "", ""]
+  },
 
+  "clock": {
+    "format": "{:%H:%M}",
+    "format-alt": "{:%Y-%m-%d %H:%M}",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  },
 
-    "clock": {
-        "format": "{:%H:%M}",
-        "format-alt": "{:%Y-%m-%d %H:%M}",
-        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  "wlr/workspaces": {
+    "disable-scroll": false,
+    "all-outputs": true,
+    "format": "{icon}",
+    "format-icons": {
+      "1": "🃁",
+      "2": "ℐ",
+      "3": "ℕ",
+      "4": "⌘",
+      "default": "•"
     }
+  },
+
+  "wlr/window": { "max-length": 60, "separate-outputs": true }
 }
