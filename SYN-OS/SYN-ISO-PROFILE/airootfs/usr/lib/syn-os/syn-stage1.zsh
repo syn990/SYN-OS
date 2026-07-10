@@ -17,14 +17,14 @@ State="/etc/syn-os/install.state"
 if [ -r "$State" ]; then
   source "$State"
 else
-  echo "ERROR: Missing install.state at $State"
+  syn_ui::error "Missing install.state at $State"
   exit 1
 fi
 
-echo "SYN-OS Stage 1 — ${PartitionStrat} + ${VolumeStrat}"
-echo "ROOT device: ${RootFsDev}"
-echo "SWAP: ${SwapDev:-none}"
-echo "LUKS: ${LuksUuid:+yes}${LuksUuid:-no}"
+syn_ui::step "Stage 1: ${PartitionStrat} + ${VolumeStrat}"
+syn_ui::info "ROOT device: ${RootFsDev}"
+syn_ui::info "SWAP: ${SwapDev:-none}"
+syn_ui::info "LUKS: ${LuksUuid:+yes}${LuksUuid:-no}"
 
 # Locale / Hostname / Time / Console configuration based on state from Stage 0. This ensures that the installed system has the correct locale settings, hostname, timezone, and console configuration (keymap and font) as specified by the user during the installation process.
 # These values cam also be properly modified in /etc/syn-os/synos.conf before running 'synos-install' if you want to change them before Stage 0.
@@ -41,6 +41,7 @@ fi
 
 printf "KEYMAP=%s\nFONT=%s\n" "$KeyMap" "$VconsoleFont" > /etc/vconsole.conf
 hwclock --systohc
+syn_ui::step_done "Locale, hostname, time, console configured"
 
 # doas + sudo shim setup 
 if command -v doas >/dev/null 2>&1; then
@@ -56,7 +57,7 @@ fi
 if ! id -u "$UserAccountName" >/dev/null 2>&1; then
   useradd -m -G wheel -s "$UserShell" "$UserAccountName"
 fi
-echo "Set password for $UserAccountName:"
+syn_ui::info "Set password for $UserAccountName (passwd will reject short/simple passwords — aim for 8+ characters):"
 passwd "$UserAccountName" </dev/tty
 
 # System overlays deployed during pacstrap
@@ -64,27 +65,29 @@ passwd "$UserAccountName" </dev/tty
 # mkinitcpio: Use traditional hooks for both UEFI and BIOS
 configure_mkinitcpio() {
   HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block)
-  if [[ "$VolumeStrat" == luks* ]]; then
+  if [ "${Encryption:-no}" = "yes" ]; then
     HOOKS+=(encrypt)
   fi
-  if [[ "$VolumeStrat" == *lvm* ]]; then
+  if [ "${UseLvm:-no}" = "yes" ]; then
     HOOKS+=(lvm2)
   fi
   HOOKS+=(filesystems fsck)
 
-  echo "Configuring mkinitcpio with HOOKS: ${HOOKS[*]}"
+  syn_ui::info "Configuring mkinitcpio with HOOKS: ${HOOKS[*]}"
   sed -i "s/^HOOKS=.*/HOOKS=(${HOOKS[*]})/" /etc/mkinitcpio.conf
 }
 
 # Regenerate initramfs with new hooks and configs to ensure proper booting with the chosen volume strategy
 # This is especially important for LUKS setups to ensure the initramfs includes the necessary tools and hooks to prompt for the passphrase and unlock the root filesystem at boot.
 # Other volume strategies (like plain partitions or LVM without encryption) may not strictly require custom hooks, but regenerating the initramfs ensures that any changes to the system configuration are properly reflected in the boot process.
+syn_ui::step "Building initramfs"
 configure_mkinitcpio
 mkinitcpio -P
+syn_ui::step_done "Initramfs built"
 
 # Bootloader configuration
 RootCmdline=""
-if [[ "$VolumeStrat" == luks* ]]; then
+if [ "${Encryption:-no}" = "yes" ]; then
   RootCmdline="cryptdevice=UUID=${LuksUuid}:${LuksLabel} root=${RootFsDev} rw"
 else
   if RootUuidPrint="$(blkid -s UUID -o value "$RootFsDev" 2>/dev/null || true)"; then
@@ -102,6 +105,7 @@ if [ -n "${SwapDev:-}" ]; then
 fi
 
 # Bootloader installation if using syslinux or systemd-boot. If using systemd-boot, also create a loader entry for the new system with the appropriate kernel parameters.
+syn_ui::step "Installing bootloader (${PartitionStrat})"
 # For UEFI systems with systemd-boot
 if [ "$PartitionStrat" = "uefi-bootctl" ]; then
   bootctl --path=/boot install
@@ -128,10 +132,48 @@ elif [ "$PartitionStrat" = "mbr-syslinux" ]; then
   if [ -f /boot/syslinux/syslinux.cfg ]; then
     sed -i "s|APPEND .*|APPEND ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}|" /boot/syslinux/syslinux.cfg
   fi
+# For BIOS systems with GRUB on MBR-partitioned disks (encryption-capable —
+# see syn-partition.zsh's partitionStrat_mbr_grub for why this needs its own
+# unencrypted /boot partition instead of reusing mbr-syslinux's single
+# partition). GRUB itself never touches encryption here: /boot is plain
+# ext4, so grub-install only needs the standard BIOS + ext2 modules, and
+# RootCmdline's cryptdevice= parameter is resolved by the initramfs's
+# encrypt hook at boot time, same as it already is for uefi-bootctl.
+elif [ "$PartitionStrat" = "mbr-grub" ]; then
+  grub-install --target=i386-pc --recheck --boot-directory=/boot \
+    --modules="part_msdos ext2 biosdisk" "${Disk}"
+
+  INITRD_LINES="initrd /initramfs-linux.img"
+  [ -f /boot/intel-ucode.img ] && INITRD_LINES="initrd /intel-ucode.img /initramfs-linux.img"
+  [ -f /boot/amd-ucode.img ] && INITRD_LINES="initrd /amd-ucode.img /initramfs-linux.img"
+
+  mkdir -p /boot/grub
+  # No splash image ships yet — this degrades gracefully to a plain text
+  # menu. To add branding later, deploy a splash.png to /boot/grub/ (e.g.
+  # via DotfileOverlay + a pacstrapMain copy step) and this picks it up
+  # automatically.
+  {
+    echo "set default=0"
+    echo "set timeout=0"
+    if [ -f /boot/grub/splash.png ]; then
+      echo "insmod png"
+      echo "if background_image /boot/grub/splash.png; then"
+      echo "  set color_normal=white/black"
+      echo "fi"
+    fi
+    echo ""
+    echo "menuentry 'SYN-OS' {"
+    echo "  insmod part_msdos"
+    echo "  insmod ext2"
+    echo "  linux /vmlinuz-linux ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}"
+    echo "  ${INITRD_LINES}"
+    echo "}"
+  } > /boot/grub/grub.cfg
 else
-  echo "ERROR: Unsupported PartitionStrat '$PartitionStrat'"
+  syn_ui::error "Unsupported PartitionStrat '$PartitionStrat'"
   exit 1
 fi
+syn_ui::step_done "Bootloader installed"
 
 # Enable baseline services
 systemctl enable dhcpcd.service 2>/dev/null || true

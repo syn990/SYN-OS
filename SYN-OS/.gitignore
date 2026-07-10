@@ -2,3 +2,5 @@
 *.qcow2
 SYN-OS/SYN-ISO-PROFILE/airootfs/root
 WORKDIR/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/pkgcache/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-os-base/PKGBUILD

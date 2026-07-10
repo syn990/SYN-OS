@@ -1,7 +1,7 @@
 #!/bin/zsh
 # SYN‑OS Stage 0: Orchestrator (Partitioning, Volume Management, Filesystem Creation, Mounting, and Pacstrap)
 # This is the entry point for the SYN‑OS installation process. It sets up the environment, loads modular scripts for each stage, and executes them in sequence.
- 
+
 # /usr/lib/syn-os/syn-stage0.zsh
 
 set -euo pipefail
@@ -11,6 +11,19 @@ source /usr/lib/syn-os/syn-config.zsh
 source /usr/lib/syn-os/syn-packages.zsh
 source /usr/lib/syn-os/ui.zsh
 
+# Full install log — everything printed from here on (Stage 0's own output,
+# plus Stage 1's once chrooted, since arch-chroot execs it as a child process
+# inheriting this same fd) is duplicated to a logfile as well as the
+# terminal. Doesn't interfere with interactive prompts (passwd, the wipe
+# confirm below) since those read from /dev/tty explicitly, independent of
+# stdout/stderr. Written to the live environment's /root (Stage 1's chroot
+# can't reach outside itself to write there), then copied onto the target
+# disk's / after arch-chroot returns, so it survives past this live session
+# instead of vanishing with tmpfs at reboot.
+InstallLog="/root/synos-install-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "$InstallLog") 2>&1
+echo "Logging full install output to ${InstallLog}"
+
 # Load modular strategy scripts
 source /usr/lib/syn-os/syn-partition.zsh
 source /usr/lib/syn-os/syn-volume.zsh
@@ -18,36 +31,41 @@ source /usr/lib/syn-os/syn-filesystem.zsh
 source /usr/lib/syn-os/syn-mount.zsh
 source /usr/lib/syn-os/syn-pacstrap.zsh
 
-# Safety gate to stop idiots loosing all their data. 
-# Since SYN‑OS operates at a very low level (partitioning and formatting disks), it's crucial to have safeguards in place to prevent accidental data loss. 
-# This check ensures that the user has explicitly acknowledged the risks involved in proceeding with the installation, especially if the installation strategy involves wiping existing partitions or disks.
-# You have to explicitly run 'export SynosIUnderstandWipe=yes' in the terminal or modify /etc/syn-os/synos.conf setting RequireWipeConfirm=yes 
-
-if [ "${RequireWipeConfirm:-yes}" = "yes" ] && [ "${SynosIUnderstandWipe:-}" != "yes" ]; then
-  syn_ui::wipe_warning
-  echo "DESTRUCTIVE: Set SynosIUnderstandWipe=yes to continue."
-  exit 1
+# Safety gate to stop idiots loosing all their data. Since SYN‑OS operates at
+# a very low level (partitioning and formatting disks), an explicit
+# interactive confirmation is required before anything destructive happens.
+# Set RequireWipeConfirm=no in synos.conf to skip this — default is "yes"
+# and this is not meant to be turned off casually.
+if [ "${RequireWipeConfirm:-yes}" = "yes" ]; then
+  syn_ui::confirm_wipe "${Disk}" || { syn_ui::error "Aborted — disk not confirmed."; exit 1; }
 fi
 
 # UI
 syn_ui::face
 loadkeys "${KeyMap}" || true
+setfont "${VconsoleFont}" || true
 syn_ui::intro_montage
 
 # Execute pipeline
-echo "Stage 0 starting: ${PartitionStrat} + ${VolumeStrat} + ${FilesystemStrat}…"
+syn_ui::step "Stage 0: ${PartitionStrat} + ${VolumeStrat} + ${FilesystemStrat}"
 partitionMain
 volumeMain
 filesystemMain
 mountMain
 pacstrapMain
+syn_ui::step_done "Stage 0 pipeline complete"
 
 # Summary
 syn_ui::end_summary "${RootPart}" "${RootMountLocation}" "${BootPart:-}" "${BootMountLocation}" "${BootFs}" "${RootFs}" "${PartitionStrat}"
 
-echo "Mounts:"
+syn_ui::info "Mounts:"
 mount | grep -E "${RootMountLocation}|${BootMountLocation}" || echo "(none)"
 lsblk -o NAME,TYPE,FSTYPE,LABEL,PATH,MOUNTPOINTS | sed 's/^/  /'
 
-echo "Entering chroot to Stage 1…"
+syn_ui::step "Entering chroot to Stage 1"
 arch-chroot "$RootMountLocation" /bin/zsh /usr/lib/syn-os/syn-stage1.zsh
+
+# Copy the full install log (Stage 0 + Stage 1 output — Stage 1 inherited
+# this same tee'd fd across arch-chroot) onto the installed system's own /,
+# so it survives past this live session instead of vanishing with tmpfs.
+cp -f "$InstallLog" "${RootMountLocation}/$(basename "$InstallLog")" 2>/dev/null || true

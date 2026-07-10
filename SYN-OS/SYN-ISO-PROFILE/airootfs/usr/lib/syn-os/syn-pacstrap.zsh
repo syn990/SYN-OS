@@ -16,32 +16,36 @@ pacstrapMain() {
   syn_ui::pacman_snack
 
   # Mirror + keyring
+  syn_ui::step "Refreshing mirrors and pacman keyring"
   reflector -c GB -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist || true
   pacman-key --init
   pacman-key --populate archlinux
   pacman -Sy
+  syn_ui::step_done "Mirrors and keyring ready"
 
   # Select bootloader packages
   local -a bootPkgs
   case "${BootloaderStrat}" in
     auto)
-      if [ "${PartitionStrat}" = "uefi-bootctl" ]; then
-        bootPkgs=(efibootmgr systemd)
-      else
-        bootPkgs=(syslinux)
-      fi
+      case "${PartitionStrat}" in
+        uefi-bootctl) bootPkgs=(efibootmgr systemd) ;;
+        mbr-grub)     bootPkgs=(grub) ;;
+        *)            bootPkgs=(syslinux) ;;
+      esac
       ;;
     systemd-boot) bootPkgs=(efibootmgr systemd) ;;
     syslinux)     bootPkgs=(syslinux) ;;
+    grub)         bootPkgs=(grub) ;;
     *)            bootPkgs=() ;;
   esac
 
   SYNSTALL+=("${bootPkgs[@]}")
 # Use syn-packages.zsh arrays to determine the final package list to install with pacstrap
 # Pacstrap those packages to the location defined in synos.conf
-  echo "Installing to ${RootMountLocation}…"
+  syn_ui::step "Installing packages to ${RootMountLocation}"
   pacstrap -K "${RootMountLocation}" "${SYNSTALL[@]}"
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
+  syn_ui::step_done "Base packages installed"
 
   # Copy current scripts and config to target system for Stage 1 handoff
   install -Dm644 /etc/syn-os/synos.conf "${RootMountLocation}/etc/syn-os/synos.conf"
@@ -51,7 +55,7 @@ pacstrapMain() {
 
 # Deploy dotfile overlay to target system to customize environment for new user accounts
 if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
-  echo "Deploying dotfile overlay to ${RootMountLocation}…"
+  syn_ui::info "Deploying dotfile overlay to ${RootMountLocation}…"
   cp -r /usr/lib/syn-os/DotfileOverlay/* "${RootMountLocation}/"
 
   # Make all the good stuff executable
@@ -67,6 +71,8 @@ fi
   cat > "$State" <<EOF
 PartitionStrat="${PartitionStrat}"
 VolumeStrat="${VolumeStrat}"
+Encryption="${Encryption}"
+UseLvm="${UseLvm}"
 FilesystemStrat="${FilesystemStrat}"
 BootloaderStrat="${BootloaderStrat}"
 
@@ -98,5 +104,5 @@ KernelOpts="${KernelOpts}"
 
 EOF
 
-  echo "Base install complete + state saved for Stage 1."
+  syn_ui::step_done "Base install complete, state saved for Stage 1"
 }
