@@ -14,7 +14,7 @@ set -euo pipefail
 # LUKS + LVM
 # =========================================================
 volumeStrat_luks_lvm() {
-  echo "Creating LUKS2 on ${RootPart}…"
+  syn_ui::step "Creating LUKS2 on ${RootPart} (enter a passphrase below)"
   cryptsetup luksFormat \
     --type luks2 \
     --cipher "${LuksCipher}" \
@@ -25,8 +25,9 @@ volumeStrat_luks_lvm() {
   LuksUuid="$(cryptsetup luksUUID "${RootPart}")"
   cryptsetup open "${RootPart}" "${LuksLabel}"
   RootMapper="/dev/mapper/${LuksLabel}"
+  syn_ui::step_done "LUKS2 volume ready"
 
-  echo "Creating LVM on ${RootMapper}…"
+  syn_ui::step "Creating LVM on ${RootMapper}"
   pvcreate -ffy "${RootMapper}"
   vgcreate "${VgName}" "${RootMapper}"
 
@@ -37,6 +38,7 @@ volumeStrat_luks_lvm() {
 
   lvcreate -l 100%FREE -n "${LvRootName}" "${VgName}"
   RootFsDev="/dev/${VgName}/${LvRootName}"
+  syn_ui::step_done "LVM ready"
 
   export RootMapper RootFsDev SwapDev LuksUuid
 }
@@ -45,7 +47,7 @@ volumeStrat_luks_lvm() {
 # LUKS only (no LVM)
 # =========================================================
 volumeStrat_luks_only() {
-  echo "Creating LUKS2 on ${RootPart}…"
+  syn_ui::step "Creating LUKS2 on ${RootPart} (enter a passphrase below)"
   cryptsetup luksFormat \
     --type luks2 \
     --cipher "${LuksCipher}" \
@@ -58,6 +60,7 @@ volumeStrat_luks_only() {
   RootMapper="/dev/mapper/${LuksLabel}"
   RootFsDev="${RootMapper}"
   SwapDev=""
+  syn_ui::step_done "LUKS2 volume ready"
 
   export RootMapper RootFsDev SwapDev LuksUuid
 }
@@ -69,7 +72,7 @@ volumeStrat_lvm_only() {
   RootMapper="${RootPart}"
   LuksUuid=""
 
-  echo "Creating LVM on ${RootPart}…"
+  syn_ui::step "Creating LVM on ${RootPart}"
   pvcreate -ffy "${RootPart}"
   vgcreate "${VgName}" "${RootPart}"
 
@@ -80,6 +83,7 @@ volumeStrat_lvm_only() {
 
   lvcreate -l 100%FREE -n "${LvRootName}" "${VgName}"
   RootFsDev="/dev/${VgName}/${LvRootName}"
+  syn_ui::step_done "LVM ready"
 
   export RootMapper RootFsDev SwapDev LuksUuid
 }
@@ -100,11 +104,27 @@ volumeStrat_plain() {
 # Main dispatcher + ESP formatting
 # =========================================================
 volumeMain() {
-  # Format ESP for UEFI
+  # Format the separate boot partition, if this strategy has one.
+  # uefi-bootctl needs a FAT32 ESP; mbr-grub needs a plain filesystem GRUB
+  # can read directly (ext4) since it's not an EFI System Partition.
   if [ -n "${BootPart:-}" ] && [ "${BootPart}" != "${RootPart}" ]; then
-    [ -b "${BootPart}" ] || { echo "BootPart not a block device"; exit 1; }
-    echo "Formatting ESP on ${BootPart}…"
-    mkfs.vfat -F32 -n ESP "${BootPart}"
+    [ -b "${BootPart}" ] || { syn_ui::error "BootPart not a block device"; exit 1; }
+    case "${PartitionStrat}" in
+      uefi-bootctl)
+        syn_ui::step "Formatting ESP on ${BootPart}"
+        mkfs.vfat -F32 -n ESP "${BootPart}"
+        syn_ui::step_done "ESP formatted"
+        ;;
+      mbr-grub)
+        syn_ui::step "Formatting BOOT on ${BootPart}"
+        mkfs.ext4 -F -L BOOT "${BootPart}"
+        syn_ui::step_done "BOOT formatted"
+        ;;
+      *)
+        syn_ui::error "Don't know how to format boot partition for PartitionStrat '${PartitionStrat}'"
+        exit 1
+        ;;
+    esac
   fi
 
   case "${VolumeStrat}" in
@@ -112,6 +132,6 @@ volumeMain() {
     luks-only)   volumeStrat_luks_only ;;
     lvm-only)    volumeStrat_lvm_only ;;
     plain)       volumeStrat_plain ;;
-    *) echo "ERROR: Unknown VolumeStrat '${VolumeStrat}'"; exit 1 ;;
+    *) syn_ui::error "Unknown VolumeStrat '${VolumeStrat}'"; exit 1 ;;
   esac
 }

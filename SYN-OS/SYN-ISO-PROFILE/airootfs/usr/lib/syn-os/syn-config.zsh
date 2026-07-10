@@ -35,20 +35,26 @@ RequireWipeConfirm="$(toYesNo "${RequireWipeConfirm:-yes}")"
 # Default shell if omitted
 : "${UserShell:=/bin/zsh}"
 
-# Firmware mode (infer from PartitionStrat if BootMode not explicitly set)
+# Firmware mode: detect real UEFI vs BIOS unless BootMode overrides it.
 if [ "$(lower "${BootMode:-auto}")" = "auto" ]; then
   if [ -d /sys/firmware/efi/efivars ]; then
     SynosEnv="UEFI"
   else
     SynosEnv="MBR"
   fi
-else 
+else
   case "$(lower "${BootMode}")" in
     uefi) SynosEnv="UEFI" ;;
     bios|mbr|legacy) SynosEnv="MBR" ;;
     *) echo "ERROR: BootMode must be one of: auto|UEFI|MBR" >&2; exit 1 ;;
   esac
 fi
+
+# Encryption/UseLvm: dead-simple yes|no flags, normalised early since
+# PartitionStrat=auto (below) needs Encryption to pick between mbr-syslinux
+# and mbr-grub on BIOS.
+Encryption="$(toYesNo "${Encryption:-no}")"
+UseLvm="$(toYesNo "${UseLvm:-no}")"
 
 # --- sanity checks (fast, strict) -----------------------------------------
 # Required identity + input
@@ -68,16 +74,65 @@ case "${FilesystemStrat:-}" in
   *) echo "ERROR: Unsupported FilesystemStrat '${FilesystemStrat:-}'" >&2; exit 1 ;;
 esac
 
+# PartitionStrat=auto resolves against the firmware SynosEnv actually
+# detected above, instead of shipping a hardcoded guess in synos.conf that
+# can silently mismatch real hardware (e.g. a default of uefi-bootctl
+# surviving onto legacy BIOS: parted doesn't care and will happily write a
+# GPT+ESP layout, and bootctl's --graceful-in-chroot behavior means the
+# doomed install may not even error — just produce an unbootable disk).
+if [ "$(lower "${PartitionStrat:-auto}")" = "auto" ]; then
+  if [ "$SynosEnv" = "UEFI" ]; then
+    PartitionStrat="uefi-bootctl"
+  elif [ "$Encryption" = "yes" ]; then
+    PartitionStrat="mbr-grub"
+  else
+    PartitionStrat="mbr-syslinux"
+  fi
+fi
+
 # Strategy validation
 case "${PartitionStrat:-}" in
-  uefi-bootctl|mbr-syslinux) : ;;
+  uefi-bootctl|mbr-syslinux|mbr-grub) : ;;
   *) echo "ERROR: Unknown PartitionStrat '${PartitionStrat:-}'" >&2; exit 1 ;;
 esac
 
-case "${VolumeStrat:-}" in
-  luks-lvm|luks-only|lvm-only|plain) : ;;
-  *) echo "ERROR: Unknown VolumeStrat '${VolumeStrat:-}'" >&2; exit 1 ;;
-esac
+# Catch an explicit PartitionStrat that doesn't match detected firmware —
+# this is the exact mismatch that silently produced unbootable installs
+# before PartitionStrat=auto existed, and it's still possible to hit if
+# someone hardcodes a value that doesn't suit the machine they're installing
+# on (e.g. copying a synos.conf from a UEFI machine onto BIOS hardware).
+if [ "$PartitionStrat" = "uefi-bootctl" ] && [ "$SynosEnv" != "UEFI" ]; then
+  echo "ERROR: PartitionStrat=uefi-bootctl but this machine booted in BIOS/legacy mode (no /sys/firmware/efi/efivars)." >&2
+  echo "Use PartitionStrat=mbr-syslinux or mbr-grub, or set PartitionStrat=auto to detect automatically." >&2
+  exit 1
+fi
+if { [ "$PartitionStrat" = "mbr-syslinux" ] || [ "$PartitionStrat" = "mbr-grub" ]; } && [ "$SynosEnv" = "UEFI" ]; then
+  echo "ERROR: PartitionStrat=${PartitionStrat} but this machine booted in UEFI mode." >&2
+  echo "Use PartitionStrat=uefi-bootctl, or set PartitionStrat=auto to detect automatically." >&2
+  exit 1
+fi
+
+if [ "$Encryption" = "yes" ] && [ "$UseLvm" = "yes" ]; then
+  VolumeStrat="luks-lvm"
+elif [ "$Encryption" = "yes" ]; then
+  VolumeStrat="luks-only"
+elif [ "$UseLvm" = "yes" ]; then
+  VolumeStrat="lvm-only"
+else
+  VolumeStrat="plain"
+fi
+
+# syslinux has no LUKS support at all — it cannot read from an encrypted
+# partition under any circumstances, and mbr-syslinux has no separate boot
+# partition to fall back on. Encrypted BIOS/MBR installs must use mbr-grub
+# instead (its unencrypted /boot partition means GRUB never has to touch
+# encryption directly — the initramfs unlocks root at boot, same as it does
+# for uefi-bootctl), or use uefi-bootctl itself.
+if [ "$PartitionStrat" = "mbr-syslinux" ] && [ "$Encryption" = "yes" ]; then
+  echo "ERROR: PartitionStrat=mbr-syslinux cannot use Encryption=yes — syslinux has no LUKS support." >&2
+  echo "Use PartitionStrat=mbr-grub for encrypted BIOS/MBR installs, or PartitionStrat=uefi-bootctl." >&2
+  exit 1
+fi
 
 # Mount layout
 : "${RootMountLocation:?RootMountLocation not set}"
@@ -112,6 +167,7 @@ export \
   Locale LocaleGen KeyMap TimeZone VconsoleFont \
   Disk BootMode BootSize \
   PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat \
+  Encryption UseLvm \
   VgName LvRootName LvSwapName SwapSize \
   BootFs RootFs \
   RootMountLocation BootMountLocation \

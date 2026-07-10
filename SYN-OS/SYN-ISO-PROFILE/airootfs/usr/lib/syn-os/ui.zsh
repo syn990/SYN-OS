@@ -2,10 +2,51 @@
 # SYN‑OS UI & ASCII helpers (no logic, just vibes)
 # /usr/lib/syn-os/ui.zsh
 
+# --- palette ---------------------------------------------------------------
+# Dark red/black theme throughout the installer, matching SYN-OS-RED. Roles
+# are deliberately distinct rather than one flat color for every line:
+#   accent  — bright red bold, section headers / banners
+#   dim     — muted dark-red, separators and secondary labels
+#   value   — plain/white, the actual data (device paths, sizes) so it reads
+#             against the colored labels around it instead of blurring in
+#   ok      — warm amber/gold, success (not green — doesn't fit the palette)
+#   err     — bold red, failures
+#   crit    — bold red + blink, reserved for the one truly destructive prompt
+RESET=$'\e[0m'
+C_ACCENT=$'\e[1;31m'   # bright red bold
+C_DIM=$'\e[0;31m'      # dark red
+C_VALUE=$'\e[0;37m'    # light gray/white
+C_OK=$'\e[1;33m'       # amber/gold
+C_ERR=$'\e[1;31m'      # bold red
+C_CRIT=$'\e[5;1;31m'   # blink + bold red
+
 syn_col_red()   { print -Pn "%{\e[0;31m%}$*%{\e[0m%}"; }
 syn_col_green() { print -Pn "%{\e[0;32m%}$*%{\e[0m%}"; }
 syn_col_bold()  { print -Pn "%{\e[1m%}$*%{\e[0m%}"; }
 syn_ui::clear() { clear || printf "\n%.0s" {1..3}; }
+
+# syn_ui::step "Partitioning disk" — themed header printed before a noisy
+# command's own raw output, so that output is visually framed rather than
+# muted. Pair with syn_ui::step_done/syn_ui::step_fail afterwards.
+syn_ui::step() {
+  local msg="$1" sep width
+  printf "\n%s==>%s %s%s%s\n" "$C_ACCENT" "$RESET" "$C_VALUE" "$msg" "$RESET"
+  width=$((${#msg} + 4))
+  printf -v sep "%*s" "$width" ""
+  printf "%s%s%s\n" "$C_DIM" "${sep// /-}" "$RESET"
+}
+syn_ui::step_done() {
+  printf "%s✓%s %s%s%s\n" "$C_OK" "$RESET" "$C_DIM" "${1:-done}" "$RESET"
+}
+syn_ui::step_fail() {
+  printf "%s✗ %s%s\n" "$C_ERR" "${1:-failed}" "$RESET" >&2
+}
+syn_ui::info() {
+  printf "%s•%s %s%s%s\n" "$C_DIM" "$RESET" "$C_VALUE" "$1" "$RESET"
+}
+syn_ui::error() {
+  printf "%sERROR:%s %s%s%s\n" "$C_ERR" "$RESET" "$C_VALUE" "$1" "$RESET" >&2
+}
 
 syn_ui::face() {
   syn_ui::clear
@@ -45,18 +86,22 @@ EOF
   syn_ui::clear
 }
 
-syn_ui::wipe_warning() {
-  cat <<'EOF'
-\033[0;31m____    __    ____  __  .______    __  .__   __.   _______ \033[0m
-\033[0;31m\   \  /  \  /   / |  | |   _  \  |  | |  \ |  |  /  _____|\033[0m
-\033[0;31m \   \/    \/   /  |  | |  |_)  | |  | |   \|  | |  |  __  \033[0m
-\033[0;31m  \            /   |  | |   ___/  |  | |  .    | |  | |_ | \033[0m
-\033[0;31m   \    /\    /    |  | |  |      |  | |  |\   | |  |__| | \033[0m
-\033[0;31m    \__/  \__/     |__| | _|      |__| |__| \__|  \______| \033[0m
-
-\033[1;31mIf you did not verify the target, you may wipe the wrong disk.\033[0m
-Press CTRL+C to abort.
-EOF
+# syn_ui::confirm_wipe <disk> — interactive y/n gate before anything
+# destructive happens. Returns 0 only on an explicit "y"/"yes" answer typed
+# at the prompt; anything else (including plain enter) is a "no". This is
+# always shown unless RequireWipeConfirm=no in synos.conf — that default is
+# deliberately "yes, ask" and is not meant to be turned off casually.
+syn_ui::confirm_wipe() {
+  local disk="$1" answer
+  printf "\n%s!%s %sThis will %serase everything%s on %s%s%s.%s\n" \
+    "$C_CRIT" "$RESET" "$C_VALUE" "$C_ERR" "$C_VALUE" "$C_ACCENT" "$disk" "$C_VALUE" "$RESET"
+  printf "%sIf you have not double-checked the target disk, stop now (Ctrl+C).%s\n" "$C_DIM" "$RESET"
+  printf "%sProceed and wipe %s%s%s? [y/N] %s" "$C_VALUE" "$C_ACCENT" "$disk" "$C_VALUE" "$RESET"
+  read -r answer </dev/tty
+  case "${answer:l}" in
+    y|yes) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 syn_ui::pacman_snack() {
@@ -91,16 +136,18 @@ syn_ui::intro_montage() {
 }
 
 syn_ui::end_summary() {
-  local root_part="$1" root_mnt="$2" boot_part="$3" boot_mnt="$4" boot_fs="$5" root_fs="$6" env="$7"
+  # 7th arg is PartitionStrat, not firmware type — uefi-bootctl and mbr-grub
+  # both have a separate boot partition; mbr-syslinux doesn't (BootPart ==
+  # RootPart there, see syn-partition.zsh).
+  local root_part="$1" root_mnt="$2" boot_part="$3" boot_mnt="$4" boot_fs="$5" root_fs="$6" partition_strat="$7"
   syn_ui::clear
-  echo ""
-  printf "\033[32mSUMMARY: Stage 0 complete. Proceeding to Stage 1.\033[0m\n\n"
-  printf "\033[32m• Root: %s mounted at %s\033[0m\n" "$root_part" "$root_mnt"
-  if [ "$env" = "UEFI" ]; then
-    printf "\033[32m• Boot: %s mounted at %s (fs=%s)\033[0m\n" "$boot_part" "$boot_mnt" "$boot_fs"
+  printf "\n%s✓ SUMMARY:%s %sStage 0 complete. Proceeding to Stage 1.%s\n\n" "$C_OK" "$RESET" "$C_VALUE" "$RESET"
+  printf "%s•%s Root: %s%s%s mounted at %s%s%s\n" "$C_DIM" "$RESET" "$C_ACCENT" "$root_part" "$RESET" "$C_ACCENT" "$root_mnt" "$RESET"
+  if [ "$partition_strat" != "mbr-syslinux" ]; then
+    printf "%s•%s Boot: %s%s%s mounted at %s%s%s (fs=%s)\n" "$C_DIM" "$RESET" "$C_ACCENT" "$boot_part" "$RESET" "$C_ACCENT" "$boot_mnt" "$RESET" "$boot_fs"
   fi
-  printf "\033[32m• Root FS: %s\033[0m\n" "$root_fs"
-  printf "\033[32m• fstab generated, packages installed, scripts copied.\033[0m\n\n"
+  printf "%s•%s Root FS: %s%s%s\n" "$C_DIM" "$RESET" "$C_ACCENT" "$root_fs" "$RESET"
+  printf "%s•%s fstab generated, packages installed, scripts copied.%s\n\n" "$C_DIM" "$RESET" "$RESET"
   sleep 2
 }
 
@@ -112,7 +159,7 @@ syn_ui::final_banner() {
   ██████▓██   ██▓ ███▄    █  ▒█████    ██████                                                 ██
 ▒██    ▒ ▒██  ██▒ ██ ▀█   █ ▒██▒  ██▒▒██    ▒                                                 ██
 ░ ▓██▄    ▒██ ██░▓██  ▀█ ██▒▒██░  ██▒░ ▓██▄                                                   ██
-  ▒   ██▒ ░ ▐██▓░▓██▒  ▐▌██▒▒██   ██░  ▒   ██▒      ______ _  _  _ _   _        _________     ██
+  ▒   ██▒ ░ ▐██▓░▓██▒  ▐▌██▒▒██   ██░  ▒   ██▒      ______ _  _  _ _   _        _________     ██ 
 ▒██████▒▒ ░ ██▒▓░▒██░   ▓██░░ ████▓▒░▒██████▒▒      \  ___) || || | \ | |      / _ \  ___)    ██
 ▒ ▒▓▒ ▒ ░  ██▒▒▒ ░ ▒░   ▒ ▒ ░ ▒░▒░▒░ ▒ ▒▓▒ ▒ ░       \ \  | \| |/ |  \| |_____| | | \ \       ██
 ░ ░▒  ░ ░▓██ ░▒░ ░ ░░   ░ ▒░  ░ ▒ ▒░ ░ ░▒  ░ ░        > >  \_   _/|     (_____) | | |> >      ██

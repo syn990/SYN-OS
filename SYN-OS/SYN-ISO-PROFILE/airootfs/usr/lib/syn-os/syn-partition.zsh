@@ -18,7 +18,7 @@ waitForBlock() {
     sleep 0.1
     i=$((i+1))
   done
-  echo "Timeout waiting for block device: $dev" >&2
+  syn_ui::error "Timeout waiting for block device: $dev"
   return 1
 }
 
@@ -26,7 +26,7 @@ waitForBlock() {
 # UEFI + systemd-boot (GPT)
 # =========================================================
 partitionStrat_uefi_bootctl() {
-  echo "Creating GPT with ESP (${BootSize}) + ROOT…"
+  syn_ui::step "Creating GPT with ESP (${BootSize}) + ROOT"
   parted -a optimal --script "${Disk}" \
     mklabel gpt \
     mkpart primary 1MiB "${BootSize}" name 1 ESP set 1 esp on \
@@ -38,8 +38,9 @@ partitionStrat_uefi_bootctl() {
   BootPart="${Disk}p1"; [ -b "${BootPart}" ] || BootPart="${Disk}1"
   RootPart="${Disk}p2"; [ -b "${RootPart}" ] || RootPart="${Disk}2"
 
-  waitForBlock "${RootPart}" || { echo "ROOT partition not found"; exit 1; }
-  waitForBlock "${BootPart}" || { echo "BOOT partition not found"; exit 1; }
+  waitForBlock "${RootPart}" || { syn_ui::error "ROOT partition not found"; exit 1; }
+  waitForBlock "${BootPart}" || { syn_ui::error "BOOT partition not found"; exit 1; }
+  syn_ui::step_done "GPT partitions ready"
 
   export BootPart RootPart
 }
@@ -48,7 +49,7 @@ partitionStrat_uefi_bootctl() {
 # MBR + syslinux (MSDOS)
 # =========================================================
 partitionStrat_mbr_syslinux() {
-  echo "Creating MSDOS (MBR) with single ROOT…"
+  syn_ui::step "Creating MSDOS (MBR) with single ROOT"
   parted -a optimal --script "${Disk}" mklabel msdos mkpart primary 1MiB 100%
 
   partprobe "${Disk}" || true
@@ -57,7 +58,38 @@ partitionStrat_mbr_syslinux() {
   RootPart="${Disk}p1"; [ -b "${RootPart}" ] || RootPart="${Disk}1"
   BootPart="${RootPart}"
 
-  waitForBlock "${RootPart}" || { echo "ROOT partition not found"; exit 1; }
+  waitForBlock "${RootPart}" || { syn_ui::error "ROOT partition not found"; exit 1; }
+  syn_ui::step_done "MSDOS partition ready"
+
+  export BootPart RootPart
+}
+
+# =========================================================
+# MBR + GRUB (MSDOS) — separate unencrypted /boot
+# =========================================================
+# syslinux has no LUKS support, so an encrypted BIOS/MBR install needs GRUB's
+# cryptomount instead — and GRUB needs an unencrypted place to read
+# /boot/grub/grub.cfg and the kernel/initramfs from before it can decrypt
+# anything. Unlike partitionStrat_mbr_syslinux, this always creates a
+# separate small boot partition (${BootSize}), same shape as the UEFI ESP
+# layout, so the existing BootPart != RootPart handling in syn-volume.zsh
+# and syn-mount.zsh applies here too.
+partitionStrat_mbr_grub() {
+  syn_ui::step "Creating MSDOS with BOOT (${BootSize}) + ROOT"
+  parted -a optimal --script "${Disk}" \
+    mklabel msdos \
+    mkpart primary ext4 1MiB "${BootSize}" \
+    mkpart primary "${BootSize}" 100%
+
+  partprobe "${Disk}" || true
+  udevadm settle || true
+
+  BootPart="${Disk}p1"; [ -b "${BootPart}" ] || BootPart="${Disk}1"
+  RootPart="${Disk}p2"; [ -b "${RootPart}" ] || RootPart="${Disk}2"
+
+  waitForBlock "${BootPart}" || { syn_ui::error "BOOT partition not found"; exit 1; }
+  waitForBlock "${RootPart}" || { syn_ui::error "ROOT partition not found"; exit 1; }
+  syn_ui::step_done "MSDOS partitions ready"
 
   export BootPart RootPart
 }
@@ -66,13 +98,14 @@ partitionStrat_mbr_syslinux() {
 # Main dispatcher
 # =========================================================
 partitionMain() {
-  echo "Zeroing first 4 MiB on ${Disk}…"
+  syn_ui::info "Zeroing first 4 MiB on ${Disk}…"
   dd if=/dev/zero of="${Disk}" bs=1M count=4 status=none || true
   sync
 
   case "${PartitionStrat}" in
     uefi-bootctl) partitionStrat_uefi_bootctl ;;
     mbr-syslinux) partitionStrat_mbr_syslinux ;;
-    *) echo "ERROR: Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
+    mbr-grub)     partitionStrat_mbr_grub ;;
+    *) syn_ui::error "Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
   esac
 }
