@@ -1,15 +1,8 @@
 ##############################################
 #                                            #
-#           SYN‑OS Dark Red Theme            #
+#           SYN-OS Theme: SYN-OS-RED    #
 #           (Background Inheriting)          #
 ##############################################
-
-# Built entirely from the colours present in:
-# SYNOS_Expanded_Flow_Dark_v3
-
-###############################################################################
-#                           Code Syntax Highlighting                          #
-###############################################################################
 
 code_syntax_highlight = "onedark"
 
@@ -21,7 +14,7 @@ code_syntax_highlight = "onedark"
 full_screen_fg = "#f8f8f2"
 full_screen_bg = ""
 
-# Gradient (limited to two; using accent reds)
+# Gradient (limited to two; using accent colors)
 gradient_color = ["#800000", "#400101"]
 
 # File Panel
@@ -30,7 +23,7 @@ file_panel_bg = ""
 file_panel_border = "#444444"
 file_panel_border_active = "#800000"
 file_panel_top_directory_icon = "#800000"
-file_panel_top_path = "#AAAAAA"
+file_panel_top_path = "#444444"
 file_panel_item_selected_fg = "#f8f8f2"
 file_panel_item_selected_bg = "#2c0101"
 
@@ -65,7 +58,7 @@ help_menu_title = "#f8f8f2"
 
 # Special
 cursor = "#800000"
-correct = "#AAAAAA"
+correct = "#444444"
 error = "#800000"
-hint = "#888888"
+hint = "#444444"
 cancel = "#444444"

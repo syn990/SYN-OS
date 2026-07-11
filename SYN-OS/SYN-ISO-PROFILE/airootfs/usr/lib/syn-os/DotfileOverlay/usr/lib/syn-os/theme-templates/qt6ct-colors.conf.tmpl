@@ -1,0 +1,16 @@
+[ColorScheme]
+# Role order is Qt's QPalette::ColorRole enum (verified against qpalette.h
+# and cross-checked against qt6ct's own shipped /usr/share/qt6ct/colors/darker.conf):
+# WindowText, Button, Light, Midlight, Dark, Mid, Text, BrightText, ButtonText,
+# Base, Window, Shadow, Highlight, HighlightedText, Link, LinkVisited,
+# AlternateBase, NoRole, ToolTipBase, ToolTipText, PlaceholderText.
+#
+# qt6ct, not qt5ct: every Qt app actually installed on this system (falkon,
+# pavucontrol-qt, pcmanfm-qt) links against Qt6 (confirmed via ldd), which
+# cannot load the Qt5-only qt5ct platform-theme plugin at all. qt5ct's
+# color file and QT_QPA_PLATFORMTHEME=qt5ct setting had been silently
+# inert since the first theme (RED) was built — this is the file that
+# actually needs to exist for real Qt palette theming to happen here.
+active_colors=SYN_TEXT_FF, SYN_PANEL_FF, SYN_PANEL_HOVER_FF, SYN_PANEL_FF, SYN_BG_ALT_FF, SYN_BORDER_FF, SYN_TEXT_FF, SYN_TEXT_FF, SYN_TEXT_FF, SYN_BG_ALT_FF, SYN_BG_FF, SYN_BG_ALT_FF, SYN_ACCENT_FF, SYN_TEXT_FF, SYN_ACCENT_FF, SYN_ACCENT_DIM_FF, SYN_BG_ALT_FF, SYN_TEXT_FF, SYN_BG_ALT_FF, SYN_TEXT_FF, SYN_ACCENT_80
+disabled_colors=SYN_BORDER_FF, SYN_PANEL_FF, SYN_PANEL_HOVER_FF, SYN_PANEL_FF, SYN_BG_ALT_FF, SYN_BORDER_FF, SYN_BORDER_FF, SYN_BORDER_FF, SYN_BORDER_FF, SYN_BG_ALT_FF, SYN_BG_FF, SYN_BG_ALT_FF, SYN_ACCENT_DIM_FF, SYN_BORDER_FF, SYN_ACCENT_DIM_FF, SYN_ACCENT_DIM_FF, SYN_BG_ALT_FF, SYN_BORDER_FF, SYN_BG_ALT_FF, SYN_BORDER_FF, SYN_ACCENT_80
+inactive_colors=SYN_TEXT_FF, SYN_PANEL_FF, SYN_PANEL_HOVER_FF, SYN_PANEL_FF, SYN_BG_ALT_FF, SYN_BORDER_FF, SYN_TEXT_FF, SYN_TEXT_FF, SYN_TEXT_FF, SYN_BG_ALT_FF, SYN_BG_FF, SYN_BG_ALT_FF, SYN_ACCENT_FF, SYN_TEXT_FF, SYN_ACCENT_FF, SYN_ACCENT_DIM_FF, SYN_BG_ALT_FF, SYN_TEXT_FF, SYN_BG_ALT_FF, SYN_TEXT_FF, SYN_ACCENT_80

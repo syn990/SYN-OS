@@ -10,8 +10,19 @@
 #
 # =============================================================================
 
-# Set random wallpaper found in the directory
-swaybg -i .wallpaper/SYN-OS-Synaptics.png &
+# First login: stamp the default theme into every app's own config format
+# (qt5ct needs an absolute, user-specific path here; see docs/theming.md).
+# syn-theme-apply also starts swaybg with that theme's wallpaper, so on
+# first login this covers the wallpaper too; on later logins (current-theme
+# already exists) it doesn't re-run, so re-launch the wallpaper for whatever
+# theme is already active instead of hardcoding one.
+if [ -f "$HOME/.config/syn-os/current-theme" ]; then
+  current_theme="$(<"$HOME/.config/syn-os/current-theme")"
+  ( . "$HOME/.config/syn-os/themes/$current_theme.theme" 2>/dev/null
+    [ -n "$SYN_WALLPAPER" ] && [ -f "$SYN_WALLPAPER" ] && swaybg -i "$SYN_WALLPAPER" & )
+else
+  syn-theme-apply SYN-OS-RED
+fi
 
-# Launch waybar.  
+# Launch waybar.
 waybar

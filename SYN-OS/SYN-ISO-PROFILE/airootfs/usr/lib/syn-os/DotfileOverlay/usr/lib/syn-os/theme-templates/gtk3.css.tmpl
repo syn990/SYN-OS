@@ -1,0 +1,86 @@
+/* SYN-OS GTK3 theme override — the GTK equivalent of qt6ct's color scheme,
+   same absorption point every GTK3 app already reads. Overrides Adwaita-dark's
+   (see ~/.config/gtk-3.0/settings.ini: gtk-theme-name=Adwaita-dark) named
+   semantic colors rather than replacing the base theme wholesale — GTK3 has
+   no per-user "swap the whole theme" mechanism as clean as qt6ct's
+   color_scheme_path, but every widget in Adwaita is built from these named
+   colors, so redefining them here recolors the theme in place.
+   Covers wxWidgets-on-GTK3 (Audacity), pure GTK3 (EtherApe, virt-viewer),
+   and PyGObject/GTK3 (virt-manager) — none of these are Qt, qt6ct doesn't
+   touch them at all. */
+
+@define-color theme_bg_color            SYN_BG;
+@define-color theme_base_color          SYN_BG_ALT;
+@define-color theme_fg_color            SYN_TEXT;
+@define-color theme_text_color          SYN_TEXT;
+@define-color theme_selected_bg_color   SYN_ACCENT;
+@define-color theme_selected_fg_color   SYN_BG;
+@define-color insensitive_bg_color      SYN_PANEL;
+@define-color insensitive_fg_color      SYN_BORDER;
+@define-color borders                   SYN_BORDER;
+@define-color unfocused_borders         SYN_BG_ALT;
+@define-color warning_color             SYN_ACCENT_DIM;
+@define-color error_color               SYN_URGENT;
+@define-color success_color             SYN_ACCENT;
+
+/* headerbar/menubar are the most visually dominant chrome in most GTK3 apps
+   (Audacity's toolbar, virt-manager's window chrome) — Adwaita-dark's
+   default here is a fixed dark gray with no theme awareness at all. */
+headerbar, .titlebar, menubar {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+}
+
+button.suggested-action, button:checked {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+/* Named colors above only reach a handful of Adwaita's own widget
+   selectors — most of the actual UI surface (window body, list/tree
+   rows, plain buttons, entries, notebook tabs, scrollbars) has its own
+   Adwaita-dark gray baked in and ignores theme_* unless targeted
+   directly. Broadened here rather than replacing Adwaita-dark wholesale
+   (that's a full custom-theme project, not a color override). */
+window, .background, .view, list, treeview {
+  background-color: @theme_bg_color;
+  color: @theme_fg_color;
+}
+
+treeview:selected, list row:selected, .view:selected {
+  background-color: @theme_selected_bg_color;
+  color: @theme_selected_fg_color;
+}
+
+button {
+  background-color: @insensitive_bg_color;
+  color: @theme_fg_color;
+  border-color: @borders;
+}
+button:hover {
+  background-color: shade(@insensitive_bg_color, 1.3);
+}
+
+entry {
+  background-color: @theme_base_color;
+  color: @theme_text_color;
+  border-color: @borders;
+}
+
+notebook > header {
+  background-color: @theme_bg_color;
+}
+notebook > header tab:checked {
+  background-color: @insensitive_bg_color;
+  color: @theme_selected_bg_color;
+}
+
+scrollbar {
+  background-color: @theme_bg_color;
+}
+scrollbar slider {
+  background-color: @borders;
+}
+scrollbar slider:hover {
+  background-color: @theme_selected_bg_color;
+}

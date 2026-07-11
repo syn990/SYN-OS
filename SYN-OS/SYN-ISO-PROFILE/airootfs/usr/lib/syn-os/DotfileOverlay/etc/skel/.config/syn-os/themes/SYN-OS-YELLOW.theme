@@ -1,0 +1,15 @@
+# SYN-OS theme palette: YELLOW
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-YELLOW"
+SYN_BG="#0a0a00"
+SYN_BG_ALT="#1a1800"
+SYN_PANEL="#2b2800"
+SYN_PANEL_HOVER="#403c00"
+SYN_ACCENT="#e6d000"
+SYN_ACCENT_DIM="#665f00"
+SYN_TEXT="#f5eeb0"
+SYN_BORDER="#8f8300"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-YELLOW-wallpaper.png"
+SYN_GLYPH="⚡"
+SYN_THEME_GROUP="vanilla"

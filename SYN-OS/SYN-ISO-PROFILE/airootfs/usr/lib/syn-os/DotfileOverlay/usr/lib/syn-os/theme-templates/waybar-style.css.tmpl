@@ -1,0 +1,42 @@
+@define-color syn_bg           SYN_BG;
+@define-color syn_bg_alt       SYN_BG_ALT;
+@define-color syn_panel        SYN_PANEL;
+@define-color syn_panel_hover  SYN_PANEL_HOVER;
+@define-color syn_accent       SYN_ACCENT;
+@define-color syn_accent_dim   SYN_ACCENT_DIM;
+@define-color syn_text         SYN_TEXT;
+@define-color syn_urgent       SYN_URGENT;
+
+* {
+  font-family: FontAwesome, Roboto, Terminus, "Noto Sans Symbols", "Noto Color Emoji";
+  font-size: 14px;
+  color: @syn_text;
+}
+
+window#waybar {
+  background-color: @syn_bg;
+  border-bottom: 3px solid @syn_bg_alt;
+  transition: background-color 0.5s;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+#workspaces button { padding: 0 5px; background-color: transparent; color: @syn_text; }
+#workspaces button:hover { background-color: @syn_accent_dim; }
+#workspaces button.focused { background-color: @syn_bg_alt; box-shadow: inset 0 -3px @syn_accent; }
+#workspaces button.urgent { background-color: @syn_accent; }
+
+#cpu, #memory, #temperature, #custom-disk, #network, #pulseaudio, #backlight {
+  background-color: @syn_panel;
+  border-left: 1px solid @syn_bg_alt;
+}
+
+#clock:hover, #battery:hover, #cpu:hover, #memory:hover, #network:hover, #pulseaudio:hover {
+  background-color: @syn_panel_hover;
+}
+
+#custom-glyph { font-size: 16px; color: @syn_accent; padding: 0 12px; }
+#custom-media { background-color: @syn_accent_dim; color: @syn_urgent; }
+
+#battery.critical:not(.charging) { background-color: @syn_accent; animation: blink 0.5s steps(12) infinite alternate; }
+@keyframes blink { to { background-color: @syn_accent; color: @syn_text; } }
