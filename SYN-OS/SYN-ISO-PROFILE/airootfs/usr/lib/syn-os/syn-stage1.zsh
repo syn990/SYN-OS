@@ -43,7 +43,7 @@ printf "KEYMAP=%s\nFONT=%s\n" "$KeyMap" "$VconsoleFont" > /etc/vconsole.conf
 hwclock --systohc
 syn_ui::step_done "Locale, hostname, time, console configured"
 
-# doas + sudo shim setup 
+# doas + sudo shim setup
 if command -v doas >/dev/null 2>&1; then
   echo "permit persist :wheel" > /etc/doas.conf
   chmod 600 /etc/doas.conf
@@ -54,11 +54,22 @@ fi
 
 # User account setup
 : "${UserAccountName:?UserAccountName not set}"
+: "${UserAccountPassword:?UserAccountPassword not set}"
+if [ "$UserAccountPassword" = "CHANGE_ME" ]; then
+  syn_ui::error "UserAccountPassword is still 'CHANGE_ME' in synos.conf — set a real password before installing."
+  exit 1
+fi
 if ! id -u "$UserAccountName" >/dev/null 2>&1; then
   useradd -m -G wheel -s "$UserShell" "$UserAccountName"
 fi
-syn_ui::info "Set password for $UserAccountName (passwd will reject short/simple passwords — aim for 8+ characters):"
-passwd "$UserAccountName" </dev/tty
+echo "${UserAccountName}:${UserAccountPassword}" | chpasswd
+syn_ui::step_done "Password set for ${UserAccountName}"
+
+# UserAccountPassword only exists in install.state to carry it from Stage 0
+# (which writes it) to here (which consumes it) — it's no longer needed
+# past this point, and leaving it sitting in plaintext on the installed
+# disk's own /etc would defeat the purpose. Strip just that line in place.
+sed -i '/^UserAccountPassword=/d' "$State"
 
 # System overlays deployed during pacstrap
 
@@ -178,6 +189,20 @@ syn_ui::step_done "Bootloader installed"
 # Enable baseline services
 systemctl enable dhcpcd.service 2>/dev/null || true
 systemctl enable iwd.service    2>/dev/null || true
+
+if [ "${EnableSsh:-no}" = "yes" ]; then
+  systemctl enable sshd.service 2>/dev/null || true
+  syn_ui::step_done "sshd enabled (EnableSsh=yes in synos.conf)"
+fi
+
+# Only enable qemu-guest-agent when actually running under QEMU/KVM — on
+# real hardware it would just idle forever with no virtio-serial channel
+# to talk to, which is exactly the unnecessary-boot-noise pattern this
+# project avoids elsewhere (see Philosophy).
+if [ "$(systemd-detect-virt 2>/dev/null)" = "kvm" ] || [ "$(systemd-detect-virt 2>/dev/null)" = "qemu" ]; then
+  systemctl enable qemu-guest-agent.service 2>/dev/null || true
+  syn_ui::step_done "qemu-guest-agent enabled (running under QEMU/KVM)"
+fi
 
 # Finalize installation and prompt for reboot
 syn_ui::final_banner

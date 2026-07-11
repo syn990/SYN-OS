@@ -39,15 +39,30 @@ pacstrapMain() {
     *)            bootPkgs=() ;;
   esac
 
-  SYNSTALL+=("${bootPkgs[@]}")
-# Use syn-packages.zsh arrays to determine the final package list to install with pacstrap
-# Pacstrap those packages to the location defined in synos.conf
-  syn_ui::step "Installing packages to ${RootMountLocation}"
-  pacstrap -K "${RootMountLocation}" "${SYNSTALL[@]}"
+  # PackageProfile picks which array in syn-packages.zsh actually gets
+  # installed — full (SYNSTALL, everything) or minimal (SYNMINIMAL, base +
+  # networking + shell + desktop stack only). Same install pipeline either
+  # way; this is the only place the two profiles diverge.
+  local -a packageList
+  case "${PackageProfile}" in
+    minimal) packageList=("${SYNMINIMAL[@]}") ;;
+    *)       packageList=("${SYNSTALL[@]}") ;;
+  esac
+  packageList+=("${bootPkgs[@]}")
+
+  syn_ui::step "Installing packages to ${RootMountLocation} (profile: ${PackageProfile})"
+  pacstrap -K "${RootMountLocation}" "${packageList[@]}"
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
   syn_ui::step_done "Base packages installed"
 
-  # Copy current scripts and config to target system for Stage 1 handoff
+  # UserAccountPassword travels in this copy so Stage 1 can chpasswd with
+  # it via syn-config.zsh — Stage 1 strips it from disk once used.
+  # LuksPassphrase, unlike the account password, is already fully consumed
+  # by this point (cryptsetup luksFormat/open ran earlier in this same
+  # Stage 0 pipeline) — it never needs to reach the target disk at all, so
+  # strip it from the copy source before install rather than have Stage 1
+  # clean up a copy that was never necessary.
+  sed -i '/^LuksPassphrase=/d' /etc/syn-os/synos.conf
   install -Dm644 /etc/syn-os/synos.conf "${RootMountLocation}/etc/syn-os/synos.conf"
   for script in /usr/lib/syn-os/*.zsh; do
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
@@ -60,6 +75,7 @@ if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
 
   # Make all the good stuff executable
   chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
+  chmod -R +x "${RootMountLocation}/usr/local/bin"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
@@ -89,6 +105,7 @@ VgName="${VgName}"
 
 Hostname="${Hostname}"
 UserAccountName="${UserAccountName}"
+UserAccountPassword="${UserAccountPassword}"
 UserShell="${UserShell}"
 Locale="${Locale}"
 LocaleGen="${LocaleGen}"
@@ -103,6 +120,7 @@ RootMountLocation="${RootMountLocation}"
 KernelOpts="${KernelOpts}"
 
 EOF
+  chmod 600 "$State"
 
   syn_ui::step_done "Base install complete, state saved for Stage 1"
 }
