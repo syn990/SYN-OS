@@ -5,10 +5,10 @@ digraph package_map {
   node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
   edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
 
-  label="The 81-package SYNSTALL, by category and what each depends on";
+  label="The 85-package SYNSTALL, by category and what each depends on";
   labelloc="t"; fontsize=14; fontcolor="#e8b4b4";
 
-  synstall [label="SYNSTALL\n81 packages", shape=doublecircle, fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+  synstall [label="SYNSTALL\n85 packages", shape=doublecircle, fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
 
   subgraph cluster_base {
     label="baseCore, 18\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
@@ -16,8 +16,8 @@ digraph package_map {
   }
 
   subgraph cluster_net {
-    label="netAndServices, 5"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
-    net_ex [label="dhcpcd, iwd,\nopenvpn, hostapd", fillcolor="#260101"];
+    label="netAndServices, 7"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    net_ex [label="dhcpcd, iwd,\nopenvpn, hostapd,\nopenssh, sshfs\n(sshd installed, never\nauto-enabled)", fillcolor="#260101"];
   }
 
   subgraph cluster_shell {
@@ -26,8 +26,8 @@ digraph package_map {
   }
 
   subgraph cluster_desktop {
-    label="desktopStack, 18\nthe Wayland session"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
-    desktop_ex [label="labwc, waybar,\nwmenu, swaybg,\nsuperfile, falkon-adjacent\nQt theming", fillcolor="#260101"];
+    label="desktopStack, 20\nthe Wayland session"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    desktop_ex [label="labwc, waybar,\nwmenu, swaybg,\nswaylock, fuzzel,\nsuperfile, falkon-adjacent\nQt theming", fillcolor="#260101"];
   }
 
   subgraph cluster_dev {
