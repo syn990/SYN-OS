@@ -16,7 +16,7 @@ install_dir="arch"
 buildmodes=('iso')
 bootmodes=(
   'bios.syslinux'
-  'uefi.systemd-boot'
+  'uefi.grub'
 )
 arch="x86_64"
 pacman_conf="pacman.conf"
@@ -30,5 +30,7 @@ file_permissions=(
   ["/usr/lib/syn-os/syn-stage1.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-config.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-packages.zsh"]="0:0:755"
-  ["/usr/lib/syn-os/ui.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-ui.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-disk.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-pacstrap.zsh"]="0:0:755"
 )

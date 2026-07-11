@@ -55,6 +55,7 @@ fi
 # and mbr-grub on BIOS.
 Encryption="$(toYesNo "${Encryption:-no}")"
 UseLvm="$(toYesNo "${UseLvm:-no}")"
+EnableSsh="$(toYesNo "${EnableSsh:-no}")"
 
 # --- sanity checks (fast, strict) -----------------------------------------
 # Required identity + input
@@ -72,6 +73,12 @@ UseLvm="$(toYesNo "${UseLvm:-no}")"
 case "${FilesystemStrat:-}" in
   ext4|f2fs|btrfs|xfs) : ;;
   *) echo "ERROR: Unsupported FilesystemStrat '${FilesystemStrat:-}'" >&2; exit 1 ;;
+esac
+
+case "$(lower "${PackageProfile:-full}")" in
+  full)    PackageProfile="full" ;;
+  minimal) PackageProfile="minimal" ;;
+  *) echo "ERROR: Unknown PackageProfile '${PackageProfile:-}' (must be full|minimal)" >&2; exit 1 ;;
 esac
 
 # PartitionStrat=auto resolves against the firmware SynosEnv actually
@@ -157,6 +164,11 @@ case "${VolumeStrat}" in
     : "${LuksCipher:?LuksCipher not set for LUKS strategy}"
     : "${LuksKeySize:?LuksKeySize not set for LUKS strategy}"
     : "${LuksPbkdf:?LuksPbkdf not set for LUKS strategy}"
+    : "${LuksPassphrase:?LuksPassphrase not set for LUKS strategy}"
+    if [ "$LuksPassphrase" = "CHANGE_ME" ]; then
+      echo "ERROR: LuksPassphrase is still 'CHANGE_ME' in synos.conf — set a real passphrase before installing." >&2
+      exit 1
+    fi
     ;;
 esac
 
@@ -166,11 +178,11 @@ export \
   Hostname UserAccountName UserShell \
   Locale LocaleGen KeyMap TimeZone VconsoleFont \
   Disk BootMode BootSize \
-  PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat \
-  Encryption UseLvm \
+  PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat PackageProfile \
+  Encryption UseLvm EnableSsh \
   VgName LvRootName LvSwapName SwapSize \
   BootFs RootFs \
   RootMountLocation BootMountLocation \
-  LuksCipher LuksKeySize LuksPbkdf LuksLabel \
+  LuksCipher LuksKeySize LuksPbkdf LuksLabel LuksPassphrase \
   KernelOpts \
   RequireWipeConfirm
