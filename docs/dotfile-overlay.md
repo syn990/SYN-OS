@@ -9,10 +9,11 @@ DotfileOverlay/
 ├── etc/
 │   └── skel/                    → /etc/skel/       (new-user home template)
 │       ├── .zshrc
-│       ├── .wallpaper/
+│       ├── .wallpaper/          SYN-OS-{RED,BLUE,GREEN,PURPLE}-wallpaper.png
 │       └── .config/
 │           ├── labwc/           see docs/labwc.md
 │           ├── waybar/          see docs/waybar.md
+│           ├── syn-os/themes/   SYN-OS-{RED,BLUE,GREEN,PURPLE}.theme (SYN_* vars)
 │           ├── foot/
 │           ├── superfile/
 │           ├── falkon/
@@ -20,12 +21,19 @@ DotfileOverlay/
 │           ├── qt5ct/
 │           └── pavucontrol-qt/
 └── usr/
-    ├── local/bin/                → /usr/local/bin/
-    ├── lib/                      → /usr/lib/
+    ├── local/bin/                → /usr/local/bin/  (incl. syn-theme-apply)
+    ├── lib/
+    │   └── syn-os/
+    │       └── theme-templates/  → /usr/lib/syn-os/theme-templates/
+    │                                (waybar/labwc/qt5ct/foot/superfile
+    │                                 templates rendered by syn-theme-apply)
     └── share/
         └── themes/
             └── SYN-OS-RED/       → /usr/share/themes/SYN-OS-RED/
-                └── openbox-3/    (LabWC reads Openbox-format theme dirs)
+                └── openbox-3/    (LabWC reads Openbox-format theme dirs;
+                                    only RED needs one here — the other
+                                    three themes work entirely through the
+                                    SYN_* variables + templates above)
 ```
 
 ## How it actually gets onto a real system

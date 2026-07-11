@@ -4,7 +4,7 @@ Every package SYN-OS installs is listed in [`syn-packages.zsh`](../SYN-OS/SYN-OS
 
 Descriptions below are the file's own inline comments. Links go to the Arch Wiki page for the package where one exists, otherwise the upstream project.
 
-![The 81-package SYNSTALL, broken down by category with rough size and a few cross-category runtime relationships](../Graphviz/packages-map.svg)
+![The 85-package SYNSTALL, broken down by category with rough size and a few cross-category runtime relationships](../Graphviz/packages-map.svg)
 
 ## `baseCore`
 
@@ -42,6 +42,8 @@ Basic connectivity plus the two use cases (VPN, hotspot) that need extra package
 | [`openvpn`](https://wiki.archlinux.org/title/OpenVPN) | Open source VPN daemon and client |
 | [`dnsmasq`](https://wiki.archlinux.org/title/Dnsmasq) | Lightweight DNS/DHCP server, useful for local network services |
 | [`hostapd`](https://wiki.archlinux.org/title/Software_access_point) | Host access point daemon, turns the machine into a Wi-Fi hotspot |
+| [`openssh`](https://wiki.archlinux.org/title/OpenSSH) | SSH server/client; `sshd.service` is installed but never auto-enabled on the installed system (opt-in, see [Zsh Configuration](./zsh.md)) |
+| `sshfs` | Mount a remote SSH filesystem locally (FUSE-based) |
 
 ## `shellAndCLI`
 
@@ -81,7 +83,9 @@ The Wayland desktop itself: compositor, launcher, panel, wallpaper, screenshot t
 | `archlinux-xdg-menu` | XDG desktop entry menu generator (creates `wmenu` entries) |
 | [`waybar`](https://github.com/Alexays/Waybar) | Highly customizable Wayland status bar (see [Waybar](./waybar.md)) |
 | [`swaybg`](https://github.com/swaywm/swaybg) | Background setter for Sway/wlroots-based compositors |
-| [`rofi`](https://wiki.archlinux.org/title/Rofi) | Window switcher, application launcher, `dmenu` replacement |
+| [`swaylock`](https://github.com/swaywm/swaylock) | Screen locker for Wayland/wlroots, bound to Super+L (see [LabWC](./labwc.md)) |
+| [`fuzzel`](https://codeberg.org/dnkl/fuzzel) | Application launcher for Wayland, bound to Super+A (see [LabWC](./labwc.md)) |
+| [`rofi`](https://wiki.archlinux.org/title/Rofi) | Window switcher, application launcher, `dmenu` replacement; also backs the theme-aware power menu (see [Waybar](./waybar.md)) |
 | [`feh`](https://wiki.archlinux.org/title/Feh) | Lightweight image viewer and background setter |
 | `pavucontrol-qt` | Qt port of the PulseAudio volume controller |
 | [`qt5ct`](https://wiki.archlinux.org/title/Uniform_look_for_Qt_and_GTK_applications) | Qt5 configuration utility |

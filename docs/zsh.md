@@ -8,10 +8,20 @@ This is the ISO's own `/etc/zsh/zshrc`, active the moment you boot the live envi
 
 - Prints the "temporary installer shell" notice and a summary of the two-stage install model on every interactive launch.
 - Checks internet connectivity (`curl` against `archlinux.org`) and prints Wi-Fi (`iwctl`) / WWAN (`mmcli`) hints if offline.
-- Prints the destructive-install warning and defines `alias synos-install="/usr/lib/syn-os/syn-stage0.zsh"` plus a `confirm_synos-install` function requiring you to type `synos-install YES`, though in practice the alias itself is what gets invoked; the function is a stricter guarded path.
+- Prints the destructive-install warning and defines `alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"` plus a `confirm_synos-install` function requiring you to type `synos-install YES` (which itself runs `doas /usr/lib/syn-os/syn-stage0.zsh`), though in practice the alias itself is what gets invoked; the function is a stricter guarded path. The `doas` prefix exists because the live session runs as `synstigator`, not `root` — see below.
 - Sets up completion, history, keybindings, `fzf`/`zoxide`, and the two zsh plugins (autosuggestions, syntax highlighting), the same tooling the README advertises, active even before installation.
 
 None of this reaches the installed system; it only governs the live ISO session.
+
+### The live session runs as `synstigator`, not `root`
+
+Traditional archiso boots straight into a `root` shell with no password. SYN-OS's live ISO instead autologins as `synstigator` — a wheel-group account baked into the boot flow, not the installer. The mechanism lives in `SYN-ISO-PROFILE/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf`: an `ExecStartPre` on the tty1 getty unit creates the account (`useradd -m -G wheel`), sets its password (`synstigator`, intentionally simple and known — this is a disposable live session, not the installed system), and grants it `permit nopass synstigator` in `/etc/doas.conf`, all idempotently on every boot before the login prompt appears.
+
+This has to happen at boot time rather than as a static `/etc/passwd`+`/etc/group` entry baked into the ISO image, because `wheel`'s GID isn't fixed in any package — it's allocated dynamically by `systemd-sysusers` (`g wheel - - -` in `/usr/lib/sysusers.d/basic.conf`) the first time the live environment boots. A static file can't reference a GID it doesn't know yet.
+
+Two consequences worth knowing:
+- **SSH works from the moment the ISO boots.** `openssh` is in the live ISO's `packages.x86_64` and `sshd.service` is enabled by archiso default; since `synstigator` already has a known password, `ssh synstigator@<ip>` works immediately, no `passwd root` dance required first.
+- **`synstigator` never reaches the installed system.** It's not in `SYNSTALL`, its account isn't in any `DotfileOverlay` file, and nothing in Stage 0/Stage 1 copies it over. The account you actually get on the installed disk is whatever `UserAccountName` says in `synos.conf` (see [synos.conf](./synos-conf.md)) — `root` itself is left exactly as vanilla Arch leaves it (no usable password until someone deliberately runs `passwd root`), and SSH on the installed system stays opt-in: `openssh` is installed via `SYNSTALL` but `sshd.service` is never auto-enabled.
 
 ## Installed-system shell: `DotfileOverlay/etc/skel/.zshrc`
 

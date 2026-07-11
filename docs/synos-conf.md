@@ -11,6 +11,7 @@ It's loaded and validated by `syn-config.zsh` (`SYN-ISO-PROFILE/airootfs/usr/lib
 |---|---|
 | `Hostname` | System hostname |
 | `UserAccountName` | The user account Stage 1 creates and adds to `wheel` |
+| `UserAccountPassword` | Plaintext password for that account, consumed once by `chpasswd` in Stage 1. Ships as `CHANGE_ME`; Stage 1 refuses to proceed if it's still set to that placeholder. Never written to the installed disk: `syn-pacstrap.zsh` strips it from the copy of `synos.conf` it writes to the target, and `syn-stage1.zsh` strips it from `install.state` right after consuming it. This is what makes the install fully unattended — before this field existed, Stage 1 stopped and prompted interactively for a password with `passwd`. |
 | `UserShell` | Login shell for that account (default `/bin/zsh`) |
 
 **Locale / input / time**
