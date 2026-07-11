@@ -15,13 +15,12 @@
   "modules-right": [
     "custom/vpn",
     "network",
-    "custom/net",
+    "backlight",
+    "pulseaudio",
     "cpu",
     "memory",
     "temperature",
     "custom/disk",
-    "backlight",
-    "pulseaudio",
     "battery",
     "clock",
     "custom/power"
@@ -33,7 +32,7 @@
     "exec": "$HOME/.config/waybar/glyph-rotator.sh",
     "interval": 20,
     "tooltip": false,
-    "on-click": "wmenu-run -N '#000000' -n '#ffffff' -S '#400101' -s '#ffffff' -M '#260101' -m '#ffffff'"
+    "on-click": "$HOME/.config/waybar/wmenu-run.sh"
   },
 
   "custom/media": {
@@ -44,13 +43,6 @@
     "on-click": "playerctl play-pause",
     "on-scroll-up": "playerctl next",
     "on-scroll-down": "playerctl previous",
-    "tooltip": false
-  },
-
-  "custom/net": {
-    "format": " {}  {}",
-    "exec": "$HOME/.config/waybar/net-speed.sh",
-    "interval": 2,
     "tooltip": false
   },
 
@@ -69,7 +61,7 @@
 
   "custom/power": {
     "format": "⏻",
-    "on-click": "wlogout"
+    "on-click": "$HOME/.config/waybar/power-menu.sh"
   },
 
   "pulseaudio": {
@@ -86,10 +78,11 @@
   },
 
   "network": {
-    "format-wifi": "  {essid}",
-    "format-ethernet": "󰈀 {ipaddr}",
+    "format-wifi": "  {essid}  {bandwidthUpBytes}/{bandwidthDownBytes}",
+    "format-ethernet": "󰈀 {ipaddr}  {bandwidthUpBytes}/{bandwidthDownBytes}",
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
+    "interval": 2,
     "on-click": "$HOME/.config/waybar/wifi-menu.sh"
   },
 
@@ -130,8 +123,9 @@
   },
 
   "clock": {
-    "format": "{:%H:%M}",
-    "format-alt": "{:%Y-%m-%d %H:%M}",
+    "interval": 1,
+    "format": "{:%H:%M:%S}",
+    "format-alt": "{:%Y-%m-%d %H:%M:%S}",
     "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
   },
 

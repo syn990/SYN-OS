@@ -36,6 +36,8 @@ netAndServices=(
   openvpn             # Open source VPN daemon and client
   dnsmasq             # Lightweight DNS and DHCP server (useful for local network services)
   hostapd             # Host Access Point Daemon (turn your machine into a Wi-Fi hotspot)
+  openssh             # SSH server/client (sshd, disabled by default; enable with: sudo systemctl enable --now sshd)
+  sshfs               # Mount a remote SSH filesystem locally (FUSE-based)
 )
 
 shellAndCLI=(
@@ -67,6 +69,8 @@ desktopStack=(
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
   swaybg              # Background setter for Sway and wlroots-based compositors
+  swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)
+  fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)
   rofi                # Window switcher, application launcher, and dmenu replacement
   feh                 # Lightweight image viewer and background setter
   pavucontrol-qt      # Qt port of the PulseAudio volume controller
