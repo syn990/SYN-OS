@@ -45,14 +45,14 @@ printf "\n\033[1;41m WARNING: RUNNING 'synos-install' WILL ERASE YOUR DATA \033[
 printf "\033[1;31mReview and edit install parameters before running.\033[0m\n"
 printf "Failure to do so will result in total data loss.\n"
 printf "\n\033[1;33mEdit these before proceeding:\033[0m\n"
-printf "   \033[35mnano /etc/syn-os/synos.conf\033[0m\n"
+printf "   \033[35mdoas nano /etc/syn-os/synos.conf\033[0m\n"
 
 confirm_synos-install() {
   printf "\n\033[1;41m DANGER \033[0m This will erase target disks configured in syn-stage scripts.\n"
   printf "Type \033[1msynos-install YES\033[0m to proceed: "
   read -r a b
   if [[ "$a $b" == "synos-install YES" ]]; then
-    /usr/lib/syn-os/syn-stage0.zsh
+    doas /usr/lib/syn-os/syn-stage0.zsh
   else
     printf "Aborted.\n"
   fi
@@ -164,7 +164,7 @@ fi
 # =============================================================================
 # Aliases
 # =============================================================================
-alias synos-install="/usr/lib/syn-os/syn-stage0.zsh"
+alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'
@@ -187,7 +187,7 @@ zstyle ':vcs_info:git:*' actionformats '%F{cyan}(%b|%a)%f'
 # Left prompt: user@host + cwd + git + brackets
 PROMPT='%F{blue}[%f%F{red}%n@%m%f %F{160}%~%f${vcs_info_msg_0_} %F{blue}]%f %# '
 # Right prompt: time + status (✔/✘ + code)
-RPROMPT='%F{white}%D{%H:%M:%S}%f %(?..%F{red}✘%?%f:%F{green}✔%f)'
+RPROMPT='%F{white}%D{%H:%M:%S}%f %(?.%F{green}✔%f.%F{red}✘%?%f)'
 
 # =============================================================================
 # One line MOTD
