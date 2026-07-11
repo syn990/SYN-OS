@@ -1,6 +1,6 @@
 # Package Collection
 
-Every package SYN-OS installs is listed in [`syn-packages.zsh`](../SYN-OS/SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-packages.zsh), grouped into seven arrays purely for readability. The file says so directly: *"There is no special reason for the categorization of packages into these arrays. They are simply grouped for organizational purposes."* All seven are concatenated into one flat `SYNSTALL` array, which is what `pacstrapMain` actually installs (plus bootloader packages chosen at install time, see [Stage 0](./stage0.md)).
+Every package SYN-OS installs is listed in [`syn-packages.zsh`](../SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-packages.zsh), grouped into seven arrays purely for readability. The file says so directly: *"There is no special reason for the categorization of packages into these arrays. They are simply grouped for organizational purposes."* All seven are concatenated into one flat `SYNSTALL` array, which is what `pacstrapMain` actually installs (plus bootloader packages chosen at install time, see [Stage 0](./stage0.md)).
 
 Descriptions below are the file's own inline comments. Links go to the Arch Wiki page for the package where one exists, otherwise the upstream project.
 

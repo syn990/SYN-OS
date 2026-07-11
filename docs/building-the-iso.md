@@ -1,6 +1,6 @@
 # Building the ISO
 
-SYN-OS is a plain [ArchISO](https://wiki.archlinux.org/title/Archiso) profile (`SYN-OS/SYN-ISO-PROFILE/`), built with `mkarchiso`. `BUILD-SYNOS-ISO.zsh` (`SYN-OS/SYN-OS/BUILD-SYNOS-ISO.zsh`) wraps that with one piece of SYN-OS-specific setup: optionally pre-fetching every package for offline install.
+SYN-OS is a plain [ArchISO](https://wiki.archlinux.org/title/Archiso) profile (`SYN-OS/SYN-ISO-PROFILE/`), built with `mkarchiso`. `BUILD-SYNOS-ISO.zsh` (`SYN-OS/BUILD-SYNOS-ISO.zsh`) wraps that with one piece of SYN-OS-specific setup: optionally pre-fetching every package for offline install.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ cd SYN-OS/SYN-OS
 sudo zsh ./BUILD-SYNOS-ISO.zsh
 ```
 
-Note the nested path: the build script lives at `SYN-OS/SYN-OS/BUILD-SYNOS-ISO.zsh` relative to the repo root, not at the repo root itself. The `SYN-OS/SYN-OS/` directory is the actual ISO project (profile, build script, output); the outer `SYN-OS/` is the repo root that also holds the README, images, and these docs.
+The `SYN-OS/` directory inside the cloned repo is the actual ISO project (profile, build script, output); the outer clone root also holds the README, images, and these docs.
 
 The script must run as root (it checks `$EUID` and refuses otherwise), and it prompts for confirmation before wiping any previous build:
 
