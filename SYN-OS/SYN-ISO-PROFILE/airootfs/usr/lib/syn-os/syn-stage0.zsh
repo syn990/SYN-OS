@@ -20,9 +20,40 @@ source /usr/lib/syn-os/ui.zsh
 # can't reach outside itself to write there), then copied onto the target
 # disk's / after arch-chroot returns, so it survives past this live session
 # instead of vanishing with tmpfs at reboot.
+#
+# Uses `script` (util-linux, always present — it's a base dependency), not a
+# plain `tee` pipe, to capture this: `exec > >(tee ...)` replaces stdout with
+# a pipe, and pacman/pacstrap check isatty() on stdout to decide whether to
+# draw ILoveCandy/progress bars — a pipe fails that check even though
+# Color/ILoveCandy are enabled in pacman.conf, so every install rendered
+# bare, no bars, looking stalled during the ~1.6GB package download. `script`
+# allocates a real pty, so isatty() still says yes, while still writing the
+# full transcript (bars, colors, redraws and all) to the log file.
 InstallLog="/root/synos-install-$(date +%Y%m%d-%H%M%S).log"
-exec > >(tee -a "$InstallLog") 2>&1
+if [ -z "${SYN_STAGE0_UNDER_SCRIPT:-}" ]; then
+  export SYN_STAGE0_UNDER_SCRIPT=1
+  exec script -qefc "$0 $*" "$InstallLog"
+fi
 echo "Logging full install output to ${InstallLog}"
+
+# A killed/interrupted run (Ctrl+C, crash) otherwise leaves the target
+# mounted and a gpg-agent daemon running with its homedir under
+# RootMountLocation (spawned by pacman-key --init in pacstrapMain, which
+# detaches and outlives the script that started it) — both of which then
+# block the next attempt's parted/mkfs with "target is busy" / "unable to
+# inform the kernel of the change", since the kernel won't reload a
+# partition table while something still has a partition open. Only fires on
+# an early exit (error or Ctrl+C) — SynStage0Complete is set at the very end
+# of the normal pipeline, right before entering Stage 1, specifically so a
+# successful install doesn't get its own mounts torn down by this trap on
+# the way out.
+syn_stage0::cleanup() {
+  [ -n "${SynStage0Complete:-}" ] && return
+  local agentDir="${RootMountLocation:-/mnt}/etc/pacman.d/gnupg"
+  pkill -9 -f "gpg-agent --homedir ${agentDir}" 2>/dev/null || true
+  umount -R "${RootMountLocation:-/mnt}" 2>/dev/null || true
+}
+trap syn_stage0::cleanup EXIT INT TERM
 
 # Load modular strategy scripts
 source /usr/lib/syn-os/syn-partition.zsh
@@ -54,6 +85,7 @@ filesystemMain
 mountMain
 pacstrapMain
 syn_ui::step_done "Stage 0 pipeline complete"
+SynStage0Complete=1
 
 # Summary
 syn_ui::end_summary "${RootPart}" "${RootMountLocation}" "${BootPart:-}" "${BootMountLocation}" "${BootFs}" "${RootFs}" "${PartitionStrat}"

@@ -121,3 +121,21 @@ SYNSTALL=(
   "${fontsI18n[@]}"
   "${appsMedia[@]}"
 )
+
+# Lean profile for test-boot installs: base system, networking, shell, and
+# the desktop stack (labwc/waybar/etc.) — enough to prove a fresh install
+# partitions/formats/mounts/boots and the desktop actually renders, without
+# devToolkit or appsMedia's heavier packages (obs-studio, gimp, android-tools,
+# archiso...) or noto-fonts-cjk, none of which affect whether that works.
+# Same category arrays as SYNSTALL, just fewer of them — add/remove a whole
+# category above and both profiles pick it up automatically except where
+# excluded here explicitly.
+SYNMINIMAL=(
+  "${baseCore[@]}"
+  "${netAndServices[@]}"
+  "${shellAndCLI[@]}"
+  "${desktopStack[@]}"
+  terminus-font
+  ttf-dejavu
+  ttf-terminus-nerd
+)

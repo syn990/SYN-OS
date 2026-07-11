@@ -37,6 +37,7 @@ It's loaded and validated by `syn-config.zsh` (`SYN-ISO-PROFILE/airootfs/usr/lib
 | `UseLvm` | `yes` \| `no`: LVM on top of root (or on top of the LUKS mapper, if `Encryption=yes` too) |
 | `FilesystemStrat` | `ext4` \| `f2fs` \| `btrfs` \| `xfs` |
 | `BootloaderStrat` | `auto` \| `systemd-boot` \| `syslinux` \| `grub` |
+| `PackageProfile` | `full` (default): the whole `SYNSTALL` array in `syn-packages.zsh`. `minimal`: `SYNMINIMAL` — base system, networking, shell tools, and the desktop stack only, skipping `devToolkit` and `appsMedia`'s heavier packages. Same install pipeline either way; `syn-pacstrap.zsh` is the only place the two diverge. |
 
 `Encryption`/`UseLvm` are combined internally by `syn-config.zsh` into the `VolumeStrat` value (`luks-lvm`/`luks-only`/`lvm-only`/`plain`) that `syn-volume.zsh` actually dispatches on; you don't set `VolumeStrat` directly.
 

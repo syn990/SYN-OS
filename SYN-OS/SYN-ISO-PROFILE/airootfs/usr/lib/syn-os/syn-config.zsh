@@ -74,6 +74,12 @@ case "${FilesystemStrat:-}" in
   *) echo "ERROR: Unsupported FilesystemStrat '${FilesystemStrat:-}'" >&2; exit 1 ;;
 esac
 
+case "$(lower "${PackageProfile:-full}")" in
+  full)    PackageProfile="full" ;;
+  minimal) PackageProfile="minimal" ;;
+  *) echo "ERROR: Unknown PackageProfile '${PackageProfile:-}' (must be full|minimal)" >&2; exit 1 ;;
+esac
+
 # PartitionStrat=auto resolves against the firmware SynosEnv actually
 # detected above, instead of shipping a hardcoded guess in synos.conf that
 # can silently mismatch real hardware (e.g. a default of uefi-bootctl
@@ -166,7 +172,7 @@ export \
   Hostname UserAccountName UserShell \
   Locale LocaleGen KeyMap TimeZone VconsoleFont \
   Disk BootMode BootSize \
-  PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat \
+  PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat PackageProfile \
   Encryption UseLvm \
   VgName LvRootName LvSwapName SwapSize \
   BootFs RootFs \

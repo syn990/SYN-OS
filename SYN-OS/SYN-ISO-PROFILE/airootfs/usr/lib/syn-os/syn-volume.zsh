@@ -92,6 +92,11 @@ volumeStrat_lvm_only() {
 # Plain (no LUKS, no LVM)
 # =========================================================
 volumeStrat_plain() {
+  # partitionMain already wipefs'd every partition this strategy created
+  # (see syn-partition.zsh) before volumeMain ever runs, so there's nothing
+  # left to clear here — this strategy just needs to point the downstream
+  # variables at the raw partition, unlike LUKS/LVM which build a mapper
+  # device on top of it.
   RootMapper="${RootPart}"
   RootFsDev="${RootPart}"
   SwapDev=""

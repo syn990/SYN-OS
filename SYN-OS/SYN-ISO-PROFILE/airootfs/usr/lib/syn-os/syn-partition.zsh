@@ -108,4 +108,21 @@ partitionMain() {
     mbr-grub)     partitionStrat_mbr_grub ;;
     *) syn_ui::error "Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
   esac
+
+  # The 4MiB zero above only clears the disk's own partition-table header —
+  # it can't reach a filesystem/LUKS/LVM signature sitting further in, at the
+  # start of whatever partition happens to land there. On a disk reused
+  # across test installs (different VolumeStrat/FilesystemStrat each time,
+  # same disk), that old signature survives partitioning untouched: mkfs
+  # succeeds and reports the new type correctly, but the kernel can still see
+  # the old signature underneath and mount/probe gets confused about which
+  # one is real. cryptsetup luksFormat and pvcreate -ffy each happen to clear
+  # this as a side effect of what they do, but plain mkfs and the boot
+  # partition's mkfs never did — so it only ever surfaced on the paths that
+  # skip LUKS/LVM. Fixed once, here, for every partition this strategy just
+  # created, rather than patched into each volume/filesystem strategy
+  # separately.
+  for p in "${BootPart:-}" "${RootPart:-}"; do
+    [ -n "$p" ] && [ -b "$p" ] && wipefs -a "$p" >/dev/null
+  done
 }

@@ -15,6 +15,18 @@ set -euo pipefail
 filesystemMain() {
   [ -b "${RootFsDev}" ] || { syn_ui::error "RootFsDev not a block device"; exit 1; }
 
+  # mkfs.* only needs the userspace tool, so formatting succeeds even if the
+  # matching kernel module isn't loaded yet — but mount's auto-detect (no -t
+  # given, see mountMain) can only match filesystem types the kernel already
+  # knows about. Confirmed on this live image: mkfs.f2fs succeeds, blkid
+  # correctly reports TYPE="f2fs" afterwards, but the later mount call still
+  # fails because f2fs was never in the running kernel's fs list to begin
+  # with (not autoloaded, and mount's own auto-modprobe apparently didn't
+  # trigger here either). Re-running the identical mount command after a
+  # manual `modprobe f2fs` succeeds immediately against the same partition —
+  # loading the module explicitly here closes that gap.
+  modprobe "${FilesystemStrat}" 2>/dev/null || true
+
   syn_ui::step "Formatting root fs (${FilesystemStrat})"
   case "${FilesystemStrat}" in
     ext4)  mkfs.ext4 -F -L ROOT "${RootFsDev}" ;;
