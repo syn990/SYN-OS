@@ -1,0 +1,210 @@
+#!/usr/bin/env zsh
+# SYN-OS theme applier: reads ~/.config/syn-os/themes/<name>.theme and
+# stamps its palette into every themed app, then live-reloads what supports it.
+# Usage: syn-theme-apply <theme-name>
+set -euo pipefail
+
+THEMES_DIR="$HOME/.config/syn-os/themes"
+TEMPLATES_DIR="/usr/lib/syn-os/theme-templates"
+CURRENT_FILE="$HOME/.config/syn-os/current-theme"
+
+name="${1:-}"
+if [[ -z "$name" ]]; then
+  print -u2 "Usage: syn-theme-apply <theme-name>"
+  print -u2 "Available: $(ls "$THEMES_DIR" 2>/dev/null | sed 's/\.theme$//' | tr '\n' ' ')"
+  exit 1
+fi
+
+palette="$THEMES_DIR/$name.theme"
+[[ -f "$palette" ]] || { print -u2 "No such theme: $palette"; exit 1; }
+
+source "$palette"
+: "${SYN_THEME_NAME:?palette missing SYN_THEME_NAME}"
+
+# strip leading # for formats that want raw hex
+raw() { print -r -- "${1#\#}"; }
+
+# Ordered longest-key-first so e.g. SYN_BG_ALT is substituted before SYN_BG
+# (otherwise SYN_BG's sed rule would fire first and leave a stray _ALT).
+typeset -a keys
+keys=(
+  SYN_PANEL_HOVER
+  SYN_ACCENT_DIM
+  SYN_BG_ALT
+  SYN_URGENT
+  SYN_ACCENT
+  SYN_BORDER
+  SYN_PANEL
+  SYN_TEXT
+  SYN_BG
+)
+typeset -A vars
+vars=(
+  SYN_BG           "$SYN_BG"
+  SYN_BG_ALT       "$SYN_BG_ALT"
+  SYN_PANEL        "$SYN_PANEL"
+  SYN_PANEL_HOVER  "$SYN_PANEL_HOVER"
+  SYN_ACCENT       "$SYN_ACCENT"
+  SYN_ACCENT_DIM   "$SYN_ACCENT_DIM"
+  SYN_TEXT         "$SYN_TEXT"
+  SYN_BORDER       "$SYN_BORDER"
+  SYN_URGENT       "$SYN_URGENT"
+)
+
+render() {
+  # render <template-file> <output-file>: substitutes SYN_* placeholders
+  # (longest key first) plus SYN_THEME_NAME, writes result to <output-file>.
+  local tmpl="$1" out="$2"
+  local -a sed_args=()
+  local k
+  for k in "${keys[@]}"; do
+    sed_args+=(-e "s|${k}|${vars[$k]}|g")
+  done
+  sed_args+=(-e "s|SYN_THEME_NAME|${SYN_THEME_NAME}|g")
+  mkdir -p "${out:h}"
+  sed "${sed_args[@]}" "$tmpl" > "$out"
+}
+
+# -------- waybar (CSS hex, live reload) --------
+waybar_tmpl="$TEMPLATES_DIR/waybar-style.css.tmpl"
+[[ -f "$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl" ]] && waybar_tmpl="$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl"
+render "$waybar_tmpl" "$HOME/.config/waybar/style.css"
+# Bar position is per-theme (SYN_WAYBAR_POSITION in the .theme file, default
+# "top") rather than a theme-name check here, so adding a bottom-bar theme
+# never requires touching this script again. config.jsonc has no "position"
+# key normally (waybar defaults to top), so this adds/updates one rather
+# than templating the whole file, which the user may have hand-edited
+# (custom modules/scripts).
+waybar_cfg="$HOME/.config/waybar/config.jsonc"
+waybar_position="${SYN_WAYBAR_POSITION:-top}"
+if [[ -f "$waybar_cfg" ]]; then
+  if grep -q '"position"' "$waybar_cfg"; then
+    sed -i "s|\"position\":[[:space:]]*\"[a-z]*\"|\"position\": \"$waybar_position\"|" "$waybar_cfg"
+  else
+    sed -i "0,/\"height\":/s||\"position\": \"$waybar_position\",\n  \"height\":|" "$waybar_cfg"
+  fi
+fi
+pkill -SIGUSR2 waybar 2>/dev/null || true
+
+# -------- wallpaper (restart swaybg with the theme's image, if set) --------
+if [[ -n "${SYN_WALLPAPER:-}" && -f "$SYN_WALLPAPER" ]]; then
+  pkill swaybg 2>/dev/null || true
+  swaybg -i "$SYN_WALLPAPER" >/dev/null 2>&1 &
+  disown
+fi
+
+# -------- waybar glyph (fixed per-theme icon, live reload) --------
+print -r -- "${SYN_GLYPH:-●}" > "$HOME/.config/waybar/glyph"
+pkill -SIGUSR2 waybar 2>/dev/null || true
+
+# -------- qt5ct (ARGB hex with ff/80 alpha prefix, next Qt launch only) --------
+typeset -a qt_keys
+qt_keys=(SYN_ACCENT_DIM_FF SYN_PANEL_HOVER_FF SYN_ACCENT_80 SYN_BG_ALT_FF SYN_URGENT_FF SYN_ACCENT_FF SYN_BORDER_FF SYN_PANEL_FF SYN_TEXT_FF SYN_BG_FF)
+typeset -A qt_vars
+for k in "${keys[@]}"; do
+  qt_vars[${k}_FF]="#ff$(raw "${vars[$k]}")"
+done
+qt_vars[SYN_ACCENT_80]="#80$(raw "$SYN_ACCENT")"
+
+render_qt() {
+  local tmpl="$1" out="$2"
+  local -a sed_args=()
+  local k
+  for k in "${qt_keys[@]}"; do
+    sed_args+=(-e "s|${k}|${qt_vars[$k]}|g")
+  done
+  mkdir -p "${out:h}"
+  sed "${sed_args[@]}" "$tmpl" > "$out"
+}
+render_qt "$TEMPLATES_DIR/qt5ct-colors.conf.tmpl" "$HOME/.config/qt5ct/colors/$SYN_THEME_NAME.conf"
+sed -i "s|^color_scheme_path=.*|color_scheme_path=$HOME/.config/qt5ct/colors/$SYN_THEME_NAME.conf|" "$HOME/.config/qt5ct/qt5ct.conf"
+
+# -------- qt6ct (same as qt5ct above, but this is the one that actually
+# matters: every Qt app on this system — falkon, pavucontrol-qt, pcmanfm-qt
+# — links against Qt6, not Qt5, confirmed via ldd. QT_QPA_PLATFORMTHEME=qt5ct
+# can't load the Qt5-only qt5ct plugin for a Qt6 process at all, so qt5ct's
+# theming here had been silently inert since the very first theme (RED) was
+# built — qt5ct is kept in case anything Qt5-based ever gets installed, but
+# qt6ct is the one real Qt apps on this system actually read.) --------
+if [[ -f "$HOME/.config/qt6ct/qt6ct.conf" ]]; then
+  render_qt "$TEMPLATES_DIR/qt6ct-colors.conf.tmpl" "$HOME/.config/qt6ct/colors/$SYN_THEME_NAME.conf"
+  sed -i "s|^color_scheme_path=.*|color_scheme_path=$HOME/.config/qt6ct/colors/$SYN_THEME_NAME.conf|" "$HOME/.config/qt6ct/qt6ct.conf"
+fi
+
+# -------- labwc (Openbox-format theme dir + rc.xml <name>, live reconfigure) --------
+labwc_theme_dir="$HOME/.local/share/themes/$SYN_THEME_NAME/openbox-3"
+mkdir -p "$labwc_theme_dir"
+# Themes needing real decoration (gradients/bevels, not the shared flat-solid
+# look) drop a labwc-themerc.<SYN_THEME_NAME>.tmpl next to the shared one.
+labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.tmpl"
+[[ -f "$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl" ]] && labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl"
+render "$labwc_tmpl" "$labwc_theme_dir/themerc"
+# Scoped to the line right after <theme> opens — that's always the theme's
+# own <name> tag. An earlier, unanchored `s|<name>.*</name>|...|` matched
+# every <name> in the file (the per-place <font><name>Terminus</name> tags,
+# desktop names, everything), stamping the theme name over all of them and
+# silently breaking the menu/window font on every theme switch.
+sed -i "/<theme>/,/<\/theme>/{0,/<name>.*<\/name>/s||<name>${SYN_THEME_NAME}</name>|}" "$HOME/.config/labwc/rc.xml"
+labwc --reconfigure 2>/dev/null || pkill -SIGHUP labwc 2>/dev/null || true
+
+# -------- foot (rewrite [colors-dark] block, live via SIGUSR1) --------
+foot_ini="$HOME/.config/foot/foot.ini"
+typeset -a foot_keys
+foot_keys=(SYN_PANEL_HOVER_RAW SYN_ACCENT_DIM_RAW SYN_BG_ALT_RAW SYN_URGENT_RAW SYN_ACCENT_RAW SYN_BORDER_RAW SYN_PANEL_RAW SYN_TEXT_RAW SYN_BG_RAW)
+typeset -A foot_vars
+for k in "${keys[@]}"; do
+  foot_vars[${k}_RAW]="$(raw "${vars[$k]}")"
+done
+render_foot() {
+  local tmpl="$1"
+  local -a sed_args=()
+  local k
+  for k in "${foot_keys[@]}"; do
+    sed_args+=(-e "s|${k}|${foot_vars[$k]}|g")
+  done
+  sed "${sed_args[@]}" "$tmpl"
+}
+foot_tmpl="$TEMPLATES_DIR/foot-colors-dark.tmpl"
+[[ -f "$TEMPLATES_DIR/foot-colors-dark.$SYN_THEME_NAME.tmpl" ]] && foot_tmpl="$TEMPLATES_DIR/foot-colors-dark.$SYN_THEME_NAME.tmpl"
+new_block="$(render_foot "$foot_tmpl")"
+awk -v block="$new_block" '
+  /^\[colors-dark\]/ { print block; skip=1; next }
+  /^\[/ && skip { skip=0 }
+  skip { next }
+  { print }
+' "$foot_ini" > "$foot_ini.new" && mv "$foot_ini.new" "$foot_ini"
+# SIGUSR1 only toggles an already-running foot between whatever colors-dark
+# /colors-light it loaded AT STARTUP — foot has no config-reload signal, so
+# this does NOT make existing windows pick up the new colors written above.
+# Only new foot windows opened after this point will show the new theme.
+pkill -SIGUSR1 foot 2>/dev/null || true
+
+# -------- superfile (regenerate the bundled "syn-os" theme in place, next launch only) --------
+render "$TEMPLATES_DIR/superfile-theme.toml.tmpl" "$HOME/.config/superfile/theme/syn-os.toml"
+sed -i 's|^theme = .*|theme = "syn-os"|' "$HOME/.config/superfile/config.toml"
+
+# -------- pcmanfm-qt (desktop icon-view colors only — window chrome already
+# follows qt5ct via QT_QPA_PLATFORMTHEME, but [Desktop] BgColor/FgColor are
+# pcmanfm-qt's own setting, not part of that cascade, and were hardcoded to
+# black/white since install; next launch only) --------
+pcmanfm_conf="$HOME/.config/pcmanfm-qt/default/settings.conf"
+if [[ -f "$pcmanfm_conf" ]]; then
+  sed -i "s|^BgColor=.*|BgColor=$SYN_BG|" "$pcmanfm_conf"
+  sed -i "s|^FgColor=.*|FgColor=$SYN_TEXT|" "$pcmanfm_conf"
+fi
+
+# -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none of
+# these are Qt, qt6ct never touches them. Overrides Adwaita-dark's named
+# semantic colors rather than swapping the whole theme; GTK3 has no
+# per-user "point at a different theme" mechanism as clean as qt6ct's
+# color_scheme_path. Picked up by every GTK3 app automatically, no
+# restart of syn-theme-apply-managed apps needed beyond their own next
+# launch, same as qt6ct/superfile.) --------
+render "$TEMPLATES_DIR/gtk3.css.tmpl" "$HOME/.config/gtk-3.0/gtk.css"
+mkdir -p "${CURRENT_FILE:h}"
+print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
+
+print "Theme applied: $SYN_THEME_NAME"
+print "  waybar, labwc: live"
+print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
+print "  qt6ct (falkon, pavucontrol-qt, pcmanfm-qt), gtk3 (audacity, etherape, virt-manager, virt-viewer), superfile: applies on next launch"

@@ -1,0 +1,15 @@
+# SYN-OS theme palette: SILVER
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SILVER"
+SYN_BG="#c8c8c8"
+SYN_BG_ALT="#b8b8b8"
+SYN_PANEL="#e8e8e8"
+SYN_PANEL_HOVER="#a0a0a0"
+SYN_ACCENT="#3a3d42"
+SYN_ACCENT_DIM="#9a9ea4"
+SYN_TEXT="#0d0d0d"
+SYN_BORDER="#888888"
+SYN_URGENT="#a4373a"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SILVER-wallpaper.png"
+SYN_GLYPH=""
+SYN_THEME_GROUP="neutral"

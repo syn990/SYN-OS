@@ -1,0 +1,18 @@
+# SYN-OS theme palette: M141
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+# Dedicated to M141 — his own red/black request, built as its own variant
+# rather than a copy of RED: pure black instead of RED's red-tinted near
+# black, a brighter scarlet accent instead of RED's dark maroon.
+SYN_THEME_NAME="SYN-OS-M141"
+SYN_BG="#000000"
+SYN_BG_ALT="#0a0a0a"
+SYN_PANEL="#1a0000"
+SYN_PANEL_HOVER="#330000"
+SYN_ACCENT="#e00000"
+SYN_ACCENT_DIM="#4d0000"
+SYN_TEXT="#ffffff"
+SYN_BORDER="#555555"
+SYN_URGENT="#ff2020"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-M141-wallpaper.png"
+SYN_GLYPH=""
+SYN_THEME_GROUP="vanilla"

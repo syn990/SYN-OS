@@ -1,0 +1,15 @@
+# SYN-OS theme palette: BLUE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BLUE"
+SYN_BG="#000000"
+SYN_BG_ALT="#00071d"
+SYN_PANEL="#020c2b"
+SYN_PANEL_HOVER="#08153b"
+SYN_ACCENT="#0986d3"
+SYN_ACCENT_DIM="#1a2f5c"
+SYN_TEXT="#ffffff"
+SYN_BORDER="#5c5b5a"
+SYN_URGENT="#a70b06"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BLUE-wallpaper.png"
+SYN_GLYPH="❄"
+SYN_THEME_GROUP="vanilla"

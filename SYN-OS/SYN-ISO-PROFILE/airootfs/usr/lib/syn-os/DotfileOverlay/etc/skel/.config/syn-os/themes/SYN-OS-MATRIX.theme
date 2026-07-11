@@ -1,0 +1,17 @@
+# SYN-OS theme palette: MATRIX
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+# Colors from the third-party "Retro 1 (Terminal)" Matrix/Green-DOS openbox
+# themerc (by Anna Schroder) found in the repo's old Openbox theme archive.
+SYN_THEME_NAME="SYN-OS-MATRIX"
+SYN_BG="#000000"
+SYN_BG_ALT="#001a00"
+SYN_PANEL="#003300"
+SYN_PANEL_HOVER="#006600"
+SYN_ACCENT="#32cd32"
+SYN_ACCENT_DIM="#64aa64"
+SYN_TEXT="#90ee90"
+SYN_BORDER="#228b22"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-MATRIX-wallpaper.png"
+SYN_GLYPH=""
+SYN_THEME_GROUP="homage"

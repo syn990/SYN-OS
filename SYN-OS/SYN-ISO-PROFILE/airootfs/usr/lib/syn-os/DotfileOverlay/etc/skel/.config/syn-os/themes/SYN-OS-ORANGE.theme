@@ -1,0 +1,15 @@
+# SYN-OS theme palette: ORANGE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-ORANGE"
+SYN_BG="#0a0500"
+SYN_BG_ALT="#1a0d00"
+SYN_PANEL="#2b1700"
+SYN_PANEL_HOVER="#402200"
+SYN_ACCENT="#ff8800"
+SYN_ACCENT_DIM="#663600"
+SYN_TEXT="#ffd9a3"
+SYN_BORDER="#a35b00"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-ORANGE-wallpaper.png"
+SYN_GLYPH=""
+SYN_THEME_GROUP="vanilla"
