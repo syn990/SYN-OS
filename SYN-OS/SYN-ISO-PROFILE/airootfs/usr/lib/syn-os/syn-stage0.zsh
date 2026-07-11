@@ -20,8 +20,20 @@ source /usr/lib/syn-os/ui.zsh
 # can't reach outside itself to write there), then copied onto the target
 # disk's / after arch-chroot returns, so it survives past this live session
 # instead of vanishing with tmpfs at reboot.
+#
+# Uses `script` (util-linux, always present — it's a base dependency), not a
+# plain `tee` pipe, to capture this: `exec > >(tee ...)` replaces stdout with
+# a pipe, and pacman/pacstrap check isatty() on stdout to decide whether to
+# draw ILoveCandy/progress bars — a pipe fails that check even though
+# Color/ILoveCandy are enabled in pacman.conf, so every install rendered
+# bare, no bars, looking stalled during the ~1.6GB package download. `script`
+# allocates a real pty, so isatty() still says yes, while still writing the
+# full transcript (bars, colors, redraws and all) to the log file.
 InstallLog="/root/synos-install-$(date +%Y%m%d-%H%M%S).log"
-exec > >(tee -a "$InstallLog") 2>&1
+if [ -z "${SYN_STAGE0_UNDER_SCRIPT:-}" ]; then
+  export SYN_STAGE0_UNDER_SCRIPT=1
+  exec script -qefc "$0 $*" "$InstallLog"
+fi
 echo "Logging full install output to ${InstallLog}"
 
 # Load modular strategy scripts

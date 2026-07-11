@@ -47,8 +47,13 @@ pacstrapMain() {
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
   syn_ui::step_done "Base packages installed"
 
-  # Copy current scripts and config to target system for Stage 1 handoff
+  # Copy current scripts and config to target system for Stage 1 handoff.
+  # UserAccountPassword is deliberately stripped here — install.state (below)
+  # carries it to Stage 1, which needs it once and then removes it there;
+  # the copy of synos.conf that lives permanently on the installed disk
+  # should never have held a plaintext password in the first place.
   install -Dm644 /etc/syn-os/synos.conf "${RootMountLocation}/etc/syn-os/synos.conf"
+  sed -i '/^UserAccountPassword=/d' "${RootMountLocation}/etc/syn-os/synos.conf"
   for script in /usr/lib/syn-os/*.zsh; do
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
   done
@@ -60,6 +65,7 @@ if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
 
   # Make all the good stuff executable
   chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
+  chmod -R +x "${RootMountLocation}/usr/local/bin"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
   chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
@@ -89,6 +95,7 @@ VgName="${VgName}"
 
 Hostname="${Hostname}"
 UserAccountName="${UserAccountName}"
+UserAccountPassword="${UserAccountPassword}"
 UserShell="${UserShell}"
 Locale="${Locale}"
 LocaleGen="${LocaleGen}"
@@ -103,6 +110,7 @@ RootMountLocation="${RootMountLocation}"
 KernelOpts="${KernelOpts}"
 
 EOF
+  chmod 600 "$State"
 
   syn_ui::step_done "Base install complete, state saved for Stage 1"
 }

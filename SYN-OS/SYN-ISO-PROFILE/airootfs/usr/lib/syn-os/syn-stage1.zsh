@@ -54,11 +54,22 @@ fi
 
 # User account setup
 : "${UserAccountName:?UserAccountName not set}"
+: "${UserAccountPassword:?UserAccountPassword not set}"
+if [ "$UserAccountPassword" = "CHANGE_ME" ]; then
+  syn_ui::error "UserAccountPassword is still 'CHANGE_ME' in synos.conf — set a real password before installing."
+  exit 1
+fi
 if ! id -u "$UserAccountName" >/dev/null 2>&1; then
   useradd -m -G wheel -s "$UserShell" "$UserAccountName"
 fi
-syn_ui::info "Set password for $UserAccountName (passwd will reject short/simple passwords — aim for 8+ characters):"
-passwd "$UserAccountName" </dev/tty
+echo "${UserAccountName}:${UserAccountPassword}" | chpasswd
+syn_ui::step_done "Password set for ${UserAccountName}"
+
+# UserAccountPassword only exists in install.state to carry it from Stage 0
+# (which writes it) to here (which consumes it) — it's no longer needed
+# past this point, and leaving it sitting in plaintext on the installed
+# disk's own /etc would defeat the purpose. Strip just that line in place.
+sed -i '/^UserAccountPassword=/d' "$State"
 
 # System overlays deployed during pacstrap
 
