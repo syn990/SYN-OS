@@ -39,7 +39,10 @@ menu.items.text.color:          SYN_ACCENT
 
 menu.items.active.bg:           flat solid
 menu.items.active.bg.color:     SYN_ACCENT
-menu.items.active.text.color:   SYN_BG
+# Hardcoded, not SYN_BG: every theme's SYN_ACCENT is saturated/dark enough
+# for white text to read, including light themes where SYN_BG is near-white
+# and would otherwise render invisible white-on-white hover text.
+menu.items.active.text.color:   #ffffff
 
 menu.items.disabled.text.color: SYN_BORDER
 
