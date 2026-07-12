@@ -18,6 +18,18 @@ C_DIM=$'\e[0;31m'      # dark red
 C_VALUE=$'\e[0;37m'    # light gray/white
 C_OK=$'\e[1;33m'       # amber/gold
 C_ERR=$'\e[1;31m'      # bold red
+
+# Stage accents — for the plain/static text (motd, welcome-shell banners)
+# that used to sit outside this palette entirely (stock cyan/green, or one
+# leftover off-brand blue). Not a repaint of the whole installer: syn_ui::*
+# above keeps its red/amber/gold roles throughout every stage. These three
+# are for text that specifically wants to say "you're in the live shell"
+# vs "pre-chroot disk work" vs "inside the new system" at a glance, while
+# staying inside one coherent dark palette instead of introducing a random
+# hue.
+C_LIVE=$'\e[1;35m'     # purple  — live installer shell, before synos-install runs
+C_STAGE0=$'\e[1;34m'   # blue    — syn-stage0.zsh, pre-chroot (disk/pacstrap)
+C_STAGE1=$'\e[1;31m'   # red     — syn-stage1.zsh, inside the chroot (matches C_ACCENT — the new system IS the brand)
 C_CRIT=$'\e[5;1;31m'   # blink + bold red
 
 syn_col_red()   { print -Pn "%{\e[0;31m%}$*%{\e[0m%}"; }
@@ -93,9 +105,17 @@ EOF
 # deliberately "yes, ask" and is not meant to be turned off casually.
 syn_ui::confirm_wipe() {
   local disk="$1" answer
+  # Show what's actually on the disk right before asking — the prompt used
+  # to just print the device path and trust the reader had already checked
+  # it elsewhere. Someone moving fast (or who doesn't know lsblk exists) had
+  # no way to catch a wrong Disk= in synos.conf from this prompt alone.
+  printf "\n%s%s%s\n" "$C_DIM" "${disk}:" "$RESET"
+  lsblk "$disk" -o NAME,SIZE,MODEL,FSTYPE,LABEL,MOUNTPOINTS 2>/dev/null \
+    | sed "s/^/  /" \
+    || printf "  %s(unable to read disk info)%s\n" "$C_ERR" "$RESET"
   printf "\n%s!%s %sThis will %serase everything%s on %s%s%s.%s\n" \
     "$C_CRIT" "$RESET" "$C_VALUE" "$C_ERR" "$C_VALUE" "$C_ACCENT" "$disk" "$C_VALUE" "$RESET"
-  printf "%sIf you have not double-checked the target disk, stop now (Ctrl+C).%s\n" "$C_DIM" "$RESET"
+  printf "%sIf that's not the disk you meant, stop now (Ctrl+C).%s\n" "$C_DIM" "$RESET"
   printf "%sProceed and wipe %s%s%s? [y/N] %s" "$C_VALUE" "$C_ACCENT" "$disk" "$C_VALUE" "$RESET"
   read -r answer </dev/tty
   case "${answer:l}" in
