@@ -189,10 +189,19 @@ if [[ -f "$pcmanfm_conf" ]]; then
   sed -i "s|^FgColor=.*|FgColor=$SYN_TEXT|" "$pcmanfm_conf"
 fi
 
+# -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none of
+# these are Qt, qt6ct never touches them. Overrides Adwaita-dark's named
+# semantic colors rather than swapping the whole theme; GTK3 has no
+# per-user "point at a different theme" mechanism as clean as qt6ct's
+# color_scheme_path. Picked up by every GTK3 app automatically, no
+# restart of syn-theme-apply-managed apps needed beyond their own next
+# launch, same as qt6ct/superfile.) --------
+render "$TEMPLATES_DIR/gtk3.css.tmpl" "$HOME/.config/gtk-3.0/gtk.css"
+
 mkdir -p "${CURRENT_FILE:h}"
 print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 
 print "Theme applied: $SYN_THEME_NAME"
 print "  waybar, labwc: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
-print "  qt6ct (falkon, pavucontrol-qt, pcmanfm-qt), superfile: applies on next launch"
+print "  qt6ct (falkon, pavucontrol-qt, pcmanfm-qt), gtk3 (audacity, etherape, virt-manager, virt-viewer), superfile: applies on next launch"
