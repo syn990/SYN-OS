@@ -1,12 +1,11 @@
 # Build-and-boot testing notes
 
-Working log from testing each named build in `docs/build-manifest.json` against
+Working log from testing each named build in `build-manifest.json` against
 real `mkarchiso` builds + real VM boot/install on `synos-test-full` (UEFI VM).
 Goal: confirm each real historical build actually produces a bootable ISO and
-document any install-time gaps/workarounds/quirks specific to that build —
-this project never actually had a fully clean, gap-free release, so these
-notes are expected to accumulate real findings per build, not just confirm
-"it worked."
+document any install-time gaps/workarounds/quirks specific to that build.
+This project never had a fully clean, gap-free release, so these notes are
+expected to accumulate real findings per build, not just confirm "it worked."
 
 Each section below becomes the seed for that build's own README/docs entry
 once the testing pass is complete.
@@ -20,15 +19,15 @@ once the testing pass is complete.
 - **Boot**: confirmed via screenshot — real AEGIS-branded live shell boots
   correctly on UEFI (synos-test-full), `[SYN-OS Live]` banner, internet
   detected, `synos-install` ready.
-- **Config quirk (real, not a testing mistake)**: editing `synos.conf` to set
-  `Encryption=no` / `UseLvm=no` via sed did NOT change the actual install
+- **Config quirk, real, not a testing mistake**: editing `synos.conf` to set
+  `Encryption=no` / `UseLvm=no` via sed did not change the actual install
   strategy — stage0 still announced `uefi-bootctl + luks-lvm + f2fs` and
   prompted for a real LUKS passphrase regardless. Either AEGIS-era
   `syn-config.zsh` derives the strategy from something other than these two
   fields, or the field names/format differ from current mainline's. Not yet
-  root-caused — noted here rather than blocking the test; per user, AEGIS was
-  a known "leap" that got abandoned partly because of exactly this kind of
-  rough edge, so this is expected, real project history, not a fluke.
+  root-caused, noted here rather than blocking the test. Per the user, AEGIS
+  was a known "leap" partly abandoned because of exactly this kind of rough
+  edge — expected, real project history, not a fluke.
 - **Safety gate differs from current mainline**: AEGIS uses
   `SynosIUnderstandWipe=yes synos-install` (an env var you must set before
   running the command) rather than current mainline's interactive `[y/N]`

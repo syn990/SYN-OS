@@ -8,16 +8,16 @@ This is the ISO's own `/etc/zsh/zshrc`, active the moment you boot the live envi
 
 - Prints the "temporary installer shell" notice and a summary of the two-stage install model on every interactive launch.
 - Checks internet connectivity (`curl` against `archlinux.org`) and prints Wi-Fi (`iwctl`) / WWAN (`mmcli`) hints if offline.
-- Prints the destructive-install warning and defines `alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"` plus a `confirm_synos-install` function requiring you to type `synos-install YES` (which itself runs `doas /usr/lib/syn-os/syn-stage0.zsh`), though in practice the alias itself is what gets invoked; the function is a stricter guarded path. The `doas` prefix exists because the live session runs as `synstigator`, not `root` — see below.
-- Sets up completion, history, keybindings, `fzf`/`zoxide`, and the two zsh plugins (autosuggestions, syntax highlighting), the same tooling the README advertises, active even before installation.
+- Prints the destructive-install warning and defines `alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"`, plus a `confirm_synos-install` function requiring you to type `synos-install YES` as a stricter, guarded alternative — in practice the plain alias is what gets invoked. The `doas` prefix exists because the live session runs as `synstigator`, not `root` — see below.
+- Sets up completion, history, keybindings, `fzf`/`zoxide`, and the two zsh plugins (autosuggestions, syntax highlighting) — the same tooling the README advertises, active even before installation.
 
 None of this reaches the installed system; it only governs the live ISO session.
 
 ### The live session runs as `synstigator`, not `root`
 
-Traditional archiso boots straight into a `root` shell with no password. SYN-OS's live ISO instead autologins as `synstigator` — a wheel-group account baked into the boot flow, not the installer. The mechanism lives in `SYN-ISO-PROFILE/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf`: an `ExecStartPre` on the tty1 getty unit creates the account (`useradd -m -G wheel`), sets its password (`synstigator`, intentionally simple and known — this is a disposable live session, not the installed system), and grants it `permit nopass synstigator` in `/etc/doas.conf`, all idempotently on every boot before the login prompt appears.
+Traditional archiso boots straight into a `root` shell with no password. SYN-OS's live ISO instead autologins as `synstigator` — a wheel-group account baked into the boot flow, not the installer. The mechanism lives in `SYN-ISO-PROFILE/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf`: an `ExecStartPre` on the tty1 getty unit creates the account (`useradd -m -G wheel`), sets its password (`synstigator`, intentionally simple and known since this is a disposable live session, not the installed system), and grants it `permit nopass synstigator` in `/etc/doas.conf` — all idempotently, on every boot, before the login prompt appears.
 
-This has to happen at boot time rather than as a static `/etc/passwd`+`/etc/group` entry baked into the ISO image, because `wheel`'s GID isn't fixed in any package — it's allocated dynamically by `systemd-sysusers` (`g wheel - - -` in `/usr/lib/sysusers.d/basic.conf`) the first time the live environment boots. A static file can't reference a GID it doesn't know yet.
+This has to happen at boot time rather than as a static `/etc/passwd`+`/etc/group` entry baked into the ISO image, because `wheel`'s GID isn't fixed in any package. It's allocated dynamically by `systemd-sysusers` (`g wheel - - -` in `/usr/lib/sysusers.d/basic.conf`) the first time the live environment boots — a static file can't reference a GID it doesn't know yet.
 
 Two consequences worth knowing:
 - **SSH works from the moment the ISO boots.** `openssh` is in the live ISO's `packages.x86_64` and `sshd.service` is enabled by archiso default; since `synstigator` already has a known password, `ssh synstigator@<ip>` works immediately, no `passwd root` dance required first.
@@ -31,9 +31,9 @@ Notable aliases and behavior:
 
 | Alias/setting | What it does |
 |---|---|
-| `synos` | `dbus-run-session -- env XDG_SESSION_TYPE=wayland labwc`: this is **the** command that launches the desktop session; see [First Boot](../readme.md#first-boot) |
+| `synos` | `dbus-run-session -- env XDG_SESSION_TYPE=wayland labwc`: this is **the** command that launches the desktop session; see [First Boot](../../../../../../../readme.md#first-boot) |
 | `sudo` → `doas`, `please` → `sudo` | Reflects Stage 1's doas/sudo shim (see [Stage 1](./stage1.md)): `sudo` on the installed system is really `doas` underneath, and this alias makes zsh call it directly rather than through the shim binary |
-| `syn-crypter`, `syn-redshirt`, `syn-mapper` | Shortcuts to maintenance scripts under `/usr/lib/syn-os/` |
+| `syn-crypter`, `syn-redshirt`, `syn-graphmap` | Shortcuts to maintenance scripts under `/usr/lib/syn-os/` |
 | `cat` → `bat`, `grep` → `rg` | Conditional aliases, only set if the binary is present |
 | `ll`, `la`, `l` | Standard `ls` shorthand |
 

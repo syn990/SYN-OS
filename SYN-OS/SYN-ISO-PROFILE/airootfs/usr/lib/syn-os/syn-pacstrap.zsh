@@ -79,6 +79,16 @@ if [ -d /usr/lib/syn-os/DotfileOverlay ]; then
   chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
 fi
 
+# Deploy project docs (markdown + diagrams) so they're readable from the
+# installed desktop via the Docs menu, not just on GitHub. Static system
+# data, not a per-user dotfile, so this is its own copy rather than folded
+# into DotfileOverlay above.
+if [ -d /usr/share/syn-os/docs ]; then
+  syn_ui::info "Deploying docs to ${RootMountLocation}/usr/share/syn-os/docs…"
+  mkdir -p "${RootMountLocation}/usr/share/syn-os"
+  cp -r /usr/share/syn-os/docs "${RootMountLocation}/usr/share/syn-os/docs"
+fi
+
   # Persist state for Stage 1
   local State="${RootMountLocation}/etc/syn-os/install.state"
   mkdir -p "$(dirname "$State")"
