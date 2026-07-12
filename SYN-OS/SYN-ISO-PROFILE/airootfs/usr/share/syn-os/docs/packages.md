@@ -1,10 +1,10 @@
 # Package Collection
 
-Every package SYN-OS installs is listed in [`syn-packages.zsh`](../SYN-OS/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-packages.zsh), grouped into seven arrays purely for readability. The file says so directly: *"There is no special reason for the categorization of packages into these arrays. They are simply grouped for organizational purposes."* All seven are concatenated into one flat `SYNSTALL` array, which is what `pacstrapMain` actually installs (plus bootloader packages chosen at install time, see [Stage 0](./stage0.md)).
+Every package SYN-OS installs is listed in [`syn-packages.zsh`](../../../lib/syn-os/syn-packages.zsh), grouped into seven arrays purely for readability. The file says so directly: *"There is no special reason for the categorization of packages into these arrays. They are simply grouped for organizational purposes."* All seven are concatenated into one flat `SYNSTALL` array, which is what `pacstrapMain` actually installs, plus bootloader packages chosen at install time (see [Stage 0](./stage0.md)).
 
 Descriptions below are the file's own inline comments. Links go to the Arch Wiki page for the package where one exists, otherwise the upstream project.
 
-![The 85-package SYNSTALL, broken down by category with rough size and a few cross-category runtime relationships](../Graphviz/packages-map.svg)
+![The SYNSTALL package set, broken down by category with rough size and a few cross-category runtime relationships](./svg/packages-map.svg)
 
 ## `baseCore`
 
@@ -47,7 +47,7 @@ Basic connectivity plus the two use cases (VPN, hotspot) that need extra package
 
 ## `shellAndCLI`
 
-The zsh experience described in the [README](../readme.md) (autosuggestions, syntax highlighting, `fzf`, `zoxide`) plus general CLI tooling.
+The zsh experience described in the [README](../../../../../../../readme.md) (autosuggestions, syntax highlighting, `fzf`, `zoxide`) plus general CLI tooling.
 
 | Package | What it's for |
 |---|---|
@@ -68,6 +68,8 @@ The zsh experience described in the [README](../readme.md) (autosuggestions, syn
 | [`foot`](https://codeberg.org/dnkl/foot) | Lightweight Wayland terminal emulator |
 | `brightnessctl` | Read and control screen brightness |
 | [`pamixer`](https://github.com/cdemoulins/pamixer) | PulseAudio-compatible command-line mixer |
+| [`glow`](https://github.com/charmbracelet/glow) | Markdown renderer for the terminal, backs the Docs menu (see [LabWC](./labwc.md)) |
+| [`chafa`](https://hpjansson.org/chafa/) | Renders images/SVGs as terminal graphics, used by the Docs menu to show diagrams inline |
 
 ## `desktopStack`
 
@@ -142,10 +144,10 @@ The apps that round out a usable desktop.
 
 ## How a package actually gets installed
 
-![How a package ends up on an installed SYN-OS system: from the seven arrays through SYNSTALL to pacstrap, with bootloader packages decided separately at install time](../Graphviz/packages-logic.svg)
+![How a package ends up on an installed SYN-OS system: from the seven arrays through SYNSTALL to pacstrap, with bootloader packages decided separately at install time](./svg/packages-logic.svg)
 
-The seven arrays are concatenated at parse time, before Stage 0 ever runs, into one flat `SYNSTALL`. Bootloader packages (`efibootmgr`+`systemd`, `grub`, or `syslinux`) are not in any of the seven arrays: they're decided by `syn-pacstrap.zsh` based on the resolved `PartitionStrat` (see [Storage Strategies](./storage-strategies.md)) and appended to `SYNSTALL` right before the single `pacstrap -K` call that actually installs everything.
+The seven arrays are concatenated at parse time, before Stage 0 ever runs, into one flat `SYNSTALL`. Bootloader packages (`efibootmgr`+`systemd`, `grub`, or `syslinux`) aren't in any of the seven arrays — `syn-pacstrap.zsh` decides those based on the resolved `PartitionStrat` (see [Storage Strategies](./storage-strategies.md)) and appends them to `SYNSTALL` right before the single `pacstrap -K` call that installs everything.
 
 ## Customizing
 
-To change what ships, edit the category arrays directly in `syn-packages.zsh` and rebuild the ISO: `SYNSTALL` picks up the change automatically since it's just the concatenation of all seven arrays. There's no separate metadata to keep in sync: pacman treats every installed package the same way (no special "protected" tier), so removing something the desktop or shell config depends on (`waybar`, `labwc`, a zsh plugin) is on you to avoid, the same as on any other Arch install.
+To change what ships, edit the category arrays directly in `syn-packages.zsh` and rebuild the ISO — `SYNSTALL` picks up the change automatically, since it's just the concatenation of all seven arrays. There's no separate metadata to keep in sync: pacman treats every installed package the same way, no "protected" tier, so removing something the desktop or shell config depends on (`waybar`, `labwc`, a zsh plugin) is on you to avoid, same as any other Arch install.

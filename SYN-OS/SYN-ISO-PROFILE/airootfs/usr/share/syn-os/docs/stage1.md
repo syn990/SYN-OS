@@ -4,7 +4,7 @@ Stage 1 (`syn-stage1.zsh`) runs automatically as the last step of Stage 0, via `
 
 ## Where its input comes from
 
-Stage 1 sources `syn-config.zsh` again (for `synos.conf` values like `Hostname`, `Locale`), but disk-specific values, `RootFsDev`, `LuksUuid`, `SwapDev`, `VgName`, aren't in `synos.conf` at all; they're *resolved* during Stage 0's partition/volume steps. Those get read from `/etc/syn-os/install.state`, written by `pacstrapMain` in [Stage 0](./stage0.md) just before the chroot handoff. If that file is missing, Stage 1 exits immediately rather than guessing.
+Stage 1 sources `syn-config.zsh` again for `synos.conf` values like `Hostname` and `Locale`. But disk-specific values — `RootFsDev`, `LuksUuid`, `SwapDev`, `VgName` — aren't in `synos.conf` at all. They're resolved during Stage 0's partition/volume steps and read from `/etc/syn-os/install.state`, written by `pacstrapMain` in [Stage 0](./stage0.md) just before the chroot handoff. If that file is missing, Stage 1 exits immediately rather than guessing.
 
 ## What it does, in order
 
@@ -12,7 +12,7 @@ Stage 1 sources `syn-config.zsh` again (for `synos.conf` values like `Hostname`,
 
 2. **doas/sudo shim**: if `doas` is installed (it's in `baseCore`), writes `/etc/doas.conf` granting the `wheel` group persistent permit, then replaces `/usr/bin/sudo` with a one-line shim that execs `doas`, and removes the actual `sudo` package. This means `sudo` "works" on the installed system but is doas underneath.
 
-3. **User account**: creates `UserAccountName` with `UserShell`, adds it to `wheel`, and sets its password non-interactively via `chpasswd` using `UserAccountPassword` from `synos.conf`. Refuses to proceed if that field is still the shipped `CHANGE_ME` placeholder. This is what makes the whole install unattended-capable — there's no `passwd </dev/tty` prompt to sit and wait for. The plaintext password only exists transiently: `syn-pacstrap.zsh` never writes it into the copy of `synos.conf` it deploys to the target disk, and Stage 1 strips it out of `install.state` (see [Stage 0](./stage0.md)) immediately after `chpasswd` consumes it, so it doesn't linger anywhere on the installed system.
+3. **User account**: creates `UserAccountName` with `UserShell`, adds it to `wheel`, and sets its password non-interactively via `chpasswd` using `UserAccountPassword` from `synos.conf`. Refuses to proceed if that field is still the shipped `CHANGE_ME` placeholder. This is what makes the install unattended-capable — no `passwd </dev/tty` prompt to sit and wait for. The plaintext password only exists transiently: `syn-pacstrap.zsh` never writes it into the copy of `synos.conf` deployed to the target disk, and Stage 1 strips it out of `install.state` (see [Stage 0](./stage0.md)) right after `chpasswd` consumes it.
 
 4. **mkinitcpio hooks**: rewrites the `HOOKS=` line in `/etc/mkinitcpio.conf`. The base hook set is always `base udev autodetect modconf kms keyboard keymap consolefont block`, with `encrypt` inserted if `Encryption=yes`, `lvm2` inserted if `UseLvm=yes`, then `filesystems fsck` appended. Runs `mkinitcpio -P` to rebuild the initramfs with the new hook set.
 
@@ -24,7 +24,7 @@ Stage 1 sources `syn-config.zsh` again (for `synos.conf` values like `Hostname`,
    Then, based on `PartitionStrat`:
    - **`uefi-bootctl`**: runs `bootctl --path=/boot install`, writes `loader.conf` (`timeout 0`, no editor), and writes a `syn.conf` boot entry pointing at `/vmlinuz-linux` with the appropriate initrd lines (conditionally including `intel-ucode.img`/`amd-ucode.img` if present).
    - **`mbr-syslinux`**: runs `syslinux-install_update -i -a -m`, then patches the `APPEND` line in `syslinux.cfg` with the constructed command line. (Never reached with `Encryption=yes`: `syn-config.zsh` rejects that combination before Stage 0 even starts.)
-   - **`mbr-grub`**: runs `grub-install --target=i386-pc --recheck --boot-directory=/boot` targeting the whole disk (not a partition, since BIOS GRUB needs the MBR gap), then hand-writes `/boot/grub/grub.cfg` with a single `menuentry` using the same constructed command line. GRUB itself never decrypts anything here: `/boot` is a plain, unencrypted ext4 partition (see [Storage Strategies](./storage-strategies.md#mbr-grub)), so `grub-install` only needs the standard BIOS + `ext2` modules, no `cryptomount`/`luks2`. If `/boot/grub/splash.png` exists it's used as a background image; nothing ships one yet, so this degrades to a plain text menu.
+   - **`mbr-grub`**: runs `grub-install --target=i386-pc --recheck --boot-directory=/boot` targeting the whole disk (not a partition — BIOS GRUB needs the MBR gap), then hand-writes `/boot/grub/grub.cfg` with a single `menuentry` using the same constructed command line. GRUB itself never decrypts anything here: `/boot` is a plain, unencrypted ext4 partition (see [Storage Strategies](./storage-strategies.md#mbr-grub)), so `grub-install` only needs the standard BIOS + `ext2` modules, not `cryptomount`/`luks2`. If `/boot/grub/splash.png` exists it's used as a background image; nothing ships one yet, so this degrades to a plain text menu.
 
 6. **Services**: enables `dhcpcd` and `iwd` (both best-effort; failures are swallowed since not every install needs both).
 
@@ -32,4 +32,4 @@ Stage 1 sources `syn-config.zsh` again (for `synos.conf` values like `Hostname`,
 
 ## After Stage 1 finishes
 
-Stage 0 returns from the `arch-chroot` call and the installer script ends. Reboot manually, remove the USB, and log in as `UserAccountName`. From there, running `synos` launches the desktop; see [First Boot](../readme.md#first-boot) and [Waybar](./waybar.md) / [LabWC](./labwc.md).
+Stage 0 returns from the `arch-chroot` call and the installer script ends. Reboot manually, remove the USB, and log in as `UserAccountName`. From there, running `synos` launches the desktop; see [First Boot](../../../../../../../readme.md#first-boot) and [Waybar](./waybar.md) / [LabWC](./labwc.md).

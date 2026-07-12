@@ -1,10 +1,10 @@
 # Stage 0: Pre-Chroot Setup
 
-Stage 0 (`syn-stage0.zsh`) runs entirely in the live ISO environment, before anything is chrooted. Its job is to turn a blank disk into a mounted, package-installed root filesystem, then hand off to Stage 1. It runs each of the following in order; all of them are `set -euo pipefail`, so any failure aborts the install rather than limping onward with an inconsistent disk.
+Stage 0 (`syn-stage0.zsh`) runs entirely in the live ISO environment, before anything is chrooted. Its job is to turn a blank disk into a mounted, package-installed root filesystem, then hand off to Stage 1. Every step below runs under `set -euo pipefail`: any failure aborts the install instead of limping on with an inconsistent disk.
 
 ## Full install log
 
-The very first thing `syn-stage0.zsh` does is re-exec itself under `script -qefc`, writing a full transcript to `/root/synos-install-<timestamp>.log` (later copied onto the installed disk). This re-exec also happens to be why pacman's progress bars render at all: pacman's `ILoveCandy`/progress-bar output checks `isatty()` on stdout, which fails the moment stdout is piped through anything (a plain `tee -a "$InstallLog"`, as an earlier version of this script did, is enough to break it) even with `Color`/`ILoveCandy` set in `pacman.conf`. `script` gives the child process a real pty, so `isatty()` passes and the bars render, while still capturing the full transcript to the log file as a side effect.
+The first thing `syn-stage0.zsh` does is re-exec itself under `script -qefc`, writing a full transcript to `/root/synos-install-<timestamp>.log` (later copied onto the installed disk). This is also why pacman's progress bars render at all. Pacman checks `isatty()` on stdout to decide whether to draw them, and that check fails the moment stdout is piped through anything — even a plain `tee -a "$InstallLog"`, which an earlier version of this script used, and even with `Color`/`ILoveCandy` set in `pacman.conf`. `script` gives the child process a real pty, so `isatty()` passes and the bars render, while the full transcript still gets captured to the log file.
 
 ## 1. `partitionMain`: `syn-partition.zsh`
 
@@ -48,7 +48,8 @@ This is the largest step:
 3. Runs `pacstrap -K` with the full `SYNSTALL` array, then `genfstab -U` to write `/etc/fstab`.
 4. Copies `synos.conf` and every `*.zsh` script under `/usr/lib/syn-os/` into the target system, so Stage 1 (which runs from inside the target via chroot) has access to them. `UserAccountPassword` is stripped from this copy of `synos.conf` before it's written — the plaintext password should never live permanently on the installed disk, only pass through transiently on its way to Stage 1 (see [synos.conf](./synos-conf.md#fields) and [Stage 1](./stage1.md)).
 5. Deploys `DotfileOverlay/` onto the target filesystem: this is how `/etc/skel`, themes, and `/usr/local/bin` scripts get onto the installed system. See [Dotfile Overlay](./dotfile-overlay.md).
-6. Writes `/etc/syn-os/install.state` inside the target (`chmod 600`, since it briefly carries `UserAccountPassword` too), a flat key=value file capturing every resolved value (`RootFsDev`, `LuksUuid`, `SwapDev`, `Encryption`, `UseLvm`, `Hostname`, `UserAccountPassword`, etc.) that Stage 1 needs but can't re-derive on its own, since re-running the partition/volume logic a second time would be wrong (and destructive). Stage 1 deletes the `UserAccountPassword` line from this file immediately after consuming it.
+6. Copies `/usr/share/syn-os/docs` (this documentation, plus its diagrams) onto the target filesystem, so it's readable from the installed desktop later via the Docs menu, not just on GitHub. See [LabWC](./labwc.md).
+7. Writes `/etc/syn-os/install.state` inside the target (`chmod 600`, since it briefly carries `UserAccountPassword` too): a flat key=value file capturing every resolved value (`RootFsDev`, `LuksUuid`, `SwapDev`, `Encryption`, `UseLvm`, `Hostname`, `UserAccountPassword`, etc.) that Stage 1 needs but can't re-derive on its own — re-running the partition/volume logic a second time would be destructive. Stage 1 deletes the `UserAccountPassword` line from this file right after consuming it.
 
 ## Handoff
 

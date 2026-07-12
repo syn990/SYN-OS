@@ -1,6 +1,6 @@
 # LabWC: Window Manager
 
-[LabWC](https://github.com/labwc/labwc) is the compositor/window-manager SYN-OS runs on Wayland, the Openbox-alternative mentioned in the README. It's Openbox-style deliberately: LabWC reuses Openbox's theme format and a similar XML config structure, so if you've configured Openbox before, the files below will look familiar.
+[LabWC](https://github.com/labwc/labwc) is the compositor/window-manager SYN-OS runs on Wayland, the Openbox-alternative mentioned in the README. It reuses Openbox's theme format and a similar XML config structure on purpose, so if you've configured Openbox before, the files below will look familiar.
 
 Config lives at `DotfileOverlay/etc/skel/.config/labwc/`, deployed to `~/.config/labwc/` on the installed system.
 
@@ -23,19 +23,21 @@ Config lives at `DotfileOverlay/etc/skel/.config/labwc/`, deployed to `~/.config
 
 **`menu.xml`**: the root menu shown by `Super+Space`. Deliberately kept to SYN-OS's own tools and system actions rather than a generic app-launcher list — third-party apps belong in "All Applications" (a dynamic `xdg_menu` pipe), not hardcoded here. Structure:
   - **Applications**: Terminal, File browser, All Applications (dynamic).
-  - **SYN-OS Tools**: SYN-SHARE, SYN-NETCLIENT, SYN-NETSERVER (via `doas`), SYN-CRYPTER, SYN-REDSHIRT — the last two are wrapped as `foot -e zsh -c '... ; exec zsh'` rather than launched directly, since they take CLI args/flags and would otherwise flash-open-and-exit with a usage error.
-  - **System Control**: Lock Screen, Screenshot (select area), Volume Mixer, a **Kill Process** submenu (Close Focused Window, plus `pkill` entries for `foot`/`falkon`/`spf` — kept to a short known list on purpose, not a full process browser), Audio Settings and Display & Screens (both dynamic pipe menus), and Themes (live theme switch, see below).
-  - **Configuration**: Edit Configuration Files (Waybar config/style, LabWC menu/rc/autostart — each just opens the file in `featherpad`).
-  - **Interface**: Waybar & LabWC (reload/kill/relaunch either).
+  - **Capture**: Screenshot (full screen / select area, `Super+P`), Record (full screen / select area, `Super+Shift+P`, same entry toggles start/stop).
+  - **Four root-level pipe menus**: Audio Settings, Display & Screens, Themes (see below), and Docs — each queries something live (pactl, wlr-randr, the themes folder, `/usr/share/syn-os/docs`) rather than a fixed list.
+  - **SYN-OS Tools**: SYN-SHARE, SYN-NETCLIENT, SYN-NETSERVER (via `doas`), SYN-CRYPTER, SYN-REDSHIRT, SYN-GRAPHMAP — CRYPTER and REDSHIRT are wrapped as `foot -e zsh -c '... ; exec zsh'` rather than launched directly, since they take CLI args/flags and would otherwise flash-open-and-exit with a usage error.
+  - **System**: Lock Screen, Volume Mixer, a **Kill Process** submenu (Close Focused Window, plus `pkill` entries for `foot`/`falkon`/`spf` — kept to a short known list on purpose, not a full process browser), Edit Configuration Files (Waybar config/style, LabWC menu/rc/autostart, each opens in `featherpad`), and Waybar & LabWC (reload/kill/relaunch either).
   - **Power**: Reboot, Power Off.
 
-**`syn-theme-menu.zsh`**: dynamic pipe menu backing the "Themes" entry above — lists the theme files under `~/.config/syn-os/themes/`, marks the active one, and an "Edit Themes Folder" entry. Selecting a theme runs `syn-theme-apply`, which sources that `.theme` file's `SYN_*` shell variables and re-renders the Waybar/LabWC/qt5ct/foot/Superfile templates from them.
+**`syn-theme-menu.zsh`**: the pipe menu backing "Themes" above — lists the theme files under `~/.config/syn-os/themes/`, marks the active one, and an "Edit Themes Folder" entry. Selecting a theme runs `syn-theme-apply`, which sources that `.theme` file's `SYN_*` shell variables and re-renders the Waybar/LabWC/qt5ct/foot/Superfile templates from them.
+
+**`syn-docs-menu.zsh`**: the pipe menu backing "Docs" above — lists every `.md` file under `/usr/share/syn-os/docs` (including `concepts/`), same pattern as `syn-theme-menu.zsh`. Selecting one runs `syn-docs-view.zsh`, which renders the file with `glow` and inlines any diagrams it references with `chafa`, in a held-open `foot` window.
 
 ### How a theme reaches every consumer
 
-![How a SYN-OS theme reaches rofi/waybar/labwc/foot/superfile at click-time](../Graphviz/theming-live-reload.svg)
+![How a SYN-OS theme reaches rofi/waybar/labwc/foot/superfile at click-time](./svg/theming-live-reload.svg)
 
-Nothing watches these files and there's no daemon: `syn-theme-apply` writes `~/.config/syn-os/current-theme` (just the theme name) once, and every launcher script (`power-menu.sh`, `wmenu-run.sh`, `wifi-menu.sh`) re-reads that name and re-sources the matching `.theme` file fresh on every invocation. That's why switching themes needs no restart of any of those scripts — they're stateless by construction, and picking up a new theme is just "the next click happens after the switch."
+Nothing watches these files and there's no daemon. `syn-theme-apply` writes `~/.config/syn-os/current-theme` (just the theme name) once, and every launcher script (`power-menu.sh`, `wmenu-run.sh`, `wifi-menu.sh`) re-reads that name and re-sources the matching `.theme` file fresh on every invocation. Switching themes needs no restart of any of those scripts — they're stateless by construction, so picking up a new theme is just "the next click happens after the switch."
 
 **`themerc`**: the `SYN-OS-RED` Openbox-format theme definition (colors, borders, button styles) that `rc.xml` references by name; the actual theme files live under `usr/share/themes/SYN-OS-RED/openbox-3/` in the overlay (see [Dotfile Overlay](./dotfile-overlay.md)).
 

@@ -5,7 +5,7 @@
 # Two ways to use this:
 #   (no flags)             build TODAY's mainline SYN-OS
 #   --build=<name>         build one of the named builds in
-#                          docs/build-manifest.json instead
+#                          SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/build-manifest.json instead
 #                          (see --list-builds)
 #
 # There used to be a --mode=minimal|full build-time flag here, pre-fetching
@@ -27,7 +27,7 @@
 # repos since), that's a real, informative failure, not something this
 # script tries to paper over.
 #
-# Every named build in docs/build-manifest.json already has a real,
+# Every named build in SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/build-manifest.json already has a real,
 # self-contained, mkarchiso-buildable profile (profiledef.sh +
 # packages.x86_64 + airootfs) — even the earliest one. The truly manual
 # predecessor to that (boot vanilla archlinux.org ISO, pacman -S git,
@@ -53,7 +53,7 @@ BASE_DIR="/home/syntax990/GithubProjects/SYN-OS/SYN-OS"
 PROFILE_DEFAULT="$BASE_DIR/SYN-ISO-PROFILE"
 WORKDIR="$BASE_DIR/WORKDIR"
 OUTPUT="$BASE_DIR/ISO_OUTPUT"
-DOCS_DIR="$BASE_DIR/../docs"
+DOCS_DIR="$PROFILE_DEFAULT/airootfs/usr/share/syn-os/docs"
 MANIFEST="$DOCS_DIR/build-manifest.json"
 BUILD_ROOT="$BASE_DIR/.syncache"
 SOURCES_DIR="$BUILD_ROOT/sources"
