@@ -5,6 +5,15 @@
 
 set -euo pipefail
 
+# List of outputs the user has explicitly chosen to always keep off across
+# reboots (e.g. an unwanted built-in panel on an AiO) — plain one-name-
+# per-line, no pattern-matching on output naming conventions (eDP/LVDS/DSI/
+# etc. all vary by hardware, so this only ever acts on names the user
+# picked themselves via the menu below). autostart reads this same file
+# and applies the "only if something else is on, else fall back" safety
+# logic — see labwc/autostart.
+DISABLED_OUTPUTS_FILE="$HOME/.config/syn-os/disabled-outputs"
+
 print '<?xml version="1.0" encoding="UTF-8"?>'
 print '<openbox_pipe_menu>'
 
@@ -99,6 +108,25 @@ for name in "${outputs[@]}"; do
     print "  <item label=\"Turn OFF\">"
     print "    <action name=\"Execute\"><command>wlr-randr --output \"${name}\" --off</command></action>"
     print "    <action name=\"Reconfigure\"/>"
+    print "  </item>"
+  fi
+
+  # -------- PERSISTENCE (survives reboot, with a fallback safety net —
+  # see labwc/autostart: this output is only kept off if some OTHER
+  # output is actually on; if this were ever the only display, autostart
+  # turns it back on instead of leaving a black screen) --------
+  is_persisted="no"
+  if [[ -f "$DISABLED_OUTPUTS_FILE" ]] && grep -qxF "$name" "$DISABLED_OUTPUTS_FILE" 2>/dev/null; then
+    is_persisted="yes"
+  fi
+  print "  <separator label=\" PERSISTENCE \"/>"
+  if [[ "$is_persisted" == "yes" ]]; then
+    print "  <item label=\"Always OFF at boot (ON) — click to clear\">"
+    print "    <action name=\"Execute\"><command>sh -c 'grep -vxF \"${name}\" \"$DISABLED_OUTPUTS_FILE\" > \"$DISABLED_OUTPUTS_FILE.tmp\" 2>/dev/null; mv \"$DISABLED_OUTPUTS_FILE.tmp\" \"$DISABLED_OUTPUTS_FILE\"'</command></action>"
+    print "  </item>"
+  else
+    print "  <item label=\"Always OFF at boot (set)\">"
+    print "    <action name=\"Execute\"><command>sh -c 'mkdir -p \"\${HOME}/.config/syn-os\"; echo \"${name}\" >> \"$DISABLED_OUTPUTS_FILE\"'</command></action>"
     print "  </item>"
   fi
 
