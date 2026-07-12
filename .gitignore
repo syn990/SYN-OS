@@ -1,4 +1,5 @@
 *.iso
 *.qcow2
 WORKDIR/
+.syncache/
 .claude
