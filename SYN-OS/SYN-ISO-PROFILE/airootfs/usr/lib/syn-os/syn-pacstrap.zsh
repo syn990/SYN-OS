@@ -39,11 +39,19 @@ pacstrapMain() {
     *)            bootPkgs=() ;;
   esac
 
-  SYNSTALL+=("${bootPkgs[@]}")
-# Use syn-packages.zsh arrays to determine the final package list to install with pacstrap
-# Pacstrap those packages to the location defined in synos.conf
-  syn_ui::step "Installing packages to ${RootMountLocation}"
-  pacstrap -K "${RootMountLocation}" "${SYNSTALL[@]}"
+  # PackageProfile picks which array in syn-packages.zsh actually gets
+  # installed — full (SYNSTALL, everything) or minimal (SYNMINIMAL, base +
+  # networking + shell + desktop stack only). Same install pipeline either
+  # way; this is the only place the two profiles diverge.
+  local -a packageList
+  case "${PackageProfile}" in
+    minimal) packageList=("${SYNMINIMAL[@]}") ;;
+    *)       packageList=("${SYNSTALL[@]}") ;;
+  esac
+  packageList+=("${bootPkgs[@]}")
+
+  syn_ui::step "Installing packages to ${RootMountLocation} (profile: ${PackageProfile})"
+  pacstrap -K "${RootMountLocation}" "${packageList[@]}"
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
   syn_ui::step_done "Base packages installed"
 
