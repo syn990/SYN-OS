@@ -57,3 +57,6 @@ window#waybar.hidden { opacity: 0.2; }
 
 #battery.critical:not(.charging) { background-color: @syn_accent; animation: blink 0.5s steps(12) infinite alternate; }
 @keyframes blink { to { background-color: @syn_accent; color: @syn_text; } }
+
+#custom-recording { color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
+@keyframes blink-text { to { color: @syn_text; } }
