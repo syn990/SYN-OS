@@ -142,7 +142,7 @@ command -v rg  >/dev/null 2>&1 && alias grep='rg'
 alias synos="dbus-run-session -- env XDG_SESSION_TYPE=wayland labwc"
 alias syn-crypter='/usr/lib/syn-os/syn-crypter.zsh'
 alias syn-redshirt='/usr/lib/syn-os/syn-redshirt.zsh'
-alias syn-mapper='/usr/lib/syn-os/syn-mapper.zsh'
+alias syn-graphmap='/usr/lib/syn-os/syn-graphmap.zsh'
 
 # -----------------------------------------------------------------------------
 # Functions

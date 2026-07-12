@@ -118,6 +118,16 @@
           <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-redshirt.zsh; exec zsh'</command>
         </action>
       </item>
+
+      <!-- Runs against $HOME rather than flashing a directory-picker: a
+           sensible default with real content, same call as the other tools
+           above take no arguments either. Output PNGs land in
+           ~/Pictures/SYN-GRAPHMAP/, same convention as screenshots. -->
+      <item label="SYN-GRAPHMAP (graph a directory tree)">
+        <action name="Execute">
+          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "$HOME"; exec zsh'</command>
+        </action>
+      </item>
     </menu>
 
     <!-- System: everything that isn't reached for every day (lock/volume
