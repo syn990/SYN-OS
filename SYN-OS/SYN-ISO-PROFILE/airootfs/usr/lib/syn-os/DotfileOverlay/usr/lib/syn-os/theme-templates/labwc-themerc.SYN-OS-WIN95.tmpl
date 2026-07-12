@@ -1,0 +1,54 @@
+!! SYN_THEME_NAME
+!! Font: Tahoma
+!! Colors from the Wine-registry-extracted "Retro 5 (Classic 98) ObiWine"
+!! openbox themerc. Uses ONLY keys labwc actually implements per
+!! labwc-theme(5) — no window.active.label.bg, .client.color, .handle.bg,
+!! .grip.bg, .indicator.tiled.color, cornerRadius, or per-button-state .bg:
+!! none of those exist in labwc and are silently ignored if set.
+
+border.width:                   1
+window.titlebar.padding.width:  1
+window.titlebar.padding.height: 2
+
+window.active.shadow.size:      0
+window.inactive.shadow.size:    0
+
+window.label.text.justify:      Left
+
+menu.title.text.justify:        Center
+menu.border.width:              1
+menu.overlap.x:                 0
+menu.overlap.y:                 0
+
+window.active.border.color:     SYN_BORDER
+window.inactive.border.color:   SYN_BORDER
+
+window.active.title.bg:            Gradient Vertical
+window.active.title.bg.color:      SYN_ACCENT
+window.active.title.bg.colorTo:    SYN_ACCENT_DIM
+window.active.label.text.color:    #ffffff
+
+window.inactive.title.bg:          Gradient Vertical
+window.inactive.title.bg.color:    SYN_BORDER
+window.inactive.title.bg.colorTo:  SYN_PANEL
+window.inactive.label.text.color:  SYN_BG_ALT
+
+window.button.hover.bg.color:       SYN_PANEL_HOVER
+window.active.button.unpressed.image.color:   #ffffff
+window.inactive.button.unpressed.image.color: SYN_BG_ALT
+
+menu.items.bg.color:            SYN_BG_ALT
+menu.items.text.color:          #000000
+
+menu.items.active.bg.color:     SYN_ACCENT
+menu.items.active.text.color:   #ffffff
+
+menu.separator.color:           SYN_BORDER
+
+menu.title.bg.color:            SYN_ACCENT
+menu.title.text.color:          #ffffff
+
+osd.border.width:       1
+osd.border.color:       SYN_BORDER
+osd.bg.color:            SYN_PANEL
+osd.label.text.color:   #000000
