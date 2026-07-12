@@ -73,6 +73,10 @@
           label="Themes"
           execute="~/.config/labwc/syn-theme-menu.zsh" />
 
+    <menu id="docs-pipe"
+          label="Docs"
+          execute="~/.config/labwc/syn-docs-menu.zsh" />
+
     <!-- SYN-OS Tools: the custom scripts in /usr/lib/syn-os/ have no other
          GUI entry point — without this menu the only way to find them is
          already knowing the filename. Each opens in a terminal since
