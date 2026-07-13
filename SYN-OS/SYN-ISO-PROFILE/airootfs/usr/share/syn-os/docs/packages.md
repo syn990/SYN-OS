@@ -69,7 +69,6 @@ The zsh experience described in the [README](../../../../../../../readme.md) (au
 | `brightnessctl` | Read and control screen brightness |
 | [`pamixer`](https://github.com/cdemoulins/pamixer) | PulseAudio-compatible command-line mixer |
 | [`glow`](https://github.com/charmbracelet/glow) | Markdown renderer for the terminal, backs the Docs menu (see [LabWC](./labwc.md)) |
-| [`chafa`](https://hpjansson.org/chafa/) | Renders images/SVGs as terminal graphics, used by the Docs menu to show diagrams inline |
 
 ## `desktopStack`
 
