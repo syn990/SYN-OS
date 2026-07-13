@@ -31,7 +31,7 @@ Config lives at `DotfileOverlay/etc/skel/.config/labwc/`, deployed to `~/.config
 
 **`syn-theme-menu.zsh`**: the pipe menu backing "Themes" above — lists the theme files under `~/.config/syn-os/themes/`, marks the active one, and an "Edit Themes Folder" entry. Selecting a theme runs `syn-theme-apply`, which sources that `.theme` file's `SYN_*` shell variables and re-renders the Waybar/LabWC/qt5ct/foot/Superfile templates from them.
 
-**`syn-docs-menu.zsh`**: the pipe menu backing "Docs" above — lists every `.md` file under `/usr/share/syn-os/docs` (including `concepts/`), same pattern as `syn-theme-menu.zsh`. Selecting one runs `syn-docs-view.zsh`, which renders the file with `glow` and inlines any diagrams it references with `chafa`, in a held-open `foot` window.
+**`syn-docs-menu.zsh`**: the pipe menu backing "Docs" above — lists every `.md` file under `/usr/share/syn-os/docs` (including `concepts/`), same pattern as `syn-theme-menu.zsh`. Selecting one runs `syn-docs-view.zsh`, which renders the file with `glow` in a held-open `foot` window and opens any diagram it references as a separate `feh` window — chafa's inline terminal-graphics rendering was tried first but dropped: too small to read regardless of scaling flags, and a real image viewer just shows the SVG correctly instead of fighting terminal-graphics protocols.
 
 ### How a theme reaches every consumer
 
