@@ -61,6 +61,8 @@
     <!-- Audio / Display / Themes: each a real dynamic pipe-menu (queries
          pactl/wlr-randr/theme dir live), kept at root since they're
          reached often enough to want one click, not two. -->
+    <separator label=" SETTINGS " />
+
     <menu id="audio-pipe"
           label="Audio Settings"
           execute="~/.config/labwc/labwc-audio-menu.zsh" />
