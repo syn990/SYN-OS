@@ -23,15 +23,12 @@
           label="All Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
 
-    <!-- Capture: screenshot + screen-recorder.sh together, since both are
-         "do something with what's on screen right now" — kept separate
-         from Display & Screens below, which is about configuring outputs
-         (resolution/scale/rotation), a different concern even though both
-         mention "screen". screen-recorder.sh toggles: click Record once
-         to start (backgrounded, PID tracked in $XDG_RUNTIME_DIR), the
-         same entry again to stop. -->
-    <separator label=" CAPTURE " />
-
+    <!-- Capture + Display & Screens: both "do something with what's on
+         screen right now" from the user's own seat, same shelf as
+         Applications rather than buried in the loose middle section.
+         screen-recorder.sh toggles: click Record once to start
+         (backgrounded, PID tracked in $XDG_RUNTIME_DIR), the same entry
+         again to stop. -->
     <menu id="capture-menu" label="Capture">
       <item label="Screenshot - full screen">
         <action name="Execute">
@@ -58,53 +55,35 @@
       </item>
     </menu>
 
-    <!-- Audio / Display / Themes: each a real dynamic pipe-menu (queries
-         pactl/wlr-randr/theme dir live), kept at root since they're
-         reached often enough to want one click, not two. -->
-    <separator label=" SETTINGS " />
-
-    <menu id="audio-pipe"
-          label="Audio Settings"
-          execute="~/.config/labwc/labwc-audio-menu.zsh" />
-
     <menu id="displays-pipe"
           label="Display &amp; Screens"
           execute="~/.config/labwc/labwc-wlr-menu.zsh" />
 
-    <menu id="themes-pipe"
-          label="Themes"
-          execute="~/.config/labwc/syn-theme-menu.zsh" />
-
-    <item label="Toggle Bar Position">
-      <action name="Execute" command="~/.config/waybar/toggle-bar-position.sh" />
-    </item>
-
-    <menu id="docs-pipe"
-          label="Docs"
-          execute="~/.config/labwc/syn-docs-menu.zsh" />
-
     <!-- SYN-OS Tools: the custom scripts in /usr/lib/syn-os/ have no other
          GUI entry point — without this menu the only way to find them is
          already knowing the filename. Each opens in a terminal since
-         they're all interactive TUIs, not GUI apps. -->
+         they're all interactive TUIs, not GUI apps. Every entry ends its
+         script with `; exec zsh` so an early failure (missing dependency,
+         permission error) leaves the terminal open with the error visible
+         instead of the window just vanishing. -->
     <separator label=" SYN-OS TOOLS " />
 
     <menu id="synos-tools" label="SYN-OS Tools">
       <item label="SYN-SHARE (file transfer hub)">
         <action name="Execute">
-          <command>foot -e zsh /usr/lib/syn-os/syn-share.zsh</command>
+          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-share.zsh; exec zsh'</command>
         </action>
       </item>
 
       <item label="SYN-NETCLIENT (probe/pull from a SYN-OS host)">
         <action name="Execute">
-          <command>foot -e zsh /usr/lib/syn-os/syn-netclient.zsh</command>
+          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-netclient.zsh; exec zsh'</command>
         </action>
       </item>
 
       <item label="SYN-NETSERVER (manage file-transfer services)">
         <action name="Execute">
-          <command>foot -e doas zsh /usr/lib/syn-os/syn-netserver.zsh</command>
+          <command>foot -e zsh -c 'doas zsh /usr/lib/syn-os/syn-netserver.zsh; exec zsh'</command>
         </action>
       </item>
 
@@ -135,6 +114,27 @@
         </action>
       </item>
     </menu>
+
+    <!-- Audio / Themes / Docs: each a real dynamic pipe-menu (queries
+         pactl/theme dir live), kept near root since they're reached often
+         enough to want one click, not two. -->
+    <separator label=" SETTINGS " />
+
+    <menu id="audio-pipe"
+          label="Audio Settings"
+          execute="~/.config/labwc/labwc-audio-menu.zsh" />
+
+    <menu id="themes-pipe"
+          label="Themes"
+          execute="~/.config/labwc/syn-theme-menu.zsh" />
+
+    <item label="Toggle Bar Position">
+      <action name="Execute" command="~/.config/waybar/toggle-bar-position.sh" />
+    </item>
+
+    <menu id="docs-pipe"
+          label="Docs"
+          execute="~/.config/labwc/syn-docs-menu.zsh" />
 
     <!-- System: everything that isn't reached for every day (lock/volume
          are the exception since those genuinely are frequent, but folding
