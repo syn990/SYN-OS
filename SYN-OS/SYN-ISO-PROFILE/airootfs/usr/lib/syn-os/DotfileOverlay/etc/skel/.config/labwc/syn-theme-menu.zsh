@@ -28,15 +28,34 @@ if [[ ! -d "$THEMES_DIR" ]] || ! ls "$THEMES_DIR"/*.theme >/dev/null 2>&1; then
   exit 0
 fi
 
-for f in "$THEMES_DIR"/*.theme; do
-  theme_name="${f:t:r}"
-  label="$theme_name"
+theme_item() {
+  local theme_name="$1" label="$1"
   [[ "$theme_name" == "$current" ]] && label="${theme_name} (active)"
-  safe_label="$(xml_escape "$label")"
-  print "  <item label=\"$safe_label\">"
-  print "    <action name=\"Execute\"><command>syn-theme-apply ${theme_name}</command></action>"
-  print "  </item>"
+  local safe_label="$(xml_escape "$label")"
+  print "    <item label=\"$safe_label\">"
+  print "      <action name=\"Execute\"><command>syn-theme-apply ${theme_name}</command></action>"
+  print "    </item>"
+}
+
+typeset -a dark_themes light_themes
+for f in "$THEMES_DIR"/*.theme; do
+  ( SYN_THEME_CLASS=""; source "$f" 2>/dev/null
+    print -r -- "${SYN_THEME_CLASS:-dark}"
+  ) | IFS= read -r class
+  if [[ "$class" == "light" ]]; then
+    light_themes+=("${f:t:r}")
+  else
+    dark_themes+=("${f:t:r}")
+  fi
 done
+
+print '  <menu id="theme-dark" label="Dark">'
+for theme_name in "${dark_themes[@]}"; do theme_item "$theme_name"; done
+print '  </menu>'
+
+print '  <menu id="theme-light" label="Light">'
+for theme_name in "${light_themes[@]}"; do theme_item "$theme_name"; done
+print '  </menu>'
 
 print '  <separator/>'
 print '  <item label="Edit Themes Folder (new theme = copy a .theme file)">'

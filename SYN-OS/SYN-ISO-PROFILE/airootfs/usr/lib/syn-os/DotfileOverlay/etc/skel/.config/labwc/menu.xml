@@ -39,13 +39,13 @@
         </action>
       </item>
 
-      <item label="Screenshot - select area (Super+P)">
+      <item label="Screenshot - select area">
         <action name="Execute">
           <command>~/.config/labwc/screenshot.sh region</command>
         </action>
       </item>
 
-      <item label="Record - full screen (Super+Shift+P)">
+      <item label="Record - full screen">
         <action name="Execute">
           <command>~/.config/labwc/screen-recorder.sh full</command>
         </action>
@@ -72,6 +72,10 @@
     <menu id="themes-pipe"
           label="Themes"
           execute="~/.config/labwc/syn-theme-menu.zsh" />
+
+    <item label="Toggle Bar Position">
+      <action name="Execute" command="~/.config/waybar/toggle-bar-position.sh" />
+    </item>
 
     <menu id="docs-pipe"
           label="Docs"
@@ -138,7 +142,7 @@
     <separator label=" SYSTEM " />
 
     <menu id="system-menu" label="System">
-      <item label="Lock Screen (Super+L)">
+      <item label="Lock Screen">
         <action name="Execute">
           <command>swaylock -f -c 1a0000</command>
         </action>
@@ -154,7 +158,7 @@
            submenu) — this is for the other common programs, kept to a short,
            known list on purpose rather than a full process browser. -->
       <menu id="kill-process" label="Kill Process">
-        <item label="Close Focused Window (Super+Q)">
+        <item label="Close Focused Window">
           <action name="Close" />
         </item>
 
