@@ -37,24 +37,28 @@ theme_item() {
   print "    </item>"
 }
 
-typeset -a dark_themes light_themes
+typeset -a vanilla_themes homage_themes neutral_themes
 for f in "$THEMES_DIR"/*.theme; do
-  ( SYN_THEME_CLASS=""; source "$f" 2>/dev/null
-    print -r -- "${SYN_THEME_CLASS:-dark}"
-  ) | IFS= read -r class
-  if [[ "$class" == "light" ]]; then
-    light_themes+=("${f:t:r}")
-  else
-    dark_themes+=("${f:t:r}")
-  fi
+  ( SYN_THEME_GROUP=""; source "$f" 2>/dev/null
+    print -r -- "${SYN_THEME_GROUP:-vanilla}"
+  ) | IFS= read -r group
+  case "$group" in
+    homage)  homage_themes+=("${f:t:r}") ;;
+    neutral) neutral_themes+=("${f:t:r}") ;;
+    *)       vanilla_themes+=("${f:t:r}") ;;
+  esac
 done
 
-print '  <menu id="theme-dark" label="Dark">'
-for theme_name in "${dark_themes[@]}"; do theme_item "$theme_name"; done
+print '  <menu id="theme-vanilla" label="Vanilla">'
+for theme_name in "${vanilla_themes[@]}"; do theme_item "$theme_name"; done
 print '  </menu>'
 
-print '  <menu id="theme-light" label="Light">'
-for theme_name in "${light_themes[@]}"; do theme_item "$theme_name"; done
+print '  <menu id="theme-homage" label="Homage">'
+for theme_name in "${homage_themes[@]}"; do theme_item "$theme_name"; done
+print '  </menu>'
+
+print '  <menu id="theme-neutral" label="Neutral">'
+for theme_name in "${neutral_themes[@]}"; do theme_item "$theme_name"; done
 print '  </menu>'
 
 print '  <separator/>'
