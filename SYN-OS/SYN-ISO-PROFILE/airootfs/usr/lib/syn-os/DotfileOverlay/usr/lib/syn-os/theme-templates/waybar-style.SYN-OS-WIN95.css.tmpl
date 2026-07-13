@@ -46,8 +46,8 @@ window#waybar.hidden { opacity: 0.2; }
 /* Threshold states: driven by "states": {"warning": N, "critical": N} in
    config.jsonc, which waybar turns into .warning/.critical classes. */
 #cpu.warning, #memory.warning, #custom-disk.warning {
-  background-color: @syn_accent_dim;
-  color: @syn_bg;
+  background-color: @syn_accent;
+  color: @syn_panel_hover;
 }
 #cpu.critical, #memory.critical, #custom-disk.critical, #temperature.critical {
   background-color: @syn_urgent;

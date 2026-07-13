@@ -8,8 +8,7 @@
   ],
 
   "modules-center": [
-    "wlr/window",
-    "custom/media"
+    "wlr/window"
   ],
 
   "modules-right": [
@@ -29,23 +28,11 @@
   ],
 
   "custom/glyph": {
-    "return-type": "json",
     "format": "{}",
-    "exec": "$HOME/.config/waybar/glyph-rotator.sh",
-    "interval": 20,
+    "exec": "cat $HOME/.config/waybar/glyph 2>/dev/null || echo ●",
+    "signal": 2,
     "tooltip": false,
     "on-click": "$HOME/.config/waybar/wmenu-run.sh"
-  },
-
-  "custom/media": {
-    "format": " {}",
-    "exec": "playerctl metadata --format '{{title}}' 2>/dev/null || echo ''",
-    "interval": 2,
-    "max-length": 25,
-    "on-click": "playerctl play-pause",
-    "on-scroll-up": "playerctl next",
-    "on-scroll-down": "playerctl previous",
-    "tooltip": false
   },
 
   "custom/recording": {

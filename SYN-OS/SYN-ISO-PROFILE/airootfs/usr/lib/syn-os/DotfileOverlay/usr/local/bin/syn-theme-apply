@@ -93,6 +93,10 @@ if [[ -n "${SYN_WALLPAPER:-}" && -f "$SYN_WALLPAPER" ]]; then
   disown
 fi
 
+# -------- waybar glyph (fixed per-theme icon, live reload) --------
+print -r -- "${SYN_GLYPH:-●}" > "$HOME/.config/waybar/glyph"
+pkill -SIGUSR2 waybar 2>/dev/null || true
+
 # -------- qt5ct (ARGB hex with ff/80 alpha prefix, next Qt launch only) --------
 typeset -a qt_keys
 qt_keys=(SYN_ACCENT_DIM_FF SYN_PANEL_HOVER_FF SYN_ACCENT_80 SYN_BG_ALT_FF SYN_URGENT_FF SYN_ACCENT_FF SYN_BORDER_FF SYN_PANEL_FF SYN_TEXT_FF SYN_BG_FF)
