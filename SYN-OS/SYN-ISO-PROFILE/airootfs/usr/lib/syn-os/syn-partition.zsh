@@ -22,6 +22,32 @@ waitForBlock() {
   return 1
 }
 
+closeHolder() {
+  local dev="$1" name="${1:t}" holder vg
+
+  for holder in /sys/class/block/${name}/holders/*(N); do
+    closeHolder "/dev/${holder:t}"
+  done
+
+  vg="$(lvs --noheadings -o vg_name "$dev" 2>/dev/null | tr -d ' ')"
+  if [ -n "$vg" ]; then
+    vgchange -an "$vg" 2>/dev/null || true
+  else
+    cryptsetup close "$name" 2>/dev/null || true
+  fi
+}
+
+clearDiskHolders() {
+  local disk="$1" part
+
+  swapoff -a 2>/dev/null || true
+
+  for part in "${disk}"p*(N) "${disk}"[0-9]*(N); do
+    [ -b "$part" ] || continue
+    closeHolder "$part"
+  done
+}
+
 # =========================================================
 # UEFI + systemd-boot (GPT)
 # =========================================================
@@ -98,6 +124,8 @@ partitionStrat_mbr_grub() {
 # Main dispatcher
 # =========================================================
 partitionMain() {
+  clearDiskHolders "${Disk}"
+
   syn_ui::info "Zeroing first 4 MiB on ${Disk}…"
   dd if=/dev/zero of="${Disk}" bs=1M count=4 status=none || true
   sync
