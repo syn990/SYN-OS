@@ -33,7 +33,7 @@
     "exec": "cat $HOME/.config/waybar/glyph 2>/dev/null || echo ●",
     "signal": 2,
     "tooltip": false,
-    "on-click": "$HOME/.config/waybar/wmenu-run.sh"
+    "on-click": "$HOME/.config/waybar/wmenu-run.zsh"
   },
 
   "custom/recording": {
@@ -41,7 +41,7 @@
     "exec": "PIDFILE=\"$XDG_RUNTIME_DIR/syn-screen-recorder.pid\"; [ -f \"$PIDFILE\" ] && kill -0 \"$(cat \"$PIDFILE\")\" 2>/dev/null && echo 'Recording' || echo ''",
     "interval": 2,
     "tooltip-format": "Recording \u2014 click to stop",
-    "on-click": "~/.config/labwc/screen-recorder.sh full"
+    "on-click": "~/.config/labwc/screen-recorder.zsh full"
   },
 
   "custom/capture-status": {
@@ -55,8 +55,8 @@
     "return-type": "json",
     "format": "{}",
     "interval": 5,
-    "exec": "$HOME/.config/waybar/synshare-status.sh",
-    "on-click": "$HOME/.config/waybar/synshare-quickmenu.sh"
+    "exec": "$HOME/.config/waybar/synshare-status.zsh",
+    "on-click": "$HOME/.config/waybar/synshare-quickmenu.zsh"
   },
 
   "custom/vpn": {
@@ -69,13 +69,13 @@
     "interval": 60,
     "return-type": "json",
     "format": " {}",
-    "exec": "$HOME/.config/waybar/disk-status.sh",
+    "exec": "$HOME/.config/waybar/disk-status.zsh",
     "on-click": "foot -e spf /"
   },
 
   "custom/power": {
     "format": "⏻",
-    "on-click": "$HOME/.config/waybar/power-menu.sh"
+    "on-click": "$HOME/.config/waybar/power-menu.zsh"
   },
 
   "pulseaudio": {
@@ -97,7 +97,7 @@
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
     "interval": 2,
-    "on-click": "$HOME/.config/waybar/wifi-menu.sh"
+    "on-click": "$HOME/.config/waybar/wifi-menu.zsh"
   },
 
   "cpu": {

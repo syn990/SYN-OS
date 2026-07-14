@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # SYN-OS power menu: rofi dmenu picker, no wlogout dependency (that's an
 # AUR-only package, and pacstrap can't reach the AUR — see docs/waybar.md).
-set -euo pipefail
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
 THEMES_DIR="$HOME/.config/syn-os/themes"

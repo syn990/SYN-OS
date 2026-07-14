@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # Quick-access wmenu popup for the waybar SYN-SHARE indicator's on-click.
 # Deliberately a second, smaller action list, not shared with or generated
 # from syn-share-menu.zsh (the full labwc submenu) — accepted duplication
 # for one-click bar access. See syn-share-menu.zsh for the complete set.
-set -euo pipefail
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 SHARE="/usr/lib/syn-os/syn-share.zsh"
 
