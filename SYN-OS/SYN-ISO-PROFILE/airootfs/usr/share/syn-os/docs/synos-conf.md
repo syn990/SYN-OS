@@ -11,6 +11,7 @@ It's loaded and validated by `syn-config.zsh` (`SYN-ISO-PROFILE/airootfs/usr/lib
 |---|---|
 | `Hostname` | System hostname |
 | `UserAccountName` | The user account Stage 1 creates and adds to `wheel` |
+| `UserAccountPassword` | Plaintext password for that account, consumed once by `chpasswd` in Stage 1. Ships as `CHANGE_ME`; Stage 1 refuses to proceed if it's still set to that placeholder. Never written to the installed disk: `syn-pacstrap.zsh` strips it from the copy of `synos.conf` it writes to the target, and `syn-stage1.zsh` strips it from `install.state` right after consuming it. This is what makes the install fully unattended — before this field existed, Stage 1 stopped and prompted interactively with `passwd`. |
 | `UserShell` | Login shell for that account (default `/bin/zsh`) |
 
 **Locale / input / time**
@@ -51,9 +52,9 @@ It's loaded and validated by `syn-config.zsh` (`SYN-ISO-PROFILE/airootfs/usr/lib
 | BIOS/legacy | `no` | `mbr-syslinux` |
 | BIOS/legacy | `yes` | `mbr-grub` |
 
-This matters because `PartitionStrat` used to be a static value with **no connection at all** to actual firmware. The shipped config could say `uefi-bootctl` while running on real legacy BIOS hardware, and nothing caught it: `parted` doesn't care what firmware it's run on and will happily write a GPT+ESP layout regardless, and `bootctl install`'s automatic `--graceful` behavior when run inside a chroot (which Stage 1 always does) means the mismatch might not even surface as an error, just an unbootable disk discovered at the next reboot. `PartitionStrat=auto` removes that trap for the common case.
+This matters because `PartitionStrat` used to be a static value with no connection to actual firmware. The shipped config could say `uefi-bootctl` while running on real legacy BIOS hardware, and nothing caught it: `parted` doesn't care what firmware it's run on and will happily write a GPT+ESP layout regardless, and `bootctl install`'s automatic `--graceful` behavior inside a chroot (which Stage 1 always is) means the mismatch might not surface as an error at all — just an unbootable disk discovered at the next reboot. `PartitionStrat=auto` removes that trap for the common case.
 
-If you set `PartitionStrat` explicitly (`uefi-bootctl`, `mbr-syslinux`, or `mbr-grub`), `syn-config.zsh` now cross-checks it against detected firmware and **refuses to proceed on a mismatch**: e.g. `uefi-bootctl` set on a machine that actually booted BIOS/legacy is a hard config-load error, not a silent build-then-fail. Set an explicit value only when you have a specific reason to override detection (e.g. testing, or firmware detection being wrong for unusual hardware).
+If you set `PartitionStrat` explicitly (`uefi-bootctl`, `mbr-syslinux`, or `mbr-grub`), `syn-config.zsh` cross-checks it against detected firmware and refuses to proceed on a mismatch: `uefi-bootctl` set on a machine that actually booted BIOS/legacy is a hard config-load error, not a silent build-then-fail. Set an explicit value only when you have a specific reason to override detection — testing, or firmware detection being wrong for unusual hardware.
 
 **Filesystems**: `BootFs` and `RootFs` are descriptive/matching fields (`BootFs` should be `fat32` for `uefi-bootctl`'s ESP, `ext4` for `mbr-grub`'s boot partition; `RootFs` should match `FilesystemStrat`); the actual `mkfs` calls in `syn-disk.zsh`'s `filesystemMain` branch on `FilesystemStrat`, not these two directly. `volumeMain`, also in `syn-disk.zsh`, is what actually formats the boot partition, branching on `PartitionStrat` rather than reading `BootFs`.
 

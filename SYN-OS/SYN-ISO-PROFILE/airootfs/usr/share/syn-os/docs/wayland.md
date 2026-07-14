@@ -16,4 +16,4 @@ SYN-OS previously ran **Openbox + Tint2** on X11. It has since moved fully to Wa
 
 ## Why this matters if you're modifying SYN-OS
 
-Any documentation, forum post, or personal notes that reference Openbox's `rc.xml`/`menu.xml` semantics, Tint2 config, or `.xinitrc` describe a desktop stack this repo no longer ships. LabWC's `rc.xml` looks similar to Openbox's (same tag names for keybinds/mousebinds) but is a distinct project with its own protocol support and limitations. Check [LabWC's own documentation](https://github.com/labwc/labwc/wiki) rather than assuming 1:1 Openbox compatibility for anything not already present in this repo's `rc.xml`.
+Any documentation, forum post, or personal notes referencing Openbox's `rc.xml`/`menu.xml` semantics, Tint2 config, or `.xinitrc` describe a desktop stack this repo no longer ships. LabWC's `rc.xml` looks similar to Openbox's — same tag names for keybinds/mousebinds — but it's a distinct project with its own protocol support and limitations. Check [LabWC's own documentation](https://github.com/labwc/labwc/wiki) rather than assuming 1:1 Openbox compatibility for anything not already present in this repo's `rc.xml`.

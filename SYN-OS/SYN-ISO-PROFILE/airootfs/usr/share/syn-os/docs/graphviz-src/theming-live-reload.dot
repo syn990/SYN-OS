@@ -1,0 +1,38 @@
+digraph theming_live_reload {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="How a SYN-OS theme reaches rofi/waybar/labwc/foot/superfile at click-time";
+  labelloc="t"; fontsize=14; fontcolor="#e8b4b4";
+
+  themefile [label="~/.config/syn-os/themes/SYN-OS-BLUE.theme\n(flat KEY=\"#hex\" shell vars:\nSYN_BG, SYN_ACCENT, SYN_TEXT, ...)", shape=note, fillcolor="#260101"];
+
+  subgraph cluster_switch {
+    label="Theme switch (Themes menu -> syn-theme-apply)"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    apply [label="syn-theme-apply SYN-OS-BLUE\nsources the .theme file"];
+    render [label="renders waybar/labwc/qt5ct/foot/\nsuperfile templates with the\nnow-in-scope SYN_* variables"];
+    write [label="writes ~/.config/syn-os/current-theme\n= \"SYN-OS-BLUE\" (just the name)", fillcolor="#4a1414", color="#d84a3f"];
+    apply -> render -> write;
+  }
+
+  themefile -> apply;
+
+  subgraph cluster_launch {
+    label="Every launcher script (power-menu.sh, wmenu-run.sh, wifi-menu.sh)"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    click [label="user clicks the power icon\n(fresh process, every time)", shape=oval, fillcolor="#400101"];
+    readcurrent [label="read current-theme ->\n\"SYN-OS-BLUE\""];
+    resource [label="source the matching\n.theme file again"];
+    build [label="interpolate SYN_* vars into\na rofi -theme-str argument"];
+    launch [label="exec rofi -dmenu ...\n(rofi never heard of\n\"SYN-OS themes\" at all)", shape=doublecircle, penwidth=2, fillcolor="#4a1414", color="#d84a3f"];
+    click -> readcurrent -> resource -> build -> launch;
+  }
+
+  write -> readcurrent [style=dashed, label="read fresh\non next click\n(no polling,\nno daemon)"];
+  themefile -> resource [style=dashed];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Nothing watches these files. Every click re-derives colors\nfrom disk, so switching themes needs no restart of any\nlauncher script -- they're stateless by construction."];
+}

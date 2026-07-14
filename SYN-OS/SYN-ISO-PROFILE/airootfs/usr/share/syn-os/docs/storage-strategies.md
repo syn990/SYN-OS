@@ -23,7 +23,7 @@ MSDOS label, two partitions, same shape as `uefi-bootctl`, just for legacy BIOS:
 1. Boot (ext4, sized `BootSize`), mounted separately at `BootMountLocation`.
 2. Root: everything else, encrypted or not.
 
-This is the BIOS/MBR strategy to use when you want `Encryption=yes` on legacy hardware/VMs. GRUB itself never touches the encrypted root directly: `/boot` holds the plain (unencrypted) kernel and initramfs, GRUB just boots those with `cryptdevice=UUID=...` on the kernel command line, and the initramfs's `encrypt` hook does the actual unlock at boot time. This is the same division of labour `uefi-bootctl` already uses; GRUB's own LUKS support (`cryptomount`) is deliberately not used here, since it's historically been fragile for LUKS2 with modern KDFs like `argon2id` on legacy BIOS.
+This is the BIOS/MBR strategy for `Encryption=yes` on legacy hardware/VMs. GRUB itself never touches the encrypted root: `/boot` holds the plain, unencrypted kernel and initramfs, GRUB boots those with `cryptdevice=UUID=...` on the kernel command line, and the initramfs's `encrypt` hook does the actual unlock at boot time. Same division of labour `uefi-bootctl` already uses. GRUB's own LUKS support (`cryptomount`) is deliberately unused here — it's historically fragile for LUKS2 with modern KDFs like `argon2id` on legacy BIOS.
 
 All three strategies zero the first 4 MiB of the disk before partitioning, to clear stale partition table signatures that can otherwise confuse `parted`/the kernel on reused disks.
 
@@ -62,7 +62,7 @@ A thin dispatcher over four `mkfs` variants, all labeled `ROOT`:
 | `btrfs` | `mkfs.btrfs -f -L ROOT` |
 | `xfs` | `mkfs.xfs -f -L ROOT` |
 
-The shipped default is `f2fs`, a flash-friendly log-structured filesystem. It's a reasonable default for SSD/NVMe-only installs but worth changing to `ext4` or `btrfs` if you're targeting spinning disks or want snapshot support (SYN-OS doesn't currently script any btrfs-specific features like subvolumes or snapshots, so choosing `btrfs` here just gets you the plain filesystem).
+The shipped default is `f2fs`, a flash-friendly log-structured filesystem — a reasonable default for SSD/NVMe-only installs, but worth changing to `ext4` or `btrfs` for spinning disks or snapshot support. SYN-OS doesn't script any btrfs-specific features like subvolumes or snapshots, so choosing `btrfs` here just gets you the plain filesystem.
 
 ## How this reaches Stage 1
 
