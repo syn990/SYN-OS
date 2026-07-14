@@ -3,9 +3,13 @@
 # layout, styled in the live SYN-OS theme. Rewrite of the original
 # GRAPH.sh (kept for reference at docs/graphviz-src/GRAPH.sh.orig).
 #
-# Usage: syn-graphmap.zsh [directory] [max-depth]
+# Usage: syn-graphmap.zsh [directory] [max-depth] [format]
 #   directory   prompts via wmenu if omitted
 #   max-depth   defaults to 6 (see SYN-GRAPH's Quick/Full/Custom menu entries)
+#   format      png or svg — prompts via wmenu if omitted. PNG is a fixed-DPI
+#               raster, so a wide/deep graph renders with proportionally
+#               tiny, blurry-at-zoom labels; SVG is vector and stays sharp
+#               at any zoom, better for anything past a shallow scan.
 
 set -euo pipefail
 
@@ -32,6 +36,17 @@ fi
 [[ -n "$target" ]] || { print -u2 "No directory given."; exit 1; }
 [[ -d "$target" ]] || { print -u2 "Not a directory: $target"; exit 1; }
 target="${target:A}"
+
+format="${3:-}"
+if [[ -z "$format" ]]; then
+  format="$(print -l -- png svg \
+    | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_ACCENT" -s "$SYN_BG" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Output format:")"
+fi
+case "$format" in
+  png|svg) ;;
+  *) print -u2 "Unknown format '${format}', defaulting to png."; format="png" ;;
+esac
+
 print "Scanning ${target}…"
 
 outDir="$HOME/Pictures/SYN-GRAPHMAP"
@@ -75,7 +90,7 @@ generate_structure() {
 } > "$dotFile"
 
 print "Graphviz dot file generated: $dotFile"
-print "Generating dot output..."
-dot -Tpng "$dotFile" -o "$outDir/$(basename "$target")-dot.png"
+print "Generating ${format} output..."
+dot -T"${format}" "$dotFile" -o "$outDir/$(basename "$target")-dot.${format}"
 
 print "Done. Output in $outDir"
