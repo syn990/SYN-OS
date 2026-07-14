@@ -65,23 +65,9 @@
     <separator label=" SYN-OS TOOLS " />
 
     <menu id="synos-tools" label="SYN-OS Tools">
-      <item label="SYN-SHARE (file transfer hub)">
-        <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-share.zsh; exec zsh'</command>
-        </action>
-      </item>
-
-      <item label="SYN-NETCLIENT (probe/pull from a SYN-OS host)">
-        <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-netclient.zsh; exec zsh'</command>
-        </action>
-      </item>
-
-      <item label="SYN-NETSERVER (manage file-transfer services)">
-        <action name="Execute">
-          <command>foot -e zsh -c 'doas zsh /usr/lib/syn-os/syn-netserver.zsh; exec zsh'</command>
-        </action>
-      </item>
+      <menu id="syn-share-menu"
+            label="SYN-SHARE (file transfer hub)"
+            execute="zsh ~/.config/labwc/syn-share-menu.zsh" />
 
       <!-- syn-crypter.zsh and syn-redshirt.zsh take flags and a file path
            on the command line (no interactive prompts of their own) — there's

@@ -14,6 +14,7 @@
   "modules-right": [
     "custom/recording",
     "custom/capture-status",
+    "custom/synshare",
     "custom/vpn",
     "network",
     "backlight",
@@ -48,6 +49,14 @@
     "exec": "MARKER=\"$XDG_RUNTIME_DIR/syn-capture-status\"; if [ -f \"$MARKER\" ] && [ $(( $(date +%s) - $(stat -c %Y \"$MARKER\" 2>/dev/null || echo 0) )) -lt 3 ]; then cat \"$MARKER\"; else echo ''; fi",
     "interval": 1,
     "tooltip": false
+  },
+
+  "custom/synshare": {
+    "return-type": "json",
+    "format": "{}",
+    "interval": 5,
+    "exec": "$HOME/.config/waybar/synshare-status.sh",
+    "on-click": "$HOME/.config/waybar/synshare-quickmenu.sh"
   },
 
   "custom/vpn": {
