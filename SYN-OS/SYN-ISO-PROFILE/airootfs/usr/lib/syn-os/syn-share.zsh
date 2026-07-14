@@ -1,11 +1,17 @@
 #!/usr/bin/env zsh
-# SYN-SHARE: file-transfer hub for SYN-OS (rsync/Samba/NFS/HTTP/TFTP/Netcat,
-# server + client). Thin dispatcher over syn-share-lib.zsh's action
-# functions — reached via labwc's SYN-SHARE pipe-menu
-# (.config/labwc/syn-share-menu.zsh), not meant to be run interactively.
+# ------------------------------------------------------------------------------
+#                           S Y N - S H A R E
 #
-#   Author  : William Hayward-Holland (Syntax990)
-#   License : MIT
+#   File-transfer hub for SYN-OS (rsync/Samba/NFS/HTTP/TFTP/Netcat, server +
+#   client). Thin dispatcher over syn-share-lib.zsh's action functions —
+#   reached via labwc's SYN-SHARE pipe-menu (.config/labwc/syn-share-menu.zsh),
+#   not meant to be run interactively.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-SHARE (File Transfer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true

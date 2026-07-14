@@ -1,18 +1,23 @@
 #!/usr/bin/env zsh
-# SYN-GRAPHMAP: recursively graphs a directory tree with Graphviz's dot
-# layout, styled in the live SYN-OS theme. Rewrite of the original
-# GRAPH.sh (kept for reference at docs/graphviz-src/GRAPH.sh.orig).
+# ------------------------------------------------------------------------------
+#                         S Y N - G R A P H M A P
 #
-# Usage: syn-graphmap.zsh [directory] [max-depth] [format]
-#   directory   prompts via wmenu if omitted
-#   max-depth   defaults to 6 (see SYN-GRAPH's Quick/Full/Custom menu entries)
-#   format      png or svg — prompts via wmenu if omitted. PNG is a fixed-size
-#               raster: sharp at 100% zoom (rendered at 300 DPI below), but
-#               any viewer that fits it to a window shrinks and blurs it
-#               regardless of source resolution — that's viewer behavior, not
-#               fixable from here. SVG re-renders at whatever size it's shown
-#               at, so it stays sharp at fit-to-window too.
-
+#   Recursively graphs a directory tree with Graphviz's dot layout, styled
+#   in the live SYN-OS theme. Rewrite of the original GRAPH.sh (kept for
+#   reference at docs/graphviz-src/GRAPH.sh.orig).
+#
+#   Usage: syn-graphmap.zsh [directory] [max-depth] [format]
+#     directory   prompts via wmenu if omitted
+#     max-depth   defaults to 6 (see SYN-GRAPH's Quick/Full/Custom menu)
+#     format      png or svg, prompts via wmenu if omitted. PNG is raster
+#                 (sharp at 100%, blurs if a viewer scales it); SVG is
+#                 vector and stays sharp at any zoom.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-GRAPHMAP (Tools)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 EXCLUDE_NAMES=(.git .cache node_modules WORKDIR .syncache)
@@ -93,10 +98,8 @@ generate_structure() {
 
 print "Graphviz dot file generated: $dotFile"
 print "Generating ${format} output..."
-# PNG is raster at Graphviz's default 72 DPI — fine for the layout, much
-# too coarse for actually reading labels once zoomed in. -Gdpi only
-# changes rendering resolution, not layout, so it's PNG-only; SVG is
-# vector and already sharp at any zoom without it.
+# -Gdpi only affects rendering resolution, not layout, so it's PNG-only —
+# Graphviz's default 72 DPI is too coarse to read labels once zoomed in.
 typeset -a dpiFlag
 [[ "$format" == "png" ]] && dpiFlag=(-Gdpi=300)
 dot "${dpiFlag[@]}" -T"${format}" "$dotFile" -o "$outDir/$(basename "$target")-dot.${format}"

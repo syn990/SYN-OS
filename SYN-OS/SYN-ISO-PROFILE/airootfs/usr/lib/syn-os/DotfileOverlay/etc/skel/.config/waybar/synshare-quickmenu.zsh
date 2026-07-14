@@ -1,8 +1,16 @@
 #!/usr/bin/env zsh
-# Quick-access wmenu popup for the waybar SYN-SHARE indicator's on-click.
-# Deliberately a second, smaller action list, not shared with or generated
-# from syn-share-menu.zsh (the full labwc submenu) — accepted duplication
-# for one-click bar access. See syn-share-menu.zsh for the complete set.
+# ------------------------------------------------------------------------------
+#                     S Y N S H A R E - Q U I C K M E N U
+#
+#   Quick-access wmenu popup for waybar's SYN-SHARE indicator on-click — a
+#   deliberately smaller, separate action list from syn-share-menu.zsh's
+#   full labwc submenu, for one-click bar access.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYNSHARE-QUICKMENU (Waybar)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 

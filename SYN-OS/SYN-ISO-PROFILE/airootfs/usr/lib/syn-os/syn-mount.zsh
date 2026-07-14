@@ -1,12 +1,16 @@
-#!/bin/zsh
-# SYN‑OS Mount Orchestration
-# /usr/lib/syn-os/syn-mount.zsh
-
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                           S Y N - M O U N T
+#
+#   Mounts root, boot (if a separate partition), and swap during
+#   installation, in that order.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-MOUNT (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
-
-# =========================================================
-# Mount orchestration
-# =========================================================
 mountMain() {
   [ -b "${RootFsDev}" ] || { syn_ui::error "RootFsDev not a block device"; exit 1; }
 

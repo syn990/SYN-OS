@@ -1,7 +1,15 @@
 #!/usr/bin/env zsh
-# SYN-OS Advanced Dynamic Audio Menu
-# Labwc / Openbox pipe menu using pactl
-# Shell: zsh
+# ------------------------------------------------------------------------------
+#                       L A B W C - A U D I O - M E N U
+#
+#   Generates a labwc pipe menu (Openbox XML format) listing every PulseAudio
+#   sink and source, with set-default and mute/unmute actions for each.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : LABWC-AUDIO-MENU (Desktop)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 print '<?xml version="1.0" encoding="UTF-8"?>'

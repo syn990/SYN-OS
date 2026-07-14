@@ -1,15 +1,22 @@
-#!/bin/zsh
-# SYN‑OS UI & ASCII helpers (no logic, just vibes)
-# /usr/lib/syn-os/ui.zsh
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         U I   &   A S C I I   H E L P E R S
+#
+#   Terminal color palette and printed banners/ASCII art used throughout the
+#   SYN-OS installer stages. No install logic lives here — output only.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : UI (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 
 # --- palette ---------------------------------------------------------------
-# Dark red/black theme throughout the installer, matching SYN-OS-RED. Roles
-# are deliberately distinct rather than one flat color for every line:
+# Dark red/black theme throughout the installer, matching SYN-OS-RED.
 #   accent  — bright red bold, section headers / banners
 #   dim     — muted dark-red, separators and secondary labels
-#   value   — plain/white, the actual data (device paths, sizes) so it reads
-#             against the colored labels around it instead of blurring in
-#   ok      — warm amber/gold, success (not green — doesn't fit the palette)
+#   value   — plain/white, the actual data (device paths, sizes)
+#   ok      — warm amber/gold, success
 #   err     — bold red, failures
 #   crit    — bold red + blink, reserved for the one truly destructive prompt
 RESET=$'\e[0m'
@@ -19,14 +26,8 @@ C_VALUE=$'\e[0;37m'    # light gray/white
 C_OK=$'\e[1;33m'       # amber/gold
 C_ERR=$'\e[1;31m'      # bold red
 
-# Stage accents — for the plain/static text (motd, welcome-shell banners)
-# that used to sit outside this palette entirely (stock cyan/green, or one
-# leftover off-brand blue). Not a repaint of the whole installer: syn_ui::*
-# above keeps its red/amber/gold roles throughout every stage. These three
-# are for text that specifically wants to say "you're in the live shell"
-# vs "pre-chroot disk work" vs "inside the new system" at a glance, while
-# staying inside one coherent dark palette instead of introducing a random
-# hue.
+# Stage accents — mark which install stage a motd/banner is printed from,
+# distinct from the accent/dim/value/ok/err roles above.
 C_LIVE=$'\e[1;35m'     # purple  — live installer shell, before synos-install runs
 C_STAGE0=$'\e[1;34m'   # blue    — syn-stage0.zsh, pre-chroot (disk/pacstrap)
 C_STAGE1=$'\e[1;31m'   # red     — syn-stage1.zsh, inside the chroot (matches C_ACCENT — the new system IS the brand)
@@ -105,10 +106,6 @@ EOF
 # deliberately "yes, ask" and is not meant to be turned off casually.
 syn_ui::confirm_wipe() {
   local disk="$1" answer
-  # Show what's actually on the disk right before asking — the prompt used
-  # to just print the device path and trust the reader had already checked
-  # it elsewhere. Someone moving fast (or who doesn't know lsblk exists) had
-  # no way to catch a wrong Disk= in synos.conf from this prompt alone.
   printf "\n%s%s%s\n" "$C_DIM" "${disk}:" "$RESET"
   lsblk "$disk" -o NAME,SIZE,MODEL,FSTYPE,LABEL,MOUNTPOINTS 2>/dev/null \
     | sed "s/^/  /" \

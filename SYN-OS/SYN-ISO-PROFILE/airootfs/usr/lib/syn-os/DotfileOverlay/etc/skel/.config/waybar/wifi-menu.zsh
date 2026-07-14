@@ -1,4 +1,16 @@
 #!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         W I F I - M E N U
+#
+#   Waybar's network module on-click: scans with iwctl, feeds the SSID
+#   list into wmenu, then opens a foot terminal to connect (so a
+#   passphrase prompt has somewhere to be typed).
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : WIFI-MENU (Waybar)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
@@ -19,14 +31,10 @@ if [ -z "$INTERFACE" ]; then
     exit 1
 fi
 
-# 1. Start a scan (quietly)
 iwctl station "$INTERFACE" scan > /dev/null
 
-# 2. Get the list and clean it
-# - Strip ANSI colors
-# - Skip the 4 lines of header
-# - Strip leading characters (*, >, spaces)
-# - Keep ONLY the text before the first "big gap" of 2+ spaces
+# Strips ANSI colors, the 4-line header, leading list markers, then keeps
+# only the text before the first 2+-space gap (SSID column only).
 CHOSEN_SSID=$(iwctl station "$INTERFACE" get-networks | \
     sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | \
     sed '1,4d' | \
@@ -34,8 +42,6 @@ CHOSEN_SSID=$(iwctl station "$INTERFACE" get-networks | \
     sed -E 's/[ ]{2,}.*//' | \
     wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "WiFi:")
 
-# 3. If you picked something, connect
 if [ -n "$CHOSEN_SSID" ]; then
-    # Use foot so you can type a password if needed
     foot --title="WiFi-Connect" -e iwctl station "$INTERFACE" connect "$CHOSEN_SSID"
 fi

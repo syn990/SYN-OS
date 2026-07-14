@@ -1,7 +1,16 @@
 #!/usr/bin/env zsh
-# SYN-OS Docs Menu
-# Labwc pipe menu listing /usr/share/syn-os/docs/*.md (and concepts/*.md),
-# each entry opens syn-docs-view.zsh against that file. See docs/labwc.md.
+# ------------------------------------------------------------------------------
+#                         S Y N - D O C S - M E N U
+#
+#   Generates a labwc pipe menu listing /usr/share/syn-os/docs/*.md (and
+#   concepts/*.md), each entry opening syn-docs-view.zsh against that
+#   file. See docs/labwc.md.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-DOCS-MENU (Desktop)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 DOCS_DIR="/usr/share/syn-os/docs"
@@ -28,13 +37,8 @@ emit_entry() {
   local f="$1" label
   label="$(xml_escape "$(title_for "$f")")"
   print "  <item label=\"$label\">"
-  # syn-docs-view.zsh is interactive (renders text, waits on a keypress) so
-  # it needs a held-open terminal, unlike syn-theme-apply above which runs
-  # instantly and exits — same reasoning as SYN-CRYPTER/SYN-REDSHIRT's
-  # foot wrapping in menu.xml. Absolute path to the script itself: `foot -e`
-  # execs argv directly (no shell), so it never searches $PATH the way a
-  # login shell would — an unqualified `syn-docs-view.zsh` here silently
-  # fails to exec and foot just closes, no visible error anywhere.
+  # foot -e execs argv directly, no shell, so it never searches $PATH —
+  # the absolute path is required or foot just closes with no error.
   print "    <action name=\"Execute\"><command>foot -e /usr/local/bin/syn-docs-view.zsh ${f}</command></action>"
   print "  </item>"
 }

@@ -1,4 +1,16 @@
 #!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         D I S K - S T A T U S
+#
+#   Waybar custom/disk module: root filesystem usage as JSON (text,
+#   tooltip listing every real mount, class, percentage), polled every
+#   60s per config.jsonc.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : DISK-STATUS (Waybar)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 

@@ -1,10 +1,17 @@
-#!/bin/zsh
-# SYN‑OS Partition Strategies
-# /usr/lib/syn-os/syn-partition.zsh
-
-# This script defines the partitioning strategies for the SYN-OS installation process. It supports both UEFI with systemd-boot (GPT) and legacy BIOS with syslinux (MBR).
-# The main function `partitionMain` dispatches to the appropriate strategy based on the configuration set in Stage 0.
-# 
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         S Y N - P A R T I T I O N
+#
+#   Partitioning strategies for SYN-OS: UEFI/GPT (uefi-bootctl), BIOS/MBR
+#   with syslinux (mbr-syslinux), and BIOS/MBR with GRUB (mbr-grub, for
+#   encrypted installs syslinux can't support). partitionMain dispatches
+#   to the strategy chosen in Stage 0.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-PARTITION (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 # =========================================================
@@ -93,13 +100,10 @@ partitionStrat_mbr_syslinux() {
 # =========================================================
 # MBR + GRUB (MSDOS) — separate unencrypted /boot
 # =========================================================
-# syslinux has no LUKS support, so an encrypted BIOS/MBR install needs GRUB's
-# cryptomount instead — and GRUB needs an unencrypted place to read
-# /boot/grub/grub.cfg and the kernel/initramfs from before it can decrypt
-# anything. Unlike partitionStrat_mbr_syslinux, this always creates a
-# separate small boot partition (${BootSize}), same shape as the UEFI ESP
-# layout, so the existing BootPart != RootPart handling in syn-volume.zsh
-# and syn-mount.zsh applies here too.
+# GRUB needs to read grub.cfg and the kernel/initramfs from an unencrypted
+# partition before it can decrypt anything, so — unlike mbr_syslinux — this
+# always creates a separate boot partition, the same shape as the UEFI ESP
+# layout that syn-volume.zsh/syn-mount.zsh already handle.
 partitionStrat_mbr_grub() {
   syn_ui::step "Creating MSDOS with BOOT (${BootSize}) + ROOT"
   parted -a optimal --script "${Disk}" \
@@ -137,19 +141,10 @@ partitionMain() {
     *) syn_ui::error "Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
   esac
 
-  # The 4MiB zero above only clears the disk's own partition-table header —
-  # it can't reach a filesystem/LUKS/LVM signature sitting further in, at the
-  # start of whatever partition happens to land there. On a disk reused
-  # across test installs (different VolumeStrat/FilesystemStrat each time,
-  # same disk), that old signature survives partitioning untouched: mkfs
-  # succeeds and reports the new type correctly, but the kernel can still see
-  # the old signature underneath and mount/probe gets confused about which
-  # one is real. cryptsetup luksFormat and pvcreate -ffy each happen to clear
-  # this as a side effect of what they do, but plain mkfs and the boot
-  # partition's mkfs never did — so it only ever surfaced on the paths that
-  # skip LUKS/LVM. Fixed once, here, for every partition this strategy just
-  # created, rather than patched into each volume/filesystem strategy
-  # separately.
+  # The 4MiB zero above only clears the partition-table header, not a
+  # filesystem/LUKS/LVM signature further into a reused partition — wipe
+  # every partition explicitly so mount/probe can't see a stale signature
+  # underneath the new one.
   for p in "${BootPart:-}" "${RootPart:-}"; do
     [ -n "$p" ] && [ -b "$p" ] && wipefs -a "$p" >/dev/null
   done
