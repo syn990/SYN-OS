@@ -30,17 +30,31 @@ waitForBlock() {
 }
 
 closeHolder() {
-  local dev="$1" name="${1:t}" holder vg
+  local dev="$1" name="${1:t}" holder vg mapperName
 
   for holder in /sys/class/block/${name}/holders/*(N); do
     closeHolder "/dev/${holder:t}"
   done
 
-  vg="$(lvs --noheadings -o vg_name "$dev" 2>/dev/null | tr -d ' ')"
+  # lvs exits nonzero (not just empty output) when $dev isn't a PV at all —
+  # `|| true` is required, not just the `2>/dev/null` already here, or a
+  # plain partition aborts the whole install under set -e.
+  vg="$(lvs --noheadings -o vg_name "$dev" 2>/dev/null | tr -d ' ' || true)"
   if [ -n "$vg" ]; then
     vgchange -an "$vg" 2>/dev/null || true
   else
     cryptsetup close "$name" 2>/dev/null || true
+  fi
+
+  # A device-mapper target can outlive the LVM/LUKS metadata that created
+  # it (e.g. an interrupted install left vg0-root active, then the backing
+  # partition got wiped/reused) — lvs and cryptsetup close above both see
+  # nothing to act on in that case. dmsetup only accepts the mapper's own
+  # name (e.g. "vg0-root"), not the kernel device name ("dm-0") this
+  # function is called with, so resolve it first via the device path.
+  if [ -z "$vg" ] && command -v dmsetup >/dev/null 2>&1; then
+    mapperName="$(dmsetup info -c --noheadings -o name "$dev" 2>/dev/null || true)"
+    [ -n "$mapperName" ] && dmsetup remove "$mapperName" 2>/dev/null || true
   fi
 }
 
