@@ -1,28 +1,33 @@
 #!/usr/bin/env zsh
-# Toggle wf-recorder: first call starts a recording, second call (while one
-# is running) stops it. $1 selects the mode:
-#   full          record a whole output — if more than one is connected,
-#                 prompts with a plain-language list (monitor make/model
-#                 + resolution, not port names like "DP-2") since
-#                 wf-recorder with no -o/-g just grabs whatever wlroots
-#                 enumerates first, not necessarily the screen you're
-#                 looking at
-#   region        interactive slurp selection, only the picked area
-# Both modes prompt for a save directory first, same as screenshot.zsh.
-# No audio by default — auto-picking a .monitor source is ambiguous on a
-# multi-device setup (grabbed a USB mic's monitor over system audio in
-# testing). Pass an explicit device as $2 if you want audio, e.g.:
-#   screen-recorder.zsh full alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
+# ------------------------------------------------------------------------------
+#                       S C R E E N - R E C O R D E R
+#
+#   Toggles wf-recorder: first call starts a recording, second call (while
+#   one is running) stops it. $1 selects the mode — "full" records a whole
+#   output, prompting to pick one if more than one monitor is connected;
+#   "region" is an interactive slurp selection of just the picked area.
+#   Both modes prompt for a save directory first. Pass a device name as $2
+#   to record audio, e.g. alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
+#   (no audio by default).
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SCREEN-RECORDER (Capture)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 PIDFILE="$XDG_RUNTIME_DIR/syn-screen-recorder.pid"
 
-if [[ -f "$PIDFILE" ]] && kill -0 "$(<"$PIDFILE")" 2>/dev/null; then
-  kill -INT "$(<"$PIDFILE")"
-  rm -f "$PIDFILE"
-  notify-send "Screen recording" "Stopped" 2>/dev/null || true
-  exit 0
+if [[ -f "$PIDFILE" ]]; then
+  pid="$(<"$PIDFILE")"
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -INT "$pid"
+    rm -f "$PIDFILE"
+    notify-send "Screen recording" "Stopped" 2>/dev/null || true
+    exit 0
+  fi
 fi
 
 CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
@@ -37,11 +42,7 @@ SYN_TEXT="${SYN_TEXT:-#ffffff}"
 SYN_ACCENT="${SYN_ACCENT:-#800000}"
 SYN_BORDER="${SYN_BORDER:-#444444}"
 
-# rofi's default theme is built on root-level variables (background,
-# foreground, lightbg, ...), not per-widget properties — see
-# power-menu.zsh, same override set, same reason: overriding only
-# window/element-selected leaves the entry box and unselected rows on
-# rofi's stock light Solarized palette regardless of the active theme.
+# Full root-level override — a partial one leaves rofi on its stock light theme.
 rofi_themed() {
   rofi -dmenu -theme-str "* { background: ${SYN_BG}e6; background-color: ${SYN_BG}e6; foreground: $SYN_TEXT; lightbg: $SYN_BG_ALT; lightfg: $SYN_TEXT; selected-normal-background: $SYN_ACCENT; selected-normal-foreground: $SYN_TEXT; border-color: $SYN_BORDER; } window { border: 1px; }" "$@"
 }
@@ -64,17 +65,9 @@ if [[ "$mode" == "region" ]]; then
   [[ -z "$region" ]] && exit 0
   geometry_args=(-g "$region")
 else
-  # Build "port-name<TAB>human label" per connected output, e.g.
-  #   DP-2<TAB>LG Electronics LG ULTRAWIDE — 3440x1440
-  # so the picker can show people a screen they recognize instead of a
-  # port name, while still handing wf-recorder the name it needs. Only
-  # enabled outputs are listed — a disconnected/sleeping port (e.g. a
-  # laptop lid closed) would otherwise offer a choice that can't record.
-  # zsh has no mapfile builtin — "${(@f)...}" splits command output into
-  # an array by lines instead (bash's mapfile -t equivalent). Unlike
-  # mapfile, it turns fully-empty output into a one-element array holding
-  # an empty string rather than a zero-length array, hence the explicit
-  # guard below.
+  # Each line is "port-name<TAB>human label", e.g. DP-2<TAB>LG ULTRAWIDE —
+  # 3440x1440, so the picker can show a readable name while still passing
+  # wf-recorder the port name it needs.
   randr_out="$(wlr-randr | awk '
     /^[^ ]/ { name=$1 }
     /^  Enabled:/ { enabled=$2 }
@@ -88,6 +81,9 @@ else
       name=""; enabled=""; make=""; model=""
     }
   ')"
+  # "${(@f)...}" is zsh's line-split-to-array (no mapfile builtin here).
+  # Empty output still gives one empty-string element, not zero — the
+  # guard keeps that from counting as an output.
   choices=()
   [[ -n "$randr_out" ]] && choices=("${(@f)randr_out}")
   if (( ${#choices[@]} > 1 )); then
@@ -104,10 +100,7 @@ out_file="$OUT_DIR/$(date +%F_%H-%M-%S).mp4"
 audio_args=()
 [[ -n "${2:-}" ]] && audio_args=(-a "$2")
 
-# preset=fast (not superfast) + no forced profile/level lets x264 pick a
-# level that actually fits the resolution — superfast at full desktop
-# res hit x264's "MB rate > level limit" warning (forced High/6.2 profile
-# couldn't cover 3440x1440 at the encoder's chosen framerate).
+# preset=fast avoids x264 profile/level limits at high output resolutions.
 wf-recorder \
   "${audio_args[@]}" \
   "${geometry_args[@]}" \

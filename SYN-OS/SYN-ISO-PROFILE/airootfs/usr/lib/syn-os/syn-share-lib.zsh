@@ -1,15 +1,21 @@
 #!/usr/bin/env zsh
-# SYN-SHARE library: every action function for the file-transfer hub
-# (rsync/Samba/NFS/HTTP/TFTP/Netcat, server + client sides). Sourced only,
-# never executed directly — see syn-share.zsh for the dispatcher that calls
-# these by name.
+# ------------------------------------------------------------------------------
+#                         S Y N - S H A R E - L I B
 #
-#   Dependencies
-#     nfs-utils  rsync  samba  busybox  tftp-hpa
-#     openbsd-netcat  pv  cifs-utils  wget  curl  openssh
+#   Every action function for the SYN-SHARE file-transfer hub (rsync/Samba
+#   /NFS/HTTP/TFTP/Netcat, server + client sides). Sourced only, never
+#   executed directly — see syn-share.zsh for the dispatcher that calls
+#   these by name.
 #
-#   Auth model  : rsyncd secrets file  •  Samba smb password  •  SSH tunnel
-
+#   Dependencies : nfs-utils rsync samba busybox tftp-hpa openbsd-netcat
+#                  pv cifs-utils wget curl openssh
+#   Auth model   : rsyncd secrets file, Samba smb password, SSH tunnel
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-SHARE (File Transfer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 autoload -Uz colors; colors
@@ -132,10 +138,8 @@ srv_setup_dirs() {
   done
   sudo touch "$LOG_FILE"
   sudo chmod 777 "$NC_DEST" "$RSYNC_DIR"
-  # >>"$LOG_FILE" redirects below run in this (unprivileged) shell even
-  # inside a sudo'd command — sudo only elevates the command itself, not
-  # the parent shell's own I/O redirection — so the file has to be
-  # writable by the calling user, not just root.
+  # sudo elevates the command, not this shell's own >>"$LOG_FILE" redirects
+  # below — the file needs to stay writable by the calling user too.
   sudo chmod 666 "$LOG_FILE"
 }
 
@@ -170,10 +174,8 @@ secrets file = ${SECRETS_FILE}
     secrets file = ${SECRETS_FILE}
 EOF
 
-  # rsync's own package ships a real rsyncd.service unit (ConditionPathExists
-  # on /etc/rsyncd.conf above, ExecStart already runs --daemon --no-detach) —
-  # use that directly rather than a transient unit of the same name, which
-  # systemd refuses to create when a real unit file already claims it.
+  # rsync's package already ships a real rsyncd.service — no transient unit
+  # needed here, and systemd would refuse one under the same name anyway.
   if sudo systemctl enable --now rsyncd >>"$LOG_FILE" 2>&1; then
     fw_tcp "$RSYNC_PORT"
     status_ok "rsyncd started on :${RSYNC_PORT}  user=${RSYNC_USER}"

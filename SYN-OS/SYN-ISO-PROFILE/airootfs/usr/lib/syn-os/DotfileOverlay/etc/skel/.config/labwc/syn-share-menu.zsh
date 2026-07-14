@@ -1,8 +1,16 @@
 #!/usr/bin/env zsh
-# SYN-SHARE Menu: labwc pipe-menu for the file-transfer hub. Server-side
-# items self-toggle (label reflects live systemctl state); passwords/paths
-# are collected inline via wmenu before syn-share.zsh is invoked, same
-# pattern as SYN-GRAPHMAP's "Custom (enter a depth)" entry.
+# ------------------------------------------------------------------------------
+#                       S Y N - S H A R E - M E N U
+#
+#   Labwc pipe menu for the SYN-SHARE file-transfer hub. Server-side items
+#   self-toggle (label reflects live systemctl state); passwords and paths
+#   are collected inline via wmenu before syn-share.zsh is invoked.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-SHARE-MENU (Desktop)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 SHARE="/usr/lib/syn-os/syn-share.zsh"

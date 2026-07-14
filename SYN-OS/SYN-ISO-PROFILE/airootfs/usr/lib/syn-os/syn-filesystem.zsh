@@ -1,30 +1,23 @@
-#!/bin/zsh
-# SYN‑OS Filesystem Strategies
-# /usr/lib/syn-os/syn-filesystem.zsh
-
-# This script provides a unified interface for formatting filesystems and swap partitions during the SYN-OS installation process.
-# it is used by multiple installation scripts to ensure consistent formatting logic across different filesystem types and swap configurations.
-# You may need to modify this script if you want to add support for additional filesystems or customize the formatting options for existing ones.
-# You are then expected to add the correct packages to packagesx86_64
-
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         S Y N - F I L E S Y S T E M
+#
+#   Formats the root filesystem and swap partition during installation.
+#   Adding a new filesystem type also needs its mkfs package added to
+#   syn-packages.zsh.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-FILESYSTEM (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
-
-# =========================================================
-# Filesystem formatting
-# =========================================================
 filesystemMain() {
   [ -b "${RootFsDev}" ] || { syn_ui::error "RootFsDev not a block device"; exit 1; }
 
-  # mkfs.* only needs the userspace tool, so formatting succeeds even if the
-  # matching kernel module isn't loaded yet — but mount's auto-detect (no -t
-  # given, see mountMain) can only match filesystem types the kernel already
-  # knows about. Confirmed on this live image: mkfs.f2fs succeeds, blkid
-  # correctly reports TYPE="f2fs" afterwards, but the later mount call still
-  # fails because f2fs was never in the running kernel's fs list to begin
-  # with (not autoloaded, and mount's own auto-modprobe apparently didn't
-  # trigger here either). Re-running the identical mount command after a
-  # manual `modprobe f2fs` succeeds immediately against the same partition —
-  # loading the module explicitly here closes that gap.
+  # mkfs.* only needs the userspace tool, but mount's auto-detect (see
+  # mountMain) needs the kernel module already loaded — load it explicitly
+  # since it isn't guaranteed to autoload on this live image.
   modprobe "${FilesystemStrat}" 2>/dev/null || true
 
   syn_ui::step "Formatting root fs (${FilesystemStrat})"

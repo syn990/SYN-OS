@@ -1,30 +1,33 @@
 #!/usr/bin/env zsh
-# SYN-OS Advanced Dynamic Display Menu
-# Labwc / Openbox pipe menu using wlr-randr
-# Shell: zsh
-
+# ------------------------------------------------------------------------------
+#                       L A B W C - W L R - M E N U
+#
+#   Generates a labwc pipe menu (Openbox XML format) per connected display,
+#   with power/persistence/primary/mode/scale/rotation controls built from
+#   live wlr-randr output.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : LABWC-WLR-MENU (Desktop)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
-# List of outputs the user has explicitly chosen to always keep off across
-# reboots (e.g. an unwanted built-in panel on an AiO) — plain one-name-
-# per-line, no pattern-matching on output naming conventions (eDP/LVDS/DSI/
-# etc. all vary by hardware, so this only ever acts on names the user
-# picked themselves via the menu below). autostart reads this same file
-# and applies the "only if something else is on, else fall back" safety
-# logic — see labwc/autostart.
+# Outputs the user has chosen to always keep off across reboots — one name
+# per line, no pattern-matching (eDP/LVDS/DSI vary by hardware, so this
+# only ever holds names picked via this menu). autostart applies the
+# "only if something else is on" fallback — see labwc/autostart.
 DISABLED_OUTPUTS_FILE="$HOME/.config/syn-os/disabled-outputs"
 
 print '<?xml version="1.0" encoding="UTF-8"?>'
 print '<openbox_pipe_menu>'
 
-# Ensure wlr-randr exists
 if ! command -v wlr-randr >/dev/null 2>&1; then
   print '<item label="wlr-randr not found"/>'
   print '</openbox_pipe_menu>'
   exit 0
 fi
 
-# Capture output once
 typeset -a rr
 rr=("${(@f)$(wlr-randr)}")
 
@@ -69,9 +72,8 @@ get_modes() {
   get_block "$out" |
   awk '
     /^[[:space:]]+[0-9]+x[0-9]+/ {
-      # Remove "px, " and "Hz" text
-      gsub(" px,","",$1)
-      mode=$1"@"$2
+      # $1=resolution, $2="px,", $3=refresh rate — e.g. "3440x1440 px, 99.997002 Hz"
+      mode=$1"@"$3
       gsub("Hz","",mode)
       current = ($0 ~ /current/) ? "yes" : "no"
       print mode "|" current
@@ -111,10 +113,8 @@ for name in "${outputs[@]}"; do
     print "  </item>"
   fi
 
-  # -------- PERSISTENCE (survives reboot, with a fallback safety net —
-  # see labwc/autostart: this output is only kept off if some OTHER
-  # output is actually on; if this were ever the only display, autostart
-  # turns it back on instead of leaving a black screen) --------
+  # -------- PERSISTENCE (see labwc/autostart's fallback: this output only
+  # stays off if another one is on, never leaving a black screen) --------
   is_persisted="no"
   if [[ -f "$DISABLED_OUTPUTS_FILE" ]] && grep -qxF "$name" "$DISABLED_OUTPUTS_FILE" 2>/dev/null; then
     is_persisted="yes"

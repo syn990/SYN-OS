@@ -1,7 +1,16 @@
 #!/usr/bin/env zsh
-# SYN-OS Dynamic Theme Menu
-# Labwc pipe menu listing ~/.config/syn-os/themes/*.theme, each entry
-# runs syn-theme-apply <name> to switch live. See docs/theming.md.
+# ------------------------------------------------------------------------------
+#                       S Y N - T H E M E - M E N U
+#
+#   Labwc pipe menu listing ~/.config/syn-os/themes/*.theme, grouped by
+#   Vanilla/Homage/Neutral. Each entry runs syn-theme-apply <name> to
+#   switch live. See docs/theming.md.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-THEME-MENU (Desktop)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 THEMES_DIR="$HOME/.config/syn-os/themes"

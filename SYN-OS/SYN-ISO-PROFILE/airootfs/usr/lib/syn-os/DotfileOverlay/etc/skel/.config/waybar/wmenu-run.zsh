@@ -1,4 +1,15 @@
 #!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         W M E N U - R U N
+#
+#   SYN-OS's app launcher: themed wmenu-run, docked to whichever edge
+#   waybar itself is currently on (reads config.jsonc's position).
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : WMENU-RUN (Waybar)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
