@@ -6,10 +6,12 @@
 # Usage: syn-graphmap.zsh [directory] [max-depth] [format]
 #   directory   prompts via wmenu if omitted
 #   max-depth   defaults to 6 (see SYN-GRAPH's Quick/Full/Custom menu entries)
-#   format      png or svg — prompts via wmenu if omitted. PNG is a fixed-DPI
-#               raster, so a wide/deep graph renders with proportionally
-#               tiny, blurry-at-zoom labels; SVG is vector and stays sharp
-#               at any zoom, better for anything past a shallow scan.
+#   format      png or svg — prompts via wmenu if omitted. PNG is a fixed-size
+#               raster: sharp at 100% zoom (rendered at 300 DPI below), but
+#               any viewer that fits it to a window shrinks and blurs it
+#               regardless of source resolution — that's viewer behavior, not
+#               fixable from here. SVG re-renders at whatever size it's shown
+#               at, so it stays sharp at fit-to-window too.
 
 set -euo pipefail
 
