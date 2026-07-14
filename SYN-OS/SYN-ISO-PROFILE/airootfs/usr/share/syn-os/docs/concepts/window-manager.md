@@ -10,7 +10,7 @@ SYN-OS does **not** ship a DE. It ships the individual pieces, chosen and wired 
 
 ## Window manager (WM)
 
-The piece that decides how windows are arranged, moved, resized, focused, and decorated (title bars, borders). A WM doesn't necessarily provide a panel, a launcher, or a file manager; those are separate programs it happens to run alongside. Classic X11 WMs: Openbox, i3, dwm.
+The piece that decides how windows are arranged, moved, resized, focused, and decorated (title bars, borders). A WM doesn't necessarily provide a panel, a launcher, or a file manager — those are separate programs it happens to run alongside. Classic X11 WMs: Openbox, i3, dwm.
 
 ## Compositor
 

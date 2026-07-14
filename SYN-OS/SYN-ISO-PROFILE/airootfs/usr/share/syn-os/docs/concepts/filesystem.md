@@ -13,7 +13,7 @@ Standard Arch config also lives here: `/etc/fstab` (written by `genfstab`), `/et
 
 ## `/usr`: installed software and shared data
 
-Where packages actually put their files: binaries typically under `/usr/bin`, shared libraries under `/usr/lib`, and static data under `/usr/share`. SYN-OS's own scripts live under `/usr/lib/syn-os/`, following the convention that `/usr/lib` holds a package's internal machinery, not just compiled libraries. They're copied there directly by [`pacstrapMain`](../stage0.md#5-pacstrapmain-syn-pacstrapzsh) at install time, not delivered as a pacman package.
+Where packages actually put their files: binaries typically under `/usr/bin`, shared libraries under `/usr/lib`, and static data under `/usr/share`. SYN-OS's own scripts live under `/usr/lib/syn-os/`, following the convention that `/usr/lib` holds a package's internal machinery, not just compiled libraries. This documentation, in turn, lives under `/usr/share/syn-os/docs/`, following the equally standard convention that `/usr/share` holds read-only, architecture-independent data. Both are copied there directly by [`pacstrapMain`](../stage0.md#5-pacstrapmain-syn-pacstrapzsh) at install time, not delivered as pacman packages.
 
 `/usr/share/themes/` is the standard location desktop theme engines search. This is why SYN-OS's `SYN-OS-RED` theme lives there rather than somewhere custom; [LabWC](../labwc.md) and Qt theming tools both expect themes at this path by convention.
 
@@ -27,4 +27,4 @@ Conventionally where you mount something you're working with manually, rather th
 
 ## Why this layout matters for SYN-OS specifically
 
-Because [the installer](../installer-overview.md) works by mounting a real filesystem hierarchy at `/mnt`, then chrooting into it, every one of these directories effectively exists twice during an install: once in the live environment (where scripts run from) and once under `/mnt` (the system being built). Confusing the two, e.g. assuming `/etc/syn-os/synos.conf` in the live environment and on the target system are the same file, is a common source of confusion; they start as copies of each other ([`pacstrapMain`](../stage0.md#5-pacstrapmain-syn-pacstrapzsh) copies the live one onto the target explicitly) but diverge the moment either is edited independently afterward.
+Because [the installer](../installer-overview.md) mounts a real filesystem hierarchy at `/mnt` and then chroots into it, every one of these directories effectively exists twice during an install: once in the live environment (where scripts run from) and once under `/mnt` (the system being built). Assuming `/etc/syn-os/synos.conf` in the live environment and on the target system are the same file is a common source of confusion — they start as copies of each other ([`pacstrapMain`](../stage0.md#5-pacstrapmain-syn-pacstrapzsh) copies the live one onto the target explicitly) but diverge the moment either is edited independently afterward.

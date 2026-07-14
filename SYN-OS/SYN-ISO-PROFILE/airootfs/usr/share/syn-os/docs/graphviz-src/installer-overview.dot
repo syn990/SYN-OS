@@ -1,0 +1,49 @@
+digraph installer_overview {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="synos-install, start to finish";
+  labelloc="t"; fontsize=14; fontcolor="#e8b4b4";
+
+  boot [label="Boot ISO\n(BIOS: syslinux menu,\nUEFI: systemd-boot, 1 entry)\nboth land in the same live shell", shape=oval, fillcolor="#400101"];
+  edit [label="edit /etc/syn-os/synos.conf\n(only input, no interactive\nprompts for disk/fs/encryption\nonce synos-install starts)", shape=note, fillcolor="#260101"];
+  run [label="synos-install\n(alias for syn-stage0.zsh)", shape=oval, fillcolor="#400101"];
+
+  subgraph cluster_stage0 {
+    label="Stage 0, live ISO environment (syn-stage0.zsh)"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    source [label="source syn-config.zsh,\nsyn-packages.zsh, ui.zsh\n+ 5 strategy modules"];
+    gate [label="Safety gate:\nRequireWipeConfirm=yes ->\n\"Proceed and wipe <disk>? [y/N]\"\nonly interactive step in the\nwhole pipeline", fillcolor="#4a1414", color="#d84a3f"];
+    partition [label="partitionMain", fillcolor="#260101"];
+    volume [label="volumeMain", fillcolor="#260101"];
+    filesystem [label="filesystemMain", fillcolor="#260101"];
+    mount [label="mountMain", fillcolor="#260101"];
+    pacstrap [label="pacstrapMain\n(pacstrap + DotfileOverlay\n+ writes install.state)", fillcolor="#260101"];
+    source -> gate -> partition -> volume -> filesystem -> mount -> pacstrap;
+  }
+
+  chroot [label="arch-chroot into target\n(Stage 0 -> Stage 1 handoff)", shape=oval, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+
+  subgraph cluster_stage1 {
+    label="Stage 1, inside the chroot (syn-stage1.zsh)"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    state [label="source /etc/syn-os/install.state\n(RootFsDev, LuksUuid, SwapDev,\nresolved during Stage 0,\ncan't be re-derived safely)", shape=note, fillcolor="#260101"];
+    locale [label="locale, hostname,\ntimezone, keymap"];
+    doas [label="doas->sudo shim,\nremoves sudo package"];
+    user [label="useradd -m -G wheel\n(populates home from\n/etc/skel, see Dotfile Overlay)"];
+    initramfs [label="mkinitcpio hooks\n(+encrypt, +lvm2 as needed)\n+ rebuild initramfs"];
+    bootloader [label="install bootloader\n(bootctl / grub / syslinux,\nkeyed off PartitionStrat)"];
+    services [label="enable dhcpcd, iwd"];
+    state -> locale -> doas -> user -> initramfs -> bootloader -> services;
+  }
+
+  done [label="installed system\npacman -Syu from here,\nsame as any Arch install", shape=doublecircle, fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+
+  boot -> edit -> run -> source;
+  pacstrap -> chroot -> state;
+  services -> done;
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="No unattended mode, no TUI, no partition-picker.\nsynos.conf is edited by hand before this runs.\nDeliberate, see Philosophy in the README."];
+}

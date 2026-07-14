@@ -51,6 +51,14 @@
     "on-click": "/usr/lib/syn-os/syn-bar-share-quickmenu.zsh"
   },
 
+  "custom/synshare": {
+    "return-type": "json",
+    "format": "{}",
+    "interval": 5,
+    "exec": "$HOME/.config/waybar/synshare-status.sh",
+    "on-click": "$HOME/.config/waybar/synshare-quickmenu.sh"
+  },
+
   "custom/vpn": {
     "format": "",
     "exec": "ip link show wg0 >/dev/null 2>&1 && echo on || echo ''",
