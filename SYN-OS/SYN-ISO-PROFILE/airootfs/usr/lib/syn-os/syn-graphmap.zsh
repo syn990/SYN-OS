@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 # SYN-GRAPHMAP: recursively graphs a directory tree with Graphviz's dot
-# layout, styled in the project's red/black palette. Rewrite of the
-# original GRAPH.sh (kept for reference at docs/graphviz-src/GRAPH.sh.orig).
+# layout, styled in the live SYN-OS theme. Rewrite of the original
+# GRAPH.sh (kept for reference at docs/graphviz-src/GRAPH.sh.orig).
 #
 # Usage: syn-graphmap.zsh [directory]   (prompts via wmenu if omitted)
 
@@ -10,11 +10,22 @@ set -euo pipefail
 EXCLUDE_NAMES=(.git .cache node_modules WORKDIR .syncache)
 MAX_DEPTH=6
 
+CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
+THEMES_DIR="$HOME/.config/syn-os/themes"
+theme_name="SYN-OS-RED"
+[[ -f "$CURRENT_THEME_FILE" ]] && theme_name="$(<"$CURRENT_THEME_FILE")"
+theme_file="$THEMES_DIR/$theme_name.theme"
+[[ -f "$theme_file" ]] && source "$theme_file"
+SYN_BG="${SYN_BG:-#000000}"
+SYN_TEXT="${SYN_TEXT:-#ffffff}"
+SYN_ACCENT="${SYN_ACCENT:-#800000}"
+SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
+
 target="${1:-}"
 if [[ -z "$target" ]]; then
   print "SYN-GRAPHMAP: a popup will ask which directory to graph — enter or pick one, then check back here."
   target="$(print -l -- "$PWD" "$HOME" "$HOME/GithubProjects" \
-    | wmenu -p "Directory to graph:")"
+    | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_ACCENT" -s "$SYN_BG" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Directory to graph:")"
 fi
 [[ -n "$target" ]] || { print -u2 "No directory given."; exit 1; }
 [[ -d "$target" ]] || { print -u2 "Not a directory: $target"; exit 1; }
@@ -51,12 +62,12 @@ generate_structure() {
 
 {
   print "digraph G {"
-  print "  bgcolor=\"#000000\";"
+  print "  bgcolor=\"${SYN_BG}\";"
   print "  rankdir=\"TB\";"
   print "  nodesep=1;"
   print "  ranksep=2;"
-  print "  node [style=filled, fillcolor=\"#000000\", color=\"#8B0000\", fontcolor=\"#FF0000\"];"
-  print "  edge [color=\"#FF0000\"];"
+  print "  node [style=filled, fillcolor=\"${SYN_BG}\", color=\"${SYN_ACCENT}\", fontcolor=\"${SYN_TEXT}\"];"
+  print "  edge [color=\"${SYN_ACCENT}\"];"
   generate_structure "$target" "" 0
   print "}"
 } > "$dotFile"
