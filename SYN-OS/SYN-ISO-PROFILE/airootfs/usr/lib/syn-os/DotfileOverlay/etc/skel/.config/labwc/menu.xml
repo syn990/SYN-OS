@@ -100,28 +100,29 @@
         </action>
       </item>
 
-      <!-- SYN-GRAPHMAP always prompts via wmenu for the target directory;
-           these three entries only differ in the max-depth passed as the
-           second argument. Custom asks for a number the same way, via its
-           own wmenu prompt, before syn-graphmap.zsh ever runs. Output PNGs
-           land in ~/Pictures/SYN-GRAPHMAP/, same convention as
-           screenshots. -->
+      <!-- SYN-GRAPHMAP always prompts via wmenu for the target directory
+           and output format (leaving both args empty here triggers those
+           prompts); these three entries only differ in the max-depth
+           passed as the second argument. Custom asks for a number the same
+           way, via its own wmenu prompt, before syn-graphmap.zsh ever
+           runs. Output lands in ~/Pictures/SYN-GRAPHMAP/, same convention
+           as screenshots. -->
       <menu id="graphmap-menu" label="SYN-GRAPHMAP (graph a directory tree)">
         <item label="Quick (shallow scan)">
           <action name="Execute">
-            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 2; exec zsh'</command>
+            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 2 ""; exec zsh'</command>
           </action>
         </item>
 
         <item label="Full (deep scan)">
           <action name="Execute">
-            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 999; exec zsh'</command>
+            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 999 ""; exec zsh'</command>
           </action>
         </item>
 
         <item label="Custom (enter a depth)">
           <action name="Execute">
-            <command>foot -e zsh -c 'depth=$(print "" | wmenu -p "Max depth (e.g. 3):"); zsh /usr/lib/syn-os/syn-graphmap.zsh "" "${depth:-6}"; exec zsh'</command>
+            <command>foot -e zsh -c 'depth=$(print "" | wmenu -p "Max depth (e.g. 3):"); zsh /usr/lib/syn-os/syn-graphmap.zsh "" "${depth:-6}" ""; exec zsh'</command>
           </action>
         </item>
       </menu>
