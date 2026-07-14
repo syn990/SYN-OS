@@ -12,9 +12,9 @@
 #   License    : MIT License
 # ------------------------------------------------------------------------------
 set -euo pipefail
+source /usr/lib/syn-os/syn-theme-lib.zsh
 
 THEMES_DIR="$HOME/.config/syn-os/themes"
-CURRENT_FILE="$HOME/.config/syn-os/current-theme"
 
 print '<?xml version="1.0" encoding="UTF-8"?>'
 print '<openbox_pipe_menu>'
@@ -28,8 +28,7 @@ xml_escape() {
     -e 's/>/\&gt;/g'
 }
 
-current=""
-[[ -f "$CURRENT_FILE" ]] && current="$(<"$CURRENT_FILE")"
+current="$(syn_theme_current)"
 
 if [[ ! -d "$THEMES_DIR" ]] || ! ls "$THEMES_DIR"/*.theme >/dev/null 2>&1; then
   print '<item label="No themes found in ~/.config/syn-os/themes"/>'

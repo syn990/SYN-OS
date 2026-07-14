@@ -23,12 +23,8 @@ set -euo pipefail
 EXCLUDE_NAMES=(.git .cache node_modules WORKDIR .syncache)
 MAX_DEPTH="${2:-6}"
 
-CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
-THEMES_DIR="$HOME/.config/syn-os/themes"
-theme_name="SYN-OS-RED"
-[[ -f "$CURRENT_THEME_FILE" ]] && theme_name="$(<"$CURRENT_THEME_FILE")"
-theme_file="$THEMES_DIR/$theme_name.theme"
-[[ -f "$theme_file" ]] && source "$theme_file"
+source /usr/lib/syn-os/syn-theme-lib.zsh
+syn_theme_load
 SYN_BG="${SYN_BG:-#000000}"
 SYN_TEXT="${SYN_TEXT:-#ffffff}"
 SYN_ACCENT="${SYN_ACCENT:-#800000}"
