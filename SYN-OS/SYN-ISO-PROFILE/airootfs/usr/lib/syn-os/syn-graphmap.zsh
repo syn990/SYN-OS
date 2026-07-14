@@ -3,12 +3,14 @@
 # layout, styled in the live SYN-OS theme. Rewrite of the original
 # GRAPH.sh (kept for reference at docs/graphviz-src/GRAPH.sh.orig).
 #
-# Usage: syn-graphmap.zsh [directory]   (prompts via wmenu if omitted)
+# Usage: syn-graphmap.zsh [directory] [max-depth]
+#   directory   prompts via wmenu if omitted
+#   max-depth   defaults to 6 (see SYN-GRAPH's Quick/Full/Custom menu entries)
 
 set -euo pipefail
 
 EXCLUDE_NAMES=(.git .cache node_modules WORKDIR .syncache)
-MAX_DEPTH=6
+MAX_DEPTH="${2:-6}"
 
 CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
 THEMES_DIR="$HOME/.config/syn-os/themes"
