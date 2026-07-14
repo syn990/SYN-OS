@@ -1,17 +1,20 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env zsh
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
+# zsh arrays are 1-based (unlike bash's 0-based "${!units[@]}" index loop),
+# so units/labels are walked in lockstep by position instead of by index key.
 units=(rsyncd smb nfs-server synshare-httpd synshare-tftpd synshare-nc)
 labels=(rsyncd Samba NFS HTTP TFTP Netcat)
 
 active_count=0
 tooltip_lines=()
-for i in "${!units[@]}"; do
-  if systemctl is-active --quiet "${units[$i]}" 2>/dev/null; then
-    tooltip_lines+=("${labels[$i]}: up")
+for i in {1..${#units[@]}}; do
+  if systemctl is-active --quiet "${units[i]}" 2>/dev/null; then
+    tooltip_lines+=("${labels[i]}: up")
     active_count=$((active_count + 1))
   else
-    tooltip_lines+=("${labels[$i]}: down")
+    tooltip_lines+=("${labels[i]}: down")
   fi
 done
 

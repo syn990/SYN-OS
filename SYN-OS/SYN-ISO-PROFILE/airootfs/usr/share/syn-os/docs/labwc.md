@@ -37,7 +37,7 @@ Config lives at `DotfileOverlay/etc/skel/.config/labwc/`, deployed to `~/.config
 
 ![How a SYN-OS theme reaches rofi/waybar/labwc/foot/superfile at click-time](./svg/theming-live-reload.svg)
 
-Nothing watches these files and there's no daemon. `syn-theme-apply` writes `~/.config/syn-os/current-theme` (just the theme name) once, and every launcher script (`power-menu.sh`, `wmenu-run.sh`, `wifi-menu.sh`) re-reads that name and re-sources the matching `.theme` file fresh on every invocation. Switching themes needs no restart of any of those scripts — they're stateless by construction, so picking up a new theme is just "the next click happens after the switch."
+Nothing watches these files and there's no daemon. `syn-theme-apply` writes `~/.config/syn-os/current-theme` (just the theme name) once, and every launcher script (`power-menu.zsh`, `wmenu-run.zsh`, `wifi-menu.zsh`) re-reads that name and re-sources the matching `.theme` file fresh on every invocation. Switching themes needs no restart of any of those scripts — they're stateless by construction, so picking up a new theme is just "the next click happens after the switch."
 
 **`themerc`**: the `SYN-OS-RED` Openbox-format theme definition (colors, borders, button styles) that `rc.xml` references by name; the actual theme files live under `usr/share/themes/SYN-OS-RED/openbox-3/` in the overlay (see [Dotfile Overlay](./dotfile-overlay.md)).
 

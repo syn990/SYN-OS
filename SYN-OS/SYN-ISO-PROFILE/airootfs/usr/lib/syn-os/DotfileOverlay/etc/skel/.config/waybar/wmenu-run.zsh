@@ -1,5 +1,6 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env zsh
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 CURRENT_THEME_FILE="$HOME/.config/syn-os/current-theme"
 THEMES_DIR="$HOME/.config/syn-os/themes"

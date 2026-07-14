@@ -1,5 +1,6 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env zsh
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 root_line=$(df -h / | awk 'NR==2')
 root_used=$(awk '{print $3}' <<<"$root_line")

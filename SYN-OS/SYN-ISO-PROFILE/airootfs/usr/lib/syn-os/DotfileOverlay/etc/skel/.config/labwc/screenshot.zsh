@@ -1,12 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 # Takes a screenshot, prompting for an output directory via wmenu (preset
-# shortcuts + free-text entry, same pattern as wifi-menu.sh). Drops a
+# shortcuts + free-text entry, same pattern as wifi-menu.zsh). Drops a
 # short-lived marker file so waybar's custom/capture-status module can
 # flash "Saved" for a few seconds without needing to be pushed to (it
 # just polls whether the marker is fresh). $1 selects the mode:
 #   full    whole output, no prompt
 #   region  interactive slurp selection
-set -euo pipefail
+emulate -L zsh
+setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 MARKER="$XDG_RUNTIME_DIR/syn-capture-status"
 

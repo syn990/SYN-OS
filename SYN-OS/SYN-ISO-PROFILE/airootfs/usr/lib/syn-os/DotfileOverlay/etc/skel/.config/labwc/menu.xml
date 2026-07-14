@@ -24,7 +24,7 @@
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
 
     <!-- Capture: "do something with what's on screen right now" from the
-         user's own seat, same shelf as Applications. screen-recorder.sh
+         user's own seat, same shelf as Applications. screen-recorder.zsh
          toggles: click Record once to start (backgrounded, PID tracked in
          $XDG_RUNTIME_DIR), the same entry again to stop. Display & Screens
          is actual output configuration, not a launched action — that
@@ -32,25 +32,25 @@
     <menu id="capture-menu" label="Capture">
       <item label="Screenshot - full screen">
         <action name="Execute">
-          <command>~/.config/labwc/screenshot.sh full</command>
+          <command>~/.config/labwc/screenshot.zsh full</command>
         </action>
       </item>
 
       <item label="Screenshot - select area">
         <action name="Execute">
-          <command>~/.config/labwc/screenshot.sh region</command>
+          <command>~/.config/labwc/screenshot.zsh region</command>
         </action>
       </item>
 
       <item label="Record - full screen">
         <action name="Execute">
-          <command>~/.config/labwc/screen-recorder.sh full</command>
+          <command>~/.config/labwc/screen-recorder.zsh full</command>
         </action>
       </item>
 
       <item label="Record - select area / Stop">
         <action name="Execute">
-          <command>~/.config/labwc/screen-recorder.sh region</command>
+          <command>~/.config/labwc/screen-recorder.zsh region</command>
         </action>
       </item>
     </menu>

@@ -100,11 +100,11 @@
     <keybind key="W-4"><action name="GoToDesktop" to="4"/></keybind>
 
     <keybind key="W-p">
-      <action name="Execute" command="~/.config/labwc/screenshot.sh region"/>
+      <action name="Execute" command="~/.config/labwc/screenshot.zsh region"/>
     </keybind>
 
     <keybind key="W-S-p">
-      <action name="Execute" command="~/.config/labwc/screen-recorder.sh full"/>
+      <action name="Execute" command="~/.config/labwc/screen-recorder.zsh full"/>
     </keybind>
 
   </keyboard>
