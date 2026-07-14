@@ -91,6 +91,12 @@ generate_structure() {
 
 print "Graphviz dot file generated: $dotFile"
 print "Generating ${format} output..."
-dot -T"${format}" "$dotFile" -o "$outDir/$(basename "$target")-dot.${format}"
+# PNG is raster at Graphviz's default 72 DPI — fine for the layout, much
+# too coarse for actually reading labels once zoomed in. -Gdpi only
+# changes rendering resolution, not layout, so it's PNG-only; SVG is
+# vector and already sharp at any zoom without it.
+typeset -a dpiFlag
+[[ "$format" == "png" ]] && dpiFlag=(-Gdpi=300)
+dot "${dpiFlag[@]}" -T"${format}" "$dotFile" -o "$outDir/$(basename "$target")-dot.${format}"
 
 print "Done. Output in $outDir"
