@@ -1,0 +1,44 @@
+digraph windows_mac_build {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="Building SYN-OS from a Windows or Mac host";
+  labelloc="t"; fontsize=14; fontcolor="#e8b4b4";
+
+  download [label="Download the prebuilt ISO\n(github.com/syn990/SYN-OS)", shape=note, fillcolor="#260101"];
+
+  subgraph cluster_write {
+    label="Get it running, either path"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    usb_win [label="Windows: Rufus\nUSB stick", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    usb_mac [label="macOS: diskutil + dd\nUSB stick", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    vm_disk [label="Boot the ISO directly\nin any VM tool\n(Hyper-V, VirtualBox,\nUTM, Parallels)", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  }
+
+  boot [label="Real hardware or a VM,\nbooted into the live\nSYN-OS shell", shape=oval, fillcolor="#400101"];
+
+  arch_env [label="This IS a real Arch\nenvironment now:\npacman, git, zsh,\neverything the build needs", fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+
+  build [label="Normal Build Your Own ISO\nsteps, run from here\n(git clone, BUILD-SYNOS-ISO.zsh)", fillcolor="#260101"];
+
+  newiso [label="a new ISO,\nwith your changes baked in", shape=doublecircle, fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+
+  download -> usb_win;
+  download -> usb_mac;
+  download -> vm_disk;
+  usb_win -> boot;
+  usb_mac -> boot;
+  vm_disk -> boot;
+  boot -> arch_env -> build -> newiso;
+
+  subgraph cluster_future {
+    label="Not built yet, room for later"; style="dashed,rounded"; color="#665522"; fontcolor="#ccaa66"; bgcolor="#0a0a0a";
+    netboot [label="PXE / network boot\n(no USB or VM disk\nimage needed at all)", shape=note, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  }
+  download -> netboot [style=dotted, color="#665522"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="No WSL2, no third-party unofficial Arch image, no\nscript piped into a shell. The downloaded ISO is\nalready the build environment; nothing else to set up."];
+}
