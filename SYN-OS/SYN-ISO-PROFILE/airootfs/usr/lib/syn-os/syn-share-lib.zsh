@@ -81,7 +81,7 @@ ensure_pkg() {
   local p="$1"
   if ! pkg_ok "$p"; then
     status_ok "Installing $p …"
-    sudo mkdir -p "${LOG_FILE:h}"; sudo touch "$LOG_FILE"
+    sudo mkdir -p "${LOG_FILE:h}"; sudo touch "$LOG_FILE"; sudo chmod 666 "$LOG_FILE"
     sudo pacman -Sy --noconfirm --needed "$p" >> "$LOG_FILE" 2>&1 || {
       status_err "Failed to install $p"; return 1; }
   fi
@@ -132,6 +132,11 @@ srv_setup_dirs() {
   done
   sudo touch "$LOG_FILE"
   sudo chmod 777 "$NC_DEST" "$RSYNC_DIR"
+  # >>"$LOG_FILE" redirects below run in this (unprivileged) shell even
+  # inside a sudo'd command — sudo only elevates the command itself, not
+  # the parent shell's own I/O redirection — so the file has to be
+  # writable by the calling user, not just root.
+  sudo chmod 666 "$LOG_FILE"
 }
 
 # ── rsync daemon ───────────────────────────────────────────────────────────
@@ -149,6 +154,7 @@ uid = nobody
 gid = nobody
 use chroot = no
 max connections = 16
+port = ${RSYNC_PORT}
 log file = ${LOG_FILE}
 pid file = /run/rsyncd.pid
 hosts allow = ${SUBNET}
@@ -164,15 +170,22 @@ secrets file = ${SECRETS_FILE}
     secrets file = ${SECRETS_FILE}
 EOF
 
-  sudo systemd-run --unit=rsyncd \
-    /usr/bin/rsync --daemon --no-detach --port="$RSYNC_PORT" \
-    --config=/etc/rsyncd.conf >>"$LOG_FILE" 2>&1 &
-  fw_tcp "$RSYNC_PORT"
-  status_ok "rsyncd started on :${RSYNC_PORT}  user=${RSYNC_USER}"
-  log "rsyncd started"
+  # rsync's own package ships a real rsyncd.service unit (ConditionPathExists
+  # on /etc/rsyncd.conf above, ExecStart already runs --daemon --no-detach) —
+  # use that directly rather than a transient unit of the same name, which
+  # systemd refuses to create when a real unit file already claims it.
+  if sudo systemctl enable --now rsyncd >>"$LOG_FILE" 2>&1; then
+    fw_tcp "$RSYNC_PORT"
+    status_ok "rsyncd started on :${RSYNC_PORT}  user=${RSYNC_USER}"
+    log "rsyncd started"
+  else
+    status_err "rsyncd failed to start — see ${LOG_FILE}"
+    log "rsyncd failed to start"
+    return 1
+  fi
 }
 
-srv_stop_rsync() { sudo systemctl stop rsyncd 2>/dev/null; sudo pkill -f 'rsync --daemon' 2>/dev/null || true; status_ok "rsyncd stopped"; }
+srv_stop_rsync() { sudo systemctl disable --now rsyncd >>"$LOG_FILE" 2>&1 || true; status_ok "rsyncd stopped"; }
 
 # ── Samba ──────────────────────────────────────────────────────────────────
 srv_start_samba() {
@@ -201,10 +214,15 @@ srv_start_samba() {
    directory mask = 0775
 EOF
 
-  sudo systemctl enable --now smb nmb >>"$LOG_FILE" 2>&1
-  fw_tcp 139; fw_tcp 445; fw_udp 137; fw_udp 138
-  status_ok "Samba started  user=${SMB_USER}  share=\\\\$(hostname -s)\\share"
-  log "Samba started"
+  if sudo systemctl enable --now smb nmb >>"$LOG_FILE" 2>&1; then
+    fw_tcp 139; fw_tcp 445; fw_udp 137; fw_udp 138
+    status_ok "Samba started  user=${SMB_USER}  share=\\\\$(hostname -s)\\share"
+    log "Samba started"
+  else
+    status_err "Samba failed to start — see ${LOG_FILE}"
+    log "Samba failed to start"
+    return 1
+  fi
 }
 
 srv_stop_samba() { sudo systemctl disable --now smb nmb >>"$LOG_FILE" 2>&1 || true; status_ok "Samba stopped"; }
@@ -217,11 +235,16 @@ srv_start_nfs() {
   grep -qF "$NFS_DIR" /etc/exports 2>/dev/null || \
     printf '%s  %s(rw,sync,no_subtree_check,fsid=0,no_root_squash)\n' \
       "$NFS_DIR" "$SUBNET" | sudo tee -a /etc/exports >/dev/null
-  sudo systemctl enable --now nfs-server >>"$LOG_FILE" 2>&1
-  sudo exportfs -rav >>"$LOG_FILE" 2>&1
-  fw_tcp 2049
-  status_ok "NFSv4 started  →  mount -t nfs4 $(hostname -s):/ /mnt/..."
-  log "NFSv4 started"
+  if sudo systemctl enable --now nfs-server >>"$LOG_FILE" 2>&1; then
+    sudo exportfs -rav >>"$LOG_FILE" 2>&1
+    fw_tcp 2049
+    status_ok "NFSv4 started  →  mount -t nfs4 $(hostname -s):/ /mnt/..."
+    log "NFSv4 started"
+  else
+    status_err "NFSv4 failed to start — see ${LOG_FILE}"
+    log "NFSv4 failed to start"
+    return 1
+  fi
 }
 
 srv_stop_nfs() {
@@ -233,12 +256,17 @@ srv_stop_nfs() {
 srv_start_http() {
   ensure_pkg busybox || return
   srv_setup_dirs
-  sudo systemd-run --unit=synshare-httpd \
+  if sudo systemd-run --unit=synshare-httpd \
     /usr/bin/busybox httpd -f -p "0.0.0.0:${HTTP_PORT}" \
-    -h "$HTTP_DIR" >>"$LOG_FILE" 2>&1
-  fw_tcp "$HTTP_PORT"
-  status_ok "HTTP on :${HTTP_PORT}  root=${HTTP_DIR}  (read-only)"
-  log "HTTP started"
+    -h "$HTTP_DIR" >>"$LOG_FILE" 2>&1; then
+    fw_tcp "$HTTP_PORT"
+    status_ok "HTTP on :${HTTP_PORT}  root=${HTTP_DIR}  (read-only)"
+    log "HTTP started"
+  else
+    status_err "HTTP failed to start — see ${LOG_FILE}"
+    log "HTTP failed to start"
+    return 1
+  fi
 }
 
 srv_stop_http() { sudo systemctl stop synshare-httpd 2>/dev/null || true; status_ok "HTTP stopped"; }
@@ -259,10 +287,15 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
   sudo systemctl daemon-reload
-  sudo systemctl enable --now synshare-tftpd >>"$LOG_FILE" 2>&1
-  fw_udp 69
-  status_ok "TFTP started  root=${TFTP_DIR}"
-  log "TFTP started"
+  if sudo systemctl enable --now synshare-tftpd >>"$LOG_FILE" 2>&1; then
+    fw_udp 69
+    status_ok "TFTP started  root=${TFTP_DIR}"
+    log "TFTP started"
+  else
+    status_err "TFTP failed to start — see ${LOG_FILE}"
+    log "TFTP failed to start"
+    return 1
+  fi
 }
 
 srv_stop_tftp() { sudo systemctl disable --now synshare-tftpd 2>/dev/null || true; status_ok "TFTP stopped"; }
@@ -272,11 +305,16 @@ srv_start_nc() {
   ensure_pkg openbsd-netcat || true
   ensure_pkg pv || true
   srv_setup_dirs
-  sudo systemd-run --unit=synshare-nc \
-    bash -lc "cd '${NC_DEST}' && nc -lvkp ${NC_PORT} | pv | tar xpf -" >>"$LOG_FILE" 2>&1
-  fw_tcp "$NC_PORT"
-  status_ok "Netcat receiver on :${NC_PORT}  dest=${NC_DEST}"
-  log "Netcat receiver started"
+  if sudo systemd-run --unit=synshare-nc \
+    bash -lc "cd '${NC_DEST}' && nc -lvkp ${NC_PORT} | pv | tar xpf -" >>"$LOG_FILE" 2>&1; then
+    fw_tcp "$NC_PORT"
+    status_ok "Netcat receiver on :${NC_PORT}  dest=${NC_DEST}"
+    log "Netcat receiver started"
+  else
+    status_err "Netcat receiver failed to start — see ${LOG_FILE}"
+    log "Netcat receiver failed to start"
+    return 1
+  fi
 }
 
 srv_stop_nc() { sudo systemctl stop synshare-nc 2>/dev/null || true; status_ok "Netcat stopped"; }
