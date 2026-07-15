@@ -4,7 +4,7 @@ Every package SYN-OS installs is listed in [`syn-packages.zsh`](../../../lib/syn
 
 Descriptions below are the file's own inline comments. Links go to the Arch Wiki page for the package where one exists, otherwise the upstream project.
 
-![The SYNSTALL package set, broken down by category with rough size and a few cross-category runtime relationships](./svg/packages-map.svg)
+![The SYNSTALL package set, broken down by category with rough size and a few cross-category runtime relationships](./diagrams/svg/packages-map.svg)
 
 ## `baseCore`
 
@@ -143,7 +143,7 @@ The apps that round out a usable desktop.
 
 ## How a package actually gets installed
 
-![How a package ends up on an installed SYN-OS system: from the seven arrays through SYNSTALL to pacstrap, with bootloader packages decided separately at install time](./svg/packages-logic.svg)
+![How a package ends up on an installed SYN-OS system: from the seven arrays through SYNSTALL to pacstrap, with bootloader packages decided separately at install time](./diagrams/svg/packages-logic.svg)
 
 The seven arrays are concatenated at parse time, before Stage 0 ever runs, into one flat `SYNSTALL`. Bootloader packages (`efibootmgr`+`systemd`, `grub`, or `syslinux`) aren't in any of the seven arrays — `syn-pacstrap.zsh` decides those based on the resolved `PartitionStrat` (see [Storage Strategies](./storage-strategies.md)) and appends them to `SYNSTALL` right before the single `pacstrap -K` call that installs everything.
 

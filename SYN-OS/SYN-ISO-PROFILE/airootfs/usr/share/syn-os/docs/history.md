@@ -2,8 +2,6 @@
 
 SYN-OS has grown roughly 17× in code size since its first installer script, and hasn't gotten heavier for it. Encryption, firmware detection, and strategy validation were added because the system needed to do more. oh-my-zsh, redundant tooling, and dead code paths were removed the moment they stopped earning their place. It's one project, not two: `SYN-OS` isn't a spiritual successor to something called `SYN-RTOS`, it's the same repository's contents renamed and carried forward, more than once, since 2021. The intent was stated once, early, and hasn't moved since. From [`SYN-RTOS/README.md`](https://github.com/syn990/SYN-RTOS), 2021-04-04: *"a basic framework for creating other meta-distributions."*
 
-![Scope growth from the 2021 origin to the current install pipeline, capability by capability](./svg/history-scope-growth.svg)
-
 Everything below is sourced from `git log`/`git show` against two repositories that are, functionally, one continuous history: [`syn990/SYN-RTOS`](https://github.com/syn990/SYN-RTOS) (2021 to 2023) and [`syn990/SYN-OS`](https://github.com/syn990/SYN-OS) (2023 to present). `SYN-OS`'s own buried `SYN-RTOS-OLD/` subtree is a snapshot of `SYN-RTOS` taken on 2023-02-12, not a separate origin — the two repositories share commits, file bodies, and even bugs across the boundary. That's the point of this document: there isn't a seam where you'd draw one.
 
 ---
@@ -153,8 +151,6 @@ Between the dead `.xinitrc` line and the current bare alias, a real display-mana
 
 It installs `greetd greetd-tuigreet labwc dbus shadow sed coreutils`, writes a session launcher, creates a dedicated unprivileged `greeter` user (`/sbin/nologin`), writes `/etc/greetd/config.toml` and a full PAM stack at `/etc/pam.d/greetd`, disables `getty@tty1`, and enables `greetd.service`. It was never called from `syn-stage1.zsh` and was deleted without shipping. What's currently in the ISO — root autologin at the TTY, `synos` as a manual alias — is strictly less machinery: no greeter daemon, no dedicated PAM stack, no seat-managed session, smaller attack surface, at the cost of the desktop not appearing automatically.
 
-![Session start: 2021 X11 baseline, the compositor line dead code in an unused launch path, the abandoned greetd path, and the current TTY-autologin path](./svg/history-session-start.svg)
-
 ---
 
 ## 2. Shell environment: one config file, worn by four years of formatters and frameworks
@@ -184,8 +180,6 @@ What replaced it doesn't vendor anything. The current `.zshrc` is 157 lines. It 
 
 Same functional result — autosuggestions, syntax highlighting, fuzzy search — delivered by pacman-packaged plugins wired in by hand instead of a vendored framework's own plugin system. `EDITOR='nano'` is set here; `nano` is the only text editor that has ever appeared in any SYN-OS package list, from the earliest arrays through today.
 
-![Shell environment: vendored oh-my-zsh across both repositories vs. today's hand-written .zshrc](./svg/history-shell-env.svg)
-
 ---
 
 ## 3. Where the config file has actually lived
@@ -193,8 +187,6 @@ Same functional result — autosuggestions, syntax highlighting, fuzzy search �
 The idea of an install-time config a script reads from, rather than variables edited inline before each run, is present as early as `SYN-RTOS` itself: a `syn.conf` bootloader entry appears at `SYN-RTOS/ff4c3e4`/`19d247e`, 2022-11-01/08, over a year before `SYN-OS` existed as a repository. The full installer-config version of the idea, a `syn.conf` a script actually sources for hostname/disk/locale, is present by the time `SYN-OS-V4` forks off in June 2023, and gets copied forward at every subsequent reset (into `SYN-OS-2035` in September 2023, into the current `SYN-OS` tree in January 2024) in the same flat format each time, for two and a half years, before its format or location changed at all.
 
 It isn't until `SYN-OS/320cd47` (2026-02-23) — the same commit that rewrote the installer's whole strategy-dispatch architecture — that the config gets a correct home, `/etc/syn-os/synos.conf` (the location the Filesystem Hierarchy Standard actually specifies), and a real loader to match: `syn-config.zsh`, which normalizes booleans, detects real firmware via `/sys/firmware/efi/efivars`, derives strategy selections, and hard-fails on invalid combinations. The format was rewritten in the same six-week window as the rest of the installer. The location took five years to become correct.
-
-![Config file location: five years, five hops, one correct location](./svg/history-config-location.svg)
 
 ---
 
@@ -228,8 +220,6 @@ fi
 ```
 
 GRUB was dropped for `systemd-boot` at `9df0f28` (2026-02-15) and reintroduced eight days later, scoped to exactly the one combination systemd-boot and syslinux both fail to cover.
-
-![Partition strategy dispatch: firmware detection, encryption branch, hard-fail cases](./svg/history-partition-dispatch.svg)
 
 ---
 
@@ -371,7 +361,7 @@ SYN-OS/                    2024-01-28 → present
 
 ## Scope, not weight
 
-The 32-line `SYN-RTOS/aaaffa6` installer (Section 1) and today's install pipeline (`syn-stage0.zsh` + `syn-stage1.zsh` + `syn-config.zsh` + `syn-partition.zsh` + `syn-volume.zsh`, ~540 combined lines, diagrammed at the top of this document) differ by roughly 17× in line count. Every added line maps to a capability the 2021 script didn't have. Everything that stopped earning its place has been removed on sight rather than left to accumulate: the vendored oh-my-zsh framework (Section 2), the duplicate directory-graphing tools (Section 7), the greetd integration that was never wired in (Section 1). Additions track requirements; deletions track anything that stopped earning its place.
+The 32-line `SYN-RTOS/aaaffa6` installer (Section 1) and today's install pipeline (`syn-stage0.zsh` + `syn-stage1.zsh` + `syn-config.zsh` + `syn-disk.zsh`, ~540 combined lines, diagrammed at the top of this document) differ by roughly 17× in line count. Every added line maps to a capability the 2021 script didn't have. Everything that stopped earning its place has been removed on sight rather than left to accumulate: the vendored oh-my-zsh framework (Section 2), the duplicate directory-graphing tools (Section 7), the greetd integration that was never wired in (Section 1). Additions track requirements; deletions track anything that stopped earning its place.
 
 The one long-lived exception — the dead `xcompmgr` line in `.xinitrc` (Section 1) — didn't survive because it went unchecked. Compositing was tested properly, by hand, with tuned parameters, and rejected, in the same month the line's precursor was written. It survived because it sat in a launch path (`startx`) that wasn't the daily one; the file that mattered for session start, `openbox/autostart`, stayed correct across every version. Dead code in a path nobody depends on carries a different weight than dead code in one that does.
 

@@ -4,7 +4,7 @@
 #
 #   Recursively graphs a directory tree with Graphviz's dot layout, styled
 #   in the live SYN-OS theme. Rewrite of the original GRAPH.sh (kept for
-#   reference at docs/graphviz-src/GRAPH.sh.orig).
+#   reference at docs/diagrams/src/GRAPH.sh.orig).
 #
 #   Usage: syn-graphmap.zsh [directory] [max-depth] [format]
 #     directory   prompts via wmenu if omitted
@@ -24,6 +24,7 @@ EXCLUDE_NAMES=(.git .cache node_modules WORKDIR .syncache)
 MAX_DEPTH="${2:-6}"
 
 source /usr/lib/syn-os/syn-theme-lib.zsh
+source /usr/lib/syn-os/syn-ui.zsh
 syn_theme_load
 SYN_BG="${SYN_BG:-#000000}"
 SYN_TEXT="${SYN_TEXT:-#ffffff}"
@@ -32,12 +33,12 @@ SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
 
 target="${1:-}"
 if [[ -z "$target" ]]; then
-  print "SYN-GRAPHMAP: a popup will ask which directory to graph — enter or pick one, then check back here."
+  syn_ui::info "SYN-GRAPHMAP: a popup will ask which directory to graph — enter or pick one, then check back here."
   target="$(print -l -- "$PWD" "$HOME" "$HOME/GithubProjects" \
     | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_ACCENT" -s "$SYN_BG" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Directory to graph:")"
 fi
-[[ -n "$target" ]] || { print -u2 "No directory given."; exit 1; }
-[[ -d "$target" ]] || { print -u2 "Not a directory: $target"; exit 1; }
+[[ -n "$target" ]] || { syn_ui::error "No directory given."; exit 1; }
+[[ -d "$target" ]] || { syn_ui::error "Not a directory: $target"; exit 1; }
 target="${target:A}"
 
 format="${3:-}"
@@ -47,10 +48,10 @@ if [[ -z "$format" ]]; then
 fi
 case "$format" in
   png|svg) ;;
-  *) print -u2 "Unknown format '${format}', defaulting to png."; format="png" ;;
+  *) syn_ui::error "Unknown format '${format}', defaulting to png."; format="png" ;;
 esac
 
-print "Scanning ${target}…"
+syn_ui::step "Scanning ${target}"
 
 outDir="$HOME/Pictures/SYN-GRAPHMAP"
 mkdir -p "$outDir"
@@ -92,12 +93,12 @@ generate_structure() {
   print "}"
 } > "$dotFile"
 
-print "Graphviz dot file generated: $dotFile"
-print "Generating ${format} output..."
+syn_ui::step_done "Graphviz dot file generated: $dotFile"
+syn_ui::step "Generating ${format} output"
 # -Gdpi only affects rendering resolution, not layout, so it's PNG-only —
 # Graphviz's default 72 DPI is too coarse to read labels once zoomed in.
 typeset -a dpiFlag
 [[ "$format" == "png" ]] && dpiFlag=(-Gdpi=300)
 dot "${dpiFlag[@]}" -T"${format}" "$dotFile" -o "$outDir/$(basename "$target")-dot.${format}"
 
-print "Done. Output in $outDir"
+syn_ui::step_done "Done. Output in $outDir"

@@ -11,9 +11,10 @@ DotfileOverlay/
 │       ├── .zshrc
 │       ├── .wallpaper/          SYN-OS-{RED,BLUE,GREEN,PURPLE}-wallpaper.png
 │       └── .config/
-│           ├── labwc/           see docs/labwc.md
-│           │                     (incl. syn-theme-menu.zsh, syn-docs-menu.zsh)
-│           ├── waybar/          see docs/waybar.md
+│           ├── labwc/           see docs/labwc.md (config only: rc.xml,
+│           │                     menu.xml, autostart, environment, themerc)
+│           ├── waybar/          see docs/waybar.md (config only: config.jsonc,
+│           │                     style.css)
 │           ├── syn-os/themes/   SYN-OS-{RED,BLUE,GREEN,PURPLE}.theme (SYN_* vars)
 │           ├── foot/
 │           ├── superfile/
@@ -26,6 +27,11 @@ DotfileOverlay/
     │                                (incl. syn-theme-apply, syn-docs-view.zsh)
     ├── lib/
     │   └── syn-os/
+    │       ├── syn-pipe-*.zsh    labwc pipe-menu generators (audio, display,
+    │       │                      docs, share, superfile, theme)
+    │       ├── syn-bar-*.zsh     waybar modules/handlers (disk, launcher,
+    │       │                      power, share-quickmenu, share-status,
+    │       │                      toggle-position, wifi)
     │       └── theme-templates/  → /usr/lib/syn-os/theme-templates/
     │                                (waybar/labwc/qt5ct/foot/superfile
     │                                 templates rendered by syn-theme-apply)
@@ -40,11 +46,11 @@ DotfileOverlay/
 
 ## How it actually gets onto a real system
 
-![DotfileOverlay: from repo to a real user's home directory, across the Stage 0/Stage 1 boundary](./svg/dotfile-overlay.svg)
+![DotfileOverlay: from repo to a real user's home directory, across the Stage 0/Stage 1 boundary](./diagrams/svg/dotfile-overlay.svg)
 
 Two steps, in two different stages:
 
-1. **Stage 0**, still in the live ISO, `pacstrapMain` in [`syn-pacstrap.zsh`](./stage0.md#5-pacstrapmain-syn-pacstrapzsh) runs one command: `cp -r DotfileOverlay/* "${RootMountLocation}/"`. The folder is already laid out like the real filesystem, so this single copy puts everything in the right place — no per-file logic needed. Right after, it runs `chmod -R +x` on a few specific folders (`/usr/lib/syn-os`, and the `labwc`/`waybar`/`superfile` config folders under `/etc/skel`), because a plain file copy doesn't always keep the execute bit on scripts.
+1. **Stage 0**, still in the live ISO, `pacstrapMain` in [`syn-pacstrap.zsh`](./stage0.md#5-pacstrapmain-syn-pacstrapzsh) runs one command: `cp -r DotfileOverlay/* "${RootMountLocation}/"`. The folder is already laid out like the real filesystem, so this single copy puts everything in the right place — no per-file logic needed. Right after, it runs `chmod -R +x` on a few specific folders (`/usr/lib/syn-os` — where the `syn-pipe-*`/`syn-bar-*` scripts actually live — plus `labwc`'s `autostart` and the `superfile` config folder under `/etc/skel`, since those still need to execute in place), because a plain file copy doesn't always keep the execute bit on scripts.
 
 2. **Stage 1**, inside the chroot, creates the actual user account: `useradd -m -G wheel`. The `-m` flag copies `/etc/skel` into the new user's home directory. This is the real moment your dotfiles become someone's actual files, not the `cp -r` in Stage 0.
 

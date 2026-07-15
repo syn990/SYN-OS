@@ -12,7 +12,7 @@ Arch's package manager — fast, dependency-resolving — is the tool every inst
 
 ## The Arch philosophy
 
-Arch's stated principles — simplicity (minimal patching, upstream-as-possible), user-centrality (you configure it, nothing is decided for you by default), transparency (documented, inspectable) — are the same principles the SYN-OS README states as its own [Philosophy](../../../../../../../../readme.md#philosophy). SYN-OS doesn't deviate from Arch's approach so much as extend it one layer up: Arch gives you a blank, well-documented base and expects you to configure it yourself; SYN-OS is one specific, fully-disclosed configuration of that base, a personal starting point, not a wrapper that hides Arch underneath it.
+Arch's stated principles — simplicity (minimal patching, upstream-as-possible), user-centrality (you configure it, nothing is decided for you by default), transparency (documented, inspectable) — are the same principles SYN-OS states as its own [Philosophy](../philosophy.md). SYN-OS doesn't deviate from Arch's approach so much as extend it one layer up: Arch gives you a blank, well-documented base and expects you to configure it yourself; SYN-OS is one specific, fully-disclosed configuration of that base, a personal starting point, not a wrapper that hides Arch underneath it.
 
 ## The [Arch Wiki](https://wiki.archlinux.org)
 

@@ -3,9 +3,9 @@
 #                         S Y N - D O C S - V I E W
 #
 #   Renders one markdown doc with glow in this terminal, and opens any
-#   Graphviz diagrams it references (![...](./svg/foo.svg)) as real image
+#   Graphviz diagrams it references (![...](./diagrams/svg/foo.svg)) as real image
 #   windows via feh rather than terminal graphics. Invoked by
-#   syn-docs-menu.zsh, one file per call.
+#   syn-pipe-docs.zsh, one file per call.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-DOCS-VIEW (Docs)

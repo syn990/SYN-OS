@@ -15,7 +15,7 @@
     <!-- File Browser -->
     <item label="File browser">
       <action name="Execute">
-        <command>~/.config/labwc/spf-menu.zsh</command>
+        <command>/usr/lib/syn-os/syn-pipe-superfile.zsh</command>
       </action>
     </item>
 
@@ -32,25 +32,25 @@
     <menu id="capture-menu" label="Capture">
       <item label="Screenshot - full screen">
         <action name="Execute">
-          <command>~/.config/labwc/screenshot.zsh full</command>
+          <command>/usr/lib/syn-os/screenshot.zsh full</command>
         </action>
       </item>
 
       <item label="Screenshot - select area">
         <action name="Execute">
-          <command>~/.config/labwc/screenshot.zsh region</command>
+          <command>/usr/lib/syn-os/screenshot.zsh region</command>
         </action>
       </item>
 
       <item label="Record - full screen">
         <action name="Execute">
-          <command>~/.config/labwc/screen-recorder.zsh full</command>
+          <command>/usr/lib/syn-os/screen-recorder.zsh full</command>
         </action>
       </item>
 
       <item label="Record - select area / Stop">
         <action name="Execute">
-          <command>~/.config/labwc/screen-recorder.zsh region</command>
+          <command>/usr/lib/syn-os/screen-recorder.zsh region</command>
         </action>
       </item>
     </menu>
@@ -67,7 +67,7 @@
     <menu id="synos-tools" label="SYN-OS Tools">
       <menu id="syn-share-menu"
             label="SYN-SHARE (file transfer hub)"
-            execute="zsh ~/.config/labwc/syn-share-menu.zsh" />
+            execute="zsh /usr/lib/syn-os/syn-pipe-share.zsh" />
 
       <!-- syn-crypter.zsh and syn-redshirt.zsh take flags and a file path
            on the command line (no interactive prompts of their own) — there's
@@ -112,6 +112,12 @@
           </action>
         </item>
       </menu>
+
+      <item label="SYN-OS ISO Builder">
+        <action name="Execute">
+          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-build-launcher.zsh; exec zsh'</command>
+        </action>
+      </item>
     </menu>
 
     <!-- Audio / Display / Themes / Bar toggle / Docs: everything that's a
@@ -124,23 +130,23 @@
     <menu id="preferences-menu" label="Preferences">
       <menu id="audio-pipe"
             label="Audio Settings"
-            execute="~/.config/labwc/labwc-audio-menu.zsh" />
+            execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
 
       <menu id="displays-pipe"
             label="Display &amp; Screens"
-            execute="~/.config/labwc/labwc-wlr-menu.zsh" />
+            execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
 
       <menu id="themes-pipe"
             label="Themes"
-            execute="~/.config/labwc/syn-theme-menu.zsh" />
+            execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
 
       <item label="Toggle Bar Position">
-        <action name="Execute" command="~/.config/waybar/toggle-bar-position.sh" />
+        <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
       </item>
 
       <menu id="docs-pipe"
             label="Docs"
-            execute="~/.config/labwc/syn-docs-menu.zsh" />
+            execute="/usr/lib/syn-os/syn-pipe-docs.zsh" />
     </menu>
 
     <!-- System: everything that isn't reached for every day (lock/volume

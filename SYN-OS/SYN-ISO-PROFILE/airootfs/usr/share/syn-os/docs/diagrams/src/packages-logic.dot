@@ -1,0 +1,55 @@
+digraph package_logic {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="How a package ends up on an installed SYN-OS system";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
+
+  subgraph cluster_source {
+    label="syn-packages.zsh, 7 arrays"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    baseCore [label="baseCore", fillcolor="#330000"];
+    netAndServices [label="netAndServices", fillcolor="#330000"];
+    shellAndCLI [label="shellAndCLI", fillcolor="#330000"];
+    desktopStack [label="desktopStack", fillcolor="#330000"];
+    devToolkit [label="devToolkit", fillcolor="#330000"];
+    fontsI18n [label="fontsI18n", fillcolor="#330000"];
+    appsMedia [label="appsMedia", fillcolor="#330000"];
+  }
+
+  synstall [label="SYNSTALL\n(flat concatenation of all 7 arrays,\nno special ordering or tiering)", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+
+  subgraph cluster_bootloader {
+    label="decided separately, install time"; style="dashed,rounded"; color="#665522"; fontcolor="#ccaa66"; bgcolor="#0a0a0a";
+    partstrat [label="PartitionStrat\n(resolved by syn-config.zsh)", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    uefi_pkgs [label="efibootmgr + systemd", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    grub_pkgs [label="grub", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    syslinux_pkgs [label="syslinux", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    partstrat -> uefi_pkgs [label=" uefi-bootctl"];
+    partstrat -> grub_pkgs [label=" mbr-grub"];
+    partstrat -> syslinux_pkgs [label=" mbr-syslinux"];
+  }
+
+  pacstrap [label="pacstrap -K\n(syn-pacstrap.zsh, Stage 0 step 5)", fillcolor="#1a0000"];
+  fstab [label="genfstab -U > /etc/fstab", fillcolor="#330000"];
+  installed [label="installed system", shape=oval, fillcolor="#1a0000"];
+
+  baseCore -> synstall;
+  netAndServices -> synstall;
+  shellAndCLI -> synstall;
+  desktopStack -> synstall;
+  devToolkit -> synstall;
+  fontsI18n -> synstall;
+  appsMedia -> synstall;
+
+  synstall -> pacstrap;
+  uefi_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
+  grub_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
+  syslinux_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
+  pacstrap -> fstab -> installed;
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Categories are organisational only, the file says so\ndirectly. pacman treats every package identically once\ninstalled, there is no protected tier: removing something\nthe desktop depends on (waybar, labwc, a zsh plugin) is\non you to avoid, same as any other Arch install."];
+}

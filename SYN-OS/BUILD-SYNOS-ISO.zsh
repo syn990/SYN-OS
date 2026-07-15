@@ -29,7 +29,7 @@
 #               sources/ via git archive
 #   isos/       every finished ISO, permanent — WORKDIR/ISO_OUTPUT below
 #               are scratch space wiped on every run
-BASE_DIR="/home/syntax990/GithubProjects/SYN-OS/SYN-OS"
+BASE_DIR="${0:A:h}"
 PROFILE_DEFAULT="$BASE_DIR/SYN-ISO-PROFILE"
 WORKDIR="$BASE_DIR/WORKDIR"
 OUTPUT="$BASE_DIR/ISO_OUTPUT"

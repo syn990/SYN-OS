@@ -16,7 +16,7 @@ set -euo pipefail
 # Load config + packages + UI scripts
 source /usr/lib/syn-os/syn-config.zsh
 source /usr/lib/syn-os/syn-packages.zsh
-source /usr/lib/syn-os/ui.zsh
+source /usr/lib/syn-os/syn-ui.zsh
 
 # Duplicates all output (Stage 0 and, once chrooted, Stage 1) to a log
 # file via `script` rather than a `tee` pipe — pacman/pacstrap check
@@ -39,11 +39,9 @@ syn_stage0::cleanup() {
 }
 trap syn_stage0::cleanup EXIT INT TERM
 
-# Load modular strategy scripts
-source /usr/lib/syn-os/syn-partition.zsh
-source /usr/lib/syn-os/syn-volume.zsh
-source /usr/lib/syn-os/syn-filesystem.zsh
-source /usr/lib/syn-os/syn-mount.zsh
+# Load the disk-prep pipeline (partition -> volume -> filesystem -> mount)
+# and the package/deploy stage
+source /usr/lib/syn-os/syn-disk.zsh
 source /usr/lib/syn-os/syn-pacstrap.zsh
 
 # Explicit confirmation before anything destructive (partitioning,

@@ -5,7 +5,9 @@
 #   Runs inside the chroot after Stage 0: configures locale/hostname/time/
 #   console, creates the user account, builds the initramfs for the chosen
 #   volume strategy (LUKS/LVM), and installs the bootloader. Reads
-#   install.state, the handoff Stage 0 wrote.
+#   synos.conf (via syn-config.zsh) for static settings and install.state
+#   for facts Stage 0 only knows once disk prep has actually run
+#   (RootFsDev, SwapDev, LuksUuid, ...).
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-STAGE1 (Installer)
@@ -16,7 +18,7 @@ set -euo pipefail
 
 # Load config + UI
 source /usr/lib/syn-os/syn-config.zsh
-source /usr/lib/syn-os/ui.zsh
+source /usr/lib/syn-os/syn-ui.zsh
 
 # Load derived state from Stage 0
 State="/etc/syn-os/install.state"
@@ -69,9 +71,9 @@ fi
 echo "${UserAccountName}:${UserAccountPassword}" | chpasswd
 syn_ui::step_done "Password set for ${UserAccountName}"
 
-# install.state only needed the password to reach this point — strip it
+# synos.conf only needed the password to reach this point — strip it
 # rather than leave it in plaintext on the installed disk.
-sed -i '/^UserAccountPassword=/d' "$State"
+sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
 # mkinitcpio hooks — same set for UEFI and BIOS
 configure_mkinitcpio() {
@@ -140,7 +142,7 @@ elif [ "$PartitionStrat" = "mbr-syslinux" ]; then
   if [ -f /boot/syslinux/syslinux.cfg ]; then
     sed -i "s|APPEND .*|APPEND ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}|" /boot/syslinux/syslinux.cfg
   fi
-# See syn-partition.zsh's partitionStrat_mbr_grub for why this strategy
+# See syn-disk.zsh's partitionStrat_mbr_grub for why this strategy
 # needs its own unencrypted /boot. Because of that, GRUB itself never
 # touches encryption — cryptdevice= is resolved by the initramfs's
 # encrypt hook at boot, same as uefi-bootctl.

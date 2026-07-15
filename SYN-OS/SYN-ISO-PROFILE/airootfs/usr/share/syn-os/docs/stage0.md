@@ -6,7 +6,7 @@ Stage 0 (`syn-stage0.zsh`) runs entirely in the live ISO environment, before any
 
 The first thing `syn-stage0.zsh` does is re-exec itself under `script -qefc`, writing a full transcript to `/root/synos-install-<timestamp>.log` (later copied onto the installed disk). This is also why pacman's progress bars render at all. Pacman checks `isatty()` on stdout to decide whether to draw them, and that check fails the moment stdout is piped through anything — even a plain `tee -a "$InstallLog"`, which an earlier version of this script used, and even with `Color`/`ILoveCandy` set in `pacman.conf`. `script` gives the child process a real pty, so `isatty()` passes and the bars render, while the full transcript still gets captured to the log file.
 
-## 1. `partitionMain`: `syn-partition.zsh`
+## 1. `partitionMain`: `syn-disk.zsh`
 
 Zeroes the first 4 MiB of the target disk (`Disk` from `synos.conf`), then dispatches on `PartitionStrat`:
 
@@ -16,7 +16,7 @@ Zeroes the first 4 MiB of the target disk (`Disk` from `synos.conf`), then dispa
 
 A `waitForBlock` helper polls for up to 5 seconds for the partition device node to appear before failing, since `partprobe`/`udevadm settle` don't always guarantee the kernel has caught up.
 
-## 2. `volumeMain`: `syn-volume.zsh`
+## 2. `volumeMain`: `syn-disk.zsh`
 
 If `BootPart` differs from `RootPart` (`uefi-bootctl` or `mbr-grub`), formats the boot partition first: FAT32 for `uefi-bootctl`'s ESP, ext4 for `mbr-grub`'s boot partition. Then dispatches on the internal `VolumeStrat` (derived from `Encryption`/`UseLvm` by `syn-config.zsh`):
 
@@ -31,11 +31,11 @@ Every path sets `RootFsDev` (the block device the filesystem gets created on) an
 
 LUKS parameters (`LuksCipher`, `LuksKeySize`, `LuksPbkdf`, `LuksLabel`) all come from `synos.conf`; see [Storage Strategies](./storage-strategies.md).
 
-## 3. `filesystemMain`: `syn-filesystem.zsh`
+## 3. `filesystemMain`: `syn-disk.zsh`
 
 Formats `RootFsDev` according to `FilesystemStrat` (`ext4`, `f2fs`, `btrfs`, or `xfs`), all labeled `ROOT`. If `SwapDev` was set by the volume stage, formats it as swap too.
 
-## 4. `mountMain`: `syn-mount.zsh`
+## 4. `mountMain`: `syn-disk.zsh`
 
 Mounts `RootFsDev` at `RootMountLocation` (default `/mnt`). If there's a separate boot partition, mounts it at `BootMountLocation` (default `/mnt/boot`). Activates swap if present.
 
@@ -46,10 +46,10 @@ This is the largest step:
 1. Runs `reflector` to generate a fresh mirrorlist (region `GB`, hardcoded), initializes and populates the pacman keyring, and syncs package databases.
 2. Picks bootloader packages based on `BootloaderStrat`/`PartitionStrat` (`efibootmgr`+`systemd` for `uefi-bootctl`, `grub` for `mbr-grub`, `syslinux` otherwise) and appends them to the `SYNSTALL` array from `syn-packages.zsh`; see [Package Collection](./packages.md).
 3. Runs `pacstrap -K` with the full `SYNSTALL` array, then `genfstab -U` to write `/etc/fstab`.
-4. Copies `synos.conf` and every `*.zsh` script under `/usr/lib/syn-os/` into the target system, so Stage 1 (which runs from inside the target via chroot) has access to them. `UserAccountPassword` is stripped from this copy of `synos.conf` before it's written — the plaintext password should never live permanently on the installed disk, only pass through transiently on its way to Stage 1 (see [synos.conf](./synos-conf.md#fields) and [Stage 1](./stage1.md)).
+4. Copies `synos.conf` and every `*.zsh` script under `/usr/lib/syn-os/` into the target system, so Stage 1 (which runs from inside the target via chroot) has access to them. `UserAccountPassword` travels in this copy since Stage 1 needs it for `chpasswd` — the plaintext password should never live permanently on the installed disk, only pass through transiently; Stage 1 strips it from `synos.conf` right after use (see [synos.conf](./synos-conf.md#fields) and [Stage 1](./stage1.md)).
 5. Deploys `DotfileOverlay/` onto the target filesystem: this is how `/etc/skel`, themes, and `/usr/local/bin` scripts get onto the installed system. See [Dotfile Overlay](./dotfile-overlay.md).
 6. Copies `/usr/share/syn-os/docs` (this documentation, plus its diagrams) onto the target filesystem, so it's readable from the installed desktop later via the Docs menu, not just on GitHub. See [LabWC](./labwc.md).
-7. Writes `/etc/syn-os/install.state` inside the target (`chmod 600`, since it briefly carries `UserAccountPassword` too): a flat key=value file capturing every resolved value (`RootFsDev`, `LuksUuid`, `SwapDev`, `Encryption`, `UseLvm`, `Hostname`, `UserAccountPassword`, etc.) that Stage 1 needs but can't re-derive on its own — re-running the partition/volume logic a second time would be destructive. Stage 1 deletes the `UserAccountPassword` line from this file right after consuming it.
+7. Writes `/etc/syn-os/install.state` inside the target (`chmod 600`): a flat key=value file capturing only the values Stage 0 computed at runtime (`RootFsDev`, `LuksUuid`, `SwapDev`, `RootPart`/`BootPart`, `RootMapper`) that Stage 1 needs but can't re-derive on its own — re-running the partition/volume logic a second time would be destructive. Everything else Stage 1 needs (`Hostname`, `KeyMap`, `UserAccountPassword`, etc.) comes from the `synos.conf` copy instead, via `syn-config.zsh`.
 
 ## Handoff
 

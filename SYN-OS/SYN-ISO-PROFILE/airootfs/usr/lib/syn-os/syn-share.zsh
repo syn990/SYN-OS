@@ -4,7 +4,7 @@
 #
 #   File-transfer hub for SYN-OS (rsync/Samba/NFS/HTTP/TFTP/Netcat, server +
 #   client). Thin dispatcher over syn-share-lib.zsh's action functions —
-#   reached via labwc's SYN-SHARE pipe-menu (.config/labwc/syn-share-menu.zsh),
+#   reached via labwc's SYN-SHARE pipe-menu (syn-pipe-share.zsh),
 #   not meant to be run interactively.
 #
 #   SYN-OS     : The Syntax Operating System

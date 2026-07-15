@@ -59,10 +59,9 @@ pacstrapMain() {
   genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"
   syn_ui::step_done "Base packages installed"
 
-  # UserAccountPassword is stripped from the copy on disk — install.state
-  # (below) carries it to Stage 1, which needs it once and removes it there.
+  # UserAccountPassword travels in this copy so Stage 1 can chpasswd with
+  # it via syn-config.zsh — Stage 1 strips it from disk once used.
   install -Dm644 /etc/syn-os/synos.conf "${RootMountLocation}/etc/syn-os/synos.conf"
-  sed -i '/^UserAccountPassword=/d' "${RootMountLocation}/etc/syn-os/synos.conf"
   for script in /usr/lib/syn-os/*.zsh; do
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
   done
@@ -85,44 +84,20 @@ pacstrapMain() {
     cp -r /usr/share/syn-os/docs "${RootMountLocation}/usr/share/syn-os/docs"
   fi
 
-  # Persist state for Stage 1
+  # Persist state for Stage 1 — only facts stage0 computed at runtime
+  # (actual partition devices, the LUKS UUID cryptsetup just generated).
+  # Everything else Stage 1 needs (Hostname, KeyMap, UserAccountPassword...)
+  # is already in the synos.conf copy above, which Stage 1 re-sources via
+  # syn-config.zsh the same way Stage 0 did.
   local State="${RootMountLocation}/etc/syn-os/install.state"
   mkdir -p "$(dirname "$State")"
   cat > "$State" <<EOF
-PartitionStrat="${PartitionStrat}"
-VolumeStrat="${VolumeStrat}"
-Encryption="${Encryption}"
-UseLvm="${UseLvm}"
-FilesystemStrat="${FilesystemStrat}"
-BootloaderStrat="${BootloaderStrat}"
-
-Disk="${Disk}"
 BootPart="${BootPart:-}"
 RootPart="${RootPart:-}"
 RootMapper="${RootMapper:-}"
 RootFsDev="${RootFsDev}"
 SwapDev="${SwapDev:-}"
-
-LuksLabel="${LuksLabel:-cryptroot}"
 LuksUuid="${LuksUuid:-}"
-VgName="${VgName}"
-
-Hostname="${Hostname}"
-UserAccountName="${UserAccountName}"
-UserAccountPassword="${UserAccountPassword}"
-UserShell="${UserShell}"
-Locale="${Locale}"
-LocaleGen="${LocaleGen}"
-KeyMap="${KeyMap}"
-TimeZone="${TimeZone}"
-VconsoleFont="${VconsoleFont}"
-
-BootFs="${BootFs}"
-RootFs="${RootFs}"
-BootMountLocation="${BootMountLocation}"
-RootMountLocation="${RootMountLocation}"
-KernelOpts="${KernelOpts}"
-
 EOF
   chmod 600 "$State"
 

@@ -1,8 +1,8 @@
 # Storage Strategies
 
-SYN-OS separates "how is the disk laid out" (`PartitionStrat`), "is root encrypted / on LVM" (`Encryption`/`UseLvm`), and "what filesystem is on root" (`FilesystemStrat`) into independent config keys in [`synos.conf`](./synos-conf.md), each handled by its own script. This modularity means swapping encryption on/off or changing filesystem doesn't touch partitioning code.
+SYN-OS separates "how is the disk laid out" (`PartitionStrat`), "is root encrypted / on LVM" (`Encryption`/`UseLvm`), and "what filesystem is on root" (`FilesystemStrat`) into independent config keys in [`synos.conf`](./synos-conf.md), each handled by its own dispatcher function in `syn-disk.zsh`. This modularity means swapping encryption on/off or changing filesystem doesn't touch partitioning code.
 
-## Partition strategies: `syn-partition.zsh`
+## Partition strategies: `syn-disk.zsh` (`partitionMain`)
 
 `PartitionStrat=auto` (the default) picks one of the three below based on detected firmware and `Encryption`. See [synos.conf](./synos-conf.md#partitionstratauto-how-it-resolves-and-why-it-matters) for the resolution table and why this replaced a static default that could silently mismatch real hardware.
 
@@ -36,7 +36,7 @@ Encryption="yes"   # yes | no: whole-disk LUKS2 on root
 UseLvm="yes"        # yes | no: LVM on top of root (or on top of the LUKS mapper, if both are yes)
 ```
 
-`syn-config.zsh` combines these into an internal `VolumeStrat` value that `syn-volume.zsh` dispatches on: this is what determines what `RootFsDev` (the device `mkfs` actually targets) ends up being:
+`syn-config.zsh` combines these into an internal `VolumeStrat` value that `syn-disk.zsh`'s `volumeMain` dispatches on: this is what determines what `RootFsDev` (the device `mkfs` actually targets) ends up being:
 
 | `Encryption` | `UseLvm` | Internal `VolumeStrat` | Layers | `RootFsDev` becomes |
 |---|---|---|---|---|
@@ -51,7 +51,7 @@ UseLvm="yes"        # yes | no: LVM on top of root (or on top of the LUKS mapper
 
 **Swap** is optional and off by default (`SwapSize="0"` in the shipped `synos.conf`). It only exists when `UseLvm=yes`: `plain` and `Encryption=yes`+`UseLvm=no` have no LV layer to carve swap from, so swap isn't available under those.
 
-## Filesystem strategies: `syn-filesystem.zsh`
+## Filesystem strategies: `syn-disk.zsh` (`filesystemMain`)
 
 A thin dispatcher over four `mkfs` variants, all labeled `ROOT`:
 

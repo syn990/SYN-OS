@@ -1,0 +1,40 @@
+digraph dotfile_overlay {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="DotfileOverlay: from repo to a real user's home directory";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
+
+  repo [label="DotfileOverlay/\n(in this repo)\netc/skel/..., usr/local/bin/...,\nusr/share/themes/...\nstructure already mirrors\nabsolute target paths", shape=note, fillcolor="#330000"];
+
+  subgraph cluster_stage0 {
+    label="Stage 0, still in the live ISO\n(syn-pacstrap.zsh, pacstrapMain)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    cp [label="cp -r DotfileOverlay/*\n$RootMountLocation/", fillcolor="#1a0000"];
+    chmod [label="chmod -R +x on:\nusr/lib/syn-os,\netc/skel/.config/{labwc,waybar,superfile}\n(execute bits not guaranteed\nto survive cp)", fillcolor="#1a0000"];
+    cp -> chmod;
+  }
+
+  skel [label="/etc/skel/ now populated\non the target disk\n(new-user home template,\nno real user exists yet)", shape=note, fillcolor="#330000"];
+
+  chroot [label="arch-chroot into target\n(Stage 0 -> Stage 1 handoff)", shape=oval, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+
+  subgraph cluster_stage1 {
+    label="Stage 1, inside the chroot\n(syn-stage1.zsh)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    useradd [label="useradd -m -G wheel", fillcolor="#1a0000"];
+  }
+
+  home [label="/home/<UserAccountName>/\npopulated from /etc/skel\nat account-creation time\n(the actual moment dotfiles\nbecome a real user's files)", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+
+  repo -> cp -> skel;
+  skel -> chroot -> useradd -> home;
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Any user created later (useradd -m, manually,\npost-install) inherits the same /etc/skel\ndefaults. The overlay only ever needs to\ntarget /etc/skel once."];
+
+  drift [shape=note, fillcolor="#1a1608", color="#c0392b", fontcolor="#e0c896",
+         label="A dev machine's live ~/.config and /etc/skel\nare a snapshot from whenever THAT system was\ninstalled or last rebuilt. Editing them changes\nonly the running session, never this repo.\nEditing DotfileOverlay/ here changes only future\nbuilds, never the current desktop. The two only\nmeet at install/rebuild time, never live."];
+  home -> drift [style=invis];
+}
