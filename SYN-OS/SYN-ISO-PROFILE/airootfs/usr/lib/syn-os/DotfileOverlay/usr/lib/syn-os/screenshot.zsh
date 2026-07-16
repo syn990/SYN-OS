@@ -27,7 +27,7 @@ CHOSEN_DIR=$(printf '%s\n' \
   "$HOME/Videos" \
   "$HOME/Desktop" \
   "$HOME/Downloads" \
-  | syn_pick::wmenu "Save screenshot to:")
+  | syn_pick::rofi "Save screenshot to:")
 
 OUT_DIR="${CHOSEN_DIR:-$DEFAULT_DIR}"
 # Expand a leading ~ if the user typed one instead of picking a preset.

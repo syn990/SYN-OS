@@ -34,14 +34,31 @@ syn_pick::wmenu() {
 }
 
 # syn_pick::rofi <prompt> [rofi-args...] — choices on stdin, chosen line on
-# stdout. Full root-level theme override (`* { ... }`) — a partial one
-# leaves rofi on its stock light theme.
+# stdout. Centered card, not rofi's default thin top-anchored bar: solid
+# SYN_PANEL fill, thick SYN_ACCENT border, fixed width so short prompts
+# (a single password field) still read as a real popup, not a sliver.
 syn_pick::rofi() {
   local prompt="$1"; shift
-  local bg="${SYN_BG:-#000000}" bg_alt="${SYN_BG_ALT:-#100000}"
+  local bg="${SYN_BG:-#000000}" panel="${SYN_PANEL:-#2c0101}"
   local text="${SYN_TEXT:-#ffffff}" accent="${SYN_ACCENT:-#800000}"
-  local border="${SYN_BORDER:-#444444}"
+  local accent_dim="${SYN_ACCENT_DIM:-#260101}"
   rofi -dmenu -theme-str \
-    "* { background: ${bg}e6; background-color: ${bg}e6; foreground: $text; lightbg: $bg_alt; lightfg: $text; selected-normal-background: $accent; selected-normal-foreground: $text; border-color: $border; } window { border: 1px; }" \
+    "* { background: ${bg}e6; background-color: ${panel}; foreground: $text; lightbg: $accent_dim; lightfg: $text; selected-normal-background: $accent; selected-normal-foreground: $text; border-color: $accent; } \
+     window { location: center; width: 480px; border: 3px; border-radius: 0px; padding: 16px; } \
+     entry { placeholder-color: $text; } \
+     inputbar { border: 0 0 2px 0; border-color: $accent; padding: 4px 0; margin: 0 0 8px 0; }" \
     -p "$prompt" "$@"
+}
+
+# syn_pick::rofi_input <prompt> [default] — a real popup text field, not a
+# terminal read. [default], if given, is offered as the one selectable/
+# editable line — Enter accepts it as-is, or the user types over it.
+# Returns empty (not an error) if the popup is dismissed with no input.
+syn_pick::rofi_input() {
+  printf '%s' "${2:-}" | syn_pick::rofi "$1"
+}
+
+# syn_pick::rofi_password <prompt> — same, masked with *.
+syn_pick::rofi_password() {
+  printf '' | syn_pick::rofi "$1" -password
 }

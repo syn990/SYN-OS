@@ -111,7 +111,7 @@ SYN-OS is a complete [ArchISO](https://wiki.archlinux.org/title/Archiso) profile
 **From a terminal, on Arch/SYN-OS (installed or live ISO shell):**
 
 ```bash
-sudo pacman -S archiso git
+sudo pacman -S archiso grub git
 git clone https://github.com/syn990/SYN-OS.git
 cd SYN-OS/SYN-OS
 sudo zsh ./BUILD-SYNOS-ISO.zsh
