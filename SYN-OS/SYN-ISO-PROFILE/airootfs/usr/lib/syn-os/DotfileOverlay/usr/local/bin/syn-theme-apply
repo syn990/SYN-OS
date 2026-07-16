@@ -1,7 +1,18 @@
 #!/usr/bin/env zsh
-# SYN-OS theme applier: reads ~/.config/syn-os/themes/<name>.theme and
-# stamps its palette into every themed app, then live-reloads what supports it.
-# Usage: syn-theme-apply <theme-name>
+# ------------------------------------------------------------------------------
+#                       S Y N - T H E M E - A P P L Y
+#
+#   Reads ~/.config/syn-os/themes/<name>.theme and stamps its palette into
+#   every themed app (waybar, qt5ct/qt6ct, labwc, foot, superfile,
+#   pcmanfm-qt, GTK3), live-reloading whatever supports it.
+#
+#   Usage: syn-theme-apply <theme-name>
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-THEME-APPLY (Theming)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 THEMES_DIR="$HOME/.config/syn-os/themes"
@@ -69,12 +80,10 @@ render() {
 waybar_tmpl="$TEMPLATES_DIR/waybar-style.css.tmpl"
 [[ -f "$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl" ]] && waybar_tmpl="$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl"
 render "$waybar_tmpl" "$HOME/.config/waybar/style.css"
-# Bar position is per-theme (SYN_WAYBAR_POSITION in the .theme file, default
-# "top") rather than a theme-name check here, so adding a bottom-bar theme
-# never requires touching this script again. config.jsonc has no "position"
-# key normally (waybar defaults to top), so this adds/updates one rather
-# than templating the whole file, which the user may have hand-edited
-# (custom modules/scripts).
+# Bar position comes from each theme's own SYN_WAYBAR_POSITION, so a new
+# bottom-bar theme never needs a change here. Adds or updates the
+# "position" key rather than templating the whole file, since users may
+# have hand-edited config.jsonc's modules.
 waybar_cfg="$HOME/.config/waybar/config.jsonc"
 waybar_position="${SYN_WAYBAR_POSITION:-top}"
 if [[ -f "$waybar_cfg" ]]; then
@@ -119,13 +128,10 @@ render_qt() {
 render_qt "$TEMPLATES_DIR/qt5ct-colors.conf.tmpl" "$HOME/.config/qt5ct/colors/$SYN_THEME_NAME.conf"
 sed -i "s|^color_scheme_path=.*|color_scheme_path=$HOME/.config/qt5ct/colors/$SYN_THEME_NAME.conf|" "$HOME/.config/qt5ct/qt5ct.conf"
 
-# -------- qt6ct (same as qt5ct above, but this is the one that actually
-# matters: every Qt app on this system — falkon, pavucontrol-qt, pcmanfm-qt
-# — links against Qt6, not Qt5, confirmed via ldd. QT_QPA_PLATFORMTHEME=qt5ct
-# can't load the Qt5-only qt5ct plugin for a Qt6 process at all, so qt5ct's
-# theming here had been silently inert since the very first theme (RED) was
-# built — qt5ct is kept in case anything Qt5-based ever gets installed, but
-# qt6ct is the one real Qt apps on this system actually read.) --------
+# -------- qt6ct (same as qt5ct above — this is the one that matters:
+# every Qt app here (falkon, pavucontrol-qt, pcmanfm-qt) links against
+# Qt6, not Qt5, so qt5ct's theming above is inert for all of them. Kept
+# in case a Qt5 app is ever installed.) --------
 if [[ -f "$HOME/.config/qt6ct/qt6ct.conf" ]]; then
   render_qt "$TEMPLATES_DIR/qt6ct-colors.conf.tmpl" "$HOME/.config/qt6ct/colors/$SYN_THEME_NAME.conf"
   sed -i "s|^color_scheme_path=.*|color_scheme_path=$HOME/.config/qt6ct/colors/$SYN_THEME_NAME.conf|" "$HOME/.config/qt6ct/qt6ct.conf"
@@ -139,11 +145,8 @@ mkdir -p "$labwc_theme_dir"
 labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.tmpl"
 [[ -f "$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl" ]] && labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl"
 render "$labwc_tmpl" "$labwc_theme_dir/themerc"
-# Scoped to the line right after <theme> opens — that's always the theme's
-# own <name> tag. An earlier, unanchored `s|<name>.*</name>|...|` matched
-# every <name> in the file (the per-place <font><name>Terminus</name> tags,
-# desktop names, everything), stamping the theme name over all of them and
-# silently breaking the menu/window font on every theme switch.
+# Scoped to just the first <name> after <theme> opens — an unanchored
+# match would also hit every <font><name> tag in the file and break fonts.
 sed -i "/<theme>/,/<\/theme>/{0,/<name>.*<\/name>/s||<name>${SYN_THEME_NAME}</name>|}" "$HOME/.config/labwc/rc.xml"
 labwc --reconfigure 2>/dev/null || pkill -SIGHUP labwc 2>/dev/null || true
 
@@ -173,34 +176,29 @@ awk -v block="$new_block" '
   skip { next }
   { print }
 ' "$foot_ini" > "$foot_ini.new" && mv "$foot_ini.new" "$foot_ini"
-# SIGUSR1 only toggles an already-running foot between whatever colors-dark
-# /colors-light it loaded AT STARTUP — foot has no config-reload signal, so
-# this does NOT make existing windows pick up the new colors written above.
-# Only new foot windows opened after this point will show the new theme.
+# foot has no config-reload signal — SIGUSR1 only toggles colors it already
+# loaded at startup, so only new windows pick up what was just written.
 pkill -SIGUSR1 foot 2>/dev/null || true
 
 # -------- superfile (regenerate the bundled "syn-os" theme in place, next launch only) --------
 render "$TEMPLATES_DIR/superfile-theme.toml.tmpl" "$HOME/.config/superfile/theme/syn-os.toml"
 sed -i 's|^theme = .*|theme = "syn-os"|' "$HOME/.config/superfile/config.toml"
 
-# -------- pcmanfm-qt (desktop icon-view colors only — window chrome already
-# follows qt5ct via QT_QPA_PLATFORMTHEME, but [Desktop] BgColor/FgColor are
-# pcmanfm-qt's own setting, not part of that cascade, and were hardcoded to
-# black/white since install; next launch only) --------
+# -------- pcmanfm-qt ([Desktop] BgColor/FgColor is its own setting, not
+# covered by the qt6ct QT_QPA_PLATFORMTHEME cascade above; next launch
+# only) --------
 pcmanfm_conf="$HOME/.config/pcmanfm-qt/default/settings.conf"
 if [[ -f "$pcmanfm_conf" ]]; then
   sed -i "s|^BgColor=.*|BgColor=$SYN_BG|" "$pcmanfm_conf"
   sed -i "s|^FgColor=.*|FgColor=$SYN_TEXT|" "$pcmanfm_conf"
 fi
 
-# -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none of
-# these are Qt, qt6ct never touches them. Overrides Adwaita-dark's named
-# semantic colors rather than swapping the whole theme; GTK3 has no
-# per-user "point at a different theme" mechanism as clean as qt6ct's
-# color_scheme_path. Picked up by every GTK3 app automatically, no
-# restart of syn-theme-apply-managed apps needed beyond their own next
-# launch, same as qt6ct/superfile.) --------
+# -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none Qt,
+# so qt6ct doesn't reach them. Overrides Adwaita-dark's named colors
+# rather than swapping themes; GTK3 has no per-user color_scheme_path
+# equivalent. Applies on each app's next launch.) --------
 render "$TEMPLATES_DIR/gtk3.css.tmpl" "$HOME/.config/gtk-3.0/gtk.css"
+
 mkdir -p "${CURRENT_FILE:h}"
 print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 

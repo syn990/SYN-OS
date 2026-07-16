@@ -1,10 +1,17 @@
 #!/usr/bin/env zsh
-# SYN-REDSHIRT.ZSH (Encryption Suite with Multiple Algorithms)
+# ------------------------------------------------------------------------------
+#                         S Y N - R E D S H I R T
 #
-# Concept inspired by Introversion Software's Uplink "RedShirt" tool, this script provides a simple file encryptor/decryptor that uses a custom XOR-based method for obfuscation. 
-# It is designed for fun and thematic consistency within SYN-OS, and is not intended for secure encryption. 
-# Encrypted files are marked with a custom header and include a SHA1 hash for integrity verification. The Zsh script handles orchestration, while a compiled C helper performs the byte transformation for speed.
-
+#   A single-file XOR obfuscator (concept inspired by Uplink's "RedShirt"
+#   tool), not real encryption. Marks output with a custom header and a
+#   SHA1 integrity hash; a compiled C helper does the byte transform for
+#   speed, zsh handles orchestration.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-REDSHIRT (Security)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -o errexit -o nounset -o pipefail
 source /usr/lib/syn-os/syn-ui.zsh
 

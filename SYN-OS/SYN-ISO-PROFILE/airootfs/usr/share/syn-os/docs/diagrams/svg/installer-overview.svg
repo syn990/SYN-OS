@@ -9,21 +9,21 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 1839.94)">
 <title>installer_overview</title>
 <polygon fill="#000000" stroke="none" points="-4,4 -4,-1839.94 666,-1839.94 666,4 -4,4"/>
-<text xml:space="preserve" text-anchor="middle" x="331" y="-1818.64" font-family="monospace" font-size="14.00" fill="#e8b4b4">synos&#45;install, start to finish</text>
+<text xml:space="preserve" text-anchor="middle" x="331" y="-1818.64" font-family="monospace" font-size="14.00" fill="#ff6666">synos&#45;install, start to finish</text>
 <g id="clust1" class="cluster">
 <title>cluster_stage0</title>
-<path fill="#0a0a0a" stroke="#444444" d="M57,-935.64C57,-935.64 429,-935.64 429,-935.64 435,-935.64 441,-941.64 441,-947.64 441,-947.64 441,-1507.89 441,-1507.89 441,-1513.89 435,-1519.89 429,-1519.89 429,-1519.89 57,-1519.89 57,-1519.89 51,-1519.89 45,-1513.89 45,-1507.89 45,-1507.89 45,-947.64 45,-947.64 45,-941.64 51,-935.64 57,-935.64"/>
+<path fill="#0a0a0a" stroke="#555555" d="M57,-935.64C57,-935.64 429,-935.64 429,-935.64 435,-935.64 441,-941.64 441,-947.64 441,-947.64 441,-1507.89 441,-1507.89 441,-1513.89 435,-1519.89 429,-1519.89 429,-1519.89 57,-1519.89 57,-1519.89 51,-1519.89 45,-1513.89 45,-1507.89 45,-1507.89 45,-947.64 45,-947.64 45,-941.64 51,-935.64 57,-935.64"/>
 <text xml:space="preserve" text-anchor="middle" x="243" y="-1502.59" font-family="monospace" font-size="14.00" fill="white">Stage 0, live ISO environment (syn&#45;stage0.zsh)</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_stage1</title>
-<path fill="#0a0a0a" stroke="#444444" d="M20,-262.27C20,-262.27 367,-262.27 367,-262.27 373,-262.27 379,-268.27 379,-274.27 379,-274.27 379,-836.02 379,-836.02 379,-842.02 373,-848.02 367,-848.02 367,-848.02 20,-848.02 20,-848.02 14,-848.02 8,-842.02 8,-836.02 8,-836.02 8,-274.27 8,-274.27 8,-268.27 14,-262.27 20,-262.27"/>
+<path fill="#0a0a0a" stroke="#555555" d="M20,-262.27C20,-262.27 367,-262.27 367,-262.27 373,-262.27 379,-268.27 379,-274.27 379,-274.27 379,-836.02 379,-836.02 379,-842.02 373,-848.02 367,-848.02 367,-848.02 20,-848.02 20,-848.02 14,-848.02 8,-842.02 8,-836.02 8,-836.02 8,-274.27 8,-274.27 8,-268.27 14,-262.27 20,-262.27"/>
 <text xml:space="preserve" text-anchor="middle" x="193.5" y="-830.72" font-family="monospace" font-size="14.00" fill="white">Stage 1, inside the chroot (syn&#45;stage1.zsh)</text>
 </g>
 <!-- boot -->
 <g id="node1" class="node">
 <title>boot</title>
-<ellipse fill="#400101" stroke="#800000" cx="193" cy="-1762.47" rx="147.08" ry="45.96"/>
+<ellipse fill="#1a0000" stroke="#e00000" cx="193" cy="-1762.47" rx="147.08" ry="45.96"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1781.47" font-family="monospace" font-size="10.00" fill="white">Boot ISO</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1767.22" font-family="monospace" font-size="10.00" fill="white">(BIOS: syslinux menu,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1752.97" font-family="monospace" font-size="10.00" fill="white">UEFI: systemd&#45;boot, 1 entry)</text>
@@ -32,9 +32,9 @@
 <!-- edit -->
 <g id="node2" class="node">
 <title>edit</title>
-<polygon fill="#260101" stroke="#800000" points="285,-1680.51 95,-1680.51 95,-1615.51 291,-1615.51 291,-1674.51 285,-1680.51"/>
-<polyline fill="none" stroke="#800000" points="285,-1680.51 285,-1674.51"/>
-<polyline fill="none" stroke="#800000" points="291,-1674.51 285,-1674.51"/>
+<polygon fill="#330000" stroke="#e00000" points="285,-1680.51 95,-1680.51 95,-1615.51 291,-1615.51 291,-1674.51 285,-1680.51"/>
+<polyline fill="none" stroke="#e00000" points="285,-1680.51 285,-1674.51"/>
+<polyline fill="none" stroke="#e00000" points="291,-1674.51 285,-1674.51"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1667.01" font-family="monospace" font-size="10.00" fill="white">edit /etc/syn&#45;os/synos.conf</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1652.76" font-family="monospace" font-size="10.00" fill="white">(only input, no interactive</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1638.51" font-family="monospace" font-size="10.00" fill="white">prompts for disk/fs/encryption</text>
@@ -49,7 +49,7 @@
 <!-- run -->
 <g id="node3" class="node">
 <title>run</title>
-<ellipse fill="#400101" stroke="#800000" cx="193" cy="-1553.7" rx="121.62" ry="25.81"/>
+<ellipse fill="#1a0000" stroke="#e00000" cx="193" cy="-1553.7" rx="121.62" ry="25.81"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1558.45" font-family="monospace" font-size="10.00" fill="white">synos&#45;install</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1544.2" font-family="monospace" font-size="10.00" fill="white">(alias for syn&#45;stage0.zsh)</text>
 </g>
@@ -62,10 +62,10 @@
 <!-- source -->
 <g id="node4" class="node">
 <title>source</title>
-<path fill="#2c0101" stroke="#800000" d="M261,-1484.39C261,-1484.39 125,-1484.39 125,-1484.39 119,-1484.39 113,-1478.39 113,-1472.39 113,-1472.39 113,-1445.64 113,-1445.64 113,-1439.64 119,-1433.64 125,-1433.64 125,-1433.64 261,-1433.64 261,-1433.64 267,-1433.64 273,-1439.64 273,-1445.64 273,-1445.64 273,-1472.39 273,-1472.39 273,-1478.39 267,-1484.39 261,-1484.39"/>
+<path fill="#4d0000" stroke="#e00000" d="M273,-1484.39C273,-1484.39 113,-1484.39 113,-1484.39 107,-1484.39 101,-1478.39 101,-1472.39 101,-1472.39 101,-1445.64 101,-1445.64 101,-1439.64 107,-1433.64 113,-1433.64 113,-1433.64 273,-1433.64 273,-1433.64 279,-1433.64 285,-1439.64 285,-1445.64 285,-1445.64 285,-1472.39 285,-1472.39 285,-1478.39 279,-1484.39 273,-1484.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1470.89" font-family="monospace" font-size="10.00" fill="white">source syn&#45;config.zsh,</text>
-<text xml:space="preserve" text-anchor="middle" x="193" y="-1456.64" font-family="monospace" font-size="10.00" fill="white">syn&#45;packages.zsh, ui.zsh</text>
-<text xml:space="preserve" text-anchor="middle" x="193" y="-1442.39" font-family="monospace" font-size="10.00" fill="white">+ 5 strategy modules</text>
+<text xml:space="preserve" text-anchor="middle" x="193" y="-1456.64" font-family="monospace" font-size="10.00" fill="white">syn&#45;packages.zsh, syn&#45;ui.zsh</text>
+<text xml:space="preserve" text-anchor="middle" x="193" y="-1442.39" font-family="monospace" font-size="10.00" fill="white">+ syn&#45;disk.zsh</text>
 </g>
 <!-- run&#45;&gt;source -->
 <g id="edge15" class="edge">
@@ -76,7 +76,7 @@
 <!-- gate -->
 <g id="node5" class="node">
 <title>gate</title>
-<path fill="#4a1414" stroke="#d84a3f" d="M285,-1397.64C285,-1397.64 101,-1397.64 101,-1397.64 95,-1397.64 89,-1391.64 89,-1385.64 89,-1385.64 89,-1330.39 89,-1330.39 89,-1324.39 95,-1318.39 101,-1318.39 101,-1318.39 285,-1318.39 285,-1318.39 291,-1318.39 297,-1324.39 297,-1330.39 297,-1330.39 297,-1385.64 297,-1385.64 297,-1391.64 291,-1397.64 285,-1397.64"/>
+<path fill="#4d0000" stroke="#ff2020" d="M285,-1397.64C285,-1397.64 101,-1397.64 101,-1397.64 95,-1397.64 89,-1391.64 89,-1385.64 89,-1385.64 89,-1330.39 89,-1330.39 89,-1324.39 95,-1318.39 101,-1318.39 101,-1318.39 285,-1318.39 285,-1318.39 291,-1318.39 297,-1324.39 297,-1330.39 297,-1330.39 297,-1385.64 297,-1385.64 297,-1391.64 291,-1397.64 285,-1397.64"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1384.14" font-family="monospace" font-size="10.00" fill="white">Safety gate:</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1369.89" font-family="monospace" font-size="10.00" fill="white">RequireWipeConfirm=yes &#45;&gt;</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1355.64" font-family="monospace" font-size="10.00" fill="white">&quot;Proceed and wipe &lt;disk&gt;? [y/N]&quot;</text>
@@ -92,7 +92,7 @@
 <!-- partition -->
 <g id="node6" class="node">
 <title>partition</title>
-<path fill="#260101" stroke="#800000" d="M228,-1282.39C228,-1282.39 158,-1282.39 158,-1282.39 152,-1282.39 146,-1276.39 146,-1270.39 146,-1270.39 146,-1258.39 146,-1258.39 146,-1252.39 152,-1246.39 158,-1246.39 158,-1246.39 228,-1246.39 228,-1246.39 234,-1246.39 240,-1252.39 240,-1258.39 240,-1258.39 240,-1270.39 240,-1270.39 240,-1276.39 234,-1282.39 228,-1282.39"/>
+<path fill="#330000" stroke="#e00000" d="M228,-1282.39C228,-1282.39 158,-1282.39 158,-1282.39 152,-1282.39 146,-1276.39 146,-1270.39 146,-1270.39 146,-1258.39 146,-1258.39 146,-1252.39 152,-1246.39 158,-1246.39 158,-1246.39 228,-1246.39 228,-1246.39 234,-1246.39 240,-1252.39 240,-1258.39 240,-1258.39 240,-1270.39 240,-1270.39 240,-1276.39 234,-1282.39 228,-1282.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1262.02" font-family="monospace" font-size="10.00" fill="white">partitionMain</text>
 </g>
 <!-- gate&#45;&gt;partition -->
@@ -104,7 +104,7 @@
 <!-- volume -->
 <g id="node7" class="node">
 <title>volume</title>
-<path fill="#260101" stroke="#800000" d="M219,-1210.39C219,-1210.39 167,-1210.39 167,-1210.39 161,-1210.39 155,-1204.39 155,-1198.39 155,-1198.39 155,-1186.39 155,-1186.39 155,-1180.39 161,-1174.39 167,-1174.39 167,-1174.39 219,-1174.39 219,-1174.39 225,-1174.39 231,-1180.39 231,-1186.39 231,-1186.39 231,-1198.39 231,-1198.39 231,-1204.39 225,-1210.39 219,-1210.39"/>
+<path fill="#330000" stroke="#e00000" d="M219,-1210.39C219,-1210.39 167,-1210.39 167,-1210.39 161,-1210.39 155,-1204.39 155,-1198.39 155,-1198.39 155,-1186.39 155,-1186.39 155,-1180.39 161,-1174.39 167,-1174.39 167,-1174.39 219,-1174.39 219,-1174.39 225,-1174.39 231,-1180.39 231,-1186.39 231,-1186.39 231,-1198.39 231,-1198.39 231,-1204.39 225,-1210.39 219,-1210.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1190.02" font-family="monospace" font-size="10.00" fill="white">volumeMain</text>
 </g>
 <!-- partition&#45;&gt;volume -->
@@ -116,7 +116,7 @@
 <!-- filesystem -->
 <g id="node8" class="node">
 <title>filesystem</title>
-<path fill="#260101" stroke="#800000" d="M231,-1138.39C231,-1138.39 155,-1138.39 155,-1138.39 149,-1138.39 143,-1132.39 143,-1126.39 143,-1126.39 143,-1114.39 143,-1114.39 143,-1108.39 149,-1102.39 155,-1102.39 155,-1102.39 231,-1102.39 231,-1102.39 237,-1102.39 243,-1108.39 243,-1114.39 243,-1114.39 243,-1126.39 243,-1126.39 243,-1132.39 237,-1138.39 231,-1138.39"/>
+<path fill="#330000" stroke="#e00000" d="M231,-1138.39C231,-1138.39 155,-1138.39 155,-1138.39 149,-1138.39 143,-1132.39 143,-1126.39 143,-1126.39 143,-1114.39 143,-1114.39 143,-1108.39 149,-1102.39 155,-1102.39 155,-1102.39 231,-1102.39 231,-1102.39 237,-1102.39 243,-1108.39 243,-1114.39 243,-1114.39 243,-1126.39 243,-1126.39 243,-1132.39 237,-1138.39 231,-1138.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1118.02" font-family="monospace" font-size="10.00" fill="white">filesystemMain</text>
 </g>
 <!-- volume&#45;&gt;filesystem -->
@@ -128,7 +128,7 @@
 <!-- mount -->
 <g id="node9" class="node">
 <title>mount</title>
-<path fill="#260101" stroke="#800000" d="M216,-1066.39C216,-1066.39 170,-1066.39 170,-1066.39 164,-1066.39 158,-1060.39 158,-1054.39 158,-1054.39 158,-1042.39 158,-1042.39 158,-1036.39 164,-1030.39 170,-1030.39 170,-1030.39 216,-1030.39 216,-1030.39 222,-1030.39 228,-1036.39 228,-1042.39 228,-1042.39 228,-1054.39 228,-1054.39 228,-1060.39 222,-1066.39 216,-1066.39"/>
+<path fill="#330000" stroke="#e00000" d="M216,-1066.39C216,-1066.39 170,-1066.39 170,-1066.39 164,-1066.39 158,-1060.39 158,-1054.39 158,-1054.39 158,-1042.39 158,-1042.39 158,-1036.39 164,-1030.39 170,-1030.39 170,-1030.39 216,-1030.39 216,-1030.39 222,-1030.39 228,-1036.39 228,-1042.39 228,-1042.39 228,-1054.39 228,-1054.39 228,-1060.39 222,-1066.39 216,-1066.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-1046.02" font-family="monospace" font-size="10.00" fill="white">mountMain</text>
 </g>
 <!-- filesystem&#45;&gt;mount -->
@@ -140,7 +140,7 @@
 <!-- pacstrap -->
 <g id="node10" class="node">
 <title>pacstrap</title>
-<path fill="#260101" stroke="#800000" d="M267,-994.39C267,-994.39 119,-994.39 119,-994.39 113,-994.39 107,-988.39 107,-982.39 107,-982.39 107,-955.64 107,-955.64 107,-949.64 113,-943.64 119,-943.64 119,-943.64 267,-943.64 267,-943.64 273,-943.64 279,-949.64 279,-955.64 279,-955.64 279,-982.39 279,-982.39 279,-988.39 273,-994.39 267,-994.39"/>
+<path fill="#330000" stroke="#e00000" d="M267,-994.39C267,-994.39 119,-994.39 119,-994.39 113,-994.39 107,-988.39 107,-982.39 107,-982.39 107,-955.64 107,-955.64 107,-949.64 113,-943.64 119,-943.64 119,-943.64 267,-943.64 267,-943.64 273,-943.64 279,-949.64 279,-955.64 279,-955.64 279,-982.39 279,-982.39 279,-988.39 273,-994.39 267,-994.39"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-980.89" font-family="monospace" font-size="10.00" fill="white">pacstrapMain</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-966.64" font-family="monospace" font-size="10.00" fill="white">(pacstrap + DotfileOverlay</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-952.39" font-family="monospace" font-size="10.00" fill="white">+ writes install.state)</text>
@@ -167,9 +167,9 @@
 <!-- state -->
 <g id="node12" class="node">
 <title>state</title>
-<polygon fill="#260101" stroke="#800000" points="291,-812.52 89,-812.52 89,-747.52 297,-747.52 297,-806.52 291,-812.52"/>
-<polyline fill="none" stroke="#800000" points="291,-812.52 291,-806.52"/>
-<polyline fill="none" stroke="#800000" points="297,-806.52 291,-806.52"/>
+<polygon fill="#330000" stroke="#e00000" points="291,-812.52 89,-812.52 89,-747.52 297,-747.52 297,-806.52 291,-812.52"/>
+<polyline fill="none" stroke="#e00000" points="291,-812.52 291,-806.52"/>
+<polyline fill="none" stroke="#e00000" points="297,-806.52 291,-806.52"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-799.02" font-family="monospace" font-size="10.00" fill="white">source /etc/syn&#45;os/install.state</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-784.77" font-family="monospace" font-size="10.00" fill="white">(RootFsDev, LuksUuid, SwapDev,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-770.52" font-family="monospace" font-size="10.00" fill="white">resolved during Stage 0,</text>
@@ -184,7 +184,7 @@
 <!-- locale -->
 <g id="node13" class="node">
 <title>locale</title>
-<path fill="#2c0101" stroke="#800000" d="M240,-711.52C240,-711.52 146,-711.52 146,-711.52 140,-711.52 134,-705.52 134,-699.52 134,-699.52 134,-687.02 134,-687.02 134,-681.02 140,-675.02 146,-675.02 146,-675.02 240,-675.02 240,-675.02 246,-675.02 252,-681.02 252,-687.02 252,-687.02 252,-699.52 252,-699.52 252,-705.52 246,-711.52 240,-711.52"/>
+<path fill="#4d0000" stroke="#e00000" d="M240,-711.52C240,-711.52 146,-711.52 146,-711.52 140,-711.52 134,-705.52 134,-699.52 134,-699.52 134,-687.02 134,-687.02 134,-681.02 140,-675.02 146,-675.02 146,-675.02 240,-675.02 240,-675.02 246,-675.02 252,-681.02 252,-687.02 252,-687.02 252,-699.52 252,-699.52 252,-705.52 246,-711.52 240,-711.52"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-698.02" font-family="monospace" font-size="10.00" fill="white">locale, hostname,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-683.77" font-family="monospace" font-size="10.00" fill="white">timezone, keymap</text>
 </g>
@@ -197,7 +197,7 @@
 <!-- doas -->
 <g id="node14" class="node">
 <title>doas</title>
-<path fill="#2c0101" stroke="#800000" d="M249,-639.02C249,-639.02 137,-639.02 137,-639.02 131,-639.02 125,-633.02 125,-627.02 125,-627.02 125,-614.52 125,-614.52 125,-608.52 131,-602.52 137,-602.52 137,-602.52 249,-602.52 249,-602.52 255,-602.52 261,-608.52 261,-614.52 261,-614.52 261,-627.02 261,-627.02 261,-633.02 255,-639.02 249,-639.02"/>
+<path fill="#4d0000" stroke="#e00000" d="M249,-639.02C249,-639.02 137,-639.02 137,-639.02 131,-639.02 125,-633.02 125,-627.02 125,-627.02 125,-614.52 125,-614.52 125,-608.52 131,-602.52 137,-602.52 137,-602.52 249,-602.52 249,-602.52 255,-602.52 261,-608.52 261,-614.52 261,-614.52 261,-627.02 261,-627.02 261,-633.02 255,-639.02 249,-639.02"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-625.52" font-family="monospace" font-size="10.00" fill="white">doas&#45;&gt;sudo shim,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-611.27" font-family="monospace" font-size="10.00" fill="white">removes sudo package</text>
 </g>
@@ -210,7 +210,7 @@
 <!-- user -->
 <g id="node15" class="node">
 <title>user</title>
-<path fill="#2c0101" stroke="#800000" d="M282,-566.52C282,-566.52 104,-566.52 104,-566.52 98,-566.52 92,-560.52 92,-554.52 92,-554.52 92,-527.77 92,-527.77 92,-521.77 98,-515.77 104,-515.77 104,-515.77 282,-515.77 282,-515.77 288,-515.77 294,-521.77 294,-527.77 294,-527.77 294,-554.52 294,-554.52 294,-560.52 288,-566.52 282,-566.52"/>
+<path fill="#4d0000" stroke="#e00000" d="M282,-566.52C282,-566.52 104,-566.52 104,-566.52 98,-566.52 92,-560.52 92,-554.52 92,-554.52 92,-527.77 92,-527.77 92,-521.77 98,-515.77 104,-515.77 104,-515.77 282,-515.77 282,-515.77 288,-515.77 294,-521.77 294,-527.77 294,-527.77 294,-554.52 294,-554.52 294,-560.52 288,-566.52 282,-566.52"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-553.02" font-family="monospace" font-size="10.00" fill="white">useradd &#45;m &#45;G wheel</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-538.77" font-family="monospace" font-size="10.00" fill="white">(populates home from</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-524.52" font-family="monospace" font-size="10.00" fill="white">/etc/skel, see Dotfile Overlay)</text>
@@ -224,7 +224,7 @@
 <!-- initramfs -->
 <g id="node16" class="node">
 <title>initramfs</title>
-<path fill="#2c0101" stroke="#800000" d="M270,-479.77C270,-479.77 116,-479.77 116,-479.77 110,-479.77 104,-473.77 104,-467.77 104,-467.77 104,-441.02 104,-441.02 104,-435.02 110,-429.02 116,-429.02 116,-429.02 270,-429.02 270,-429.02 276,-429.02 282,-435.02 282,-441.02 282,-441.02 282,-467.77 282,-467.77 282,-473.77 276,-479.77 270,-479.77"/>
+<path fill="#4d0000" stroke="#e00000" d="M270,-479.77C270,-479.77 116,-479.77 116,-479.77 110,-479.77 104,-473.77 104,-467.77 104,-467.77 104,-441.02 104,-441.02 104,-435.02 110,-429.02 116,-429.02 116,-429.02 270,-429.02 270,-429.02 276,-429.02 282,-435.02 282,-441.02 282,-441.02 282,-467.77 282,-467.77 282,-473.77 276,-479.77 270,-479.77"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-466.27" font-family="monospace" font-size="10.00" fill="white">mkinitcpio hooks</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-452.02" font-family="monospace" font-size="10.00" fill="white">(+encrypt, +lvm2 as needed)</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-437.77" font-family="monospace" font-size="10.00" fill="white">+ rebuild initramfs</text>
@@ -238,7 +238,7 @@
 <!-- bootloader -->
 <g id="node17" class="node">
 <title>bootloader</title>
-<path fill="#2c0101" stroke="#800000" d="M270,-393.02C270,-393.02 116,-393.02 116,-393.02 110,-393.02 104,-387.02 104,-381.02 104,-381.02 104,-354.27 104,-354.27 104,-348.27 110,-342.27 116,-342.27 116,-342.27 270,-342.27 270,-342.27 276,-342.27 282,-348.27 282,-354.27 282,-354.27 282,-381.02 282,-381.02 282,-387.02 276,-393.02 270,-393.02"/>
+<path fill="#4d0000" stroke="#e00000" d="M270,-393.02C270,-393.02 116,-393.02 116,-393.02 110,-393.02 104,-387.02 104,-381.02 104,-381.02 104,-354.27 104,-354.27 104,-348.27 110,-342.27 116,-342.27 116,-342.27 270,-342.27 270,-342.27 276,-342.27 282,-348.27 282,-354.27 282,-354.27 282,-381.02 282,-381.02 282,-387.02 276,-393.02 270,-393.02"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-379.52" font-family="monospace" font-size="10.00" fill="white">install bootloader</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-365.27" font-family="monospace" font-size="10.00" fill="white">(bootctl / grub / syslinux,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-351.02" font-family="monospace" font-size="10.00" fill="white">keyed off PartitionStrat)</text>
@@ -252,7 +252,7 @@
 <!-- services -->
 <g id="node18" class="node">
 <title>services</title>
-<path fill="#2c0101" stroke="#800000" d="M243,-306.27C243,-306.27 143,-306.27 143,-306.27 137,-306.27 131,-300.27 131,-294.27 131,-294.27 131,-282.27 131,-282.27 131,-276.27 137,-270.27 143,-270.27 143,-270.27 243,-270.27 243,-270.27 249,-270.27 255,-276.27 255,-282.27 255,-282.27 255,-294.27 255,-294.27 255,-300.27 249,-306.27 243,-306.27"/>
+<path fill="#4d0000" stroke="#e00000" d="M243,-306.27C243,-306.27 143,-306.27 143,-306.27 137,-306.27 131,-300.27 131,-294.27 131,-294.27 131,-282.27 131,-282.27 131,-276.27 137,-270.27 143,-270.27 143,-270.27 243,-270.27 243,-270.27 249,-270.27 255,-276.27 255,-282.27 255,-282.27 255,-294.27 255,-294.27 255,-300.27 249,-306.27 243,-306.27"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-285.9" font-family="monospace" font-size="10.00" fill="white">enable dhcpcd, iwd</text>
 </g>
 <!-- bootloader&#45;&gt;services -->
@@ -264,8 +264,8 @@
 <!-- done -->
 <g id="node19" class="node">
 <title>done</title>
-<ellipse fill="#4a1414" stroke="#d84a3f" stroke-width="2" cx="193" cy="-117.14" rx="113.14" ry="113.14"/>
-<ellipse fill="none" stroke="#d84a3f" stroke-width="2" cx="193" cy="-117.14" rx="117.14" ry="117.14"/>
+<ellipse fill="#4d0000" stroke="#ff2020" stroke-width="2" cx="193" cy="-117.14" rx="113.14" ry="113.14"/>
+<ellipse fill="none" stroke="#ff2020" stroke-width="2" cx="193" cy="-117.14" rx="117.14" ry="117.14"/>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-129.01" font-family="monospace" font-size="10.00" fill="white">installed system</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-114.76" font-family="monospace" font-size="10.00" fill="white">pacman &#45;Syu from here,</text>
 <text xml:space="preserve" text-anchor="middle" x="193" y="-100.51" font-family="monospace" font-size="10.00" fill="white">same as any Arch install</text>

@@ -1,12 +1,17 @@
-#!/bin/zsh
-# Central package arrays. Keep to simple assignments. 
-# /usr/lib/syn-os/syn-packages.zsh
-
-# This file defines arrays of packages for different categories (base system, networking, shell tools, desktop environment, development tools, fonts, and applications).
-# Treat this as a menu of packages to choose from when building the Arch Linux installation. The final SYNSTALL array combines all these categories for installation.
-# Add and remove packages from the individual category arrays as needed to customize the installation. The SYNSTALL array will automatically include all packages from the categories.
-
-# There is no special reason for the categorization of packages into these arrays. They are simply grouped for organizational purposes.
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                         S Y N - P A C K A G E S
+#
+#   Package arrays by category (base, networking, shell, desktop, dev
+#   tools, fonts, apps). SYNSTALL combines every category for a full
+#   install; SYNMINIMAL is the lean test-boot profile below. Categories
+#   are an organizational grouping only, not a functional boundary.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-PACKAGES (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 
 baseCore=(
   base                # Minimal package set to define a basic Arch Linux installation

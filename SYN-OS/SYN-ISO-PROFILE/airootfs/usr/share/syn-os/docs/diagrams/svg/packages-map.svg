@@ -9,60 +9,60 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 848.88)">
 <title>package_map</title>
 <polygon fill="#000000" stroke="none" points="-4,4 -4,-848.88 773.72,-848.88 773.72,4 -4,4"/>
-<text xml:space="preserve" text-anchor="middle" x="384.86" y="-827.58" font-family="monospace" font-size="14.00" fill="#e8b4b4">The 85&#45;package SYNSTALL, by category and what each depends on</text>
+<text xml:space="preserve" text-anchor="middle" x="384.86" y="-827.58" font-family="monospace" font-size="14.00" fill="#ff6666">The 86&#45;package SYNSTALL, by category and what each depends on</text>
 <g id="clust1" class="cluster">
 <title>cluster_base</title>
-<path fill="#0a0a0a" stroke="#444444" d="M20.75,-626C20.75,-626 260.25,-626 260.25,-626 266.25,-626 272.25,-632 272.25,-638 272.25,-638 272.25,-747 272.25,-747 272.25,-753 266.25,-759 260.25,-759 260.25,-759 20.75,-759 20.75,-759 14.75,-759 8.75,-753 8.75,-747 8.75,-747 8.75,-638 8.75,-638 8.75,-632 14.75,-626 20.75,-626"/>
+<path fill="#0a0a0a" stroke="#555555" d="M20.75,-626C20.75,-626 260.25,-626 260.25,-626 266.25,-626 272.25,-632 272.25,-638 272.25,-638 272.25,-747 272.25,-747 272.25,-753 266.25,-759 260.25,-759 260.25,-759 20.75,-759 20.75,-759 14.75,-759 8.75,-753 8.75,-747 8.75,-747 8.75,-638 8.75,-638 8.75,-632 14.75,-626 20.75,-626"/>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-741.7" font-family="monospace" font-size="14.00" fill="white">baseCore, 18</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-722.2" font-family="monospace" font-size="14.00" fill="white">installed on every machine</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-702.7" font-family="monospace" font-size="14.00" fill="white">regardless of storage strategy</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_net</title>
-<path fill="#0a0a0a" stroke="#444444" d="M452.75,-352C452.75,-352 592.75,-352 592.75,-352 598.75,-352 604.75,-358 604.75,-364 604.75,-364 604.75,-463 604.75,-463 604.75,-469 598.75,-475 592.75,-475 592.75,-475 452.75,-475 452.75,-475 446.75,-475 440.75,-469 440.75,-463 440.75,-463 440.75,-364 440.75,-364 440.75,-358 446.75,-352 452.75,-352"/>
+<path fill="#0a0a0a" stroke="#555555" d="M452.75,-352C452.75,-352 592.75,-352 592.75,-352 598.75,-352 604.75,-358 604.75,-364 604.75,-364 604.75,-463 604.75,-463 604.75,-469 598.75,-475 592.75,-475 592.75,-475 452.75,-475 452.75,-475 446.75,-475 440.75,-469 440.75,-463 440.75,-463 440.75,-364 440.75,-364 440.75,-358 446.75,-352 452.75,-352"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-457.7" font-family="monospace" font-size="14.00" fill="white">netAndServices, 7</text>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_shell</title>
-<path fill="#0a0a0a" stroke="#444444" d="M57.88,-475C57.88,-475 223.12,-475 223.12,-475 229.12,-475 235.12,-481 235.12,-487 235.12,-487 235.12,-576 235.12,-576 235.12,-582 229.12,-588 223.12,-588 223.12,-588 57.88,-588 57.88,-588 51.88,-588 45.88,-582 45.88,-576 45.88,-576 45.88,-487 45.88,-487 45.88,-481 51.88,-475 57.88,-475"/>
-<text xml:space="preserve" text-anchor="middle" x="140.5" y="-570.7" font-family="monospace" font-size="14.00" fill="white">shellAndCLI, 17</text>
+<path fill="#0a0a0a" stroke="#555555" d="M57.88,-475C57.88,-475 223.12,-475 223.12,-475 229.12,-475 235.12,-481 235.12,-487 235.12,-487 235.12,-576 235.12,-576 235.12,-582 229.12,-588 223.12,-588 223.12,-588 57.88,-588 57.88,-588 51.88,-588 45.88,-582 45.88,-576 45.88,-576 45.88,-487 45.88,-487 45.88,-481 51.88,-475 57.88,-475"/>
+<text xml:space="preserve" text-anchor="middle" x="140.5" y="-570.7" font-family="monospace" font-size="14.00" fill="white">shellAndCLI, 18</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-551.2" font-family="monospace" font-size="14.00" fill="white">feeds .zshrc directly</text>
 </g>
 <g id="clust4" class="cluster">
 <title>cluster_desktop</title>
-<path fill="#0a0a0a" stroke="#444444" d="M440.75,-513C440.75,-513 604.75,-513 604.75,-513 610.75,-513 616.75,-519 616.75,-525 616.75,-525 616.75,-644 616.75,-644 616.75,-650 610.75,-656 604.75,-656 604.75,-656 440.75,-656 440.75,-656 434.75,-656 428.75,-650 428.75,-644 428.75,-644 428.75,-525 428.75,-525 428.75,-519 434.75,-513 440.75,-513"/>
+<path fill="#0a0a0a" stroke="#555555" d="M440.75,-513C440.75,-513 604.75,-513 604.75,-513 610.75,-513 616.75,-519 616.75,-525 616.75,-525 616.75,-644 616.75,-644 616.75,-650 610.75,-656 604.75,-656 604.75,-656 440.75,-656 440.75,-656 434.75,-656 428.75,-650 428.75,-644 428.75,-644 428.75,-525 428.75,-525 428.75,-519 434.75,-513 440.75,-513"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-638.7" font-family="monospace" font-size="14.00" fill="white">desktopStack, 20</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-619.2" font-family="monospace" font-size="14.00" fill="white">the Wayland session</text>
 </g>
 <g id="clust5" class="cluster">
 <title>cluster_dev</title>
-<path fill="#0a0a0a" stroke="#444444" d="M453,-231C453,-231 593.5,-231 593.5,-231 599.5,-231 605.5,-237 605.5,-243 605.5,-243 605.5,-332 605.5,-332 605.5,-338 599.5,-344 593.5,-344 593.5,-344 453,-344 453,-344 447,-344 441,-338 441,-332 441,-332 441,-243 441,-243 441,-237 447,-231 453,-231"/>
+<path fill="#0a0a0a" stroke="#555555" d="M453,-231C453,-231 593.5,-231 593.5,-231 599.5,-231 605.5,-237 605.5,-243 605.5,-243 605.5,-332 605.5,-332 605.5,-338 599.5,-344 593.5,-344 593.5,-344 453,-344 453,-344 447,-344 441,-338 441,-332 441,-332 441,-243 441,-243 441,-237 447,-231 453,-231"/>
 <text xml:space="preserve" text-anchor="middle" x="523.25" y="-326.7" font-family="monospace" font-size="14.00" fill="white">devToolkit, 8</text>
 <text xml:space="preserve" text-anchor="middle" x="523.25" y="-307.2" font-family="monospace" font-size="14.00" fill="white">self&#45;hosting tools</text>
 </g>
 <g id="clust6" class="cluster">
 <title>cluster_fonts</title>
-<path fill="#0a0a0a" stroke="#444444" d="M470.75,-129C470.75,-129 574.75,-129 574.75,-129 580.75,-129 586.75,-135 586.75,-141 586.75,-141 586.75,-211 586.75,-211 586.75,-217 580.75,-223 574.75,-223 574.75,-223 470.75,-223 470.75,-223 464.75,-223 458.75,-217 458.75,-211 458.75,-211 458.75,-141 458.75,-141 458.75,-135 464.75,-129 470.75,-129"/>
+<path fill="#0a0a0a" stroke="#555555" d="M470.75,-129C470.75,-129 574.75,-129 574.75,-129 580.75,-129 586.75,-135 586.75,-141 586.75,-141 586.75,-211 586.75,-211 586.75,-217 580.75,-223 574.75,-223 574.75,-223 470.75,-223 470.75,-223 464.75,-223 458.75,-217 458.75,-211 458.75,-211 458.75,-141 458.75,-141 458.75,-135 464.75,-129 470.75,-129"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-205.7" font-family="monospace" font-size="14.00" fill="white">fontsI18n, 9</text>
 </g>
 <g id="clust7" class="cluster">
 <title>cluster_apps</title>
-<path fill="#0a0a0a" stroke="#444444" d="M453,-8C453,-8 593.5,-8 593.5,-8 599.5,-8 605.5,-14 605.5,-20 605.5,-20 605.5,-109 605.5,-109 605.5,-115 599.5,-121 593.5,-121 593.5,-121 453,-121 453,-121 447,-121 441,-115 441,-109 441,-109 441,-20 441,-20 441,-14 447,-8 453,-8"/>
+<path fill="#0a0a0a" stroke="#555555" d="M453,-8C453,-8 593.5,-8 593.5,-8 599.5,-8 605.5,-14 605.5,-20 605.5,-20 605.5,-109 605.5,-109 605.5,-115 599.5,-121 593.5,-121 593.5,-121 453,-121 453,-121 447,-121 441,-115 441,-109 441,-109 441,-20 441,-20 441,-14 447,-8 453,-8"/>
 <text xml:space="preserve" text-anchor="middle" x="523.25" y="-103.7" font-family="monospace" font-size="14.00" fill="white">appsMedia, 6</text>
 <text xml:space="preserve" text-anchor="middle" x="523.25" y="-84.2" font-family="monospace" font-size="14.00" fill="white">the apps, one game</text>
 </g>
 <!-- synstall -->
 <g id="node1" class="node">
 <title>synstall</title>
-<ellipse fill="#4a1414" stroke="#d84a3f" stroke-width="2" cx="707.73" cy="-400" rx="57.98" ry="57.98"/>
-<ellipse fill="none" stroke="#d84a3f" stroke-width="2" cx="707.73" cy="-400" rx="61.98" ry="61.98"/>
+<ellipse fill="#4d0000" stroke="#ff2020" stroke-width="2" cx="707.73" cy="-400" rx="57.98" ry="57.98"/>
+<ellipse fill="none" stroke="#ff2020" stroke-width="2" cx="707.73" cy="-400" rx="61.98" ry="61.98"/>
 <text xml:space="preserve" text-anchor="middle" x="707.73" y="-404.75" font-family="monospace" font-size="10.00" fill="white">SYNSTALL</text>
-<text xml:space="preserve" text-anchor="middle" x="707.73" y="-390.5" font-family="monospace" font-size="10.00" fill="white">85 packages</text>
+<text xml:space="preserve" text-anchor="middle" x="707.73" y="-390.5" font-family="monospace" font-size="10.00" fill="white">86 packages</text>
 </g>
 <!-- base_ex -->
 <g id="node2" class="node">
 <title>base_ex</title>
-<path fill="#260101" stroke="#800000" d="M187,-684.38C187,-684.38 93,-684.38 93,-684.38 87,-684.38 81,-678.38 81,-672.38 81,-672.38 81,-645.62 81,-645.62 81,-639.62 87,-633.62 93,-633.62 93,-633.62 187,-633.62 187,-633.62 193,-633.62 199,-639.62 199,-645.62 199,-645.62 199,-672.38 199,-672.38 199,-678.38 193,-684.38 187,-684.38"/>
+<path fill="#330000" stroke="#e00000" d="M187,-684.38C187,-684.38 93,-684.38 93,-684.38 87,-684.38 81,-678.38 81,-672.38 81,-672.38 81,-645.62 81,-645.62 81,-639.62 87,-633.62 93,-633.62 93,-633.62 187,-633.62 187,-633.62 193,-633.62 199,-639.62 199,-645.62 199,-645.62 199,-672.38 199,-672.38 199,-678.38 193,-684.38 187,-684.38"/>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-670.88" font-family="monospace" font-size="10.00" fill="white">base, linux,</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-656.62" font-family="monospace" font-size="10.00" fill="white">cryptsetup, lvm2,</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-642.38" font-family="monospace" font-size="10.00" fill="white">parted, opendoas</text>
@@ -76,7 +76,7 @@
 <!-- desktop_ex -->
 <g id="node5" class="node">
 <title>desktop_ex</title>
-<path fill="#260101" stroke="#800000" d="M596.75,-600.62C596.75,-600.62 448.75,-600.62 448.75,-600.62 442.75,-600.62 436.75,-594.62 436.75,-588.62 436.75,-588.62 436.75,-533.38 436.75,-533.38 436.75,-527.38 442.75,-521.38 448.75,-521.38 448.75,-521.38 596.75,-521.38 596.75,-521.38 602.75,-521.38 608.75,-527.38 608.75,-533.38 608.75,-533.38 608.75,-588.62 608.75,-588.62 608.75,-594.62 602.75,-600.62 596.75,-600.62"/>
+<path fill="#330000" stroke="#e00000" d="M596.75,-600.62C596.75,-600.62 448.75,-600.62 448.75,-600.62 442.75,-600.62 436.75,-594.62 436.75,-588.62 436.75,-588.62 436.75,-533.38 436.75,-533.38 436.75,-527.38 442.75,-521.38 448.75,-521.38 448.75,-521.38 596.75,-521.38 596.75,-521.38 602.75,-521.38 608.75,-527.38 608.75,-533.38 608.75,-533.38 608.75,-588.62 608.75,-588.62 608.75,-594.62 602.75,-600.62 596.75,-600.62"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-587.12" font-family="monospace" font-size="10.00" fill="white">labwc, waybar,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-572.88" font-family="monospace" font-size="10.00" fill="white">wmenu, swaybg,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-558.62" font-family="monospace" font-size="10.00" fill="white">swaylock, fuzzel,</text>
@@ -95,7 +95,7 @@
 <!-- net_ex -->
 <g id="node3" class="node">
 <title>net_ex</title>
-<path fill="#260101" stroke="#800000" d="M584.75,-439.62C584.75,-439.62 460.75,-439.62 460.75,-439.62 454.75,-439.62 448.75,-433.62 448.75,-427.62 448.75,-427.62 448.75,-372.38 448.75,-372.38 448.75,-366.38 454.75,-360.38 460.75,-360.38 460.75,-360.38 584.75,-360.38 584.75,-360.38 590.75,-360.38 596.75,-366.38 596.75,-372.38 596.75,-372.38 596.75,-427.62 596.75,-427.62 596.75,-433.62 590.75,-439.62 584.75,-439.62"/>
+<path fill="#330000" stroke="#e00000" d="M584.75,-439.62C584.75,-439.62 460.75,-439.62 460.75,-439.62 454.75,-439.62 448.75,-433.62 448.75,-427.62 448.75,-427.62 448.75,-372.38 448.75,-372.38 448.75,-366.38 454.75,-360.38 460.75,-360.38 460.75,-360.38 584.75,-360.38 584.75,-360.38 590.75,-360.38 596.75,-366.38 596.75,-372.38 596.75,-372.38 596.75,-427.62 596.75,-427.62 596.75,-433.62 590.75,-439.62 584.75,-439.62"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-426.12" font-family="monospace" font-size="10.00" fill="white">dhcpcd, iwd,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-411.88" font-family="monospace" font-size="10.00" fill="white">openvpn, hostapd,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-397.62" font-family="monospace" font-size="10.00" fill="white">openssh, sshfs</text>
@@ -111,7 +111,7 @@
 <!-- shell_ex -->
 <g id="node4" class="node">
 <title>shell_ex</title>
-<path fill="#260101" stroke="#800000" d="M190,-533.38C190,-533.38 90,-533.38 90,-533.38 84,-533.38 78,-527.38 78,-521.38 78,-521.38 78,-494.62 78,-494.62 78,-488.62 84,-482.62 90,-482.62 90,-482.62 190,-482.62 190,-482.62 196,-482.62 202,-488.62 202,-494.62 202,-494.62 202,-521.38 202,-521.38 202,-527.38 196,-533.38 190,-533.38"/>
+<path fill="#330000" stroke="#e00000" d="M190,-533.38C190,-533.38 90,-533.38 90,-533.38 84,-533.38 78,-527.38 78,-521.38 78,-521.38 78,-494.62 78,-494.62 78,-488.62 84,-482.62 90,-482.62 90,-482.62 190,-482.62 190,-482.62 196,-482.62 202,-488.62 202,-494.62 202,-494.62 202,-521.38 202,-521.38 202,-527.38 196,-533.38 190,-533.38"/>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-519.88" font-family="monospace" font-size="10.00" fill="white">zsh, foot, btop,</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-505.62" font-family="monospace" font-size="10.00" fill="white">ripgrep, bat, fzf,</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-491.38" font-family="monospace" font-size="10.00" fill="white">zoxide</text>
@@ -139,7 +139,7 @@
 <!-- dev_ex -->
 <g id="node6" class="node">
 <title>dev_ex</title>
-<path fill="#260101" stroke="#800000" d="M560.75,-289.38C560.75,-289.38 484.75,-289.38 484.75,-289.38 478.75,-289.38 472.75,-283.38 472.75,-277.38 472.75,-277.38 472.75,-250.62 472.75,-250.62 472.75,-244.62 478.75,-238.62 484.75,-238.62 484.75,-238.62 560.75,-238.62 560.75,-238.62 566.75,-238.62 572.75,-244.62 572.75,-250.62 572.75,-250.62 572.75,-277.38 572.75,-277.38 572.75,-283.38 566.75,-289.38 560.75,-289.38"/>
+<path fill="#330000" stroke="#e00000" d="M560.75,-289.38C560.75,-289.38 484.75,-289.38 484.75,-289.38 478.75,-289.38 472.75,-283.38 472.75,-277.38 472.75,-277.38 472.75,-250.62 472.75,-250.62 472.75,-244.62 478.75,-238.62 484.75,-238.62 484.75,-238.62 560.75,-238.62 560.75,-238.62 566.75,-238.62 572.75,-244.62 572.75,-250.62 572.75,-250.62 572.75,-277.38 572.75,-277.38 572.75,-283.38 566.75,-289.38 560.75,-289.38"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-275.88" font-family="monospace" font-size="10.00" fill="white">gcc, archiso,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-261.62" font-family="monospace" font-size="10.00" fill="white">android&#45;tools,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-247.38" font-family="monospace" font-size="10.00" fill="white">binwalk</text>
@@ -153,7 +153,7 @@
 <!-- fonts_ex -->
 <g id="node7" class="node">
 <title>fonts_ex</title>
-<path fill="#260101" stroke="#800000" d="M566.75,-187.38C566.75,-187.38 478.75,-187.38 478.75,-187.38 472.75,-187.38 466.75,-181.38 466.75,-175.38 466.75,-175.38 466.75,-148.62 466.75,-148.62 466.75,-142.62 472.75,-136.62 478.75,-136.62 478.75,-136.62 566.75,-136.62 566.75,-136.62 572.75,-136.62 578.75,-142.62 578.75,-148.62 578.75,-148.62 578.75,-175.38 578.75,-175.38 578.75,-181.38 572.75,-187.38 566.75,-187.38"/>
+<path fill="#330000" stroke="#e00000" d="M566.75,-187.38C566.75,-187.38 478.75,-187.38 478.75,-187.38 472.75,-187.38 466.75,-181.38 466.75,-175.38 466.75,-175.38 466.75,-148.62 466.75,-148.62 466.75,-142.62 472.75,-136.62 478.75,-136.62 478.75,-136.62 566.75,-136.62 566.75,-136.62 572.75,-136.62 578.75,-142.62 578.75,-148.62 578.75,-148.62 578.75,-175.38 578.75,-175.38 578.75,-181.38 572.75,-187.38 566.75,-187.38"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-173.88" font-family="monospace" font-size="10.00" fill="white">terminus&#45;font,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-159.62" font-family="monospace" font-size="10.00" fill="white">noto&#45;fonts&#45;cjk,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-145.38" font-family="monospace" font-size="10.00" fill="white">nerd&#45;font glyphs</text>
@@ -167,7 +167,7 @@
 <!-- apps_ex -->
 <g id="node8" class="node">
 <title>apps_ex</title>
-<path fill="#3a1010" stroke="#d84a3f" stroke-width="1.5" d="M581.75,-66.38C581.75,-66.38 463.75,-66.38 463.75,-66.38 457.75,-66.38 451.75,-60.38 451.75,-54.38 451.75,-54.38 451.75,-27.62 451.75,-27.62 451.75,-21.62 457.75,-15.62 463.75,-15.62 463.75,-15.62 581.75,-15.62 581.75,-15.62 587.75,-15.62 593.75,-21.62 593.75,-27.62 593.75,-27.62 593.75,-54.38 593.75,-54.38 593.75,-60.38 587.75,-66.38 581.75,-66.38"/>
+<path fill="#4d1010" stroke="#ff2020" stroke-width="1.5" d="M581.75,-66.38C581.75,-66.38 463.75,-66.38 463.75,-66.38 457.75,-66.38 451.75,-60.38 451.75,-54.38 451.75,-54.38 451.75,-27.62 451.75,-27.62 451.75,-21.62 457.75,-15.62 463.75,-15.62 463.75,-15.62 581.75,-15.62 581.75,-15.62 587.75,-15.62 593.75,-21.62 593.75,-27.62 593.75,-27.62 593.75,-54.38 593.75,-54.38 593.75,-60.38 587.75,-66.38 581.75,-66.38"/>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-52.88" font-family="monospace" font-size="10.00" fill="white">vlc, gimp,</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-38.62" font-family="monospace" font-size="10.00" fill="white">falkon, openra</text>
 <text xml:space="preserve" text-anchor="middle" x="522.75" y="-24.38" font-family="monospace" font-size="10.00" fill="white">(2022&#45;11&#45;07 &#45;&gt; today)</text>
