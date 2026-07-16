@@ -92,7 +92,7 @@ ensure_pkg() {
   local p="$1"
   if ! pkg_ok "$p"; then
     status_ok "Installing $p …"
-    syn_ui::doas mkdir -p "${LOG_FILE:h}"; doas touch "$LOG_FILE"; doas chmod 666 "$LOG_FILE"
+    doas mkdir -p "${LOG_FILE:h}"; doas touch "$LOG_FILE"; doas chmod 666 "$LOG_FILE"
     doas pacman -Sy --noconfirm --needed "$p" >> "$LOG_FILE" 2>&1 || {
       status_err "Failed to install $p"; return 1; }
   fi
@@ -136,9 +136,19 @@ status_all() {
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 srv_setup_dirs() {
-  local d
+  # Called first, unconditionally, by every srv_start_* — ensure_pkg's own
+  # doas only fires when the package isn't already installed, which isn't
+  # reliably true (rsync/samba/etc. are often present from a prior run),
+  # so this is the one doas call that's actually always the first prompt
+  # of a server-start action.
+  local d first=1
   for d in "$NFS_DIR" "$RSYNC_DIR" "$SMB_DIR" "$HTTP_DIR" "$TFTP_DIR" "$NC_DEST" "$CONF_DIR"; do
-    doas mkdir -p "$d"
+    if (( first )); then
+      syn_ui::doas mkdir -p "$d"
+      first=0
+    else
+      doas mkdir -p "$d"
+    fi
   done
   doas touch "$LOG_FILE"
   doas chmod 777 "$NC_DEST" "$RSYNC_DIR"
