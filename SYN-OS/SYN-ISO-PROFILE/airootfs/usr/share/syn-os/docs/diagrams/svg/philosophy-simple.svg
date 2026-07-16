@@ -9,15 +9,15 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 437.5)">
 <title>philosophy_simple</title>
 <polygon fill="#000000" stroke="none" points="-4,4 -4,-437.5 1032.07,-437.5 1032.07,4 -4,4"/>
-<text xml:space="preserve" text-anchor="middle" x="514.04" y="-415.25" font-family="monospace" font-size="15.00" fill="#e8b4b4">Where the decisions actually live</text>
+<text xml:space="preserve" text-anchor="middle" x="514.04" y="-415.25" font-family="monospace" font-size="15.00" fill="#ff6666">Where the decisions actually live</text>
 <g id="clust1" class="cluster">
 <title>cluster_normal</title>
-<path fill="#0a0a0a" stroke="#444444" d="M112,-8C112,-8 683.82,-8 683.82,-8 689.82,-8 695.82,-14 695.82,-20 695.82,-20 695.82,-102 695.82,-102 695.82,-108 689.82,-114 683.82,-114 683.82,-114 112,-114 112,-114 106,-114 100,-108 100,-102 100,-102 100,-20 100,-20 100,-14 106,-8 112,-8"/>
+<path fill="#0a0a0a" stroke="#555555" d="M112,-8C112,-8 683.82,-8 683.82,-8 689.82,-8 695.82,-14 695.82,-20 695.82,-20 695.82,-102 695.82,-102 695.82,-108 689.82,-114 683.82,-114 683.82,-114 112,-114 112,-114 106,-114 100,-108 100,-102 100,-102 100,-20 100,-20 100,-14 106,-8 112,-8"/>
 <text xml:space="preserve" text-anchor="middle" x="397.91" y="-95.75" font-family="monospace" font-size="15.00" fill="white">A typical distro</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_synos</title>
-<path fill="#0a0a0a" stroke="#444444" d="M88.38,-208C88.38,-208 958.23,-208 958.23,-208 964.23,-208 970.23,-214 970.23,-220 970.23,-220 970.23,-313 970.23,-313 970.23,-319 964.23,-325 958.23,-325 958.23,-325 88.38,-325 88.38,-325 82.38,-325 76.38,-319 76.38,-313 76.38,-313 76.38,-220 76.38,-220 76.38,-214 82.38,-208 88.38,-208"/>
+<path fill="#0a0a0a" stroke="#555555" d="M88.38,-208C88.38,-208 958.23,-208 958.23,-208 964.23,-208 970.23,-214 970.23,-220 970.23,-220 970.23,-313 970.23,-313 970.23,-319 964.23,-325 958.23,-325 958.23,-325 88.38,-325 88.38,-325 82.38,-325 76.38,-319 76.38,-313 76.38,-313 76.38,-220 76.38,-220 76.38,-214 82.38,-208 88.38,-208"/>
 <text xml:space="preserve" text-anchor="middle" x="523.3" y="-306.75" font-family="monospace" font-size="15.00" fill="white">SYN&#45;OS</text>
 </g>
 <!-- normal_installer -->
@@ -34,7 +34,7 @@
 <!-- normal_result -->
 <g id="node2" class="node">
 <title>normal_result</title>
-<path fill="#260101" stroke="#800000" d="M675.82,-55.75C675.82,-55.75 589.32,-55.75 589.32,-55.75 583.32,-55.75 577.32,-49.75 577.32,-43.75 577.32,-43.75 577.32,-28.25 577.32,-28.25 577.32,-22.25 583.32,-16.25 589.32,-16.25 589.32,-16.25 675.82,-16.25 675.82,-16.25 681.82,-16.25 687.82,-22.25 687.82,-28.25 687.82,-28.25 687.82,-43.75 687.82,-43.75 687.82,-49.75 681.82,-55.75 675.82,-55.75"/>
+<path fill="#330000" stroke="#e00000" d="M675.82,-55.75C675.82,-55.75 589.32,-55.75 589.32,-55.75 583.32,-55.75 577.32,-49.75 577.32,-43.75 577.32,-43.75 577.32,-28.25 577.32,-28.25 577.32,-22.25 583.32,-16.25 589.32,-16.25 589.32,-16.25 675.82,-16.25 675.82,-16.25 681.82,-16.25 687.82,-22.25 687.82,-28.25 687.82,-28.25 687.82,-43.75 687.82,-43.75 687.82,-49.75 681.82,-55.75 675.82,-55.75"/>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-41.3" font-family="monospace" font-size="11.00" fill="white">your installed</text>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-25.55" font-family="monospace" font-size="11.00" fill="white">desktop</text>
 </g>
@@ -50,9 +50,9 @@
 <!-- files -->
 <g id="node3" class="node">
 <title>files</title>
-<polygon fill="#4a1414" stroke="#d84a3f" stroke-width="2" points="269.88,-287.5 84.38,-287.5 84.38,-216.5 275.88,-216.5 275.88,-281.5 269.88,-287.5"/>
-<polyline fill="none" stroke="#d84a3f" stroke-width="2" points="269.88,-287.5 269.88,-281.5"/>
-<polyline fill="none" stroke="#d84a3f" stroke-width="2" points="275.88,-281.5 269.88,-281.5"/>
+<polygon fill="#4d0000" stroke="#ff2020" stroke-width="2" points="269.88,-287.5 84.38,-287.5 84.38,-216.5 275.88,-216.5 275.88,-281.5 269.88,-287.5"/>
+<polyline fill="none" stroke="#ff2020" stroke-width="2" points="269.88,-287.5 269.88,-281.5"/>
+<polyline fill="none" stroke="#ff2020" stroke-width="2" points="275.88,-281.5 269.88,-281.5"/>
 <text xml:space="preserve" text-anchor="middle" x="180.13" y="-273.05" font-family="monospace" font-size="11.00" fill="white">a package list</text>
 <text xml:space="preserve" text-anchor="middle" x="180.13" y="-257.3" font-family="monospace" font-size="11.00" fill="white">+ a folder of config files</text>
 <text xml:space="preserve" text-anchor="middle" x="180.13" y="-241.55" font-family="monospace" font-size="11.00" fill="white">(plain text, in this repo,</text>
@@ -61,7 +61,7 @@
 <!-- synos_installer -->
 <g id="node4" class="node">
 <title>synos_installer</title>
-<path fill="#2c0101" stroke="#800000" d="M689.32,-279.62C689.32,-279.62 575.82,-279.62 575.82,-279.62 569.82,-279.62 563.82,-273.62 563.82,-267.62 563.82,-267.62 563.82,-236.38 563.82,-236.38 563.82,-230.38 569.82,-224.38 575.82,-224.38 575.82,-224.38 689.32,-224.38 689.32,-224.38 695.32,-224.38 701.32,-230.38 701.32,-236.38 701.32,-236.38 701.32,-267.62 701.32,-267.62 701.32,-273.62 695.32,-279.62 689.32,-279.62"/>
+<path fill="#4d0000" stroke="#e00000" d="M689.32,-279.62C689.32,-279.62 575.82,-279.62 575.82,-279.62 569.82,-279.62 563.82,-273.62 563.82,-267.62 563.82,-267.62 563.82,-236.38 563.82,-236.38 563.82,-230.38 569.82,-224.38 575.82,-224.38 575.82,-224.38 689.32,-224.38 689.32,-224.38 695.32,-224.38 701.32,-230.38 701.32,-236.38 701.32,-236.38 701.32,-267.62 701.32,-267.62 701.32,-273.62 695.32,-279.62 689.32,-279.62"/>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-265.18" font-family="monospace" font-size="11.00" fill="white">installer</text>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-249.43" font-family="monospace" font-size="11.00" fill="white">(just reads the</text>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-233.68" font-family="monospace" font-size="11.00" fill="white">files on the left)</text>
@@ -75,7 +75,7 @@
 <!-- swap -->
 <g id="node6" class="node">
 <title>swap</title>
-<ellipse fill="#400101" stroke="#800000" cx="632.57" cy="-161" rx="116.32" ry="39.07"/>
+<ellipse fill="#1a0000" stroke="#e00000" cx="632.57" cy="-161" rx="116.32" ry="39.07"/>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-174.18" font-family="monospace" font-size="11.00" fill="white">edit the package list,</text>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-158.43" font-family="monospace" font-size="11.00" fill="white">swap a config file,</text>
 <text xml:space="preserve" text-anchor="middle" x="632.57" y="-142.68" font-family="monospace" font-size="11.00" fill="white">rebuild</text>
@@ -83,13 +83,13 @@
 <!-- files&#45;&gt;swap -->
 <g id="edge4" class="edge">
 <title>files&#45;&gt;swap</title>
-<path fill="none" stroke="#d84a3f" stroke-dasharray="5,2" d="M276.65,-232.7C348.28,-218.23 446.46,-198.4 521.4,-183.26"/>
-<polygon fill="#d84a3f" stroke="#d84a3f" points="521.69,-186.77 530.8,-181.36 520.3,-179.91 521.69,-186.77"/>
+<path fill="none" stroke="#ff2020" stroke-dasharray="5,2" d="M276.65,-232.7C348.28,-218.23 446.46,-198.4 521.4,-183.26"/>
+<polygon fill="#ff2020" stroke="#ff2020" points="521.69,-186.77 530.8,-181.36 520.3,-179.91 521.69,-186.77"/>
 </g>
 <!-- synos_result -->
 <g id="node5" class="node">
 <title>synos_result</title>
-<path fill="#260101" stroke="#800000" d="M950.23,-271.75C950.23,-271.75 863.73,-271.75 863.73,-271.75 857.73,-271.75 851.73,-265.75 851.73,-259.75 851.73,-259.75 851.73,-244.25 851.73,-244.25 851.73,-238.25 857.73,-232.25 863.73,-232.25 863.73,-232.25 950.23,-232.25 950.23,-232.25 956.23,-232.25 962.23,-238.25 962.23,-244.25 962.23,-244.25 962.23,-259.75 962.23,-259.75 962.23,-265.75 956.23,-271.75 950.23,-271.75"/>
+<path fill="#330000" stroke="#e00000" d="M950.23,-271.75C950.23,-271.75 863.73,-271.75 863.73,-271.75 857.73,-271.75 851.73,-265.75 851.73,-259.75 851.73,-259.75 851.73,-244.25 851.73,-244.25 851.73,-238.25 857.73,-232.25 863.73,-232.25 863.73,-232.25 950.23,-232.25 950.23,-232.25 956.23,-232.25 962.23,-238.25 962.23,-244.25 962.23,-244.25 962.23,-259.75 962.23,-259.75 962.23,-265.75 956.23,-271.75 950.23,-271.75"/>
 <text xml:space="preserve" text-anchor="middle" x="906.98" y="-257.3" font-family="monospace" font-size="11.00" fill="white">your installed</text>
 <text xml:space="preserve" text-anchor="middle" x="906.98" y="-241.55" font-family="monospace" font-size="11.00" fill="white">desktop</text>
 </g>
@@ -102,7 +102,7 @@
 <!-- different -->
 <g id="node7" class="node">
 <title>different</title>
-<ellipse fill="#400101" stroke="#800000" cx="906.98" cy="-161" rx="121.09" ry="39.07"/>
+<ellipse fill="#1a0000" stroke="#e00000" cx="906.98" cy="-161" rx="121.09" ry="39.07"/>
 <text xml:space="preserve" text-anchor="middle" x="906.98" y="-174.18" font-family="monospace" font-size="11.00" fill="white">a different desktop,</text>
 <text xml:space="preserve" text-anchor="middle" x="906.98" y="-158.43" font-family="monospace" font-size="11.00" fill="white">same installer, no code</text>
 <text xml:space="preserve" text-anchor="middle" x="906.98" y="-142.68" font-family="monospace" font-size="11.00" fill="white">changes required</text>
@@ -110,8 +110,8 @@
 <!-- swap&#45;&gt;different -->
 <g id="edge5" class="edge">
 <title>swap&#45;&gt;different</title>
-<path fill="none" stroke="#d84a3f" d="M749.1,-161C757.37,-161 765.75,-161 774.11,-161"/>
-<polygon fill="#d84a3f" stroke="#d84a3f" points="773.96,-164.5 783.96,-161 773.96,-157.5 773.96,-164.5"/>
+<path fill="none" stroke="#ff2020" d="M749.1,-161C757.37,-161 765.75,-161 774.11,-161"/>
+<polygon fill="#ff2020" stroke="#ff2020" points="773.96,-164.5 783.96,-161 773.96,-157.5 773.96,-164.5"/>
 </g>
 <!-- note -->
 <g id="node8" class="node">

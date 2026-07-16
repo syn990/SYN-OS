@@ -1,9 +1,16 @@
-#!/bin/zsh
-# SYN‑OS Stage 0: Orchestrator (Partitioning, Volume Management, Filesystem Creation, Mounting, and Pacstrap)
-# This is the entry point for the SYN‑OS installation process. It sets up the environment, loads modular scripts for each stage, and executes them in sequence.
-
-# /usr/lib/syn-os/syn-stage0.zsh
-
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                           S Y N - S T A G E 0
+#
+#   Entry point for the SYN-OS installer: partitioning, volume management,
+#   filesystem creation, mounting, and pacstrap, then hands off to Stage 1
+#   inside the chroot.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-STAGE0 (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 # Load config + packages + UI scripts
@@ -11,24 +18,12 @@ source /usr/lib/syn-os/syn-config.zsh
 source /usr/lib/syn-os/syn-packages.zsh
 source /usr/lib/syn-os/syn-ui.zsh
 
-# Full install log — everything printed from here on (Stage 0's own output,
-# plus Stage 1's once chrooted, since arch-chroot execs it as a child process
-# inheriting this same fd) is duplicated to a logfile as well as the
-# terminal. Doesn't interfere with interactive prompts (passwd, the wipe
-# confirm below) since those read from /dev/tty explicitly, independent of
-# stdout/stderr. Written to the live environment's /root (Stage 1's chroot
-# can't reach outside itself to write there), then copied onto the target
-# disk's / after arch-chroot returns, so it survives past this live session
-# instead of vanishing with tmpfs at reboot.
-#
-# Uses `script` (util-linux, always present — it's a base dependency), not a
-# plain `tee` pipe, to capture this: `exec > >(tee ...)` replaces stdout with
-# a pipe, and pacman/pacstrap check isatty() on stdout to decide whether to
-# draw ILoveCandy/progress bars — a pipe fails that check even though
-# Color/ILoveCandy are enabled in pacman.conf, so every install rendered
-# bare, no bars, looking stalled during the ~1.6GB package download. `script`
-# allocates a real pty, so isatty() still says yes, while still writing the
-# full transcript (bars, colors, redraws and all) to the log file.
+# Duplicates all output (Stage 0 and, once chrooted, Stage 1) to a log
+# file via `script` rather than a `tee` pipe — pacman/pacstrap check
+# isatty() to decide whether to draw progress bars, and a pipe fails that
+# check where a pty doesn't. Interactive prompts read /dev/tty directly so
+# they're unaffected. Written to /root here (outside Stage 1's chroot) and
+# copied onto the target disk after arch-chroot returns.
 InstallLog="/root/synos-install-$(date +%Y%m%d-%H%M%S).log"
 if [ -z "${SYN_STAGE0_UNDER_SCRIPT:-}" ]; then
   export SYN_STAGE0_UNDER_SCRIPT=1
@@ -49,11 +44,9 @@ trap syn_stage0::cleanup EXIT INT TERM
 source /usr/lib/syn-os/syn-disk.zsh
 source /usr/lib/syn-os/syn-pacstrap.zsh
 
-# Safety gate to stop idiots loosing all their data. Since SYN‑OS operates at
-# a very low level (partitioning and formatting disks), an explicit
-# interactive confirmation is required before anything destructive happens.
-# Set RequireWipeConfirm=no in synos.conf to skip this — default is "yes"
-# and this is not meant to be turned off casually.
+# Explicit confirmation before anything destructive (partitioning,
+# formatting) happens. RequireWipeConfirm=no in synos.conf skips this —
+# default is "yes" and it's not meant to be turned off casually.
 if [ "${RequireWipeConfirm:-yes}" = "yes" ]; then
   syn_ui::confirm_wipe "${Disk}" || { syn_ui::error "Aborted — disk not confirmed."; exit 1; }
 fi
@@ -84,7 +77,6 @@ lsblk -o NAME,TYPE,FSTYPE,LABEL,PATH,MOUNTPOINTS | sed 's/^/  /'
 syn_ui::step "Entering chroot to Stage 1"
 arch-chroot "$RootMountLocation" /bin/zsh /usr/lib/syn-os/syn-stage1.zsh
 
-# Copy the full install log (Stage 0 + Stage 1 output — Stage 1 inherited
-# this same tee'd fd across arch-chroot) onto the installed system's own /,
-# so it survives past this live session instead of vanishing with tmpfs.
+# Copies the full Stage 0 + Stage 1 log onto the installed disk so it
+# survives past this live session.
 cp -f "$InstallLog" "${RootMountLocation}/$(basename "$InstallLog")" 2>/dev/null || true

@@ -1,0 +1,34 @@
+digraph philosophy_simple {
+  rankdir=LR;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=11];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=10];
+
+  label="Where the decisions actually live";
+  labelloc="t"; fontsize=15; fontcolor="#ff6666";
+
+  subgraph cluster_normal {
+    label="A typical distro"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    normal_installer [label="installer\n(a program, not\nsomething you read)", shape=box3d, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    normal_result [label="your installed\ndesktop", fillcolor="#330000"];
+    normal_installer -> normal_result [label="  decisions made\n  somewhere inside,\n  not visible to you", color="#8a6a2f", fontcolor="#8a6a2f"];
+  }
+
+  subgraph cluster_synos {
+    label="SYN-OS"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    files [label="a package list\n+ a folder of config files\n(plain text, in this repo,\nopen them in any editor)", shape=note, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+    synos_installer [label="installer\n(just reads the\nfiles on the left)"];
+    synos_result [label="your installed\ndesktop", fillcolor="#330000"];
+    files -> synos_installer -> synos_result;
+  }
+
+  swap [label="edit the package list,\nswap a config file,\nrebuild", shape=oval, fillcolor="#1a0000"];
+  different [label="a different desktop,\nsame installer, no code\nchanges required", shape=oval, fillcolor="#1a0000"];
+
+  files -> swap [style=dashed, color="#ff2020"];
+  swap -> different [color="#ff2020", fontcolor="#ff2020"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="That's the whole idea: the installer doesn't decide\nanything by itself. It just carries out whatever's\nwritten in the files. Change the files, get a\ndifferent result, nothing hidden either way."];
+}

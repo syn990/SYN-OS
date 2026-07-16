@@ -5,7 +5,7 @@ SYN-OS is a plain [ArchISO](https://wiki.archlinux.org/title/Archiso) profile (`
 ## Prerequisites
 
 ```bash
-sudo pacman -S archiso git
+sudo pacman -S archiso grub git
 ```
 
 ## Running it

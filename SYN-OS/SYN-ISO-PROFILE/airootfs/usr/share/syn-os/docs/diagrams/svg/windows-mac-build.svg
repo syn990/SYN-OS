@@ -9,10 +9,10 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 773.52)">
 <title>windows_mac_build</title>
 <polygon fill="#000000" stroke="none" points="-4,4 -4,-773.52 728,-773.52 728,4 -4,4"/>
-<text xml:space="preserve" text-anchor="middle" x="362" y="-752.22" font-family="monospace" font-size="14.00" fill="#e8b4b4">Building SYN&#45;OS from a Windows or Mac host</text>
+<text xml:space="preserve" text-anchor="middle" x="362" y="-752.22" font-family="monospace" font-size="14.00" fill="#ff6666">Building SYN&#45;OS from a Windows or Mac host</text>
 <g id="clust1" class="cluster">
 <title>cluster_write</title>
-<path fill="#0a0a0a" stroke="#444444" d="M20,-574.77C20,-574.77 426,-574.77 426,-574.77 432,-574.77 438,-580.77 438,-586.77 438,-586.77 438,-671.27 438,-671.27 438,-677.27 432,-683.27 426,-683.27 426,-683.27 20,-683.27 20,-683.27 14,-683.27 8,-677.27 8,-671.27 8,-671.27 8,-586.77 8,-586.77 8,-580.77 14,-574.77 20,-574.77"/>
+<path fill="#0a0a0a" stroke="#555555" d="M20,-574.77C20,-574.77 426,-574.77 426,-574.77 432,-574.77 438,-580.77 438,-586.77 438,-586.77 438,-671.27 438,-671.27 438,-677.27 432,-683.27 426,-683.27 426,-683.27 20,-683.27 20,-683.27 14,-683.27 8,-677.27 8,-671.27 8,-671.27 8,-586.77 8,-586.77 8,-580.77 14,-574.77 20,-574.77"/>
 <text xml:space="preserve" text-anchor="middle" x="223" y="-665.97" font-family="monospace" font-size="14.00" fill="white">Get it running, either path</text>
 </g>
 <g id="clust2" class="cluster">
@@ -23,9 +23,9 @@
 <!-- download -->
 <g id="node1" class="node">
 <title>download</title>
-<polygon fill="#260101" stroke="#800000" points="360,-734.89 194,-734.89 194,-698.39 366,-698.39 366,-728.89 360,-734.89"/>
-<polyline fill="none" stroke="#800000" points="360,-734.89 360,-728.89"/>
-<polyline fill="none" stroke="#800000" points="366,-728.89 360,-728.89"/>
+<polygon fill="#330000" stroke="#e00000" points="360,-734.89 194,-734.89 194,-698.39 366,-698.39 366,-728.89 360,-734.89"/>
+<polyline fill="none" stroke="#e00000" points="360,-734.89 360,-728.89"/>
+<polyline fill="none" stroke="#e00000" points="366,-728.89 360,-728.89"/>
 <text xml:space="preserve" text-anchor="middle" x="280" y="-721.39" font-family="monospace" font-size="10.00" fill="white">Download the prebuilt ISO</text>
 <text xml:space="preserve" text-anchor="middle" x="280" y="-707.14" font-family="monospace" font-size="10.00" fill="white">(github.com/syn990/SYN&#45;OS)</text>
 </g>
@@ -89,7 +89,7 @@
 <!-- boot -->
 <g id="node5" class="node">
 <title>boot</title>
-<ellipse fill="#400101" stroke="#800000" cx="202" cy="-510.88" rx="104.65" ry="35.89"/>
+<ellipse fill="#1a0000" stroke="#e00000" cx="202" cy="-510.88" rx="104.65" ry="35.89"/>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-522.76" font-family="monospace" font-size="10.00" fill="white">Real hardware or a VM,</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-508.51" font-family="monospace" font-size="10.00" fill="white">booted into the live</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-494.26" font-family="monospace" font-size="10.00" fill="white">SYN&#45;OS shell</text>
@@ -115,7 +115,7 @@
 <!-- arch_env -->
 <g id="node6" class="node">
 <title>arch_env</title>
-<path fill="#4a1414" stroke="#d84a3f" stroke-width="2" d="M276,-438.99C276,-438.99 128,-438.99 128,-438.99 122,-438.99 116,-432.99 116,-426.99 116,-426.99 116,-385.99 116,-385.99 116,-379.99 122,-373.99 128,-373.99 128,-373.99 276,-373.99 276,-373.99 282,-373.99 288,-379.99 288,-385.99 288,-385.99 288,-426.99 288,-426.99 288,-432.99 282,-438.99 276,-438.99"/>
+<path fill="#4d0000" stroke="#ff2020" stroke-width="2" d="M276,-438.99C276,-438.99 128,-438.99 128,-438.99 122,-438.99 116,-432.99 116,-426.99 116,-426.99 116,-385.99 116,-385.99 116,-379.99 122,-373.99 128,-373.99 128,-373.99 276,-373.99 276,-373.99 282,-373.99 288,-379.99 288,-385.99 288,-385.99 288,-426.99 288,-426.99 288,-432.99 282,-438.99 276,-438.99"/>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-425.49" font-family="monospace" font-size="10.00" fill="white">This IS a real Arch</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-411.24" font-family="monospace" font-size="10.00" fill="white">environment now:</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-396.99" font-family="monospace" font-size="10.00" fill="white">pacman, git, zsh,</text>
@@ -130,7 +130,7 @@
 <!-- build -->
 <g id="node7" class="node">
 <title>build</title>
-<path fill="#260101" stroke="#800000" d="M294,-337.99C294,-337.99 110,-337.99 110,-337.99 104,-337.99 98,-331.99 98,-325.99 98,-325.99 98,-299.24 98,-299.24 98,-293.24 104,-287.24 110,-287.24 110,-287.24 294,-287.24 294,-287.24 300,-287.24 306,-293.24 306,-299.24 306,-299.24 306,-325.99 306,-325.99 306,-331.99 300,-337.99 294,-337.99"/>
+<path fill="#330000" stroke="#e00000" d="M294,-337.99C294,-337.99 110,-337.99 110,-337.99 104,-337.99 98,-331.99 98,-325.99 98,-325.99 98,-299.24 98,-299.24 98,-293.24 104,-287.24 110,-287.24 110,-287.24 294,-287.24 294,-287.24 300,-287.24 306,-293.24 306,-299.24 306,-299.24 306,-325.99 306,-325.99 306,-331.99 300,-337.99 294,-337.99"/>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-324.49" font-family="monospace" font-size="10.00" fill="white">Normal Build Your Own ISO</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-310.24" font-family="monospace" font-size="10.00" fill="white">steps, run from here</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-295.99" font-family="monospace" font-size="10.00" fill="white">(git clone, BUILD&#45;SYNOS&#45;ISO.zsh)</text>
@@ -144,8 +144,8 @@
 <!-- newiso -->
 <g id="node8" class="node">
 <title>newiso</title>
-<ellipse fill="#4a1414" stroke="#d84a3f" stroke-width="2" cx="202" cy="-125.62" rx="121.62" ry="121.62"/>
-<ellipse fill="none" stroke="#d84a3f" stroke-width="2" cx="202" cy="-125.62" rx="125.62" ry="125.62"/>
+<ellipse fill="#4d0000" stroke="#ff2020" stroke-width="2" cx="202" cy="-125.62" rx="121.62" ry="121.62"/>
+<ellipse fill="none" stroke="#ff2020" stroke-width="2" cx="202" cy="-125.62" rx="125.62" ry="125.62"/>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-130.37" font-family="monospace" font-size="10.00" fill="white">a new ISO,</text>
 <text xml:space="preserve" text-anchor="middle" x="202" y="-116.12" font-family="monospace" font-size="10.00" fill="white">with your changes baked in</text>
 </g>

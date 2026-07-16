@@ -1,16 +1,11 @@
 #
-# labwc environment file. Plain variable=value lines only — labwc parses
-# this itself, it does NOT source it as a shell script the way Openbox
-# does (see labwc-config(5)). No "export", no quotes needed. Confirmed
-# live: with export/quotes in place, QT_QPA_PLATFORMTHEME ended up in
-# every Qt process's real environment as the literal, un-parsed text
-# `export QT_QPA_PLATFORMTHEME="qt5ct"` instead of a real value.
+# labwc parses this file itself — it is NOT sourced as a shell script the
+# way Openbox does (see labwc-config(5)). Plain KEY=value only, no export,
+# no quotes; either one ends up in the literal, un-parsed environment value.
 #
-# qt6ct, not qt5ct: every Qt app actually installed on this system
-# (falkon, pavucontrol-qt, pcmanfm-qt) links against Qt6 (confirmed via
-# ldd), which can't load the Qt5-only qt5ct platform-theme plugin at
-# all — qt5ct theming had been silently inert since the first theme
-# (RED) was built, regardless of the export/quotes bug above.
+# qt6ct, not qt5ct: every Qt app installed here (falkon, pavucontrol-qt,
+# pcmanfm-qt) links against Qt6, which can't load the Qt5-only qt5ct
+# platform-theme plugin at all.
 #
 
 # To set your language for displaying messages and time/date formats, use the following:

@@ -2,28 +2,28 @@ digraph windows_mac_build {
   rankdir=TB;
   bgcolor="#000000";
   fontname="monospace";
-  node [shape=box, style="rounded,filled", fillcolor="#2c0101", color="#800000", fontcolor="white", fontname="monospace", fontsize=10];
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
   edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
 
   label="Building SYN-OS from a Windows or Mac host";
-  labelloc="t"; fontsize=14; fontcolor="#e8b4b4";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
 
-  download [label="Download the prebuilt ISO\n(github.com/syn990/SYN-OS)", shape=note, fillcolor="#260101"];
+  download [label="Download the prebuilt ISO\n(github.com/syn990/SYN-OS)", shape=note, fillcolor="#330000"];
 
   subgraph cluster_write {
-    label="Get it running, either path"; style="rounded"; color="#444444"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="Get it running, either path"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     usb_win [label="Windows: Rufus\nUSB stick", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
     usb_mac [label="macOS: diskutil + dd\nUSB stick", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
     vm_disk [label="Boot the ISO directly\nin any VM tool\n(Hyper-V, VirtualBox,\nUTM, Parallels)", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
   }
 
-  boot [label="Real hardware or a VM,\nbooted into the live\nSYN-OS shell", shape=oval, fillcolor="#400101"];
+  boot [label="Real hardware or a VM,\nbooted into the live\nSYN-OS shell", shape=oval, fillcolor="#1a0000"];
 
-  arch_env [label="This IS a real Arch\nenvironment now:\npacman, git, zsh,\neverything the build needs", fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+  arch_env [label="This IS a real Arch\nenvironment now:\npacman, git, zsh,\neverything the build needs", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
 
-  build [label="Normal Build Your Own ISO\nsteps, run from here\n(git clone, BUILD-SYNOS-ISO.zsh)", fillcolor="#260101"];
+  build [label="Normal Build Your Own ISO\nsteps, run from here\n(git clone, BUILD-SYNOS-ISO.zsh)", fillcolor="#330000"];
 
-  newiso [label="a new ISO,\nwith your changes baked in", shape=doublecircle, fillcolor="#4a1414", penwidth=2, color="#d84a3f"];
+  newiso [label="a new ISO,\nwith your changes baked in", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
 
   download -> usb_win;
   download -> usb_mac;
