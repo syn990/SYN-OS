@@ -89,6 +89,12 @@ is_root() { [[ $EUID -eq 0 ]]; }
 pkg_ok() { pacman -Qi "$1" >/dev/null 2>&1; }
 
 ensure_pkg() {
+  # err_exit here (not just the final pacman check below) because doas's
+  # persist cache means a wrong password on THIS call can still leave a
+  # later doas in the same action succeeding on cached auth — without
+  # this, a failed mkdir/touch/chmod here would be silently swallowed and
+  # the action would go on to report success anyway.
+  setopt local_options err_exit
   local p="$1"
   if ! pkg_ok "$p"; then
     status_ok "Installing $p …"
@@ -104,6 +110,7 @@ fw_udp() { command -v nft >/dev/null 2>&1 && nft add rule inet filter input udp 
 
 # ── Auth setup ─────────────────────────────────────────────────────────────
 setup_rsync_auth() {
+  setopt local_options err_exit
   doas mkdir -p "$CONF_DIR"
   printf '%s:%s\n' "$RSYNC_USER" "$RSYNC_PASS" | doas tee "$SECRETS_FILE" >/dev/null
   doas chmod 600 "$SECRETS_FILE"
@@ -140,7 +147,12 @@ srv_setup_dirs() {
   # doas only fires when the package isn't already installed, which isn't
   # reliably true (rsync/samba/etc. are often present from a prior run),
   # so this is the one doas call that's actually always the first prompt
-  # of a server-start action.
+  # of a server-start action. err_exit so a wrong-password failure here
+  # (or on any doas below) aborts immediately instead of silently
+  # continuing — doas's persist cache means a later doas call in the same
+  # action can still succeed on cached auth even after an earlier one was
+  # denied, which without this would report "started" over broken state.
+  setopt local_options err_exit
   local d first=1
   for d in "$NFS_DIR" "$RSYNC_DIR" "$SMB_DIR" "$HTTP_DIR" "$TFTP_DIR" "$NC_DEST" "$CONF_DIR"; do
     if (( first )); then
@@ -159,6 +171,11 @@ srv_setup_dirs() {
 
 # ── rsync daemon ───────────────────────────────────────────────────────────
 srv_start_rsync() {
+  # A wrong-password doas failure anywhere below (setup, config write,
+  # service enable) must stop this function, not fall through to
+  # status_ok on whatever doas call happens to succeed last — see
+  # srv_setup_dirs's comment for why that's a real, not theoretical, risk.
+  setopt local_options err_exit
   local pass="${1:-}"
   ensure_pkg rsync || return
   srv_setup_dirs
@@ -205,6 +222,7 @@ srv_stop_rsync() { syn_ui::doas systemctl disable --now rsyncd >>"$LOG_FILE" 2>&
 
 # ── Samba ──────────────────────────────────────────────────────────────────
 srv_start_samba() {
+  setopt local_options err_exit
   local pass="${1:-}"
   ensure_pkg samba || return
   srv_setup_dirs
@@ -245,6 +263,7 @@ srv_stop_samba() { syn_ui::doas systemctl disable --now smb nmb >>"$LOG_FILE" 2>
 
 # ── NFS ────────────────────────────────────────────────────────────────────
 srv_start_nfs() {
+  setopt local_options err_exit
   ensure_pkg nfs-utils || return
   srv_setup_dirs
   doas chown nobody:nobody "$NFS_DIR"; doas chmod 0775 "$NFS_DIR"
@@ -270,6 +289,7 @@ srv_stop_nfs() {
 
 # ── HTTP (read-only) ───────────────────────────────────────────────────────
 srv_start_http() {
+  setopt local_options err_exit
   ensure_pkg busybox || return
   srv_setup_dirs
   if doas systemd-run --unit=synshare-httpd \
@@ -289,6 +309,7 @@ srv_stop_http() { syn_ui::doas systemctl stop synshare-httpd 2>/dev/null || true
 
 # ── TFTP ───────────────────────────────────────────────────────────────────
 srv_start_tftp() {
+  setopt local_options err_exit
   ensure_pkg tftp-hpa || return
   srv_setup_dirs
   doas chown -R nobody:nobody "$TFTP_DIR"; doas chmod -R 0775 "$TFTP_DIR"
@@ -318,6 +339,7 @@ srv_stop_tftp() { syn_ui::doas systemctl disable --now synshare-tftpd 2>/dev/nul
 
 # ── Netcat receiver ────────────────────────────────────────────────────────
 srv_start_nc() {
+  setopt local_options err_exit
   ensure_pkg openbsd-netcat || true
   ensure_pkg pv || true
   srv_setup_dirs
