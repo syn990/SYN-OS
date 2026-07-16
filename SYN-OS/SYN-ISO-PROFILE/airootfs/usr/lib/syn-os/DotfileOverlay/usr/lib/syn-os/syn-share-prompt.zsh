@@ -25,6 +25,7 @@ SERVER_FILE="$HOME/.config/syn-os/syn-share-server"
 
 source /usr/lib/syn-os/syn-theme-lib.zsh
 source /usr/lib/syn-os/syn-picker-lib.zsh
+source /usr/lib/syn-os/syn-popup-lib.zsh
 syn_theme_load
 
 saved_ip=""
@@ -32,31 +33,7 @@ saved_ip=""
 
 keyword="${1:?Usage: syn-share-prompt.zsh <keyword>}"
 
-# --app-id=syn-share-popup matches rc.xml's windowRule: undecorated,
-# fixed-size, centered — a real popup, not a terminal you have to close
-# yourself. The -o overrides add a themed border foot draws itself (not
-# server-side, so serverDecoration=no doesn't remove it) and extra
-# padding, so it reads as a deliberate card instead of a bare rectangle.
-# Closes itself on success; on failure it waits for a keypress so the
-# error is actually readable instead of vanishing instantly.
-run() {
-  # A [csd] border was tried here, but csd.preferred=client brings back
-  # foot's whole titlebar (minimize/maximize/close chrome) to get it —
-  # worse than plain undecorated. serverDecoration=no in rc.xml already
-  # gives a clean borderless card; just widen the padding a bit more.
-  exec foot --app-id=syn-share-popup \
-    -o main.pad="24x20 center" \
-    -e zsh -c '
-    zsh "$1" "${@:2}"
-    rc=$?
-    if (( rc != 0 )); then
-      print
-      print "[exit $rc — press any key to close]"
-      read -k1 -s
-    fi
-    exit $rc
-  ' -- "$SHARE" "$@"
-}
+run() { syn_popup::run zsh "$SHARE" "$@"; }
 
 case "$keyword" in
   srv-start-rsync)

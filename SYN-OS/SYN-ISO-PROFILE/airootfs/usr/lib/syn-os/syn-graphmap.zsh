@@ -25,17 +25,13 @@ MAX_DEPTH="${2:-6}"
 
 source /usr/lib/syn-os/syn-theme-lib.zsh
 source /usr/lib/syn-os/syn-ui.zsh
+source /usr/lib/syn-os/syn-picker-lib.zsh
 syn_theme_load
-SYN_BG="${SYN_BG:-#000000}"
-SYN_TEXT="${SYN_TEXT:-#ffffff}"
-SYN_ACCENT="${SYN_ACCENT:-#800000}"
-SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
 
 target="${1:-}"
 if [[ -z "$target" ]]; then
-  syn_ui::info "SYN-GRAPHMAP: a popup will ask which directory to graph — enter or pick one, then check back here."
   target="$(print -l -- "$PWD" "$HOME" "$HOME/GithubProjects" \
-    | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_ACCENT" -s "$SYN_BG" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Directory to graph:")"
+    | syn_pick::rofi "Directory to graph:")"
 fi
 [[ -n "$target" ]] || { syn_ui::error "No directory given."; exit 1; }
 [[ -d "$target" ]] || { syn_ui::error "Not a directory: $target"; exit 1; }
@@ -43,8 +39,7 @@ target="${target:A}"
 
 format="${3:-}"
 if [[ -z "$format" ]]; then
-  format="$(print -l -- png svg \
-    | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_ACCENT" -s "$SYN_BG" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Output format:")"
+  format="$(print -l -- png svg | syn_pick::rofi "Output format:")"
 fi
 case "$format" in
   png|svg) ;;

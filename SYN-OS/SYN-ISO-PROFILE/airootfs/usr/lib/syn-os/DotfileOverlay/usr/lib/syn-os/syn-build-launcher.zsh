@@ -11,8 +11,10 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
+source /usr/lib/syn-os/syn-ui.zsh
+
 REPO_DIR="$HOME/GithubProjects/SYN-OS"
 
 [[ -d "$REPO_DIR/SYN-OS" ]] || git clone "https://github.com/syn990/SYN-OS.git" "$REPO_DIR/SYN-OS"
 
-exec zsh "$REPO_DIR/SYN-OS/BUILD-SYNOS-ISO.zsh"
+syn_ui::doas zsh "$REPO_DIR/SYN-OS/SYN-OS/BUILD-SYNOS-ISO.zsh"

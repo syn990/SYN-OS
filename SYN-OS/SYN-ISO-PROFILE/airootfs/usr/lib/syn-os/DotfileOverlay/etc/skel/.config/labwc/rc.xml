@@ -29,13 +29,15 @@
     </font>
   </theme>
 
-  <!-- foot windows launched with app-id syn-share-popup (SYN-SHARE's
-       server/client actions) render as a small, undecorated, centered
-       popup instead of a normal terminal window — matches the rofi
-       popups' feel for what's really a "run this, show me the result"
-       action, not something meant to be resized/moved/left open. -->
+  <!-- foot windows launched with app-id syn-os-popup (syn-popup-lib.zsh,
+       used by every menu.xml tool that runs a command and shows the
+       result — SYN-SHARE, BlackArch/services toggles, the ISO builder,
+       crypter/redshirt/graphmap) render as a small, undecorated,
+       centered popup instead of a normal terminal window — matches the
+       rofi popups' feel, not something meant to be resized/moved/left
+       open indefinitely. -->
   <windowRules>
-    <windowRule identifier="syn-share-popup" serverDecoration="no">
+    <windowRule identifier="syn-os-popup" serverDecoration="no">
       <action name="ResizeTo" width="640" height="360" />
       <action name="AutoPlace" policy="center" />
     </windowRule>

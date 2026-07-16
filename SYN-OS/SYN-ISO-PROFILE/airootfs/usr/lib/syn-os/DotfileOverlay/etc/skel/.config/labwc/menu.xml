@@ -23,6 +23,12 @@
           label="All Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
 
+    <!-- BLACKARCH-MENU-START/END: inserted/removed here by
+         syn-blackarch-toggle.zsh's Enable/Disable — not present until
+         toggled on, so nothing advertises BlackArch to a system that
+         doesn't have it. See Preferences > BlackArch. -->
+    <!-- BLACKARCH-MENU-END -->
+
     <!-- Capture: "do something with what's on screen right now" from the
          user's own seat, same shelf as Applications. screen-recorder.zsh
          toggles: click Record once to start (backgrounded, PID tracked in
@@ -69,50 +75,55 @@
             label="SYN-SHARE (file transfer hub)"
             execute="zsh /usr/lib/syn-os/syn-pipe-share.zsh" />
 
-      <!-- syn-crypter.zsh and syn-redshirt.zsh take flags and a file path
-           on the command line (no interactive prompts of their own) — there's
-           no sensible default file to run them against, so drop into a shell
-           with the usage banner already printed instead of launching them
-           directly, which would just flash-and-exit with an arg error. -->
+      <!-- syn-crypter-prompt.zsh / syn-redshirt-prompt.zsh collect
+           whatever the underlying tool needs (action, algorithm, file,
+           password/key) via rofi, then run the real work inside
+           syn_popup::run — same shape as SYN-SHARE's own prompt script,
+           and for the same reason: labwc's <command> goes straight to
+           execvp(), so every bit of prompt logic has to live in a script
+           keyed by a bare invocation, not a command string built here. -->
       <item label="SYN-CRYPTER (AES/Blowfish/RSA file encryption)">
         <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-crypter.zsh; exec zsh'</command>
+          <command>/usr/lib/syn-os/syn-crypter-prompt.zsh</command>
         </action>
       </item>
 
       <item label="SYN-REDSHIRT (Uplink-style XOR obfuscation)">
         <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-redshirt.zsh; exec zsh'</command>
+          <command>/usr/lib/syn-os/syn-redshirt-prompt.zsh</command>
         </action>
       </item>
 
-      <!-- SYN-GRAPHMAP always prompts via wmenu for the target directory
-           and output format (leaving both args empty here triggers those
-           prompts); these three entries only differ in the max-depth
-           passed as the second argument. Custom asks for a number the same
-           way, via its own wmenu prompt, before syn-graphmap.zsh ever
-           runs. Output lands in ~/Pictures/SYN-GRAPHMAP/, same convention
-           as screenshots. -->
+      <!-- SYN-GRAPHMAP always prompts via rofi for the target directory
+           and output format (leaving both args empty triggers those
+           prompts); Quick/Full only differ in the max-depth passed
+           directly. Custom asks for a number via its own small prompt
+           script first. Output lands in ~/Pictures/SYN-GRAPHMAP/, same
+           convention as screenshots. -->
       <menu id="graphmap-menu" label="SYN-GRAPHMAP (graph a directory tree)">
         <item label="Quick (shallow scan)">
           <action name="Execute">
-            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 2 ""; exec zsh'</command>
+            <command>/usr/lib/syn-os/syn-graphmap-quick.zsh</command>
           </action>
         </item>
 
         <item label="Full (deep scan)">
           <action name="Execute">
-            <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-graphmap.zsh "" 999 ""; exec zsh'</command>
+            <command>/usr/lib/syn-os/syn-graphmap-full.zsh</command>
           </action>
         </item>
 
         <item label="Custom (enter a depth)">
           <action name="Execute">
-            <command>foot -e zsh -c 'depth=$(print "" | wmenu -p "Max depth (e.g. 3):"); zsh /usr/lib/syn-os/syn-graphmap.zsh "" "${depth:-6}" ""; exec zsh'</command>
+            <command>/usr/lib/syn-os/syn-graphmap-custom.zsh</command>
           </action>
         </item>
       </menu>
 
+      <!-- The ISO build itself stays a full, normal, decorated terminal —
+           it runs for minutes with real scrolling output, unlike every
+           other tool here's one-line result. syn-build-launcher.zsh
+           handles its own doas framing internally. -->
       <item label="SYN-OS ISO Builder">
         <action name="Execute">
           <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-build-launcher.zsh; exec zsh'</command>
@@ -135,6 +146,26 @@
       <menu id="displays-pipe"
             label="Display &amp; Screens"
             execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
+
+      <!-- Not part of the installer — genuinely a live toggle, on any
+           already-installed system, whenever it's actually wanted.
+           No foot wrapper: the rofi pickers are their own popups, and
+           the script opens its own syn_popup::run window for the actual
+           doas action once a choice is made. -->
+      <item label="BlackArch">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
+        </action>
+      </item>
+
+      <!-- sshd/bluetooth/qemu-guest-agent are all installed but disabled
+           by default (same reasoning EnableSsh=yes documents for sshd) —
+           this is the live version of that control, no reinstall needed. -->
+      <item label="Services (SSH, Bluetooth, QEMU Agent)">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
+        </action>
+      </item>
 
       <menu id="themes-pipe"
             label="Themes"

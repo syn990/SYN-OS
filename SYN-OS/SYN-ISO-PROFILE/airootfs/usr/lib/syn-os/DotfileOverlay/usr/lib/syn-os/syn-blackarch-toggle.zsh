@@ -8,6 +8,12 @@
 #   badkarma/vega and their broken webkit2gtk/libsoup deps. Inserts the
 #   Applications submenu into menu.xml; Disable reverses all of it.
 #
+#   Launched directly from menu.xml (no foot wrapper) — the rofi picker
+#   is already its own centered popup. Once a choice is made, this script
+#   re-invokes itself with --enable/--disable inside syn_popup::run, so
+#   the actual doas/strap.sh/pacman work gets a real terminal (strap.sh
+#   has its own prompts) framed the same way as every other tool.
+#
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-BLACKARCH-TOGGLE (Desktop)
 #   Author     : William Hayward-Holland (Syntax990)
@@ -18,9 +24,12 @@ set -euo pipefail
 MENU_XML="$HOME/.config/labwc/menu.xml"
 PKGS=(set metasploit aircrack-ng)
 
+SELF="/usr/lib/syn-os/syn-blackarch-toggle.zsh"
+
 source /usr/lib/syn-os/syn-theme-lib.zsh
 source /usr/lib/syn-os/syn-picker-lib.zsh
 source /usr/lib/syn-os/syn-ui.zsh
+source /usr/lib/syn-os/syn-popup-lib.zsh
 syn_theme_load
 
 is_enabled() { pacman -Qi set >/dev/null 2>&1; }
@@ -80,6 +89,15 @@ disable_blackarch() {
   syn_ui::step_done "BlackArch disabled. Reload the menu (Super+Escape) to hide Applications > BlackArch."
 }
 
+# Re-invocation entry point: syn_popup::run below calls back into this
+# same script with --enable/--disable so the actual work runs inside the
+# popup instead of the rofi-picker process (which never gets a foot
+# window of its own at all now).
+case "${1:-}" in
+  --enable)  enable_blackarch;  exit 0 ;;
+  --disable) disable_blackarch; exit 0 ;;
+esac
+
 # not "status" — that's a read-only zsh builtin
 if is_enabled; then
   blackarchStatus="currently enabled"
@@ -91,7 +109,7 @@ choice="$(printf '%s\n' "Enable BlackArch" "Disable BlackArch" \
   | syn_pick::rofi "BlackArch (${blackarchStatus}):")"
 
 case "$choice" in
-  Enable*)  enable_blackarch ;;
-  Disable*) disable_blackarch ;;
+  Enable*)  syn_popup::run zsh "$SELF" --enable ;;
+  Disable*) syn_popup::run zsh "$SELF" --disable ;;
   *) exit 0 ;;
 esac
