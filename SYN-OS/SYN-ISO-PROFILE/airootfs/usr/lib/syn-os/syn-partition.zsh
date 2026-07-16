@@ -22,6 +22,46 @@ waitForBlock() {
   return 1
 }
 
+closeHolder() {
+  local dev="$1" name="${1:t}" holder vg mapperName
+
+  for holder in /sys/class/block/${name}/holders/*(N); do
+    closeHolder "/dev/${holder:t}"
+  done
+
+  # lvs exits nonzero (not just empty output) when $dev isn't a PV at all —
+  # `|| true` is required, not just the `2>/dev/null` already here, or a
+  # plain partition aborts the whole install under set -e.
+  vg="$(lvs --noheadings -o vg_name "$dev" 2>/dev/null | tr -d ' ' || true)"
+  if [ -n "$vg" ]; then
+    vgchange -an "$vg" 2>/dev/null || true
+  else
+    cryptsetup close "$name" 2>/dev/null || true
+  fi
+
+  # A device-mapper target can outlive the LVM/LUKS metadata that created
+  # it (e.g. an interrupted install left vg0-root active, then the backing
+  # partition got wiped/reused) — lvs and cryptsetup close above both see
+  # nothing to act on in that case. dmsetup only accepts the mapper's own
+  # name (e.g. "vg0-root"), not the kernel device name ("dm-0") this
+  # function is called with, so resolve it first via the device path.
+  if [ -z "$vg" ] && command -v dmsetup >/dev/null 2>&1; then
+    mapperName="$(dmsetup info -c --noheadings -o name "$dev" 2>/dev/null || true)"
+    [ -n "$mapperName" ] && dmsetup remove "$mapperName" 2>/dev/null || true
+  fi
+}
+
+clearDiskHolders() {
+  local disk="$1" part
+
+  swapoff -a 2>/dev/null || true
+
+  for part in "${disk}"p*(N) "${disk}"[0-9]*(N); do
+    [ -b "$part" ] || continue
+    closeHolder "$part"
+  done
+}
+
 # =========================================================
 # UEFI + systemd-boot (GPT)
 # =========================================================
@@ -98,6 +138,8 @@ partitionStrat_mbr_grub() {
 # Main dispatcher
 # =========================================================
 partitionMain() {
+  clearDiskHolders "${Disk}"
+
   syn_ui::info "Zeroing first 4 MiB on ${Disk}…"
   dd if=/dev/zero of="${Disk}" bs=1M count=4 status=none || true
   sync
