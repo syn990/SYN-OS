@@ -3,8 +3,11 @@
 #                         S Y N - P I P E - S H A R E
 #
 #   Labwc pipe menu for the SYN-SHARE file-transfer hub. Server-side items
-#   self-toggle (label reflects live systemctl state); passwords and paths
-#   are collected inline via wmenu before syn-share.zsh is invoked.
+#   self-toggle (label reflects live systemctl state). Every item needing
+#   input (password/IP/path) calls syn-share-prompt.zsh <keyword> — one
+#   bare word, nothing for labwc's non-shell command tokenizer to mangle.
+#   Popups appear before foot even opens; no terminal-with-a-blinking-
+#   cursor for what's really a password prompt.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-PIPE-SHARE (Desktop)
@@ -14,7 +17,7 @@
 set -euo pipefail
 
 SHARE="/usr/lib/syn-os/syn-share.zsh"
-SERVER_FILE="$HOME/.config/syn-os/syn-share-server"
+PROMPT="/usr/lib/syn-os/syn-share-prompt.zsh"
 
 print '<?xml version="1.0" encoding="UTF-8"?>'
 print '<openbox_pipe_menu>'
@@ -30,82 +33,82 @@ xml_escape() {
 
 svc_active() { systemctl is-active --quiet "$1" 2>/dev/null; }
 
-saved_ip=""
-[[ -f "$SERVER_FILE" ]] && saved_ip="$(<"$SERVER_FILE")"
-
-# toggle_item <unit> <label> <start-cmd> <stop-cmd>
+# toggle_item <unit> <label> <start-keyword> <stop-keyword>
+# Both sides go through syn-share-prompt.zsh (one bare keyword per item —
+# see the banner above), which now runs everything in the undecorated,
+# centered, auto-closing popup instead of a bare foot window.
 toggle_item() {
-  local unit="$1" label="$2" start_cmd="$3" stop_cmd="$4"
-  local item_label cmd
+  local unit="$1" label="$2" start_kw="$3" stop_kw="$4"
+  local item_label kw
   if svc_active "$unit"; then
     item_label="● ${label} — running (click to stop)"
-    cmd="$stop_cmd"
+    kw="$stop_kw"
   else
     item_label="○ Start ${label}"
-    cmd="$start_cmd"
+    kw="$start_kw"
   fi
   local safe_label="$(xml_escape "$item_label")"
   print "      <item label=\"$safe_label\">"
-  print "        <action name=\"Execute\"><command>foot -e zsh -c '${cmd}; exec zsh'</command></action>"
+  print "        <action name=\"Execute\"><command>$PROMPT ${kw}</command></action>"
   print "      </item>"
 }
 
 print '  <menu id="syn-share-server" label="Server">'
-toggle_item rsyncd         "rsync"  "pass=\$(print \"\" | wmenu -p \"rsync password:\"); zsh $SHARE srv-start-rsync \"\$pass\"" "zsh $SHARE srv-stop-rsync"
-toggle_item smb            "Samba"  "pass=\$(print \"\" | wmenu -p \"Samba password:\"); zsh $SHARE srv-start-samba \"\$pass\"" "zsh $SHARE srv-stop-samba"
-toggle_item nfs-server      "NFS"    "zsh $SHARE srv-start-nfs" "zsh $SHARE srv-stop-nfs"
-toggle_item synshare-httpd "HTTP"   "zsh $SHARE srv-start-http" "zsh $SHARE srv-stop-http"
-toggle_item synshare-tftpd "TFTP"   "zsh $SHARE srv-start-tftp" "zsh $SHARE srv-stop-tftp"
-toggle_item synshare-nc    "Netcat" "zsh $SHARE srv-start-nc" "zsh $SHARE srv-stop-nc"
+toggle_item rsyncd         "rsync"  srv-start-rsync srv-stop-rsync
+toggle_item smb            "Samba"  srv-start-samba srv-stop-samba
+toggle_item nfs-server      "NFS"    srv-start-nfs   srv-stop-nfs
+toggle_item synshare-httpd "HTTP"   srv-start-http  srv-stop-http
+toggle_item synshare-tftpd "TFTP"   srv-start-tftp  srv-stop-tftp
+toggle_item synshare-nc    "Netcat" srv-start-nc    srv-stop-nc
 print '      <separator/>'
 print '      <item label="OTG Quick Share (rsync + HTTP)">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'pass=\$(print \"\" | wmenu -p \"rsync password:\"); zsh $SHARE srv-otg-start \"\$pass\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT srv-otg-start</command></action>"
 print '      </item>'
 print '      <item label="Stop ALL services">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'confirm=\$(print \"\" | wmenu -p \"Type yes to stop ALL:\"); [ \"\$confirm\" = yes ] &amp;&amp; zsh $SHARE srv-stop-all; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT srv-stop-all</command></action>"
 print '      </item>'
 print '  </menu>'
 
 print '  <menu id="syn-share-client" label="Client">'
 print '      <item label="Set / Probe Server">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP or hostname:\"); zsh $SHARE cli-set-server \"\$ip\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-set-server</command></action>"
 print '      </item>'
 print '      <separator/>'
 print '      <item label="rsync: Pull">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); pass=\$(print \"\" | wmenu -p \"rsync password:\"); zsh $SHARE cli-rsync-pull \"\$ip\" \"\$pass\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-rsync-pull</command></action>"
 print '      </item>'
 print '      <item label="rsync: Push">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); pass=\$(print \"\" | wmenu -p \"rsync password:\"); src=\$(print \"\" | wmenu -p \"Local path:\"); zsh $SHARE cli-rsync-push \"\$ip\" \"\$pass\" \"\$src\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-rsync-push</command></action>"
 print '      </item>'
 print '      <item label="Samba: Mount">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); pass=\$(print \"\" | wmenu -p \"Samba password:\"); zsh $SHARE cli-smb-mount \"\$ip\" \"\$pass\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-smb-mount</command></action>"
 print '      </item>'
 print '      <item label="Samba: Unmount">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'zsh $SHARE cli-smb-umount; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-smb-umount</command></action>"
 print '      </item>'
 print '      <item label="NFS: Mount (direct)">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); zsh $SHARE cli-nfs-mount \"\$ip\" 0; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-nfs-mount-direct</command></action>"
 print '      </item>'
 print '      <item label="NFS: Mount (via SSH tunnel)">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); zsh $SHARE cli-nfs-mount \"\$ip\" 1; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-nfs-mount-ssh</command></action>"
 print '      </item>'
 print '      <item label="NFS: Unmount">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'zsh $SHARE cli-nfs-umount; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-nfs-umount</command></action>"
 print '      </item>'
 print '      <item label="HTTP: Mirror">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); zsh $SHARE cli-http-mirror \"\$ip\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-http-mirror</command></action>"
 print '      </item>'
 print '      <item label="TFTP: Get">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); f=\$(print \"\" | wmenu -p \"Remote filename:\"); zsh $SHARE cli-tftp-get \"\$ip\" \"\$f\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-tftp-get</command></action>"
 print '      </item>'
 print '      <item label="TFTP: Put">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); f=\$(print \"\" | wmenu -p \"Local file:\"); zsh $SHARE cli-tftp-put \"\$ip\" \"\$f\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-tftp-put</command></action>"
 print '      </item>'
 print '      <item label="Netcat: Send">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); src=\$(print \"\" | wmenu -p \"Local path:\"); zsh $SHARE cli-nc-send \"\$ip\" \"\$src\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-nc-send</command></action>"
 print '      </item>'
 print '      <item label="SSH: Copy (SCP)">'
-print "        <action name=\"Execute\"><command>foot -e zsh -c 'ip=\$(print \"$saved_ip\" | wmenu -p \"Server IP:\"); src=\$(print \"\" | wmenu -p \"Local path:\"); dst=\$(print \"\" | wmenu -p \"Remote destination:\"); zsh $SHARE cli-ssh-copy \"\$ip\" \"\$src\" \"\$dst\"; exec zsh'</command></action>"
+print "        <action name=\"Execute\"><command>$PROMPT cli-ssh-copy</command></action>"
 print '      </item>'
 print '  </menu>'
 

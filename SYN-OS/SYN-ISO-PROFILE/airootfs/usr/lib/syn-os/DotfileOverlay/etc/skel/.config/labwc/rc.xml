@@ -29,6 +29,18 @@
     </font>
   </theme>
 
+  <!-- foot windows launched with app-id syn-share-popup (SYN-SHARE's
+       server/client actions) render as a small, undecorated, centered
+       popup instead of a normal terminal window — matches the rofi
+       popups' feel for what's really a "run this, show me the result"
+       action, not something meant to be resized/moved/left open. -->
+  <windowRules>
+    <windowRule identifier="syn-share-popup" serverDecoration="no">
+      <action name="ResizeTo" width="640" height="360" />
+      <action name="AutoPlace" policy="center" />
+    </windowRule>
+  </windowRules>
+
   <desktops number="4">
     <names>
       <name>🃁 [Terminal]</name>
