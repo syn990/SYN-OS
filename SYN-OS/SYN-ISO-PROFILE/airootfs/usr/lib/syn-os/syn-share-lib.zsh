@@ -19,6 +19,7 @@
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 autoload -Uz colors; colors
+source /usr/lib/syn-os/syn-ui.zsh
 
 # ── Globals ─────────────────────────────────────────────────────────────────
 typeset -g NFS_DIR="/srv/syn-share/nfs"
@@ -49,8 +50,12 @@ typeset -g C_SMB_PASS=""
 log() { print -r -- "[$(date '+%H:%M:%S')] $*" >> "$LOG_FILE" 2>/dev/null || true; }
 
 # ── Plain status messages (no cursor positioning — just terminal output) ────
-status_ok()  { print -P "%F{green}✓%f $*"; }
-status_err() { print -P "%F{red}✗%f $*" >&2; }
+# Thin wrappers over syn_ui:: so SYN-SHARE's output matches the rest of the
+# installer/desktop tools' red/gold palette instead of its own separate
+# green/red %F{} scheme — same ✓/✗ call-site names, real shared styling
+# underneath.
+status_ok()  { syn_ui::step_done "$*"; }
+status_err() { syn_ui::error "$*"; }
 
 # ── y/N confirmation ──────────────────────────────────────────────────────
 confirm() {
@@ -87,8 +92,8 @@ ensure_pkg() {
   local p="$1"
   if ! pkg_ok "$p"; then
     status_ok "Installing $p …"
-    sudo mkdir -p "${LOG_FILE:h}"; sudo touch "$LOG_FILE"; sudo chmod 666 "$LOG_FILE"
-    sudo pacman -Sy --noconfirm --needed "$p" >> "$LOG_FILE" 2>&1 || {
+    syn_ui::doas mkdir -p "${LOG_FILE:h}"; doas touch "$LOG_FILE"; doas chmod 666 "$LOG_FILE"
+    doas pacman -Sy --noconfirm --needed "$p" >> "$LOG_FILE" 2>&1 || {
       status_err "Failed to install $p"; return 1; }
   fi
 }
@@ -99,17 +104,17 @@ fw_udp() { command -v nft >/dev/null 2>&1 && nft add rule inet filter input udp 
 
 # ── Auth setup ─────────────────────────────────────────────────────────────
 setup_rsync_auth() {
-  sudo mkdir -p "$CONF_DIR"
-  printf '%s:%s\n' "$RSYNC_USER" "$RSYNC_PASS" | sudo tee "$SECRETS_FILE" >/dev/null
-  sudo chmod 600 "$SECRETS_FILE"
+  doas mkdir -p "$CONF_DIR"
+  printf '%s:%s\n' "$RSYNC_USER" "$RSYNC_PASS" | doas tee "$SECRETS_FILE" >/dev/null
+  doas chmod 600 "$SECRETS_FILE"
   log "rsync secrets written"
 }
 
 setup_smb_auth() {
   if ! id "$SMB_USER" >/dev/null 2>&1; then
-    sudo useradd -r -s /usr/bin/nologin "$SMB_USER" 2>/dev/null || true
+    doas useradd -r -s /usr/bin/nologin "$SMB_USER" 2>/dev/null || true
   fi
-  printf '%s\n%s\n' "$SMB_PASS" "$SMB_PASS" | sudo smbpasswd -s -a "$SMB_USER" 2>/dev/null || true
+  printf '%s\n%s\n' "$SMB_PASS" "$SMB_PASS" | doas smbpasswd -s -a "$SMB_USER" 2>/dev/null || true
   log "Samba password set for $SMB_USER"
 }
 
@@ -117,14 +122,13 @@ svc_active() { systemctl is-active --quiet "$1" 2>/dev/null; }
 
 # ── Service status (plain text) ───────────────────────────────────────────
 status_all() {
-  print -P "%F{cyan}---- SYN-SHARE service status ----%f"
+  syn_ui::step "SYN-SHARE service status"
   svc_active rsyncd          && echo "rsyncd: up" || echo "rsyncd: down"
   svc_active smb             && echo "Samba:  up" || echo "Samba:  down"
   svc_active nfs-server      && echo "NFS:    up" || echo "NFS:    down"
   svc_active synshare-httpd  && echo "HTTP:   up" || echo "HTTP:   down"
   svc_active synshare-tftpd  && echo "TFTP:   up" || echo "TFTP:   down"
   svc_active synshare-nc     && echo "Netcat: up" || echo "Netcat: down"
-  print -P "%F{cyan}-----------------------------------%f"
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -134,13 +138,13 @@ status_all() {
 srv_setup_dirs() {
   local d
   for d in "$NFS_DIR" "$RSYNC_DIR" "$SMB_DIR" "$HTTP_DIR" "$TFTP_DIR" "$NC_DEST" "$CONF_DIR"; do
-    sudo mkdir -p "$d"
+    doas mkdir -p "$d"
   done
-  sudo touch "$LOG_FILE"
-  sudo chmod 777 "$NC_DEST" "$RSYNC_DIR"
-  # sudo elevates the command, not this shell's own >>"$LOG_FILE" redirects
+  doas touch "$LOG_FILE"
+  doas chmod 777 "$NC_DEST" "$RSYNC_DIR"
+  # doas elevates the command, not this shell's own >>"$LOG_FILE" redirects
   # below — the file needs to stay writable by the calling user too.
-  sudo chmod 666 "$LOG_FILE"
+  doas chmod 666 "$LOG_FILE"
 }
 
 # ── rsync daemon ───────────────────────────────────────────────────────────
@@ -153,7 +157,7 @@ srv_start_rsync() {
   [[ -z "$RSYNC_PASS" ]] && { status_err "Password required for rsync"; return 1; }
   setup_rsync_auth
 
-  sudo tee /etc/rsyncd.conf >/dev/null <<EOF
+  doas tee /etc/rsyncd.conf >/dev/null <<EOF
 uid = nobody
 gid = nobody
 use chroot = no
@@ -176,7 +180,7 @@ EOF
 
   # rsync's package already ships a real rsyncd.service — no transient unit
   # needed here, and systemd would refuse one under the same name anyway.
-  if sudo systemctl enable --now rsyncd >>"$LOG_FILE" 2>&1; then
+  if doas systemctl enable --now rsyncd >>"$LOG_FILE" 2>&1; then
     fw_tcp "$RSYNC_PORT"
     status_ok "rsyncd started on :${RSYNC_PORT}  user=${RSYNC_USER}"
     log "rsyncd started"
@@ -187,7 +191,7 @@ EOF
   fi
 }
 
-srv_stop_rsync() { sudo systemctl disable --now rsyncd >>"$LOG_FILE" 2>&1 || true; status_ok "rsyncd stopped"; }
+srv_stop_rsync() { syn_ui::doas systemctl disable --now rsyncd >>"$LOG_FILE" 2>&1 || true; status_ok "rsyncd stopped"; }
 
 # ── Samba ──────────────────────────────────────────────────────────────────
 srv_start_samba() {
@@ -199,7 +203,7 @@ srv_start_samba() {
   [[ -z "$SMB_PASS" ]] && { status_err "Password required for Samba"; return 1; }
   setup_smb_auth
 
-  sudo tee /etc/samba/smb.conf >/dev/null <<EOF
+  doas tee /etc/samba/smb.conf >/dev/null <<EOF
 [global]
    server role = standalone server
    workgroup = SYNSHARE
@@ -216,7 +220,7 @@ srv_start_samba() {
    directory mask = 0775
 EOF
 
-  if sudo systemctl enable --now smb nmb >>"$LOG_FILE" 2>&1; then
+  if doas systemctl enable --now smb nmb >>"$LOG_FILE" 2>&1; then
     fw_tcp 139; fw_tcp 445; fw_udp 137; fw_udp 138
     status_ok "Samba started  user=${SMB_USER}  share=\\\\$(hostname -s)\\share"
     log "Samba started"
@@ -227,18 +231,18 @@ EOF
   fi
 }
 
-srv_stop_samba() { sudo systemctl disable --now smb nmb >>"$LOG_FILE" 2>&1 || true; status_ok "Samba stopped"; }
+srv_stop_samba() { syn_ui::doas systemctl disable --now smb nmb >>"$LOG_FILE" 2>&1 || true; status_ok "Samba stopped"; }
 
 # ── NFS ────────────────────────────────────────────────────────────────────
 srv_start_nfs() {
   ensure_pkg nfs-utils || return
   srv_setup_dirs
-  sudo chown nobody:nobody "$NFS_DIR"; sudo chmod 0775 "$NFS_DIR"
+  doas chown nobody:nobody "$NFS_DIR"; doas chmod 0775 "$NFS_DIR"
   grep -qF "$NFS_DIR" /etc/exports 2>/dev/null || \
     printf '%s  %s(rw,sync,no_subtree_check,fsid=0,no_root_squash)\n' \
-      "$NFS_DIR" "$SUBNET" | sudo tee -a /etc/exports >/dev/null
-  if sudo systemctl enable --now nfs-server >>"$LOG_FILE" 2>&1; then
-    sudo exportfs -rav >>"$LOG_FILE" 2>&1
+      "$NFS_DIR" "$SUBNET" | doas tee -a /etc/exports >/dev/null
+  if doas systemctl enable --now nfs-server >>"$LOG_FILE" 2>&1; then
+    doas exportfs -rav >>"$LOG_FILE" 2>&1
     fw_tcp 2049
     status_ok "NFSv4 started  →  mount -t nfs4 $(hostname -s):/ /mnt/..."
     log "NFSv4 started"
@@ -250,7 +254,7 @@ srv_start_nfs() {
 }
 
 srv_stop_nfs() {
-  sudo systemctl disable --now nfs-server >>"$LOG_FILE" 2>&1 || true
+  syn_ui::doas systemctl disable --now nfs-server >>"$LOG_FILE" 2>&1 || true
   status_ok "NFSv4 stopped"
 }
 
@@ -258,7 +262,7 @@ srv_stop_nfs() {
 srv_start_http() {
   ensure_pkg busybox || return
   srv_setup_dirs
-  if sudo systemd-run --unit=synshare-httpd \
+  if doas systemd-run --unit=synshare-httpd \
     /usr/bin/busybox httpd -f -p "0.0.0.0:${HTTP_PORT}" \
     -h "$HTTP_DIR" >>"$LOG_FILE" 2>&1; then
     fw_tcp "$HTTP_PORT"
@@ -271,25 +275,25 @@ srv_start_http() {
   fi
 }
 
-srv_stop_http() { sudo systemctl stop synshare-httpd 2>/dev/null || true; status_ok "HTTP stopped"; }
+srv_stop_http() { syn_ui::doas systemctl stop synshare-httpd 2>/dev/null || true; status_ok "HTTP stopped"; }
 
 # ── TFTP ───────────────────────────────────────────────────────────────────
 srv_start_tftp() {
   ensure_pkg tftp-hpa || return
   srv_setup_dirs
-  sudo chown -R nobody:nobody "$TFTP_DIR"; sudo chmod -R 0775 "$TFTP_DIR"
-  sudo tee /etc/systemd/system/synshare-tftpd.service >/dev/null <<EOF
+  doas chown -R nobody:nobody "$TFTP_DIR"; doas chmod -R 0775 "$TFTP_DIR"
+  doas tee /etc/systemd/system/synshare-tftpd.service >/dev/null <<EOF
 [Unit]
 Description=SYN-SHARE TFTP
 After=network.target
 [Service]
-ExecStart=/usr/bin/in.tftpd --listen --address 0.0.0.0:69 --secure ${TFTP_DIR}
+ExecStart=/usr/bin/in.tftpd --foreground --address 0.0.0.0:69 --secure ${TFTP_DIR}
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-  sudo systemctl daemon-reload
-  if sudo systemctl enable --now synshare-tftpd >>"$LOG_FILE" 2>&1; then
+  doas systemctl daemon-reload
+  if doas systemctl enable --now synshare-tftpd >>"$LOG_FILE" 2>&1; then
     fw_udp 69
     status_ok "TFTP started  root=${TFTP_DIR}"
     log "TFTP started"
@@ -300,14 +304,14 @@ EOF
   fi
 }
 
-srv_stop_tftp() { sudo systemctl disable --now synshare-tftpd 2>/dev/null || true; status_ok "TFTP stopped"; }
+srv_stop_tftp() { syn_ui::doas systemctl disable --now synshare-tftpd 2>/dev/null || true; status_ok "TFTP stopped"; }
 
 # ── Netcat receiver ────────────────────────────────────────────────────────
 srv_start_nc() {
   ensure_pkg openbsd-netcat || true
   ensure_pkg pv || true
   srv_setup_dirs
-  if sudo systemd-run --unit=synshare-nc \
+  if doas systemd-run --unit=synshare-nc \
     bash -lc "cd '${NC_DEST}' && nc -lvkp ${NC_PORT} | pv | tar xpf -" >>"$LOG_FILE" 2>&1; then
     fw_tcp "$NC_PORT"
     status_ok "Netcat receiver on :${NC_PORT}  dest=${NC_DEST}"
@@ -319,7 +323,7 @@ srv_start_nc() {
   fi
 }
 
-srv_stop_nc() { sudo systemctl stop synshare-nc 2>/dev/null || true; status_ok "Netcat stopped"; }
+srv_stop_nc() { syn_ui::doas systemctl stop synshare-nc 2>/dev/null || true; status_ok "Netcat stopped"; }
 
 # ── OTG quick-start ────────────────────────────────────────────────────────
 srv_otg_start() {
@@ -397,13 +401,13 @@ cli_smb_mount() {
   C_SERVER_IP="$ip"
   [[ -n "$pass" ]] && C_SMB_PASS="$pass"
   [[ -z "$C_SMB_PASS" ]] && { status_err "Samba password required"; return 1; }
-  sudo mkdir -p "$MNT_SMB"
-  sudo mount -t cifs "//${C_SERVER_IP}/share" "$MNT_SMB" \
+  syn_ui::doas mkdir -p "$MNT_SMB"
+  doas mount -t cifs "//${C_SERVER_IP}/share" "$MNT_SMB" \
     -o "user=${SMB_USER},password=${C_SMB_PASS},vers=3.0" >>"$LOG_FILE" 2>&1 && \
     status_ok "SMB mounted → ${MNT_SMB}" || status_err "SMB mount failed (check log)"
 }
 
-cli_smb_umount() { sudo umount "$MNT_SMB" 2>/dev/null && status_ok "SMB unmounted" || status_err "Not mounted?"; }
+cli_smb_umount() { syn_ui::doas umount "$MNT_SMB" 2>/dev/null && status_ok "SMB unmounted" || status_err "Not mounted?"; }
 
 cli_nfs_mount() {
   local ip="${1:-}" use_tunnel="${2:-0}"
@@ -412,17 +416,17 @@ cli_nfs_mount() {
   if [[ "$use_tunnel" == "1" ]]; then
     local tunnel_port="20490"
     ssh -fNL "${tunnel_port}:localhost:2049" "$C_SERVER_IP" >>"$LOG_FILE" 2>&1
-    sudo mkdir -p "$MNT_NFS"
-    sudo mount -t nfs4 "localhost:/" "$MNT_NFS" -o "port=${tunnel_port}" >>"$LOG_FILE" 2>&1 && \
+    syn_ui::doas mkdir -p "$MNT_NFS"
+    doas mount -t nfs4 "localhost:/" "$MNT_NFS" -o "port=${tunnel_port}" >>"$LOG_FILE" 2>&1 && \
       status_ok "NFS mounted via SSH tunnel → ${MNT_NFS}" || status_err "NFS mount failed"
   else
-    sudo mkdir -p "$MNT_NFS"
-    sudo mount -t nfs4 "${C_SERVER_IP}:/" "$MNT_NFS" >>"$LOG_FILE" 2>&1 && \
+    syn_ui::doas mkdir -p "$MNT_NFS"
+    doas mount -t nfs4 "${C_SERVER_IP}:/" "$MNT_NFS" >>"$LOG_FILE" 2>&1 && \
       status_ok "NFS mounted → ${MNT_NFS}" || status_err "NFS mount failed"
   fi
 }
 
-cli_nfs_umount() { sudo umount "$MNT_NFS" 2>/dev/null && status_ok "NFS unmounted" || status_err "Not mounted?"; }
+cli_nfs_umount() { syn_ui::doas umount "$MNT_NFS" 2>/dev/null && status_ok "NFS unmounted" || status_err "Not mounted?"; }
 
 cli_http_mirror() {
   local ip="${1:-}"
