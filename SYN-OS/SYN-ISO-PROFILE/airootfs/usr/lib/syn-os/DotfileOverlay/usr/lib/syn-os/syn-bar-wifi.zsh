@@ -21,13 +21,23 @@ SYN_TEXT="${SYN_TEXT:-#ffffff}"
 SYN_PANEL_HOVER="${SYN_PANEL_HOVER:-#400101}"
 SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
 
-INTERFACE=$(iwctl device list 2>/dev/null | awk '$4=="station" {print $1; exit}')
+# Real `iwctl device list` columns are Name/Address/Powered/Adapter/Mode
+# (5 fields) — Mode, the one we actually want to match, is $5, not $4.
+# $4=="station" checks the adapter name (e.g. "phy0") and never matches,
+# so this always reported "No wireless device found" even with a real
+# wifi card present.
+INTERFACE=$(iwctl device list 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk '$5=="station" {print $1; exit}')
 if [ -z "$INTERFACE" ]; then
     notify-send "WiFi" "No wireless device found" 2>/dev/null || echo "No wireless device found" >&2
     exit 1
 fi
 
+# `station scan` is async over D-Bus — it returns as soon as the scan
+# request is accepted, not once results are in. get-networks called
+# immediately after can return stale or empty results. iwd's own scans
+# typically take a few seconds; give it a moment before reading back.
 iwctl station "$INTERFACE" scan > /dev/null
+sleep 3
 
 # Strips ANSI colors, the 4-line header, leading list markers, then keeps
 # only the text before the first 2+-space gap (SSID column only).

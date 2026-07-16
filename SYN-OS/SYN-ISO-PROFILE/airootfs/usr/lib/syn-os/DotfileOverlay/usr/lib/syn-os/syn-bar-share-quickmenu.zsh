@@ -2,9 +2,12 @@
 # ------------------------------------------------------------------------------
 #                 S Y N - B A R - S H A R E - Q U I C K M E N U
 #
-#   Quick-access wmenu popup for waybar's SYN-SHARE indicator on-click — a
+#   Quick-access rofi popup for waybar's SYN-SHARE indicator on-click — a
 #   deliberately smaller, separate action list from syn-pipe-share.zsh's
-#   full labwc submenu, for one-click bar access.
+#   full labwc submenu, for one-click bar access. Only ever offers Start
+#   for a stopped service or Stop for a running one — never both — same
+#   as syn-pipe-share.zsh's own toggle_item, so the two don't drift into
+#   showing different things for the same live state.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-BAR-SHARE-QUICKMENU (Waybar)
@@ -14,63 +17,61 @@
 emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
-SHARE="/usr/lib/syn-os/syn-share.zsh"
+PROMPT="/usr/lib/syn-os/syn-share-prompt.zsh"
 
 source /usr/lib/syn-os/syn-theme-lib.zsh
+source /usr/lib/syn-os/syn-picker-lib.zsh
 syn_theme_load
-SYN_BG="${SYN_BG:-#000000}"
-SYN_TEXT="${SYN_TEXT:-#ffffff}"
-SYN_PANEL_HOVER="${SYN_PANEL_HOVER:-#400101}"
-SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
+
+svc_active() { systemctl is-active --quiet "$1" 2>/dev/null; }
+
+# toggle_line <unit> <label> <start-keyword> <stop-keyword>
+# Echoes one menu line ("Start X" or "Stop X") and remembers which
+# keyword it maps to, same shape as syn-pipe-share.zsh's toggle_item.
+typeset -A LINE_KEYWORD
+toggle_line() {
+  local unit="$1" label="$2" start_kw="$3" stop_kw="$4"
+  local line
+  if svc_active "$unit"; then
+    line="Stop ${label}"
+    LINE_KEYWORD[$line]="$stop_kw"
+  else
+    line="Start ${label}"
+    LINE_KEYWORD[$line]="$start_kw"
+  fi
+  print -r -- "$line"
+}
+
+menu_lines=(
+  "$(toggle_line rsyncd         rsync  srv-start-rsync srv-stop-rsync)"
+  "$(toggle_line smb            Samba  srv-start-samba srv-stop-samba)"
+  "$(toggle_line nfs-server      NFS    srv-start-nfs   srv-stop-nfs)"
+  "$(toggle_line synshare-httpd HTTP   srv-start-http  srv-stop-http)"
+  "$(toggle_line synshare-tftpd TFTP   srv-start-tftp  srv-stop-tftp)"
+  "$(toggle_line synshare-nc    Netcat srv-start-nc    srv-stop-nc)"
+)
 
 choice=$(printf '%s\n' \
-  "Start rsync" "Stop rsync" \
-  "Start Samba" "Stop Samba" \
-  "Start NFS" "Stop NFS" \
-  "Start HTTP" "Stop HTTP" \
-  "Start TFTP" "Stop TFTP" \
-  "Start Netcat" "Stop Netcat" \
+  "${menu_lines[@]}" \
   "Set / Probe Server" \
   "rsync: Pull" \
   "Stop ALL services" \
   "Service Status" \
-  | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "SYN-SHARE:")
+  | syn_pick::rofi "SYN-SHARE:")
 
 [ -z "$choice" ] && exit 0
 
 case "$choice" in
-  "Start rsync")
-    pass=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "rsync password:")
-    exec foot -e zsh -c "zsh $SHARE srv-start-rsync '$pass'; exec zsh"
-    ;;
-  "Stop rsync")  exec foot -e zsh -c "zsh $SHARE srv-stop-rsync; exec zsh" ;;
-  "Start Samba")
-    pass=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Samba password:")
-    exec foot -e zsh -c "zsh $SHARE srv-start-samba '$pass'; exec zsh"
-    ;;
-  "Stop Samba")  exec foot -e zsh -c "zsh $SHARE srv-stop-samba; exec zsh" ;;
-  "Start NFS")   exec foot -e zsh -c "zsh $SHARE srv-start-nfs; exec zsh" ;;
-  "Stop NFS")    exec foot -e zsh -c "zsh $SHARE srv-stop-nfs; exec zsh" ;;
-  "Start HTTP")  exec foot -e zsh -c "zsh $SHARE srv-start-http; exec zsh" ;;
-  "Stop HTTP")   exec foot -e zsh -c "zsh $SHARE srv-stop-http; exec zsh" ;;
-  "Start TFTP")  exec foot -e zsh -c "zsh $SHARE srv-start-tftp; exec zsh" ;;
-  "Stop TFTP")   exec foot -e zsh -c "zsh $SHARE srv-stop-tftp; exec zsh" ;;
-  "Start Netcat") exec foot -e zsh -c "zsh $SHARE srv-start-nc; exec zsh" ;;
-  "Stop Netcat") exec foot -e zsh -c "zsh $SHARE srv-stop-nc; exec zsh" ;;
-  "Set / Probe Server")
-    ip=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Server IP or hostname:")
-    exec foot -e zsh -c "zsh $SHARE cli-set-server '$ip'; exec zsh"
-    ;;
-  "rsync: Pull")
-    ip=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Server IP:")
-    pass=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "rsync password:")
-    exec foot -e zsh -c "zsh $SHARE cli-rsync-pull '$ip' '$pass'; exec zsh"
-    ;;
-  "Stop ALL services")
-    confirm=$(printf '' | wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "Type yes to stop ALL:")
-    [ "$confirm" = "yes" ] && exec foot -e zsh -c "zsh $SHARE srv-stop-all; exec zsh"
-    ;;
+  "Set / Probe Server") exec "$PROMPT" cli-set-server ;;
+  "rsync: Pull")        exec "$PROMPT" cli-rsync-pull ;;
+  "Stop ALL services")  exec "$PROMPT" srv-stop-all ;;
   "Service Status")
-    exec foot -e zsh -c "zsh $SHARE status; echo; read -k1 -s '?Press any key'"
+    exec foot -e zsh -c 'zsh /usr/lib/syn-os/syn-share.zsh status; echo; read -k1 -s "?Press any key"'
+    ;;
+  *)
+    kw="${LINE_KEYWORD[$choice]:-}"
+    if [ -n "$kw" ]; then
+      exec "$PROMPT" "$kw"
+    fi
     ;;
 esac
