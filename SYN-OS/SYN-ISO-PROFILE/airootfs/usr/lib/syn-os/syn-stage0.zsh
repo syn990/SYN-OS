@@ -34,7 +34,7 @@ if [ -z "${SYN_STAGE0_UNDER_SCRIPT:-}" ]; then
   export SYN_STAGE0_UNDER_SCRIPT=1
   exec script -qefc "$0 $*" "$InstallLog"
 fi
-echo "Logging full install output to ${InstallLog}"
+syn_ui::info "Logging full install output to ${InstallLog}"
 
 syn_stage0::cleanup() {
   [ -n "${SynStage0Complete:-}" ] && return

@@ -168,7 +168,7 @@ fi
 
 # ---- Root Check ------------------------------------------------------
 if [[ $EUID -ne 0 ]]; then
-    print -P "${RED}Run as root. Try: sudo or doas$0${NC}"
+    print -P "${RED}Run as root. Try: sudo $0  or  doas $0${NC}"
     exit 1
 fi
 

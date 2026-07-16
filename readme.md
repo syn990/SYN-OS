@@ -111,7 +111,7 @@ I've rebuilt this system from nothing more times than I'd like to admit, going b
 SYN-OS is a complete [ArchISO](https://wiki.archlinux.org/title/Archiso) profile. If you are on Arch Linux or any Arch-based system, you can rebuild the ISO yourself:
 
 ```bash
-sudo pacman -S archiso git
+sudo pacman -S archiso grub git
 git clone https://github.com/syn990/SYN-OS.git
 cd SYN-OS/SYN-OS
 sudo zsh ./BUILD-SYNOS-ISO.zsh
