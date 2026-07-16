@@ -63,7 +63,6 @@ shellAndCLI=(
   brightnessctl             # Tool to read and control screen brightness
   pamixer                   # PulseAudio command-line mixer
   glow                      # Markdown renderer for the terminal (Docs menu)
-  chafa                     # Image/SVG-to-terminal renderer (Docs menu diagrams)
 )
 
 desktopStack=(
