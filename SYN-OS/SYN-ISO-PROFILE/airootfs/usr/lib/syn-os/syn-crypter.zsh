@@ -1,9 +1,16 @@
 #!/usr/bin/env zsh
-# SYN-CRYPTER.ZSH
-
-# This script provides a unified interface for encrypting and decrypting files using multiple encryption algorithms:
-# AES-256, Blowfish, RSA, and Redshirt (XOR-based obfuscation).
-
+# ------------------------------------------------------------------------------
+#                           S Y N - C R Y P T E R
+#
+#   Unified command-line interface for encrypting and decrypting files with
+#   AES-256, Blowfish, RSA, or Redshirt (a lightweight XOR obfuscation, not
+#   real encryption).
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-CRYPTER (Security)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -o errexit -o nounset -o pipefail
 source /usr/lib/syn-os/syn-ui.zsh
 

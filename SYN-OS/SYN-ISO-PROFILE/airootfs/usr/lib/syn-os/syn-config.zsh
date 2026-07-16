@@ -1,6 +1,16 @@
-#!/bin/zsh
-# /usr/lib/syn-os/syn-config.zsh
-# Canonical config loader for SYN‑OS (CamelCase only)
+#!/usr/bin/env zsh
+# ------------------------------------------------------------------------------
+#                           S Y N - C O N F I G
+#
+#   Canonical config loader for SYN-OS: reads synos.conf, normalizes and
+#   validates every setting (CamelCase variables only), and exports the
+#   result for syn-stage0.zsh / syn-stage1.zsh to consume.
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-CONFIG (Installer)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
 set -euo pipefail
 
 : "${SYNOS_CONF:=/etc/syn-os/synos.conf}"
@@ -81,12 +91,9 @@ case "$(lower "${PackageProfile:-full}")" in
   *) echo "ERROR: Unknown PackageProfile '${PackageProfile:-}' (must be full|minimal)" >&2; exit 1 ;;
 esac
 
-# PartitionStrat=auto resolves against the firmware SynosEnv actually
-# detected above, instead of shipping a hardcoded guess in synos.conf that
-# can silently mismatch real hardware (e.g. a default of uefi-bootctl
-# surviving onto legacy BIOS: parted doesn't care and will happily write a
-# GPT+ESP layout, and bootctl's --graceful-in-chroot behavior means the
-# doomed install may not even error — just produce an unbootable disk).
+# Resolves against the detected SynosEnv rather than trusting a hardcoded
+# guess in synos.conf — a stale uefi-bootctl value on real BIOS hardware
+# can produce an unbootable disk without erroring.
 if [ "$(lower "${PartitionStrat:-auto}")" = "auto" ]; then
   if [ "$SynosEnv" = "UEFI" ]; then
     PartitionStrat="uefi-bootctl"
@@ -103,11 +110,8 @@ case "${PartitionStrat:-}" in
   *) echo "ERROR: Unknown PartitionStrat '${PartitionStrat:-}'" >&2; exit 1 ;;
 esac
 
-# Catch an explicit PartitionStrat that doesn't match detected firmware —
-# this is the exact mismatch that silently produced unbootable installs
-# before PartitionStrat=auto existed, and it's still possible to hit if
-# someone hardcodes a value that doesn't suit the machine they're installing
-# on (e.g. copying a synos.conf from a UEFI machine onto BIOS hardware).
+# Catches an explicit PartitionStrat that doesn't match detected firmware
+# (e.g. a synos.conf copied from a UEFI machine onto BIOS hardware).
 if [ "$PartitionStrat" = "uefi-bootctl" ] && [ "$SynosEnv" != "UEFI" ]; then
   echo "ERROR: PartitionStrat=uefi-bootctl but this machine booted in BIOS/legacy mode (no /sys/firmware/efi/efivars)." >&2
   echo "Use PartitionStrat=mbr-syslinux or mbr-grub, or set PartitionStrat=auto to detect automatically." >&2
@@ -129,12 +133,9 @@ else
   VolumeStrat="plain"
 fi
 
-# syslinux has no LUKS support at all — it cannot read from an encrypted
-# partition under any circumstances, and mbr-syslinux has no separate boot
-# partition to fall back on. Encrypted BIOS/MBR installs must use mbr-grub
-# instead (its unencrypted /boot partition means GRUB never has to touch
-# encryption directly — the initramfs unlocks root at boot, same as it does
-# for uefi-bootctl), or use uefi-bootctl itself.
+# syslinux can't read an encrypted partition and mbr-syslinux has no
+# separate boot partition to fall back on — encrypted BIOS/MBR installs
+# need mbr-grub instead.
 if [ "$PartitionStrat" = "mbr-syslinux" ] && [ "$Encryption" = "yes" ]; then
   echo "ERROR: PartitionStrat=mbr-syslinux cannot use Encryption=yes — syslinux has no LUKS support." >&2
   echo "Use PartitionStrat=mbr-grub for encrypted BIOS/MBR installs, or PartitionStrat=uefi-bootctl." >&2
