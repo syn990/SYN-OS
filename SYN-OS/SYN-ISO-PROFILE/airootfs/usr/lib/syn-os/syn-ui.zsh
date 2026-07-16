@@ -61,6 +61,24 @@ syn_ui::error() {
   printf "%sERROR:%s %s%s%s\n" "$C_ERR" "$RESET" "$C_VALUE" "$1" "$RESET" >&2
 }
 
+# syn_ui::doas <command> [args...] — runs `doas`, framed like every other
+# step. doas reads the password straight from /dev/tty (no stdin, no way
+# to theme the prompt itself or PAM's own retry loop), so this only styles
+# what's actually ours: the announce line before, and a clear failure line
+# after if doas exits non-zero (wrong password three times, ^C, or not
+# permitted — doas doesn't distinguish, so neither do we).
+syn_ui::doas() {
+  syn_ui::step "Authenticating (doas)"
+  if doas "$@"; then
+    syn_ui::step_done "Authenticated"
+    return 0
+  else
+    local rc=$?
+    syn_ui::step_fail "doas denied — wrong password, cancelled, or not permitted"
+    return $rc
+  fi
+}
+
 syn_ui::face() {
   syn_ui::clear
   cat <<'EOF'
