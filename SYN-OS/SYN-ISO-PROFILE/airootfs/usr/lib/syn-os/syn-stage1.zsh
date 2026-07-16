@@ -43,7 +43,7 @@ printf "KEYMAP=%s\nFONT=%s\n" "$KeyMap" "$VconsoleFont" > /etc/vconsole.conf
 hwclock --systohc
 syn_ui::step_done "Locale, hostname, time, console configured"
 
-# doas + sudo shim setup 
+# doas + sudo shim setup
 if command -v doas >/dev/null 2>&1; then
   echo "permit persist :wheel" > /etc/doas.conf
   chmod 600 /etc/doas.conf
@@ -189,6 +189,20 @@ syn_ui::step_done "Bootloader installed"
 # Enable baseline services
 systemctl enable dhcpcd.service 2>/dev/null || true
 systemctl enable iwd.service    2>/dev/null || true
+
+if [ "${EnableSsh:-no}" = "yes" ]; then
+  systemctl enable sshd.service 2>/dev/null || true
+  syn_ui::step_done "sshd enabled (EnableSsh=yes in synos.conf)"
+fi
+
+# Only enable qemu-guest-agent when actually running under QEMU/KVM — on
+# real hardware it would just idle forever with no virtio-serial channel
+# to talk to, which is exactly the unnecessary-boot-noise pattern this
+# project avoids elsewhere (see Philosophy).
+if [ "$(systemd-detect-virt 2>/dev/null)" = "kvm" ] || [ "$(systemd-detect-virt 2>/dev/null)" = "qemu" ]; then
+  systemctl enable qemu-guest-agent.service 2>/dev/null || true
+  syn_ui::step_done "qemu-guest-agent enabled (running under QEMU/KVM)"
+fi
 
 # Finalize installation and prompt for reboot
 syn_ui::final_banner

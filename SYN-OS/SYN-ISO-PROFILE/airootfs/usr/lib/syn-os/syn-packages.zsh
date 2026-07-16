@@ -16,6 +16,8 @@ baseCore=(
   archlinux-keyring   # Arch Linux PGP keyring for verifying package signatures
   reflector           # Arch Linux mirrorlist generator and ranker (for faster package downloads
   opendoas            # Privilege escalation tool (lightweight sudo alternative)
+  qemu-guest-agent    # Host<->guest control channel under QEMU/libvirt (virsh exec/file-transfer,
+                      # IP reporting); idles harmlessly with nothing to talk to on real hardware
   sof-firmware        # Sound Open Firmware (modern audio drivers)
   sof-tools           # Tools and utilities for Sound Open Firmware
   # filesystems & block tools
@@ -36,6 +38,10 @@ netAndServices=(
   openvpn             # Open source VPN daemon and client
   dnsmasq             # Lightweight DNS and DHCP server (useful for local network services)
   hostapd             # Host Access Point Daemon (turn your machine into a Wi-Fi hotspot)
+  openssh             # SSH server/client (sshd, disabled by default; enable with: sudo systemctl enable --now sshd)
+  sshfs               # Mount a remote SSH filesystem locally (FUSE-based)
+  bluez               # Bluetooth protocol stack (bluetooth.service, disabled by default, same as sshd)
+  bluez-utils         # bluetoothctl and friends
 )
 
 shellAndCLI=(
