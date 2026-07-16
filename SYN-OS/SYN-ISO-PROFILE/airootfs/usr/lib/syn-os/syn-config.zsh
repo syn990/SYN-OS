@@ -65,6 +65,7 @@ fi
 # and mbr-grub on BIOS.
 Encryption="$(toYesNo "${Encryption:-no}")"
 UseLvm="$(toYesNo "${UseLvm:-no}")"
+EnableSsh="$(toYesNo "${EnableSsh:-no}")"
 
 # --- sanity checks (fast, strict) -----------------------------------------
 # Required identity + input
@@ -164,6 +165,11 @@ case "${VolumeStrat}" in
     : "${LuksCipher:?LuksCipher not set for LUKS strategy}"
     : "${LuksKeySize:?LuksKeySize not set for LUKS strategy}"
     : "${LuksPbkdf:?LuksPbkdf not set for LUKS strategy}"
+    : "${LuksPassphrase:?LuksPassphrase not set for LUKS strategy}"
+    if [ "$LuksPassphrase" = "CHANGE_ME" ]; then
+      echo "ERROR: LuksPassphrase is still 'CHANGE_ME' in synos.conf — set a real passphrase before installing." >&2
+      exit 1
+    fi
     ;;
 esac
 
@@ -174,10 +180,10 @@ export \
   Locale LocaleGen KeyMap TimeZone VconsoleFont \
   Disk BootMode BootSize \
   PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat PackageProfile \
-  Encryption UseLvm \
+  Encryption UseLvm EnableSsh \
   VgName LvRootName LvSwapName SwapSize \
   BootFs RootFs \
   RootMountLocation BootMountLocation \
-  LuksCipher LuksKeySize LuksPbkdf LuksLabel \
+  LuksCipher LuksKeySize LuksPbkdf LuksLabel LuksPassphrase \
   KernelOpts \
   RequireWipeConfirm

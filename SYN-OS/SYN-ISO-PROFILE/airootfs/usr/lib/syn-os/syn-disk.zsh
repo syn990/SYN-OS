@@ -170,16 +170,16 @@ partitionMain() {
 # Volume: LUKS + LVM
 # =========================================================
 volumeStrat_luks_lvm() {
-  syn_ui::step "Creating LUKS2 on ${RootPart} (enter a passphrase below)"
-  cryptsetup luksFormat \
+  syn_ui::step "Creating LUKS2 on ${RootPart} (LuksPassphrase from synos.conf)"
+  printf '%s' "${LuksPassphrase}" | cryptsetup luksFormat \
     --type luks2 \
     --cipher "${LuksCipher}" \
     --key-size "${LuksKeySize}" \
     --pbkdf "${LuksPbkdf}" \
-    --batch-mode "${RootPart}"
+    --batch-mode --key-file=- "${RootPart}"
 
   LuksUuid="$(cryptsetup luksUUID "${RootPart}")"
-  cryptsetup open "${RootPart}" "${LuksLabel}"
+  printf '%s' "${LuksPassphrase}" | cryptsetup open --key-file=- "${RootPart}" "${LuksLabel}"
   RootMapper="/dev/mapper/${LuksLabel}"
   syn_ui::step_done "LUKS2 volume ready"
 
@@ -203,16 +203,16 @@ volumeStrat_luks_lvm() {
 # Volume: LUKS only (no LVM)
 # =========================================================
 volumeStrat_luks_only() {
-  syn_ui::step "Creating LUKS2 on ${RootPart} (enter a passphrase below)"
-  cryptsetup luksFormat \
+  syn_ui::step "Creating LUKS2 on ${RootPart} (LuksPassphrase from synos.conf)"
+  printf '%s' "${LuksPassphrase}" | cryptsetup luksFormat \
     --type luks2 \
     --cipher "${LuksCipher}" \
     --key-size "${LuksKeySize}" \
     --pbkdf "${LuksPbkdf}" \
-    --batch-mode "${RootPart}"
+    --batch-mode --key-file=- "${RootPart}"
 
   LuksUuid="$(cryptsetup luksUUID "${RootPart}")"
-  cryptsetup open "${RootPart}" "${LuksLabel}"
+  printf '%s' "${LuksPassphrase}" | cryptsetup open --key-file=- "${RootPart}" "${LuksLabel}"
   RootMapper="/dev/mapper/${LuksLabel}"
   RootFsDev="${RootMapper}"
   SwapDev=""

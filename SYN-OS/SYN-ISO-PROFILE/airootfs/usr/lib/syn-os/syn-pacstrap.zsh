@@ -61,6 +61,12 @@ pacstrapMain() {
 
   # UserAccountPassword travels in this copy so Stage 1 can chpasswd with
   # it via syn-config.zsh — Stage 1 strips it from disk once used.
+  # LuksPassphrase, unlike the account password, is already fully consumed
+  # by this point (cryptsetup luksFormat/open ran earlier in this same
+  # Stage 0 pipeline) — it never needs to reach the target disk at all, so
+  # strip it from the copy source before install rather than have Stage 1
+  # clean up a copy that was never necessary.
+  sed -i '/^LuksPassphrase=/d' /etc/syn-os/synos.conf
   install -Dm644 /etc/syn-os/synos.conf "${RootMountLocation}/etc/syn-os/synos.conf"
   for script in /usr/lib/syn-os/*.zsh; do
     install -Dm755 "$script" "${RootMountLocation}/usr/lib/syn-os/$(basename "$script")"
