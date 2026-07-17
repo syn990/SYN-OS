@@ -95,6 +95,10 @@ if [[ -f "$waybar_cfg" ]]; then
 fi
 pkill -SIGUSR2 waybar 2>/dev/null || true
 
+# -------- mako (notification toasts, live via makoctl reload) --------
+render "$TEMPLATES_DIR/mako-config.tmpl" "$HOME/.config/mako/config"
+makoctl reload 2>/dev/null || true
+
 # -------- wallpaper (restart swaybg with the theme's image, if set) --------
 if [[ -n "${SYN_WALLPAPER:-}" && -f "$SYN_WALLPAPER" ]]; then
   pkill swaybg 2>/dev/null || true
@@ -203,6 +207,6 @@ mkdir -p "${CURRENT_FILE:h}"
 print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 
 print "Theme applied: $SYN_THEME_NAME"
-print "  waybar, labwc: live"
+print "  waybar, labwc, mako: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
 print "  qt6ct (falkon, pavucontrol-qt, pcmanfm-qt), gtk3 (audacity, etherape, virt-manager, virt-viewer), superfile: applies on next launch"
