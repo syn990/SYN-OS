@@ -35,6 +35,9 @@ fi
 # request is accepted, not once results are in. get-networks called
 # immediately after can return stale or empty results. iwd's own scans
 # typically take a few seconds; give it a moment before reading back.
+# The click has no other feedback until the picker opens, so toast the
+# wait itself — otherwise a 3s pause after clicking reads as "did nothing".
+notify-send "WiFi" "Scanning for networks…" 2>/dev/null || true
 iwctl station "$INTERFACE" scan > /dev/null
 sleep 3
 
