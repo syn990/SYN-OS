@@ -58,6 +58,7 @@ enable_blackarch() {
   syn_ui::step "Enabling BlackArch — this needs a real terminal for strap.sh's prompts"
   if ! curl -fsSL https://blackarch.org/strap.sh -o /tmp/strap.sh; then
     syn_ui::error "Couldn't reach blackarch.org."
+    notify-send -u critical "BlackArch" "Enable failed: couldn't reach blackarch.org" 2>/dev/null || true
     exit 1
   fi
   syn_ui::doas sh /tmp/strap.sh
@@ -75,10 +76,12 @@ enable_blackarch() {
   if ! syn_ui::doas pacman -S --noconfirm --needed "${PKGS[@]}"; then
     syn_ui::error "Installing ${PKGS[*]} failed even after a full update."
     syn_ui::error "Check 'sudo pacman -S ${PKGS[*]}' manually for the real dependency error."
+    notify-send -u critical "BlackArch" "Enable failed: ${PKGS[*]} install error, see terminal" 2>/dev/null || true
     exit 1
   fi
   insert_menu_block
   syn_ui::step_done "BlackArch enabled. Reload the menu (Super+Escape) to see Applications > BlackArch."
+  notify-send "BlackArch" "Enabled — repo synced, ${PKGS[*]} installed. More at blackarch.org" 2>/dev/null || true
 }
 
 disable_blackarch() {
@@ -87,6 +90,7 @@ disable_blackarch() {
   doas sed -i '/\[blackarch\]/{N;d}' /etc/pacman.conf
   remove_menu_block
   syn_ui::step_done "BlackArch disabled. Reload the menu (Super+Escape) to hide Applications > BlackArch."
+  notify-send "BlackArch" "Disabled — packages and repo removed" 2>/dev/null || true
 }
 
 # Re-invocation entry point: syn_popup::run below calls back into this
