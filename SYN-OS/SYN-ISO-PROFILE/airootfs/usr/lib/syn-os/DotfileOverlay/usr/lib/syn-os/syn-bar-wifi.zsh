@@ -48,5 +48,14 @@ CHOSEN_SSID=$(iwctl station "$INTERFACE" get-networks | \
     syn_pick::rofi "WiFi:")
 
 if [ -n "$CHOSEN_SSID" ]; then
-    syn_popup::run iwctl station "$INTERFACE" connect "$CHOSEN_SSID"
+    syn_popup::run zsh -c '
+      iwctl station "$1" connect "$2"
+      rc=$?
+      if (( rc == 0 )); then
+        notify-send "WiFi" "Connected to $2" 2>/dev/null || true
+      else
+        notify-send -u critical "WiFi" "Failed to connect to $2" 2>/dev/null || true
+      fi
+      exit $rc
+    ' -- "$INTERFACE" "$CHOSEN_SSID"
 fi
