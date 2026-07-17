@@ -23,4 +23,14 @@ file="$(syn_pick::rofi_input "File to encrypt/decrypt (Redshirt):" "$HOME/")"
 [[ -n "$file" ]] || exit 0
 file="${file/#\~/$HOME}"
 
-syn_popup::run zsh /usr/lib/syn-os/syn-redshirt.zsh "$file"
+syn_popup::run zsh -c '
+  base="$1"
+  zsh /usr/lib/syn-os/syn-redshirt.zsh "$2"
+  rc=$?
+  if (( rc == 0 )); then
+    notify-send "Redshirt" "Succeeded: $base" 2>/dev/null || true
+  else
+    notify-send -u critical "Redshirt" "Failed: $base" 2>/dev/null || true
+  fi
+  exit $rc
+' -- "${file:t}" "$file"
