@@ -65,6 +65,11 @@ esac
 
 syn_popup::run zsh -c '
   source /usr/lib/syn-os/syn-ui.zsh
-  syn_ui::doas systemctl "$1" --now "$2" || exit $?
+  if ! syn_ui::doas systemctl "$1" --now "$2"; then
+    rc=$?
+    notify-send -u critical "Services" "Failed: $2 ($1)" 2>/dev/null || true
+    exit $rc
+  fi
   syn_ui::step_done "$3"
+  notify-send "Services" "$3" 2>/dev/null || true
 ' -- "$verb" "$unit" "$desc"
