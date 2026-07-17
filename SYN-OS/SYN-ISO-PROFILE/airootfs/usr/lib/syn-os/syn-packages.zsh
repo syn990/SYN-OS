@@ -78,6 +78,7 @@ desktopStack=(
   slurp               # Selection utility for Wayland compositors (used with grim)
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
+  mako                # Lightweight Wayland notification daemon (renders notify-send toasts)
   swaybg              # Background setter for Sway and wlroots-based compositors
   swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)
   fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)

@@ -5,7 +5,9 @@
 #   session's one entrypoint (labwc allows exactly one autostart file, no
 #   shebang; runs under /bin/sh, not zsh). Restores persisted display
 #   state, brings the theme up (first login) or relaunches its wallpaper
-#   (later logins), then starts waybar.
+#   (later logins), starts mako (backgrounded — every notify-send call in
+#   SYN-OS depends on it being alive, and it has to be up before anything
+#   fires a toast), then starts waybar.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : AUTOSTART (Desktop)
@@ -64,4 +66,5 @@ bootstrap_or_relaunch_theme() {
 
 apply_persisted_display_state
 bootstrap_or_relaunch_theme
+mako &
 waybar
