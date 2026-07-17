@@ -2,11 +2,16 @@
 # ------------------------------------------------------------------------------
 #                   S Y N - S E R V I C E S - T O G G L E
 #
-#   Enable/disable a handful of services that are installed but disabled
-#   by default (same reasoning as sshd always was: the package is there,
-#   nothing starts automatically, until you actually want it). First pick
-#   is which service, second is on/off — shows each service's live state
-#   in the label so the picker itself is the status display too.
+#   Enable/disable any real systemd service on the box, not a hardcoded
+#   shortlist — this used to offer exactly 3 units (sshd, bluetooth,
+#   qemu-guest-agent) regardless of what was actually installed, so e.g.
+#   postgresql/libvirtd/ollama being enabled on a real machine was
+#   invisible to it. Now lists every enabled/disabled unit from systemctl
+#   itself, labelled with its live state, and only offers the one action
+#   that state actually allows (no "Disable" on something already
+#   disabled). "static"/"alias"/"indirect" units are left out — those
+#   activate as dependencies and can't be enabled/disabled directly, so
+#   listing them would just be dead entries that error when picked.
 #
 #   Launched directly from menu.xml (no foot wrapper) — the rofi pickers
 #   are already their own centered popups. The actual doas action runs
@@ -26,42 +31,44 @@ source /usr/lib/syn-os/syn-ui.zsh
 source /usr/lib/syn-os/syn-popup-lib.zsh
 syn_theme_load
 
-typeset -A services
-services=(
-  "SSH (sshd)"              sshd
-  "Bluetooth"                bluetooth
-  "QEMU Guest Agent"        qemu-guest-agent
-)
+# name<TAB>enabled-state<TAB>active-state, one real toggleable unit per
+# line. $2 is systemctl's own "enabled"/"disabled" (what we act on); $3 is
+# "active"/"inactive" (just shown, not acted on) — a unit can be enabled
+# but not currently running, or vice versa for a few oddball units.
+unit_lines="$(systemctl list-unit-files --type=service --no-legend \
+  | awk '$2=="enabled" || $2=="disabled" {print $1, $2}' \
+  | while read -r unit state; do
+      name="${unit%.service}"
+      active="$(systemctl is-active "$unit" 2>/dev/null || true)"
+      printf '%s\t%s\t%s\n' "$name" "$state" "${active:-inactive}"
+    done)"
 
-state_label() {
-  local unit="$1"
-  systemctl is-active --quiet "$unit" && echo "running" || echo "stopped"
-}
+[[ -z "$unit_lines" ]] && exit 0
 
-typeset -a menu_lines
-for name in "${(@k)services}"; do
-  unit="${services[$name]}"
-  menu_lines+=("${name} — $(state_label "$unit")")
-done
-
-chosen="$(printf '%s\n' "${(@o)menu_lines}" | syn_pick::rofi "Services:")"
+chosen="$(printf '%s\n' "$unit_lines" \
+  | awk -F'\t' '{printf "%s — %s, %s\n", $1, $2, $3}' \
+  | syn_pick::rofi "Services:")"
 [[ -z "$chosen" ]] && exit 0
 
 chosen_name="${chosen% — *}"
-unit="${services[$chosen_name]:-}"
-if [[ -z "$unit" ]]; then
-  syn_ui::error "Unknown selection: $chosen_name"
-  exit 1
+line="$(printf '%s\n' "$unit_lines" | awk -F'\t' -v n="$chosen_name" '$1==n')"
+[[ -z "$line" ]] && { syn_ui::error "Unknown selection: $chosen_name"; exit 1; }
+
+unit="${chosen_name}.service"
+enabled_state="$(printf '%s' "$line" | awk -F'\t' '{print $2}')"
+
+# Only the action that unit's current state actually allows — no dead
+# "Disable" entry on something already disabled.
+if [[ "$enabled_state" == "enabled" ]]; then
+  action_label="Disable + Stop ${chosen_name}"
+  verb=disable; desc="${chosen_name} stopped and disabled."
+else
+  action_label="Enable + Start ${chosen_name}"
+  verb=enable; desc="${chosen_name} enabled and started."
 fi
 
-action="$(printf '%s\n' "Enable + Start" "Disable + Stop" \
-  | syn_pick::rofi "${chosen_name} ($(state_label "$unit")):")"
-
-case "$action" in
-  Enable*)  verb=enable;  desc="${chosen_name} enabled and started." ;;
-  Disable*) verb=disable; desc="${chosen_name} stopped and disabled." ;;
-  *) exit 0 ;;
-esac
+confirmed="$(printf '%s\n' "$action_label" "Cancel" | syn_pick::rofi "Confirm:")"
+[[ "$confirmed" == "$action_label" ]] || exit 0
 
 syn_popup::run zsh -c '
   source /usr/lib/syn-os/syn-ui.zsh
