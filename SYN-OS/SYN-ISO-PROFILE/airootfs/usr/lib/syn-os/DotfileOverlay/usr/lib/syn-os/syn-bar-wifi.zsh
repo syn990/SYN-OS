@@ -3,8 +3,9 @@
 #                         S Y N - B A R - W I F I
 #
 #   Waybar's network module on-click: scans with iwctl, feeds the SSID
-#   list into wmenu, then opens a foot terminal to connect (so a
-#   passphrase prompt has somewhere to be typed).
+#   list into rofi (same centered-card picker as every other menu in
+#   SYN-OS, not wmenu's bar-anchored strip), then connects inside the
+#   same undecorated syn-os-popup every other secret prompt uses.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-BAR-WIFI (Waybar)
@@ -15,11 +16,9 @@ emulate -L zsh
 setopt NO_UNSET PIPE_FAIL 2>/dev/null || true
 
 source /usr/lib/syn-os/syn-theme-lib.zsh
+source /usr/lib/syn-os/syn-picker-lib.zsh
+source /usr/lib/syn-os/syn-popup-lib.zsh
 syn_theme_load
-SYN_BG="${SYN_BG:-#000000}"
-SYN_TEXT="${SYN_TEXT:-#ffffff}"
-SYN_PANEL_HOVER="${SYN_PANEL_HOVER:-#400101}"
-SYN_ACCENT_DIM="${SYN_ACCENT_DIM:-#260101}"
 
 # Real `iwctl device list` columns are Name/Address/Powered/Adapter/Mode
 # (5 fields) — Mode, the one we actually want to match, is $5, not $4.
@@ -46,8 +45,8 @@ CHOSEN_SSID=$(iwctl station "$INTERFACE" get-networks | \
     sed '1,4d' | \
     sed -E 's/^[* > ]+//' | \
     sed -E 's/[ ]{2,}.*//' | \
-    wmenu -N "$SYN_BG" -n "$SYN_TEXT" -S "$SYN_PANEL_HOVER" -s "$SYN_TEXT" -M "$SYN_ACCENT_DIM" -m "$SYN_TEXT" -p "WiFi:")
+    syn_pick::rofi "WiFi:")
 
 if [ -n "$CHOSEN_SSID" ]; then
-    foot --title="WiFi-Connect" -e iwctl station "$INTERFACE" connect "$CHOSEN_SSID"
+    syn_popup::run iwctl station "$INTERFACE" connect "$CHOSEN_SSID"
 fi
