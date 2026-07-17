@@ -23,3 +23,4 @@ else
   sed -i "0,/\"height\":/s||\"position\": \"$next\",\n  \"height\":|" "$waybar_cfg"
 fi
 pkill -SIGUSR2 waybar 2>/dev/null || true
+notify-send "Waybar" "Moved to $next" 2>/dev/null || true
