@@ -28,7 +28,7 @@ Plus a browser, media player, image editor, and whatever else made it into the p
 
 ## Download
 
-[**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/13CowFj1Pwo4XzBRVkGT-cBjKuVWJ50cW/view?usp=sharing)
+[**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/1MFceD89VX8kxDUn4kMmDmg2Wp5CvY1ba/view?usp=sharing)
 
 ---
 
