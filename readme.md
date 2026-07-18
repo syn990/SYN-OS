@@ -1,170 +1,193 @@
 # SYN-OS
 
-**A highly customisable, efficient Arch Linux build by William Hayward-Holland (Syntax990).**
-
-This is for people who want to manage their own machine, not have it managed for them. No installer wizard, no app store, nothing hidden behind a GUI. It's Arch with an installer that does what I'd otherwise do by hand, a package list I've been arguing with myself over since 2021, and a desktop built from whatever was lean enough to keep around.
-
-Boot the ISO, run one command, and you get a working system. Every file that built it is in this repository, so you can always go check why it behaves the way it does.
-
-![SYN-OS Banner](./Images/SYN-BANNER1.png)
-
-Once it's installed, this is what you're looking at:
-
-| Component | What it does |
-|---|---|
-| **LabWC** | Wayland window manager/compositor. Lightweight, keyboard-friendly, Openbox-style behaviour |
-| **Waybar** | Top panel: clock, system stats, workspaces, custom modules, fully scriptable and CSS-styled |
-| **Swaybg** | Sets the desktop wallpaper |
-| **Wmenu** | Application launcher. Press the top-left icon, type a name or path, run things |
-| **Foot** | Wayland terminal emulator, your main interface for most tasks |
-| **spf (Superfile)** | Terminal-based file manager |
-| **Zsh** | Shell with autosuggestions, syntax highlighting, and fuzzy search built in |
-
-Plus a browser, media player, image editor, and whatever else made it into the package list (see [Package Collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md)). Every file on the installed system came from this repository. See [Philosophy](#philosophy).
+An Arch Linux build by William Hayward-Holland (Syntax990). One installer,
+one dotfile overlay, one theme engine — no DE, no config-management layer,
+just scripts you can read start to finish. This README describes what the
+scripts actually do, not what a feature list says they do.
 
 ![SYN-OS Desktop](./Images/labwc-SYNOS-1.png)
 
 ---
 
-## Download
+## The installer: `syn-stage0.zsh` → chroot → `syn-stage1.zsh`
+
+`synos-install` runs `syn-stage0.zsh`. The very first thing it does is
+re-exec itself under `script -qefc`, not a `tee` pipe — `pacstrap`/`pacman`
+check `isatty()` to decide whether to draw progress bars, and a pipe fails
+that check where a pty doesn't. Everything either script prints, in both
+stages, ends up in one timestamped log under `/root/`, which gets copied
+onto the freshly installed disk right after the chroot returns.
+
+![synos-install pipeline, Stage 0 through Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/diagrams/svg/installer-overview.svg)
+
+**Stage 0** sources `syn-config.zsh` (reads `/etc/syn-os/synos.conf`),
+`syn-packages.zsh`, `syn-disk.zsh`, `syn-pacstrap.zsh`. The only interactive
+moment in the whole pipeline is one confirm prompt before anything
+destructive runs — gated by `RequireWipeConfirm` (default `yes`), not
+removable by accident. Then it's a straight pipeline: `partitionMain` →
+`volumeMain` → `filesystemMain` → `mountMain` → `pacstrapMain`, and it hands
+off with `arch-chroot "$RootMountLocation" /bin/zsh /usr/lib/syn-os/syn-stage1.zsh`.
+
+`pacstrapMain` also writes `/etc/syn-os/install.state` — `RootFsDev`,
+`SwapDev`, `LuksUuid` — facts Stage 0 resolved by actually touching disks,
+which Stage 1 has no way to safely re-derive from `synos.conf` alone. Stage
+1's first act is sourcing that file; if it's missing, Stage 1 refuses to
+continue rather than guess.
+
+**Stage 1**, inside the chroot: locale/hostname/timezone/console, then a
+`doas`→`sudo` shim (writes a one-line `sudo` wrapper around `doas`,
+uninstalls the real `sudo` package), then the user account. If
+`UserAccountPassword` is still the literal string `CHANGE_ME` from the
+template config, Stage 1 stops here rather than shipping a system with a
+known default password. The password line is stripped out of
+`synos.conf` on the target disk immediately after use.
+
+`syn-filemanager` is built here, not shipped prebuilt: `makepkg` refuses to
+run as root, so Stage 1 `chown`s `/usr/src/syn-filemanager` to the new user
+and runs `makepkg` as them, then `pacman -U`s the result. If that fails,
+install continues anyway — it logs which key (`Super+E`) won't work and
+leaves the source in `/usr/src/syn-filemanager` for a manual retry, instead
+of aborting an otherwise-working install over one optional package. Same
+philosophy shows up in `mkinitcpio` HOOKS assembly (`encrypt`/`lvm2` hooks
+only added if `Encryption`/`UseLvm` are actually set) and in bootloader
+selection, which branches on `PartitionStrat` three ways —
+`uefi-bootctl`, `mbr-syslinux`, `mbr-grub` — with `mbr-grub` needing its own
+unencrypted `/boot` split, since GRUB itself never touches LUKS; the
+`encrypt` initramfs hook resolves `cryptdevice=` at boot regardless of
+which bootloader got it there.
+
+```bash
+nano /etc/syn-os/synos.conf   # every choice lives here, read once, no prompts
+synos-install
+```
+
+Full stage-by-stage detail: [Installer Overview](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md)
+
+---
+
+## Where the desktop actually comes from
+
+Nothing under `~/.config` on an installed system is generated at build
+time. `DotfileOverlay/` in this repo is laid out exactly like the real
+filesystem — `pacstrapMain` runs one `cp -r` onto the target disk during
+Stage 0, then a handful of `chmod -R +x` calls fix up execute bits a plain
+copy doesn't reliably preserve. That puts everything at `/etc/skel`; it
+isn't in any user's home yet. Stage 1's `useradd -m` is what actually fans
+it out, by copying `/etc/skel` into the new account — which is also why any
+user added by hand *after* install gets identical defaults for free,
+without the overlay ever targeting `/home/<user>` directly.
+
+If you're editing this repo from a machine already running SYN-OS: your
+live `~/.config` is a snapshot from whenever that system was last built.
+Editing it does nothing to `DotfileOverlay/`; editing `DotfileOverlay/`
+does nothing to your live desktop. They only sync at install/rebuild time,
+one direction, repo → disk.
+
+---
+
+## How the pieces talk to each other
+
+**The theme engine** is the one place SYN-OS generates configs instead of
+hand-authoring them — read `syn-theme-apply` and the tradeoff is explicit
+in the code: six unrelated config formats, one edited variable. A theme is
+9 color variables sourced from a flat `.theme` file
+(`SYN_BG`, `SYN_ACCENT`, `SYN_URGENT`, …). `syn-theme-apply <name>` runs a
+longest-key-first `sed` substitution — `SYN_BG_ALT` has to be replaced
+before `SYN_BG`, or `SYN_BG`'s rule fires first and leaves a stray `_ALT`
+behind — against a template per consumer, and every consumer reloads on
+its own terms, not uniformly:
+
+| Consumer | Reload |
+|---|---|
+| Waybar CSS, glyph | live, `pkill -SIGUSR2 waybar` |
+| `mako` | live, `makoctl reload` |
+| `swaybg` wallpaper | live, process restarted with the new image |
+| LabWC `themerc` + `rc.xml` `<name>` | live, `labwc --reconfigure` |
+| `foot` | **new windows only** — foot has no live-reload signal, `SIGUSR1` only affects colors already loaded at startup |
+| `qt6ct` (falkon, pavucontrol-qt, syn-filemanager), GTK3, Superfile | next launch |
+
+`qt5ct` gets rendered too, even though every Qt app on the system links
+Qt6 — kept as dead-but-ready code in case a Qt5 app ever gets installed,
+per the script's own comment. Themes needing real gradients/bevels instead
+of the shared flat-solid look (`labwc-themerc.$NAME.tmpl`,
+`waybar-style.$NAME.css.tmpl`, `foot-colors-dark.$NAME.tmpl`) drop a
+theme-specific override template next to the shared one; `syn-theme-apply`
+checks for it and falls back to the shared template if it's absent — no
+branching logic needed per theme, just a filesystem convention.
+
+**The root menu** (`Super+Space`) is `menu.xml`, mostly static XML, plus
+Openbox-style pipe menus for anything that has to reflect live state
+instead of a fixed list. `syn-pipe-docs.zsh` is the plainest example: it
+globs `/usr/share/syn-os/docs/*.md`, turns `installer-overview.md` into the
+label "Installer Overview" via a `${(C)...}` zsh case transform, and wires
+each entry to `foot -e /usr/local/bin/syn-docs-view.zsh <file>` — note the
+absolute path; `foot -e` execs argv directly with no shell in between, so a
+bare filename would just silently fail to launch. `syn-docs-view.zsh`
+itself renders the markdown with `glow` in that terminal, then greps the
+same file for `![...](./diagrams/svg/*.svg)` references and opens each as
+a real `feh` image window — the doc, and its diagram, from one menu click,
+without a browser. Same pipe-menu pattern drives Themes, Audio, Display,
+Share, Superfile, BlackArch, and Services from their own generator scripts
+under `/usr/lib/syn-os/syn-pipe-*.zsh` — none of them a hand-maintained
+list that can drift from what's actually installed.
+
+---
+
+## Download and install
 
 [**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/1MFceD89VX8kxDUn4kMmDmg2Wp5CvY1ba/view?usp=sharing)
 
----
-
-## Create a Bootable USB
-
-You need to write the ISO image onto a USB stick so your computer can boot from it.
-
-**Linux**
 ```bash
-lsblk                          # lists your drives, find your USB (e.g. /dev/sdb)
+lsblk                          # find your USB, e.g. /dev/sdb
 sudo dd if=SYN-OS.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
-Replace `sdX` with your USB device, not a partition like `sdX1`.
 
-**macOS**
-```bash
-diskutil list                  # find your USB disk number
-diskutil unmountDisk /dev/diskN
-sudo dd if=SYN-OS.iso of=/dev/rdiskN bs=4m
-sync
-diskutil eject /dev/diskN
-```
+macOS: `diskutil unmountDisk /dev/diskN` then `sudo dd if=SYN-OS.iso of=/dev/rdiskN bs=4m`.
+Windows: [Rufus](https://rufus.ie/) — GPT for UEFI, MBR for BIOS.
 
-**Windows**, use [Rufus](https://rufus.ie/):
-1. Insert USB → open Rufus → select the ISO
-2. Partition scheme: **GPT** for modern (UEFI) systems, **MBR** for older (BIOS) systems
-3. Click **Start**
+Boot the USB, select **SYN-OS**, you land in the live shell — run the two
+commands from [above](#the-installer-syn-stage0zsh--chroot--syn-stage1zsh).
+Reboot, log in, run `synos` to start the LabWC session.
 
 ---
 
-## Install
+## Build your own ISO
 
-1. Boot your machine or VM from the USB stick
-2. Select **SYN-OS** from the boot menu
-3. You will land in a terminal. This is the live environment
-4. *(Optional)* Inspect or adjust the installer config before starting:
-   ```bash
-   nano /etc/syn-os/synos.conf
-   ```
-5. Run the installer:
-   ```bash
-   synos-install
-   ```
-6. Follow the prompts. The two-stage installer handles everything:
-   - Disk partitioning and encryption
-   - Filesystem creation
-   - Package installation
-   - Config and dotfile deployment
-   - Bootloader setup
-
-See [How the Installer Works](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) for the full pipeline, or [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) for every config option.
-
----
-
-## First Boot
-
-Remove the USB, reboot, and log in with the account created during installation.
-
-Launch the desktop:
-```bash
-synos
-```
-
-This starts the **LabWC** Wayland session. Your panel, wallpaper, menus, and applications are all ready.
-
----
-
-## Philosophy
-
-Most distros make the choices for you and then hide where those choices live. This one doesn't — every package, config, and install step is a plain file in this repo, not something the installer decides on its own. Full argument, with the diagram, is in [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md).
-
----
-
-## Build Your Own ISO
-
-SYN-OS is a complete [ArchISO](https://wiki.archlinux.org/title/Archiso) profile. `archiso` is Arch-only, so you need an Arch (or Arch-based) environment to build from — that's either an installed SYN-OS/Arch system, or the live ISO shell itself, which is a full Arch environment before you've even installed anything.
-
-**Already on an installed SYN-OS desktop:** open the root menu (`Super+Space`) → SYN-OS Tools → SYN-OS ISO Builder. First run clones this repo to `~/GithubProjects/SYN-OS` and launches the builder; no terminal needed.
-
-**From a terminal, on Arch/SYN-OS (installed or live ISO shell):**
+Needs an Arch environment — an installed SYN-OS/Arch system, or the live
+ISO shell itself.
 
 ```bash
-sudo pacman -S archiso grub git
+sudo pacman -S archiso git
 git clone https://github.com/syn990/SYN-OS.git
 cd SYN-OS/SYN-OS
 sudo zsh ./BUILD-SYNOS-ISO.zsh
 ```
 
-Output is written to `ISO_OUTPUT/*.iso`. Any changes you made to packages, configs, dotfiles, or installer logic will be reflected in the image. See [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) for full details.
-
-**From a Windows or Mac host:** there's no native way to run `BUILD-SYNOS-ISO.zsh` on Windows or macOS. Boot the ISO you already downloaded (real hardware via USB, or straight off the ISO in any VM tool — Hyper-V, VirtualBox, UTM, Parallels) and use either path above from inside that live shell.
+Output lands in `ISO_OUTPUT/*.iso`. From an installed desktop, the same
+build is `Super+Space` → SYN-OS Tools → ISO Builder, no terminal needed.
+Windows/macOS hosts can't run the build script natively — boot the
+downloaded ISO in any VM tool and build from inside that live shell.
+Details: [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md).
 
 ---
 
 ## Documentation
 
-The sections above cover getting started. Everything below goes deeper: how the system actually works, what each component does, how to modify or extend it.
+The same docs this README links to are browsable on the installed system
+itself — `Super+Space` → Docs — rendered by `syn-docs-view.zsh` exactly as
+described above. In the repo, they live under
+[`docs/`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/):
 
-### The Installer
-
-| Document | Description |
+| Area | Docs |
 |---|---|
-| [How the Installer Works](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) | End-to-end walkthrough of what happens when you run `synos-install` |
-| [Stage 0: Pre-Chroot Setup](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) | Disk partitioning, volume setup, filesystem creation, pacstrap. Everything before `arch-chroot` |
-| [Stage 1: In-Chroot Configuration](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) | Users, bootloader, services, dotfile deployment. Everything inside the new system |
-| [synos.conf: Declarative Strategy Selection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) | How to choose partition, volume, filesystem, and bootloader strategies without touching script logic |
-| [Storage Strategies](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/storage-strategies.md) | LUKS encryption, LVM, F2FS, Btrfs, what each strategy does and when to use it |
-| [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) | How to rebuild SYN-OS from source and make it your own |
-| [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md) | Why decisions live in plain files, not installer logic, with the diagram |
-| [Project History](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/history.md) | The real history, back to 2021. Actual file contents, diffs, and Graphviz diagrams, not a summary |
-
-### Packages
-
-| Document | Description |
-|---|---|
-| [Package Collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md) | Full breakdown of `syn-packages.zsh`: every category, every package, and why it is included |
-
-### The Desktop
-
-| Document | Description |
-|---|---|
-| [LabWC: Window Manager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/labwc.md) | How LabWC works, key config files (`rc.xml`, `menu.xml`, `environment`), keybindings, and layout |
-| [Waybar: The Panel](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/waybar.md) | Module structure, `config.jsonc`, `style.css`, and how to add or restyle modules |
-| [Wayland vs X11: What Changed and Why](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/wayland.md) | Plain-English explanation of the display system, why SYN-OS moved to Wayland, and what that means in practice |
-| [Zsh Configuration](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/zsh.md) | Shell setup, aliases, plugins (autosuggestions, syntax highlighting, fzf, zoxide) |
-| [Dotfile Overlay](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/dotfile-overlay.md) | How `DotfileOverlay/` works, what gets deployed where, and how to customise defaults |
-
-### Concepts
-
-| Document | Description |
-|---|---|
-| [What is a Window Manager?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/window-manager.md) | The difference between a desktop environment, window manager, and compositor, explained plainly |
-| [What is Wayland?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/wayland.md) | How the Linux display system works and why it matters |
-| [What is a Shell?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/shell.md) | TTY, terminal emulator, shell, prompt: what each layer actually is |
-| [What is Arch Linux?](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/arch-linux.md) | The base SYN-OS is built on: rolling release, pacman, AUR, and the Arch philosophy |
-| [Filesystem Hierarchy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/filesystem.md) | What `/etc`, `/usr`, `/home`, `/mnt` and the rest of the Linux directory tree actually mean |
+| **Installer** | [Overview](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) · [Storage strategies](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/storage-strategies.md) |
+| **Packages** | [Package collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md) |
+| **Desktop** | [LabWC](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/labwc.md) · [Waybar](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/waybar.md) · [Dotfile overlay](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/dotfile-overlay.md) · [Zsh](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/zsh.md) · [Wayland vs X11](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/wayland.md) |
+| **Theming** | [Theme engine](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-engine.md) · [Theme gallery](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-gallery.md) |
+| **Tools** | [syn-filemanager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-filemanager.md) · [SYN-SHARE](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-share.md) · [SYN-CRYPTER](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-crypter.md) · [SYN-REDSHIRT](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-redshirt.md) · [SYN-GRAPHMAP](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-graphmap.md) · [WiFi menu](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/wifi.md) · [Screenshots/recording](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/screenshot-and-recording.md) · [Services toggle](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/services-toggle.md) · [BlackArch toggle](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/blackarch-toggle.md) · [Notifications](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/notifications.md) |
+| **Build** | [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) |
+| **Background** | [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md) · [Project History](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/history.md) |
+| **Concepts** | [Window manager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/window-manager.md) · [Wayland](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/wayland.md) · [Shell](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/shell.md) · [Arch Linux](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/arch-linux.md) · [Filesystem hierarchy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/filesystem.md) |
 
 ---
 
@@ -176,4 +199,4 @@ MIT, see [LICENSE](LICENSE).
 
 - **Email:** william@npc.syntax990.com
 - **LinkedIn:** [William Hayward-Holland](https://www.linkedin.com/in/william-hayward-holland-990/)
-- **Arch Wiki:** [wiki.archlinux.org](https://wiki.archlinux.org), invaluable reference for everything under the hood
+- **Arch Wiki:** [wiki.archlinux.org](https://wiki.archlinux.org)

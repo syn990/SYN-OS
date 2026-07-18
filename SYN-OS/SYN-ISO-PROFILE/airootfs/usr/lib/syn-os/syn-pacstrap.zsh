@@ -29,20 +29,14 @@ pacstrapMain() {
   pacman -Sy
   syn_ui::step_done "Mirrors and keyring ready"
 
-  # Select bootloader packages
+  # Bootloader package follows directly from PartitionStrat — see synos.conf.
+  # systemd (uefi-bootctl's systemd-boot) is already in baseCore; only
+  # efibootmgr is extra there.
   local -a bootPkgs
-  case "${BootloaderStrat}" in
-    auto)
-      case "${PartitionStrat}" in
-        uefi-bootctl) bootPkgs=(efibootmgr systemd) ;;
-        mbr-grub)     bootPkgs=(grub) ;;
-        *)            bootPkgs=(syslinux) ;;
-      esac
-      ;;
-    systemd-boot) bootPkgs=(efibootmgr systemd) ;;
-    syslinux)     bootPkgs=(syslinux) ;;
-    grub)         bootPkgs=(grub) ;;
-    *)            bootPkgs=() ;;
+  case "${PartitionStrat}" in
+    uefi-bootctl) bootPkgs=(efibootmgr) ;;
+    mbr-grub)     bootPkgs=(grub) ;;
+    *)            bootPkgs=(syslinux) ;;
   esac
 
   # Only place full (SYNSTALL) vs minimal (SYNMINIMAL) profiles diverge —
@@ -91,6 +85,13 @@ pacstrapMain() {
   if [ -d /usr/lib/syn-os/syn-filemanager-src ]; then
     syn_ui::info "Deploying syn-filemanager source to ${RootMountLocation}…"
     cp -r /usr/lib/syn-os/syn-filemanager-src "${RootMountLocation}/usr/src/syn-filemanager"
+  fi
+
+  # Same reasoning as syn-filemanager above — Stage 1 builds this natively
+  # in the chroot via makepkg, once wlr-protocols/cmake are pacstrap'd.
+  if [ -d /usr/lib/syn-os/syn-bar-window-title-src ]; then
+    syn_ui::info "Deploying syn-bar-window-title source to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/syn-bar-window-title-src "${RootMountLocation}/usr/src/syn-bar-window-title"
   fi
 
   # Docs are static system data, not a per-user dotfile, so they get their

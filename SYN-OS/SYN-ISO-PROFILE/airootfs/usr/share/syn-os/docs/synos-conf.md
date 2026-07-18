@@ -37,11 +37,10 @@ It's loaded, normalized, and validated by `syn-config.zsh` (`SYN-OS/SYN-ISO-PROF
 
 | Key | Values |
 |---|---|
-| `PartitionStrat` | `auto` (default, recommended) \| `uefi-bootctl` \| `mbr-syslinux` \| `mbr-grub` |
+| `PartitionStrat` | `auto` (default, recommended) \| `uefi-bootctl` \| `mbr-syslinux` \| `mbr-grub` — also the only bootloader choice: each strategy names exactly one bootloader (systemd-boot / syslinux / GRUB), so there's no separate `BootloaderStrat` key. |
 | `Encryption` | `yes` \| `no`: whole-disk LUKS2 on root. |
 | `UseLvm` | `yes` \| `no`: LVM on top of root (or on top of the LUKS mapper, if `Encryption=yes` too). |
 | `FilesystemStrat` | `ext4` \| `f2fs` \| `btrfs` \| `xfs` |
-| `BootloaderStrat` | `auto` \| `systemd-boot` \| `syslinux` \| `grub` — controls only which bootloader *package(s)* `pacstrapMain` installs, see note below. |
 | `PackageProfile` | `full` (default) \| `minimal` — which array in `syn-packages.zsh` `pacstrapMain` installs. See [Package Collection](./packages.md). |
 
 `Encryption`/`UseLvm` are combined internally by `syn-config.zsh` into an internal `VolumeStrat` value (`luks-lvm` \| `luks-only` \| `lvm-only` \| `plain`) that `syn-disk.zsh`'s `volumeMain` actually dispatches on — there's no `VolumeStrat` key to set directly in `synos.conf`.
@@ -88,10 +87,10 @@ Every one of these is a config-load-time failure (before Stage 0 touches the dis
 
 Every check in `syn-config.zsh` runs at config-load time, immediately after sourcing `synos.conf`, before Stage 0 does anything to the disk. Failures exit nonzero with a message on stderr describing exactly what's wrong and, where relevant, what to change. There's no partial-validation mode and no way to skip a check — a missing `Hostname`, an unrecognized `FilesystemStrat`, a `CHANGE_ME` still in `Disk`/`UserAccountPassword`/`LuksPassphrase`, or a `PartitionStrat`/firmware/encryption mismatch all stop the installer cold rather than proceeding on a best-effort basis.
 
-## Note: `BootloaderStrat` vs `PartitionStrat`
+## Note: `PartitionStrat` drives both the bootloader package and the install step
 
-The actual bootloader-install step in `syn-stage1.zsh` is keyed off `PartitionStrat`, not `BootloaderStrat`. `BootloaderStrat` only controls which package(s) `syn-pacstrap.zsh`'s `pacstrapMain` installs during Stage 0: `auto` (the default) picks the package set matching your resolved `PartitionStrat` automatically (`efibootmgr systemd` for `uefi-bootctl`, `grub` for `mbr-grub`, `syslinux` otherwise). Leave `BootloaderStrat=auto` unless you have a specific reason to force a particular bootloader package selection independent of `PartitionStrat`.
+`syn-pacstrap.zsh`'s `pacstrapMain` (Stage 0) and the bootloader-install step in `syn-stage1.zsh` both key off the same resolved `PartitionStrat` value — `efibootmgr` for `uefi-bootctl` (systemd-boot itself is already in `baseCore`), `grub` for `mbr-grub`, `syslinux` otherwise. One setting, no second knob that could disagree with it.
 
 ## Note: `synos.conf` only controls the installed system's bootloader
 
-`BootloaderStrat`, `KernelOpts`, and everything else in this file governs the bootloader Stage 1 writes onto the *target disk*, not how the live ISO itself boots. The ISO's own boot menu (syslinux for BIOS, systemd-boot for UEFI) is fixed at ISO build time and isn't affected by anything in `synos.conf`. See [How the Installer Works](./installer-overview.md#booting-the-iso).
+`KernelOpts` and everything else in this file governs the bootloader Stage 1 writes onto the *target disk*, not how the live ISO itself boots. The ISO's own boot menu (syslinux for BIOS, GRUB for UEFI) is fixed at ISO build time and isn't affected by anything in `synos.conf`. See [How the Installer Works](./installer-overview.md#booting-the-iso).
