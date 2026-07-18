@@ -5,43 +5,43 @@ digraph package_map {
   node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
   edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
 
-  label="The 86-package SYNSTALL, by category and what each depends on";
+  label="SYNSTALL, by category and what each depends on";
   labelloc="t"; fontsize=14; fontcolor="#ff6666";
 
-  synstall [label="SYNSTALL\n86 packages", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+  synstall [label="SYNSTALL\nall 7 arrays, ~90 packages\n(SYNMINIMAL: baseCore+\nnetAndServices+shellAndCLI+\ndesktopStack+3 fonts only)", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
 
   subgraph cluster_base {
-    label="baseCore, 18\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
-    base_ex [label="base, linux,\ncryptsetup, lvm2,\nparted, opendoas", fillcolor="#330000"];
+    label="baseCore, 19\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    base_ex [label="base, linux,\ncryptsetup, lvm2,\nparted, opendoas,\nqemu-guest-agent", fillcolor="#330000"];
   }
 
   subgraph cluster_net {
-    label="netAndServices, 7"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
-    net_ex [label="dhcpcd, iwd,\nopenvpn, hostapd,\nopenssh, sshfs\n(sshd installed, never\nauto-enabled)", fillcolor="#330000"];
+    label="netAndServices, 9"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    net_ex [label="dhcpcd, iwd,\nopenvpn, hostapd,\nopenssh, sshfs,\nbluez, bluez-utils\n(sshd/bluetooth installed,\nnever auto-enabled)", fillcolor="#330000"];
   }
 
   subgraph cluster_shell {
     label="shellAndCLI, 18\nfeeds .zshrc directly"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
-    shell_ex [label="zsh, foot, btop,\nripgrep, bat, fzf,\nzoxide", fillcolor="#330000"];
+    shell_ex [label="zsh, foot, btop,\nripgrep, bat, fzf,\nzoxide, glow", fillcolor="#330000"];
   }
 
   subgraph cluster_desktop {
-    label="desktopStack, 20\nthe Wayland session"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
-    desktop_ex [label="labwc, waybar,\nwmenu, swaybg,\nswaylock, fuzzel,\nsuperfile, falkon-adjacent\nQt theming", fillcolor="#330000"];
+    label="desktopStack, 21\nthe Wayland session"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    desktop_ex [label="labwc, waybar, mako,\nwmenu, swaybg,\nswaylock, fuzzel,\nsuperfile, qt6-base+cmake\n(builds syn-filemanager)", fillcolor="#330000"];
   }
 
   subgraph cluster_dev {
-    label="devToolkit, 8\nself-hosting tools"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="devToolkit, 8\nself-hosting tools\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     dev_ex [label="gcc, archiso,\nandroid-tools,\nbinwalk", fillcolor="#330000"];
   }
 
   subgraph cluster_fonts {
-    label="fontsI18n, 9"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="fontsI18n, 9\n(SYNMINIMAL: 3 only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     fonts_ex [label="terminus-font,\nnoto-fonts-cjk,\nnerd-font glyphs", fillcolor="#330000"];
   }
 
   subgraph cluster_apps {
-    label="appsMedia, 6\nthe apps, one game"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="appsMedia, 6\nthe apps, one game\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     apps_ex [label="vlc, gimp,\nfalkon, openra\n(2022-11-07 -> today)", fillcolor="#4d1010", color="#ff2020", penwidth=1.5];
   }
 

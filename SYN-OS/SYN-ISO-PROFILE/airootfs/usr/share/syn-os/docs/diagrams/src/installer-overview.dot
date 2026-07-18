@@ -32,10 +32,11 @@ digraph installer_overview {
     locale [label="locale, hostname,\ntimezone, keymap"];
     doas [label="doas->sudo shim,\nremoves sudo package"];
     user [label="useradd -m -G wheel\n(populates home from\n/etc/skel, see Dotfile Overlay)"];
+    filemanager [label="build syn-filemanager\n(makepkg as new user)\nfailure is recoverable,\ninstall continues either way", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
     initramfs [label="mkinitcpio hooks\n(+encrypt, +lvm2 as needed)\n+ rebuild initramfs"];
     bootloader [label="install bootloader\n(bootctl / grub / syslinux,\nkeyed off PartitionStrat)"];
-    services [label="enable dhcpcd, iwd"];
-    state -> locale -> doas -> user -> initramfs -> bootloader -> services;
+    services [label="enable dhcpcd, iwd\n+ sshd if EnableSsh=yes\n+ qemu-guest-agent if\nrunning under kvm/qemu"];
+    state -> locale -> doas -> user -> filemanager -> initramfs -> bootloader -> services;
   }
 
   done [label="installed system\npacman -Syu from here,\nsame as any Arch install", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
