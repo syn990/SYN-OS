@@ -4,3 +4,7 @@ SYN-OS/SYN-ISO-PROFILE/airootfs/root
 WORKDIR/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/pkgcache/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-os-base/PKGBUILD
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-filemanager-src/src/build/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-filemanager-src/pkg/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-filemanager-src/*.pkg.tar.zst
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-filemanager-src/*.pkg.tar.zst.sig

@@ -75,6 +75,27 @@ syn_ui::step_done "Password set for ${UserAccountName}"
 # rather than leave it in plaintext on the installed disk.
 sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
+# syn-filemanager builds here rather than shipping as a prebuilt binary
+# (see syn-pacstrap.zsh) — cmake/qt6-base are already installed by this
+# point (desktopStack in syn-packages.zsh), and makepkg refuses to run
+# as root, so it's built as the just-created user and installed with
+# pacman -U straight after. A build failure here is a recoverable
+# default, not a dead end (see Philosophy) — warn and move on rather
+# than aborting a system that's otherwise perfectly installable; the
+# source is left in place under /usr/src/syn-filemanager for a manual
+# retry instead of being deleted along with the evidence of what failed.
+if [ -d /usr/src/syn-filemanager ]; then
+  syn_ui::step "Building syn-filemanager"
+  chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-filemanager
+  if su "$UserAccountName" -c 'cd /usr/src/syn-filemanager && makepkg -f --noconfirm' \
+    && pacman -U /usr/src/syn-filemanager/syn-filemanager-*.pkg.tar.zst --noconfirm; then
+    rm -rf /usr/src/syn-filemanager
+    syn_ui::step_done "syn-filemanager installed"
+  else
+    syn_ui::error "syn-filemanager build/install failed — see output above. File browser (Super+E) won't work until this is built manually from /usr/src/syn-filemanager."
+  fi
+fi
+
 # mkinitcpio hooks — same set for UEFI and BIOS
 configure_mkinitcpio() {
   HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block)
