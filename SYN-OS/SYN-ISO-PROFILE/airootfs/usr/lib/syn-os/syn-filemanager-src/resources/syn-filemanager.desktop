@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SYN-OS File Manager
+GenericName=File Manager
+Comment=Browse the file system and manage files
+Exec=syn-filemanager %f
+Icon=system-file-manager
+Categories=FileManager;Utility;Qt;
+StartupNotify=true

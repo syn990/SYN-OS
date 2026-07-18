@@ -15,7 +15,7 @@
     <!-- File Browser -->
     <item label="File browser">
       <action name="Execute">
-        <command>/usr/lib/syn-os/syn-pipe-superfile.zsh</command>
+        <command>syn-filemanager</command>
       </action>
     </item>
 
@@ -139,6 +139,11 @@
     <separator label=" SETTINGS " />
 
     <menu id="preferences-menu" label="Preferences">
+      <!-- Desktop settings: live, cosmetic/hardware controls you tune to
+           taste. Each of Audio/Display/Themes is a real dynamic pipe-menu
+           (queries pactl/wlr-randr/theme dir live), not a static list. -->
+      <separator label=" DESKTOP " />
+
       <menu id="audio-pipe"
             label="Audio Settings"
             execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
@@ -147,26 +152,6 @@
             label="Display &amp; Screens"
             execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
 
-      <!-- Not part of the installer — genuinely a live toggle, on any
-           already-installed system, whenever it's actually wanted.
-           No foot wrapper: the rofi pickers are their own popups, and
-           the script opens its own syn_popup::run window for the actual
-           doas action once a choice is made. -->
-      <item label="BlackArch">
-        <action name="Execute">
-          <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
-        </action>
-      </item>
-
-      <!-- sshd/bluetooth/qemu-guest-agent are all installed but disabled
-           by default (same reasoning EnableSsh=yes documents for sshd) —
-           this is the live version of that control, no reinstall needed. -->
-      <item label="Services (SSH, Bluetooth, QEMU Agent)">
-        <action name="Execute">
-          <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
-        </action>
-      </item>
-
       <menu id="themes-pipe"
             label="Themes"
             execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
@@ -174,6 +159,31 @@
       <item label="Toggle Bar Position">
         <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
       </item>
+
+      <!-- System toggles: enabling/disabling actual software, distinct
+           from the cosmetic settings above. Both are live toggles on any
+           already-installed system, no reinstall needed. No foot wrapper —
+           the rofi pickers are their own popups, and each script opens its
+           own syn_popup::run window for the actual doas action once a
+           choice is made. -->
+      <separator label=" SOFTWARE " />
+
+      <item label="BlackArch">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
+        </action>
+      </item>
+
+      <!-- Lists every real enabled/disabled systemd service on the box
+           (queried live), not a fixed shortlist — see
+           syn-services-toggle.zsh's own header for why. -->
+      <item label="Services (enable/disable any systemd unit)">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
+        </action>
+      </item>
+
+      <separator label=" REFERENCE " />
 
       <menu id="docs-pipe"
             label="Docs"

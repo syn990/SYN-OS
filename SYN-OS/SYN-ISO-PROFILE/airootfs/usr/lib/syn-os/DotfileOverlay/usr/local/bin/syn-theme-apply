@@ -3,8 +3,8 @@
 #                       S Y N - T H E M E - A P P L Y
 #
 #   Reads ~/.config/syn-os/themes/<name>.theme and stamps its palette into
-#   every themed app (waybar, qt5ct/qt6ct, labwc, foot, superfile,
-#   pcmanfm-qt, GTK3), live-reloading whatever supports it.
+#   every themed app (waybar, qt5ct/qt6ct, labwc, foot, superfile, GTK3),
+#   live-reloading whatever supports it.
 #
 #   Usage: syn-theme-apply <theme-name>
 #
@@ -188,15 +188,6 @@ pkill -SIGUSR1 foot 2>/dev/null || true
 render "$TEMPLATES_DIR/superfile-theme.toml.tmpl" "$HOME/.config/superfile/theme/syn-os.toml"
 sed -i 's|^theme = .*|theme = "syn-os"|' "$HOME/.config/superfile/config.toml"
 
-# -------- pcmanfm-qt ([Desktop] BgColor/FgColor is its own setting, not
-# covered by the qt6ct QT_QPA_PLATFORMTHEME cascade above; next launch
-# only) --------
-pcmanfm_conf="$HOME/.config/pcmanfm-qt/default/settings.conf"
-if [[ -f "$pcmanfm_conf" ]]; then
-  sed -i "s|^BgColor=.*|BgColor=$SYN_BG|" "$pcmanfm_conf"
-  sed -i "s|^FgColor=.*|FgColor=$SYN_TEXT|" "$pcmanfm_conf"
-fi
-
 # -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none Qt,
 # so qt6ct doesn't reach them. Overrides Adwaita-dark's named colors
 # rather than swapping themes; GTK3 has no per-user color_scheme_path
@@ -209,4 +200,4 @@ print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 print "Theme applied: $SYN_THEME_NAME"
 print "  waybar, labwc, mako: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
-print "  qt6ct (falkon, pavucontrol-qt, pcmanfm-qt), gtk3 (audacity, etherape, virt-manager, virt-viewer), superfile: applies on next launch"
+print "  qt6ct (falkon, pavucontrol-qt, syn-filemanager), gtk3 (audacity, etherape, virt-manager, virt-viewer), superfile: applies on next launch"

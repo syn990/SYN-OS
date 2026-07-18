@@ -90,6 +90,10 @@ desktopStack=(
   kvantum             # SVG-based theme engine for Qt
   kvantum-qt5         # Qt5 styles for the Kvantum theme engine
   superfile           # Pretty fancy and modern terminal file manager
+  qt6-base            # Qt6 core libraries — syn-filemanager (File browser, Super+E) links against
+                      # this; built from source by syn-stage1.zsh during install, not pacstrap'd
+                      # as a prebuilt binary, so it's not itself a package name in this list
+  cmake               # Build system — needed by syn-stage1.zsh to compile syn-filemanager
   lxqt-archiver       # Lightweight archive manager (Qt port of Xarchiver)
   featherpad          # Lightweight text editor for the LXQt desktop environment
 )

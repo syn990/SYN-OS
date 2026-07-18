@@ -82,6 +82,17 @@ pacstrapMain() {
     chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
   fi
 
+  # syn-filemanager ships as source, not a prebuilt binary — Stage 1
+  # (running inside arch-chroot on the target, after cmake/qt6-base are
+  # already pacstrap'd) builds and installs it natively there via
+  # makepkg. Avoids needing a repo/pacman.conf entry just for one
+  # locally-authored package, and avoids baking a binary that'd need to
+  # match whatever CPU the live ISO's build host happened to have.
+  if [ -d /usr/lib/syn-os/syn-filemanager-src ]; then
+    syn_ui::info "Deploying syn-filemanager source to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/syn-filemanager-src "${RootMountLocation}/usr/src/syn-filemanager"
+  fi
+
   # Docs are static system data, not a per-user dotfile, so they get their
   # own copy to /usr/share rather than living inside DotfileOverlay above.
   if [ -d /usr/share/syn-os/docs ]; then

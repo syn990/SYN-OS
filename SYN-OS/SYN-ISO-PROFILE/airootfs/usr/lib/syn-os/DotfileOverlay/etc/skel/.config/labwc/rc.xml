@@ -84,6 +84,10 @@
       <action name="Execute" command="fuzzel"/>
     </keybind>
 
+    <keybind key="W-e">
+      <action name="Execute" command="syn-filemanager"/>
+    </keybind>
+
     <keybind key="W-q">
       <action name="Close"/>
     </keybind>

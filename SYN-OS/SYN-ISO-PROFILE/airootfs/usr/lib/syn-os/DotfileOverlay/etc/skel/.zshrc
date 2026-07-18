@@ -15,7 +15,6 @@
 # -----------------------------------------------------------------------------
 export LANG=en_GB.UTF-8
 export EDITOR='nano'
-export QT_QPA_PLATFORMTHEME=gtk2
 
 # XDG paths (cleaner filesystem layout)
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"

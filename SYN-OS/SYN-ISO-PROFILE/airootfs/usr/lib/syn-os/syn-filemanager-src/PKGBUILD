@@ -1,0 +1,31 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-filemanager
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS's own minimal Qt6 file manager (replaces pcmanfm-qt, which has an unfixed resize/maximize bug)"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('qt6-base')
+makedepends=('cmake')
+source=()
+sha256sums=()
+
+# No source=() entries (this package builds from the sources sitting
+# next to this PKGBUILD, not a downloaded tarball) — makepkg still
+# creates $srcdir as a real directory regardless, named "src" next to
+# this file. That collides with this project's own src/ directory if
+# CMake is ever pointed at $startdir, so every path below is anchored
+# on the PKGBUILD's own real location instead, captured once here
+# rather than relied on via the deprecated $startdir.
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}
