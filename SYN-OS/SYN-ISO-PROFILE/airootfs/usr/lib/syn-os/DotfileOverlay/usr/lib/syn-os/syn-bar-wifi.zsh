@@ -48,7 +48,7 @@ CHOSEN_SSID=$(iwctl station "$INTERFACE" get-networks | \
     sed '1,4d' | \
     sed -E 's/^[* > ]+//' | \
     sed -E 's/[ ]{2,}.*//' | \
-    syn_pick::rofi "WiFi:")
+    syn_pick::rofi "WiFi:" -l 15 -theme-str "window { width: 720px; }")
 
 if [ -n "$CHOSEN_SSID" ]; then
     syn_popup::run zsh -c '

@@ -47,7 +47,7 @@ unit_lines="$(systemctl list-unit-files --type=service --no-legend \
 
 chosen="$(printf '%s\n' "$unit_lines" \
   | awk -F'\t' '{printf "%s — %s, %s\n", $1, $2, $3}' \
-  | syn_pick::rofi "Services:")"
+  | syn_pick::rofi "Services:" -l 15 -theme-str "window { width: 720px; }")"
 [[ -z "$chosen" ]] && exit 0
 
 chosen_name="${chosen% — *}"
