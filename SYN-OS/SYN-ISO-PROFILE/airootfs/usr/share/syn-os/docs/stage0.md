@@ -69,7 +69,7 @@ Mounts `RootFsDev` at `RootMountLocation` (default `/mnt`). If there's a separat
 The largest step, and the one that actually populates the target filesystem:
 
 1. Runs `reflector -c GB -f 12 -l 10 -n 12 --save /etc/pacman.d/mirrorlist` to generate a fresh mirrorlist, then `pacman-key --init`, `pacman-key --populate archlinux`, and `pacman -Sy`.
-2. Picks bootloader packages based on `BootloaderStrat`/`PartitionStrat`: `auto` (the default) maps `uefi-bootctl` → `efibootmgr systemd`, `mbr-grub` → `grub`, anything else → `syslinux`; an explicit `BootloaderStrat` value picks the matching package set directly.
+2. Picks bootloader packages based on `PartitionStrat`: `uefi-bootctl` → `efibootmgr` (systemd-boot itself is already in `baseCore`), `mbr-grub` → `grub`, anything else → `syslinux`.
 3. Picks the package array based on `PackageProfile`: `minimal` uses `SYNMINIMAL`, anything else (including the default `full`) uses `SYNSTALL`. Appends the bootloader packages from step 2. See [Package Collection](./packages.md) for both arrays in full.
 4. Runs `pacstrap -K "${RootMountLocation}" "${packageList[@]}"`, then `genfstab -U "${RootMountLocation}" >> "${RootMountLocation}/etc/fstab"`.
 5. Strips `LuksPassphrase` from `/etc/syn-os/synos.conf` (it's already fully consumed by `cryptsetup` earlier in this same run — it never needs to reach the target disk), then copies the resulting `synos.conf` and every `*.zsh` script under `/usr/lib/syn-os/` onto the target, so Stage 1 has them available inside the chroot. `UserAccountPassword` still travels in this copy — Stage 1 needs it for `chpasswd` and strips it itself right after (see [Stage 1](./stage1.md)).

@@ -4,11 +4,11 @@
 
   "modules-left": [
     "custom/glyph",
-    "wlr/workspaces"
+    "wlr/taskbar"
   ],
 
   "modules-center": [
-    "wlr/window"
+    "custom/window-title"
   ],
 
   "modules-right": [
@@ -138,18 +138,23 @@
     "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
   },
 
-  "wlr/workspaces": {
-    "disable-scroll": false,
-    "all-outputs": true,
-    "format": "{icon}",
-    "format-icons": {
-      "1": "🃁",
-      "2": "ℐ",
-      "3": "ℕ",
-      "4": "⌘",
-      "default": "•"
-    }
+  "custom/window-title": {
+    "format": "{}",
+    "exec": "/usr/lib/syn-os/syn-bar-window-title",
+    "max-length": 60,
+    "tooltip": false
   },
 
-  "wlr/window": { "max-length": 60, "separate-outputs": true }
+  // wlr-foreign-toplevel-management has no per-desktop concept, only
+  // per-output — so this lists every open window across all 4 LabWC
+  // desktops, not just the focused one. all-outputs: false at least
+  // scopes it to this monitor.
+  "wlr/taskbar": {
+    "format": "{icon}",
+    "icon-size": 16,
+    "tooltip-format": "{title}",
+    "on-click": "activate",
+    "on-click-middle": "close",
+    "all-outputs": false
+  }
 }
