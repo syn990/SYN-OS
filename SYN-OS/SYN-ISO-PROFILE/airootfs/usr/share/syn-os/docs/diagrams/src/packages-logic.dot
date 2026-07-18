@@ -8,6 +8,10 @@ digraph package_logic {
   label="How a package ends up on an installed SYN-OS system";
   labelloc="t"; fontsize=14; fontcolor="#ff6666";
 
+  isopkgs [label="packages.x86_64\n(flat list, baked into the\nlive ISO by mkarchiso,\nseparate mechanism entirely)", shape=note, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  isoenv [label="live ISO environment\n(what synos-install runs from,\nnever reaches target disk)", shape=oval, fillcolor="#1a0000"];
+  isopkgs -> isoenv [color="#8a6a2f"];
+
   subgraph cluster_source {
     label="syn-packages.zsh, 7 arrays"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     baseCore [label="baseCore", fillcolor="#330000"];
@@ -19,7 +23,21 @@ digraph package_logic {
     appsMedia [label="appsMedia", fillcolor="#330000"];
   }
 
-  synstall [label="SYNSTALL\n(flat concatenation of all 7 arrays,\nno special ordering or tiering)", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+  profile [label="PackageProfile\n(synos.conf)", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+
+  synstall [label="SYNSTALL\nall 7 arrays, flat\nconcatenation", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+  synminimal [label="SYNMINIMAL\nbaseCore+netAndServices+\nshellAndCLI+desktopStack in full,\n3 font packages only,\ndevToolkit+appsMedia skipped", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+
+  baseCore -> synstall; baseCore -> synminimal;
+  netAndServices -> synstall; netAndServices -> synminimal;
+  shellAndCLI -> synstall; shellAndCLI -> synminimal;
+  desktopStack -> synstall; desktopStack -> synminimal;
+  devToolkit -> synstall;
+  fontsI18n -> synstall; fontsI18n -> synminimal [style=dashed, label=" 3 pkgs only"];
+  appsMedia -> synstall;
+
+  profile -> synstall [label=" full (default)"];
+  profile -> synminimal [label=" minimal"];
 
   subgraph cluster_bootloader {
     label="decided separately, install time"; style="dashed,rounded"; color="#665522"; fontcolor="#ccaa66"; bgcolor="#0a0a0a";
@@ -32,24 +50,17 @@ digraph package_logic {
     partstrat -> syslinux_pkgs [label=" mbr-syslinux"];
   }
 
-  pacstrap [label="pacstrap -K\n(syn-pacstrap.zsh, Stage 0 step 5)", fillcolor="#1a0000"];
+  pacstrap [label="pacstrap -K\n(syn-pacstrap.zsh, Stage 0)", fillcolor="#1a0000"];
   fstab [label="genfstab -U > /etc/fstab", fillcolor="#330000"];
   installed [label="installed system", shape=oval, fillcolor="#1a0000"];
 
-  baseCore -> synstall;
-  netAndServices -> synstall;
-  shellAndCLI -> synstall;
-  desktopStack -> synstall;
-  devToolkit -> synstall;
-  fontsI18n -> synstall;
-  appsMedia -> synstall;
-
   synstall -> pacstrap;
+  synminimal -> pacstrap;
   uefi_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
   grub_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
   syslinux_pkgs -> pacstrap [style=dashed, color="#8a6a2f"];
   pacstrap -> fstab -> installed;
 
   note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
-        label="Categories are organisational only, the file says so\ndirectly. pacman treats every package identically once\ninstalled, there is no protected tier: removing something\nthe desktop depends on (waybar, labwc, a zsh plugin) is\non you to avoid, same as any other Arch install."];
+        label="Categories are organisational only, the file says so\ndirectly. pacman treats every package identically once\ninstalled, there is no protected tier: removing something\nthe desktop depends on (waybar, labwc, a zsh plugin) is\non you to avoid, same as any other Arch install.\npackages.x86_64 and syn-packages.zsh never share code --\ntwo lists, two moments, kept in sync by hand only."];
 }

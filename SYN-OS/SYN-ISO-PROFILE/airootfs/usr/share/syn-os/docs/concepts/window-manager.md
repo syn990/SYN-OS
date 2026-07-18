@@ -6,7 +6,7 @@ Three terms get conflated a lot: **desktop environment**, **window manager**, an
 
 A full, integrated suite: window management, a panel/taskbar, a settings app, a file manager, notification daemon, and usually a consistent theme tying it all together. GNOME, KDE Plasma, XFCE. Installing a DE gives you all of these as one coordinated package, with one team deciding how they interoperate.
 
-SYN-OS does **not** ship a DE. It ships the individual pieces, chosen and wired together deliberately: [LabWC](../labwc.md) (window management), [Waybar](../waybar.md) (panel), `wmenu` (launcher), and Superfile (file manager), each an independently-maintained project.
+SYN-OS does **not** ship a DE. It ships the individual pieces, chosen and wired together deliberately: [LabWC](../labwc.md) (window management), [Waybar](../waybar.md) (panel), `wmenu` (launcher), [syn-filemanager](../tools/syn-filemanager.md) (file manager), and `mako` ([notifications](../tools/notifications.md)) — each an independently-maintained project.
 
 ## Window manager (WM)
 
@@ -27,5 +27,6 @@ This is why [LabWC](../labwc.md) is described as a "compositor" rather than just
 | Panel | Tint2 | Waybar |
 | Launcher | dmenu | wmenu |
 | Wallpaper | feh --bg-fill | swaybg |
+| Notifications | (varies) | mako |
 
-No single project here calls itself a "desktop environment." SYN-OS's desktop is these pieces, deployed together by [the dotfile overlay](../dotfile-overlay.md) and started by one alias (`synos`), but each piece remains independently swappable.
+No single project here calls itself a "desktop environment." SYN-OS's desktop is these pieces, deployed together by [the dotfile overlay](../dotfile-overlay.md) and started by one alias, but each piece remains independently swappable.

@@ -2,9 +2,10 @@
 # ------------------------------------------------------------------------------
 #                         S Y N - P I P E - D O C S
 #
-#   Generates a labwc pipe menu listing /usr/share/syn-os/docs/*.md (and
-#   concepts/*.md), each entry opening syn-docs-view.zsh against that
-#   file. See docs/labwc.md.
+#   Generates a labwc pipe menu listing /usr/share/syn-os/docs/*.md, plus a
+#   labeled section per topic subdirectory (theming/, tools/, build/,
+#   concepts/) if it has docs in it. Each entry opens syn-docs-view.zsh
+#   against that file. See docs/labwc.md.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-PIPE-DOCS (Desktop)
@@ -53,11 +54,18 @@ for f in "$DOCS_DIR"/*.md(N); do
   emit_entry "$f"
 done
 
-if ls "$DOCS_DIR"/concepts/*.md >/dev/null 2>&1; then
-  print '  <separator label="CONCEPTS"/>'
-  for f in "$DOCS_DIR"/concepts/*.md(N); do
-    emit_entry "$f"
-  done
-fi
+# Each topic subdirectory gets its own labeled section, in this order,
+# only if it actually has docs in it.
+typeset -a sections=(theming:THEMING tools:TOOLS build:"ISO BUILD" concepts:CONCEPTS)
+for entry in "${sections[@]}"; do
+  dir="${entry%%:*}"
+  label="${entry#*:}"
+  if ls "$DOCS_DIR/$dir"/*.md >/dev/null 2>&1; then
+    print "  <separator label=\"$label\"/>"
+    for f in "$DOCS_DIR/$dir"/*.md(N); do
+      emit_entry "$f"
+    done
+  fi
+done
 
 print '</openbox_pipe_menu>'

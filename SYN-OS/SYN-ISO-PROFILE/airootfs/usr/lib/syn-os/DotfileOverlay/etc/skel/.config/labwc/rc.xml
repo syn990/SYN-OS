@@ -36,10 +36,15 @@
        centered popup instead of a normal terminal window — matches the
        rofi popups' feel, not something meant to be resized/moved/left
        open indefinitely. -->
+  <!-- feh windows from syn-docs-view.zsh: no app_id to match on, so
+       this keys off the title it sets instead. -->
   <windowRules>
     <windowRule identifier="syn-os-popup" serverDecoration="no">
       <action name="ResizeTo" width="640" height="360" />
       <action name="AutoPlace" policy="center" />
+    </windowRule>
+    <windowRule title="SYN-OS Docs: *" serverDecoration="yes">
+      <action name="ResizeTo" width="900" height="650" />
     </windowRule>
   </windowRules>
 

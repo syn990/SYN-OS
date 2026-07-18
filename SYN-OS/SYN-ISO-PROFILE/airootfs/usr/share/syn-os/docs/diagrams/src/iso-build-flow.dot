@@ -1,0 +1,51 @@
+digraph iso_build_flow {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="BUILD-SYNOS-ISO.zsh: mode selection through to a finished ISO or a dead end";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
+
+  start [label="BUILD-SYNOS-ISO.zsh", shape=oval, fillcolor="#1a0000"];
+  mode [label="no flags: interactive menu\n--build=<name>: skip straight to it\n--list-builds: print manifest, exit\n(no root needed)", shape=diamond, fillcolor="#330000"];
+
+  mainline [label="mainline\n(local SYN-ISO-PROFILE/\nworking tree, uncommitted\nchanges included)", fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+
+  subgraph cluster_named {
+    label="--build=<name>: a real historical profile"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    clone [label="clone/fetch bare mirror\n(syn990/SYN-OS or\nsyn990/SYN-RTOS, cached\nunder .syncache/sources/)"];
+    extract [label="git archive at the exact\ncommit + profile_path\nfrom build-manifest.json\n-> .syncache/extracted/<name>/"];
+    fix1 [label="[community] repo block\npresent in pacman.conf?\n(pre-mid-2023 profiles)", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    strip [label="strip the block\n(packages still resolve\nvia [extra])"];
+    fix2 [label="profiledef.sh declares\na grub bootmode?", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+    grub [label="install grub on\nthe build host\n(tooling only, doesn't touch\nthe host's own bootloader)"];
+    clone -> extract -> fix1;
+    fix1 -> strip [label="yes"];
+    fix1 -> fix2 [label="no"];
+    strip -> fix2;
+    fix2 -> grub [label="yes"];
+  }
+
+  confirm [label="root check + confirm\n(y/n, shows resolved\nprofile/output/build)", fillcolor="#1a0000"];
+  clean [label="wipe WORKDIR/ISO_OUTPUT\n(unmount stale mounts first,\narchive any leftover .iso)"];
+  mkarchiso [label="mkarchiso -v -w WORKDIR\n-o ISO_OUTPUT <profile>", shape=oval, fillcolor="#1a0000"];
+
+  pass [label="ISO produced\nmoved to .syncache/isos/\n<name-or-mainline>.iso", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+  fail [label="permanent dead end\n(5 of 16 named builds)\npackages gone from every\ncurrent Arch repo, not a\nrepo-index issue - nothing\nto reconcile", shape=doublecircle, fillcolor="#330000", penwidth=2, color="#ff2020", fontcolor="#ff8888"];
+
+  deadends [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+    label="rtos-pre-v3, rtos-v3, syn-rtos-old,\n2035-launch, v4 -- each missing specific\npackages (neofetch, grub-customizer,\nreiserfsprogs, gnu-netcat, old wifi\nfirmware, terminfo packages) permanently\nremoved or renamed upstream since they\nwere committed. Left failing on purpose --\nsee build/iso-builder.md for the exact\nmissing package per build."];
+  fail -> deadends [style=dashed, arrowhead=none];
+
+  start -> mode;
+  mode -> mainline [label="no --build"];
+  mode -> clone [label="--build=<name>"];
+  mainline -> confirm;
+  grub -> confirm;
+  fix2 -> confirm [label="no"];
+  confirm -> clean -> mkarchiso;
+  mkarchiso -> pass [label="11 of 16 named\nbuilds + mainline"];
+  mkarchiso -> fail [label="5 of 16 named\nbuilds"];
+}

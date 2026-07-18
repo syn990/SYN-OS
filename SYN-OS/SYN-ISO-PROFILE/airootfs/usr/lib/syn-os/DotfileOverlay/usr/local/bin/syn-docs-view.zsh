@@ -28,10 +28,18 @@ glow "$file"
 # markdown rendering. `|| true` covers grep's exit 1 on no diagrams found.
 svgRefs=("${(@f)$(grep -oE '!\[[^]]*\]\([^)]+\.svg\)' "$file" | sed -E 's/.*\(([^)]+)\)/\1/' || true)}")
 
+# feh has no --class/--app-id, so the LabWC window rule keys off --title
+# instead; --geometry cascades each window so multiple diagrams don't stack.
+offset=0
 for ref in "${svgRefs[@]}"; do
   [[ -z "$ref" ]] && continue
   svgPath="${docDir}/${ref}"
-  [[ -f "$svgPath" ]] && feh "$svgPath" &
+  if [[ -f "$svgPath" ]]; then
+    feh --title "SYN-OS Docs: ${svgPath:t:r}" \
+        --geometry "+$((80 + offset))+$((80 + offset))" \
+        "$svgPath" &
+    (( offset += 40 ))
+  fi
 done
 
 print
