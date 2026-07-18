@@ -96,6 +96,19 @@ if [ -d /usr/src/syn-filemanager ]; then
   fi
 fi
 
+# Same pattern as syn-filemanager above.
+if [ -d /usr/src/syn-bar-window-title ]; then
+  syn_ui::step "Building syn-bar-window-title"
+  chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-bar-window-title
+  if su "$UserAccountName" -c 'cd /usr/src/syn-bar-window-title && makepkg -f --noconfirm' \
+    && pacman -U /usr/src/syn-bar-window-title/syn-bar-window-title-*.pkg.tar.zst --noconfirm; then
+    rm -rf /usr/src/syn-bar-window-title
+    syn_ui::step_done "syn-bar-window-title installed"
+  else
+    syn_ui::error "syn-bar-window-title build/install failed — see output above. The centered window title in waybar won't work until this is built manually from /usr/src/syn-bar-window-title."
+  fi
+fi
+
 # mkinitcpio hooks — same set for UEFI and BIOS
 configure_mkinitcpio() {
   HOOKS=(base udev autodetect modconf kms keyboard keymap consolefont block)
@@ -210,6 +223,20 @@ systemctl enable iwd.service    2>/dev/null || true
 if [ "${EnableSsh:-no}" = "yes" ]; then
   systemctl enable sshd.service 2>/dev/null || true
   syn_ui::step_done "sshd enabled (EnableSsh=yes in synos.conf)"
+fi
+
+# zstd-compressed RAM-backed swap. The modules-load.d entry matters: without
+# it the zram module isn't guaranteed to be loaded before zram-generator's
+# systemd units run, which leaves them waiting forever on a zram0 device
+# that never appears.
+if [ "${ZramPercent:-0}" != "0" ]; then
+  cat > /etc/systemd/zram-generator.conf <<EOF
+[zram0]
+zram-size = min(ram * ${ZramPercent} / 100, ${ZramMaxMiB})
+compression-algorithm = zstd
+EOF
+  echo zram > /etc/modules-load.d/zram.conf
+  syn_ui::step_done "zram swap configured (${ZramPercent}% of RAM, capped at ${ZramMaxMiB}MiB)"
 fi
 
 # Only enable qemu-guest-agent when actually running under QEMU/KVM — on

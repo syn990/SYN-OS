@@ -45,7 +45,7 @@ printf "\n\033[1;41m WARNING: RUNNING 'synos-install' WILL ERASE YOUR DATA \033[
 printf "\033[1;31mReview and edit install parameters before running.\033[0m\n"
 printf "Failure to do so will result in total data loss.\n"
 printf "\n\033[1;33mEdit these before proceeding:\033[0m\n"
-printf "   \033[1;35msynos-config\033[0m  (or: doas nano /etc/syn-os/synos.conf)\n"
+printf "   \033[1;35msynos-config-pick\033[0m  (pick one setting, fzf) — or \033[1;35msynos-config\033[0m for the full file (nano)\n"
 
 confirm_synos-install() {
   printf "\n\033[1;41m DANGER \033[0m This will erase target disks configured in syn-stage scripts.\n"
@@ -166,6 +166,7 @@ fi
 # =============================================================================
 alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
 alias synos-config="doas nano /etc/syn-os/synos.conf"
+alias synos-config-pick="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'

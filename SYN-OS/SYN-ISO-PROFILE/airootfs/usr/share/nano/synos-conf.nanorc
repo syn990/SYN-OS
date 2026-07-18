@@ -1,0 +1,10 @@
+## Syntax highlighting for /etc/syn-os/synos.conf. No stock nanorc matches
+## it — it has no extension, and sh.nanorc's regex needs .sh/.zshrc/profile
+## in the filename or path, none of which synos.conf has.
+syntax synos-conf "/etc/syn-os/synos\.conf$"
+comment "#"
+
+color cyan "(^|[[:blank:]])#.*"
+color green "^[A-Za-z_][A-Za-z0-9_]*="
+color lightyellow ""[^"]*""
+color lightred "CHANGE_ME"
