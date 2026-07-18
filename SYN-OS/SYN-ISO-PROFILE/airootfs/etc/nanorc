@@ -1,0 +1,7 @@
+## SYN-OS nano config — stock nanorc ships with every include commented out.
+include "/usr/share/nano/*.nanorc"
+include "/usr/share/nano/extra/*.nanorc"
+include "/usr/share/nano/synos-conf.nanorc"
+
+set linenumbers
+set constantshow

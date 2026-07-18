@@ -31,7 +31,12 @@
 #               are scratch space wiped on every run
 BASE_DIR="${0:A:h}"
 PROFILE_DEFAULT="$BASE_DIR/SYN-ISO-PROFILE"
-WORKDIR="$BASE_DIR/WORKDIR"
+# tmpfs speeds up pacstrap/squashfs staging; fall back to disk if /tmp isn't tmpfs.
+if findmnt -n -o FSTYPE /tmp 2>/dev/null | grep -qx tmpfs; then
+  WORKDIR="/tmp/synos-build-workdir"
+else
+  WORKDIR="$BASE_DIR/WORKDIR"
+fi
 OUTPUT="$BASE_DIR/ISO_OUTPUT"
 DOCS_DIR="$PROFILE_DEFAULT/airootfs/usr/share/syn-os/docs"
 MANIFEST="$DOCS_DIR/build-manifest.json"

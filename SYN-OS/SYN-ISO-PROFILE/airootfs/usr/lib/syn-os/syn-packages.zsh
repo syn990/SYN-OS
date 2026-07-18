@@ -34,7 +34,7 @@ baseCore=(
   xfsprogs            # XFS filesystem utilities
   lvm2                # Logical Volume Manager 2 utilities
   cryptsetup          # Disk encryption tool (LUKS)
-  parted              # GNU Parted disk partitioning program
+  zram-generator      # systemd generator for zstd-compressed RAM-backed swap (ZramPercent in synos.conf)
 )
 
 netAndServices=(
@@ -68,6 +68,7 @@ shellAndCLI=(
   brightnessctl             # Tool to read and control screen brightness
   pamixer                   # PulseAudio command-line mixer
   glow                      # Markdown renderer for the terminal (Docs menu)
+  parted                    # GNU Parted disk partitioning program
 )
 
 desktopStack=(
@@ -78,6 +79,9 @@ desktopStack=(
   slurp               # Selection utility for Wayland compositors (used with grim)
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
+  wlr-protocols       # Protocol XML — syn-bar-window-title (Waybar's centered title) builds
+                      # against this; built from source by syn-stage1.zsh, not itself a
+                      # package name in this list, same pattern as qt6-base below
   mako                # Lightweight Wayland notification daemon (renders notify-send toasts)
   swaybg              # Background setter for Sway and wlroots-based compositors
   swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)

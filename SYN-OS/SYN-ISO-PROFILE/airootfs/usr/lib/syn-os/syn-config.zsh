@@ -179,9 +179,10 @@ export \
   Hostname UserAccountName UserShell \
   Locale LocaleGen KeyMap TimeZone VconsoleFont \
   Disk BootMode BootSize \
-  PartitionStrat VolumeStrat FilesystemStrat BootloaderStrat PackageProfile \
+  PartitionStrat VolumeStrat FilesystemStrat PackageProfile \
   Encryption UseLvm EnableSsh \
   VgName LvRootName LvSwapName SwapSize \
+  ZramPercent ZramMaxMiB \
   BootFs RootFs \
   RootMountLocation BootMountLocation \
   LuksCipher LuksKeySize LuksPbkdf LuksLabel LuksPassphrase \

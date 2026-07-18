@@ -33,4 +33,5 @@ file_permissions=(
   ["/usr/lib/syn-os/syn-ui.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-disk.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-pacstrap.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-conf-picker.zsh"]="0:0:755"
 )
