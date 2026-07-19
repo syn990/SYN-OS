@@ -4,10 +4,15 @@
 #   Run by labwc itself right after it reads its config — this is the
 #   session's one entrypoint (labwc allows exactly one autostart file, no
 #   shebang; runs under /bin/sh, not zsh). Restores persisted display
-#   state, brings the theme up (first login) or relaunches its wallpaper
-#   (later logins), starts mako (backgrounded — every notify-send call in
-#   SYN-OS depends on it being alive, and it has to be up before anything
-#   fires a toast), then starts waybar.
+#   state, then brings the theme up (first login) or relaunches its
+#   wallpaper (later logins), starts mako (backgrounded — every
+#   notify-send call in SYN-OS depends on it being alive, and it has to be
+#   up before anything fires a toast). waybar itself is started inside
+#   bootstrap_or_relaunch_theme(), not here — on first login,
+#   syn-theme-apply already starts it as part of applying SYN-OS-RED; a
+#   second unconditional `waybar` here used to run alongside that one,
+#   leaving two waybar processes racing over the same bar on every fresh
+#   install's first login.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : AUTOSTART (Desktop)
@@ -51,14 +56,16 @@ apply_persisted_display_state() {
 }
 
 # First login (no current-theme yet): stamps the default theme into every
-# app's own config format via syn-theme-apply. Later logins: current-theme
-# already reflects an applied theme, so just relaunch its wallpaper —
-# re-running syn-theme-apply here isn't needed and would be redundant work
-# on every login.
+# app's own config format via syn-theme-apply, which also starts waybar
+# itself. Later logins: current-theme already reflects an applied theme,
+# so just relaunch its wallpaper and waybar directly — re-running
+# syn-theme-apply here isn't needed and would be redundant work on every
+# login. Either branch starts waybar exactly once.
 bootstrap_or_relaunch_theme() {
   if [ -f "$HOME/.config/syn-os/current-theme" ]; then
     ( syn_theme_load
       [ -n "$SYN_WALLPAPER" ] && [ -f "$SYN_WALLPAPER" ] && swaybg -i "$SYN_WALLPAPER" & )
+    waybar &
   else
     syn-theme-apply SYN-OS-RED
   fi
@@ -67,4 +74,3 @@ bootstrap_or_relaunch_theme() {
 apply_persisted_display_state
 bootstrap_or_relaunch_theme
 mako &
-waybar
