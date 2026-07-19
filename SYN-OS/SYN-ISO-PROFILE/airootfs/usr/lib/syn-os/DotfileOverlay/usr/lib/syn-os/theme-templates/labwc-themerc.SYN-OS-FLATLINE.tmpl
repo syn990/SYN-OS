@@ -1,0 +1,76 @@
+!! SYN_THEME_NAME
+!! Font: Terminus
+!! Flatline family: no border, no shadow, no titlebar fill distinct from
+!! the client body — a single hairline is the only chrome at all. Same
+!! pruning as MATRIX/WIN95's overrides (labwc-theme(5) doesn't implement
+!! cornerRadius, window.active.label.bg, .client.color, .handle.bg,
+!! .grip.bg, or .indicator.tiled.color — never set here).
+
+border.width:                   1
+padding.width:                  0
+padding.height:                 0
+
+window.handle.width:            0
+window.client.padding.width:    0
+window.client.padding.height:   0
+
+window.active.shadow.size:      0
+window.inactive.shadow.size:    0
+
+window.active.label.text.font:  Terminus 10
+window.label.text.justify:      left
+
+menu.title.text.font:           Terminus 10
+menu.title.text.justify:        left
+menu.items.font:                Terminus 10
+
+menu.width.min:                 200
+menu.width.max:                 460
+menu.border.width:              1
+menu.overlap.x:                 0
+menu.overlap.y:                 0
+
+menu.title.bg:                  flat solid
+menu.title.bg.color:            SYN_BG
+menu.title.text.color:          SYN_ACCENT
+
+menu.items.bg:                  flat solid
+menu.items.bg.color:            SYN_BG
+menu.items.text.color:          SYN_TEXT
+
+menu.items.active.bg:           flat solid
+menu.items.active.bg.color:     SYN_BG
+menu.items.active.text.color:   SYN_ACCENT
+
+menu.items.disabled.text.color: SYN_BORDER
+menu.separator.color:           SYN_BORDER
+
+# No distinct titlebar fill — the hairline border plus the accent-colored
+# label text is the entire indication of "this is a window," on purpose.
+window.active.border.color:        SYN_ACCENT
+window.inactive.border.color:      SYN_BG
+
+window.active.title.bg:            flat solid
+window.active.title.bg.color:      SYN_BG
+window.active.label.text.color:    SYN_ACCENT
+
+window.inactive.title.bg:          flat solid
+window.inactive.title.bg.color:    SYN_BG
+window.inactive.label.text.color:  SYN_BORDER
+
+window.active.button.unpressed.image.color:    SYN_ACCENT
+window.active.button.hover.bg:                 flat solid
+window.active.button.hover.bg.color:           SYN_BG
+window.active.button.hover.image.color:        SYN_TEXT
+window.inactive.button.unpressed.image.color:  SYN_BORDER
+
+osd.border.width:       1
+osd.border.color:       SYN_ACCENT
+osd.bg:                 flat solid
+osd.bg.color:            SYN_BG
+osd.label.text.color:   SYN_TEXT
+osd.label.text.font:    Terminus 10
+osd.hilight.bg:         flat solid
+osd.hilight.bg.color:   SYN_ACCENT
+osd.unhilight.bg:       flat solid
+osd.unhilight.bg.color: SYN_BG

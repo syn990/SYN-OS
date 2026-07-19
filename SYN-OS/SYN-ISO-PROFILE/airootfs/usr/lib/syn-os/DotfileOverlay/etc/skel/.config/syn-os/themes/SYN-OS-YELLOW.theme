@@ -1,6 +1,8 @@
 # SYN-OS theme palette: YELLOW
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-YELLOW"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#0a0a00"
 SYN_BG_ALT="#1a1800"
 SYN_PANEL="#2b2800"

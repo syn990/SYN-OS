@@ -1,6 +1,8 @@
 # SYN-OS theme palette: PINK
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-PINK"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#0a0a0a"
 SYN_BG_ALT="#140008"
 SYN_PANEL="#1a0410"

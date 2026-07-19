@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-BRASS
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-BRASS"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#0a0805"
+SYN_BG_ALT="#16110a"
+SYN_PANEL="#221b0d"
+SYN_PANEL_HOVER="#332714"
+SYN_ACCENT="#eec266"
+SYN_ACCENT_DIM="#7a5f2e"
+SYN_TEXT="#fff0d9"
+SYN_BORDER="#59461f"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-BRASS-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

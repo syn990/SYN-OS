@@ -4,6 +4,8 @@
 # rather than a copy of RED: pure black instead of RED's red-tinted near
 # black, a brighter scarlet accent instead of RED's dark maroon.
 SYN_THEME_NAME="SYN-OS-M141"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#000000"
 SYN_BG_ALT="#0a0a0a"
 SYN_PANEL="#1a0000"

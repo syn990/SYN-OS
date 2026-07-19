@@ -1,0 +1,17 @@
+# SYN-OS theme palette: FLATLINE-LIGHT-SKY
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-FLATLINE-LIGHT-SKY"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
+SYN_BG="#eff5f7"
+SYN_BG_ALT="#dbe8ec"
+SYN_PANEL="#eff5f7"
+SYN_PANEL_HOVER="#dbe8ec"
+SYN_ACCENT="#003040"
+SYN_ACCENT_DIM="#4d7080"
+SYN_TEXT="#141a1c"
+SYN_BORDER="#b8d4dc"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-FLATLINE-LIGHT-SKY-wallpaper.png"
+SYN_GLYPH="▪"
+SYN_THEME_GROUP="flatline"

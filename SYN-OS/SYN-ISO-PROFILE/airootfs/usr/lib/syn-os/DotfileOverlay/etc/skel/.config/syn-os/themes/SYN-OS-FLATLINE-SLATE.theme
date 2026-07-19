@@ -1,0 +1,17 @@
+# SYN-OS theme palette: FLATLINE-SLATE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-FLATLINE-SLATE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
+SYN_BG="#000000"
+SYN_BG_ALT="#0d0f12"
+SYN_PANEL="#0d0f12"
+SYN_PANEL_HOVER="#161a1f"
+SYN_ACCENT="#8fa8bd"
+SYN_ACCENT_DIM="#41505c"
+SYN_TEXT="#dfe6ec"
+SYN_BORDER="#333d47"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-FLATLINE-SLATE-wallpaper.png"
+SYN_GLYPH="▪"
+SYN_THEME_GROUP="flatline"

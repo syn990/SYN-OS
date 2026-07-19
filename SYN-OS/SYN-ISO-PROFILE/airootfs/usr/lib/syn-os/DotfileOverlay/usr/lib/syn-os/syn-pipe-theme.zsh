@@ -2,9 +2,10 @@
 # ------------------------------------------------------------------------------
 #                         S Y N - P I P E - T H E M E
 #
-#   Labwc pipe menu listing ~/.config/syn-os/themes/*.theme, grouped by
-#   Vanilla/Homage/Neutral. Each entry runs syn-theme-apply <name> to
-#   switch live. See docs/theming.md.
+#   Labwc pipe menu listing ~/.config/syn-os/themes/*.theme, nested
+#   Dark/Light > Vanilla/Flatline/Slab/Halo/Bevel > individual palette.
+#   Each leaf entry runs syn-theme-apply <name> to switch live.
+#   See docs/theming.md.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-PIPE-THEME (Desktop)
@@ -37,37 +38,76 @@ if [[ ! -d "$THEMES_DIR" ]] || ! ls "$THEMES_DIR"/*.theme >/dev/null 2>&1; then
 fi
 
 theme_item() {
-  local theme_name="$1" label="$1"
-  [[ "$theme_name" == "$current" ]] && label="${theme_name} (active)"
+  local theme_name="$1" label="$2"
+  [[ "$theme_name" == "$current" ]] && label="${label} (active)"
   local safe_label="$(xml_escape "$label")"
-  print "    <item label=\"$safe_label\">"
-  print "      <action name=\"Execute\"><command>syn-theme-apply ${theme_name}</command></action>"
-  print "    </item>"
+  print "        <item label=\"$safe_label\">"
+  print "          <action name=\"Execute\"><command>syn-theme-apply ${theme_name}</command></action>"
+  print "        </item>"
 }
 
-typeset -a vanilla_themes homage_themes neutral_themes
+typeset -a family_order
+family_order=(SYN-OS-VANILLA SYN-OS-FLATLINE SYN-OS-SLAB SYN-OS-HALO SYN-OS-BEVEL)
+typeset -A family_labels
+family_labels=(
+  SYN-OS-VANILLA  Vanilla
+  SYN-OS-FLATLINE Flatline
+  SYN-OS-SLAB     Slab
+  SYN-OS-HALO     Halo
+  SYN-OS-BEVEL    Bevel
+)
+
+# themes_by_mode_family[$mode:$family] is a newline-separated list of
+# "theme_name|label" pairs. zsh associative arrays can't nest, so a flat
+# "mode:family" key is the simplest way to bucket in a single pass.
+typeset -A themes_by_mode_family
 for f in "$THEMES_DIR"/*.theme; do
-  ( SYN_THEME_GROUP=""; source "$f" 2>/dev/null
-    print -r -- "${SYN_THEME_GROUP:-vanilla}"
-  ) | IFS= read -r group
-  case "$group" in
-    homage)  homage_themes+=("${f:t:r}") ;;
-    neutral) neutral_themes+=("${f:t:r}") ;;
-    *)       vanilla_themes+=("${f:t:r}") ;;
-  esac
+  theme_name="${f:t:r}"
+  ( SYN_THEME_MODE=""; SYN_THEME_FAMILY=""; SYN_THEME_NAME=""
+    source "$f" 2>/dev/null
+    print -r -- "${SYN_THEME_MODE:-dark}|${SYN_THEME_FAMILY:-SYN-OS-VANILLA}|${SYN_THEME_NAME:-$theme_name}"
+  ) | IFS='|' read -r mode family display_name
+
+  # Strip the family/mode prefix so the menu label is just the palette's
+  # own name, e.g. SYN-OS-FLATLINE-LIGHT-SKY -> "Sky".
+  label="${display_name#$family-}"
+  label="${label#LIGHT-}"
+  label="${label#DARK-}"
+  [[ "$label" == "$display_name" ]] && label="${display_name#SYN-OS-}"
+  label="${label:l}"
+  label="${label//-/ }"
+  label="${(C)label}"
+
+  key="${mode}:${family}"
+  themes_by_mode_family[$key]="${themes_by_mode_family[$key]:-}${theme_name}|${label}"$'\n'
 done
 
-print '  <menu id="theme-vanilla" label="Vanilla">'
-for theme_name in "${vanilla_themes[@]}"; do theme_item "$theme_name"; done
-print '  </menu>'
+build_family_menu() {
+  local mode="$1" family="$2"
+  local key="${mode}:${family}"
+  local entries="${themes_by_mode_family[$key]:-}"
+  [[ -z "$entries" ]] && return
 
-print '  <menu id="theme-homage" label="Homage">'
-for theme_name in "${homage_themes[@]}"; do theme_item "$theme_name"; done
-print '  </menu>'
+  print "      <menu id=\"theme-${mode}-${family}\" label=\"$(xml_escape "${family_labels[$family]}")\">"
+  local line theme_name label
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    theme_name="${line%%|*}"
+    label="${line#*|}"
+    theme_item "$theme_name" "$label"
+  done <<< "$entries"
+  print '      </menu>'
+}
 
-print '  <menu id="theme-neutral" label="Neutral">'
-for theme_name in "${neutral_themes[@]}"; do theme_item "$theme_name"; done
-print '  </menu>'
+for mode in dark light; do
+  mode_label="Dark"
+  [[ "$mode" == "light" ]] && mode_label="Light"
+  print "    <menu id=\"theme-${mode}\" label=\"${mode_label}\">"
+  for family in "${family_order[@]}"; do
+    build_family_menu "$mode" "$family"
+  done
+  print '    </menu>'
+done
 
 print '  <separator/>'
 print '  <item label="Edit Themes Folder (new theme = copy a .theme file)">'

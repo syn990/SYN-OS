@@ -1,0 +1,17 @@
+# SYN-OS theme palette: FLATLINE-LIGHT-AMBER
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-FLATLINE-LIGHT-AMBER"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
+SYN_BG="#f7f5ee"
+SYN_BG_ALT="#ede6d2"
+SYN_PANEL="#f7f5ee"
+SYN_PANEL_HOVER="#e8e2cc"
+SYN_ACCENT="#3d2900"
+SYN_ACCENT_DIM="#8a7040"
+SYN_TEXT="#1a1712"
+SYN_BORDER="#d9c9a0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-FLATLINE-LIGHT-AMBER-wallpaper.png"
+SYN_GLYPH="▪"
+SYN_THEME_GROUP="flatline"

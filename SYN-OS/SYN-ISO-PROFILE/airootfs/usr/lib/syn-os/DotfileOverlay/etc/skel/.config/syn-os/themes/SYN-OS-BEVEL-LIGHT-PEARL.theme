@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-LIGHT-PEARL
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-LIGHT-PEARL"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#f2f2f0"
+SYN_BG_ALT="#e6e5e0"
+SYN_PANEL="#e0dfd8"
+SYN_PANEL_HOVER="#d0cfc4"
+SYN_ACCENT="#26261f"
+SYN_ACCENT_DIM="#73726a"
+SYN_TEXT="#1a1a18"
+SYN_BORDER="#b8b7ac"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-LIGHT-PEARL-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

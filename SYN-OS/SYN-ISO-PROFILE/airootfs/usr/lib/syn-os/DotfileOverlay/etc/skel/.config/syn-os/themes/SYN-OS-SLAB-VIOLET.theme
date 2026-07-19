@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-VIOLET
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-VIOLET"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#08050a"
+SYN_BG_ALT="#120a16"
+SYN_PANEL="#180d21"
+SYN_PANEL_HOVER="#251530"
+SYN_ACCENT="#c17aff"
+SYN_ACCENT_DIM="#5c3980"
+SYN_TEXT="#f0e0ff"
+SYN_BORDER="#4d2e66"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-VIOLET-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

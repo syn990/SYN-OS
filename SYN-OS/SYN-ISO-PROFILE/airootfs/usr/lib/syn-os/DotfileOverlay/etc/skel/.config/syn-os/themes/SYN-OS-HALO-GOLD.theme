@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-GOLD
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-GOLD"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#000000"
+SYN_BG_ALT="#0d0a00"
+SYN_PANEL="#000000"
+SYN_PANEL_HOVER="#1a1400"
+SYN_ACCENT="#ffd633"
+SYN_ACCENT_DIM="#806b1a"
+SYN_TEXT="#fff5cc"
+SYN_BORDER="#594700"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-GOLD-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

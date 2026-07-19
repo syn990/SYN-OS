@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-LIGHT-ORCHID
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-LIGHT-ORCHID"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#fdf5ff"
+SYN_BG_ALT="#efe0f5"
+SYN_PANEL="#fdf5ff"
+SYN_PANEL_HOVER="#ecdcf2"
+SYN_ACCENT="#3d0d5c"
+SYN_ACCENT_DIM="#7a4d99"
+SYN_TEXT="#181021"
+SYN_BORDER="#d4a8e0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-LIGHT-ORCHID-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

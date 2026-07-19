@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-LIGHT-STONE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-LIGHT-STONE"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#f0efe8"
+SYN_BG_ALT="#e0ded2"
+SYN_PANEL="#d8d4bc"
+SYN_PANEL_HOVER="#c4bfa0"
+SYN_ACCENT="#332200"
+SYN_ACCENT_DIM="#8a7040"
+SYN_TEXT="#1a1712"
+SYN_BORDER="#a89f80"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-LIGHT-STONE-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

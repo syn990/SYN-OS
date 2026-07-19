@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-LIGHT-SEAFOAM
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-LIGHT-SEAFOAM"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#eff5f2"
+SYN_BG_ALT="#d9ebe1"
+SYN_PANEL="#c9ddd0"
+SYN_PANEL_HOVER="#b8d0c2"
+SYN_ACCENT="#0c2917"
+SYN_ACCENT_DIM="#5c8a70"
+SYN_TEXT="#121a16"
+SYN_BORDER="#a0c2ac"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-LIGHT-SEAFOAM-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

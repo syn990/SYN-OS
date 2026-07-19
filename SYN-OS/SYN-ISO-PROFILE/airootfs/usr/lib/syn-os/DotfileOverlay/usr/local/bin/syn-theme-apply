@@ -32,6 +32,27 @@ palette="$THEMES_DIR/$name.theme"
 source "$palette"
 : "${SYN_THEME_NAME:?palette missing SYN_THEME_NAME}"
 
+# override_template <base> <ext>: resolves which template a consumer
+# should render from, in priority order:
+#   1. <base>.<SYN_THEME_NAME>.<ext>  — a one-off override for this exact
+#      theme (MATRIX and WIN95 use this; kept working unchanged).
+#   2. <base>.<SYN_THEME_FAMILY>.<ext> — a shared override for every theme
+#      in the same structural family (Flatline/Slab/Halo/Bevel), so one
+#      file covers many palettes instead of duplicating it per theme.
+#   3. <base>.<ext> — the shared default every other theme uses.
+# SYN_THEME_FAMILY is optional; themes that don't set it (all pre-family
+# themes) just skip straight from 1 to 3.
+override_template() {
+  local base="$1" ext="$2"
+  if [[ -f "$TEMPLATES_DIR/$base.$SYN_THEME_NAME.$ext" ]]; then
+    print -r -- "$TEMPLATES_DIR/$base.$SYN_THEME_NAME.$ext"
+  elif [[ -n "${SYN_THEME_FAMILY:-}" && -f "$TEMPLATES_DIR/$base.$SYN_THEME_FAMILY.$ext" ]]; then
+    print -r -- "$TEMPLATES_DIR/$base.$SYN_THEME_FAMILY.$ext"
+  else
+    print -r -- "$TEMPLATES_DIR/$base.$ext"
+  fi
+}
+
 # strip leading # for formats that want raw hex
 raw() { print -r -- "${1#\#}"; }
 
@@ -76,9 +97,8 @@ render() {
   sed "${sed_args[@]}" "$tmpl" > "$out"
 }
 
-# -------- waybar (CSS hex, live reload) --------
-waybar_tmpl="$TEMPLATES_DIR/waybar-style.css.tmpl"
-[[ -f "$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl" ]] && waybar_tmpl="$TEMPLATES_DIR/waybar-style.$SYN_THEME_NAME.css.tmpl"
+# -------- waybar (CSS hex, restarted below once config/glyph are settled) --------
+waybar_tmpl="$(override_template waybar-style css.tmpl)"
 render "$waybar_tmpl" "$HOME/.config/waybar/style.css"
 # Bar position comes from each theme's own SYN_WAYBAR_POSITION, so a new
 # bottom-bar theme never needs a change here. Adds or updates the
@@ -93,7 +113,6 @@ if [[ -f "$waybar_cfg" ]]; then
     sed -i "0,/\"height\":/s||\"position\": \"$waybar_position\",\n  \"height\":|" "$waybar_cfg"
   fi
 fi
-pkill -SIGUSR2 waybar 2>/dev/null || true
 
 # -------- mako (notification toasts, live via makoctl reload) --------
 render "$TEMPLATES_DIR/mako-config.tmpl" "$HOME/.config/mako/config"
@@ -106,9 +125,18 @@ if [[ -n "${SYN_WALLPAPER:-}" && -f "$SYN_WALLPAPER" ]]; then
   disown
 fi
 
-# -------- waybar glyph (fixed per-theme icon, live reload) --------
+# -------- waybar glyph (fixed per-theme icon) --------
 print -r -- "${SYN_GLYPH:-●}" > "$HOME/.config/waybar/glyph"
-pkill -SIGUSR2 waybar 2>/dev/null || true
+
+# -------- waybar restart --------
+# SIGUSR2's "reload" is unreliable in practice: modules can end up split
+# between old and new CSS (e.g. text picks up the new theme, module
+# backgrounds don't), and wlr/taskbar can go blank until a real restart.
+# A clean kill+relaunch is what actually applies a theme consistently
+# across every module, same pattern already used for swaybg above.
+pkill waybar 2>/dev/null || true
+waybar >/dev/null 2>&1 &
+disown
 
 # -------- qt5ct (ARGB hex with ff/80 alpha prefix, next Qt launch only) --------
 typeset -a qt_keys
@@ -146,8 +174,7 @@ labwc_theme_dir="$HOME/.local/share/themes/$SYN_THEME_NAME/openbox-3"
 mkdir -p "$labwc_theme_dir"
 # Themes needing real decoration (gradients/bevels, not the shared flat-solid
 # look) drop a labwc-themerc.<SYN_THEME_NAME>.tmpl next to the shared one.
-labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.tmpl"
-[[ -f "$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl" ]] && labwc_tmpl="$TEMPLATES_DIR/labwc-themerc.$SYN_THEME_NAME.tmpl"
+labwc_tmpl="$(override_template labwc-themerc tmpl)"
 render "$labwc_tmpl" "$labwc_theme_dir/themerc"
 # Scoped to just the first <name> after <theme> opens — an unanchored
 # match would also hit every <font><name> tag in the file and break fonts.
@@ -171,8 +198,7 @@ render_foot() {
   done
   sed "${sed_args[@]}" "$tmpl"
 }
-foot_tmpl="$TEMPLATES_DIR/foot-colors-dark.tmpl"
-[[ -f "$TEMPLATES_DIR/foot-colors-dark.$SYN_THEME_NAME.tmpl" ]] && foot_tmpl="$TEMPLATES_DIR/foot-colors-dark.$SYN_THEME_NAME.tmpl"
+foot_tmpl="$(override_template foot-colors-dark tmpl)"
 new_block="$(render_foot "$foot_tmpl")"
 awk -v block="$new_block" '
   /^\[colors-dark\]/ { print block; skip=1; next }

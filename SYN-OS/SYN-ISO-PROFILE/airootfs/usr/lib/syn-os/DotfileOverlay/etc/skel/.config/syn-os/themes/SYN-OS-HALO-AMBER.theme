@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-AMBER
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-AMBER"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#000000"
+SYN_BG_ALT="#0d0a00"
+SYN_PANEL="#000000"
+SYN_PANEL_HOVER="#1a1400"
+SYN_ACCENT="#ffbb00"
+SYN_ACCENT_DIM="#7a5900"
+SYN_TEXT="#fff2cc"
+SYN_BORDER="#594300"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-AMBER-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

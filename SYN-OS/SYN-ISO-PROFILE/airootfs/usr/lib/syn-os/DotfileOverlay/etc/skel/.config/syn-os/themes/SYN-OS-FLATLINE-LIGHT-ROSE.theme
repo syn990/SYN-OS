@@ -1,0 +1,17 @@
+# SYN-OS theme palette: FLATLINE-LIGHT-ROSE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-FLATLINE-LIGHT-ROSE"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
+SYN_BG="#f7f2f4"
+SYN_BG_ALT="#ecdfe6"
+SYN_PANEL="#f7f2f4"
+SYN_PANEL_HOVER="#e8dde2"
+SYN_ACCENT="#5c1a33"
+SYN_ACCENT_DIM="#a3667f"
+SYN_TEXT="#1a1a1a"
+SYN_BORDER="#d9bfcc"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-FLATLINE-LIGHT-ROSE-wallpaper.png"
+SYN_GLYPH="▪"
+SYN_THEME_GROUP="flatline"

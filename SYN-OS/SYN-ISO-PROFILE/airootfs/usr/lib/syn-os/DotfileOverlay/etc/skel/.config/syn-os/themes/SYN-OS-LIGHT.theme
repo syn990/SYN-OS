@@ -1,6 +1,8 @@
 # SYN-OS theme palette: LIGHT
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-LIGHT"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#1e1e1e"
 SYN_BG_ALT="#252525"
 SYN_PANEL="#2d2d2d"
@@ -12,4 +14,4 @@ SYN_BORDER="#454545"
 SYN_URGENT="#ff5c5c"
 SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-LIGHT-wallpaper.png"
 SYN_GLYPH="◐"
-SYN_THEME_GROUP="neutral"
+SYN_THEME_GROUP="vanilla"

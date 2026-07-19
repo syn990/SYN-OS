@@ -1,6 +1,8 @@
 # SYN-OS theme palette: GRAPHITE
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-GRAPHITE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#242424"
 SYN_BG_ALT="#2b2b2b"
 SYN_PANEL="#333333"
@@ -12,4 +14,4 @@ SYN_BORDER="#505050"
 SYN_URGENT="#c0605f"
 SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-GRAPHITE-wallpaper.png"
 SYN_GLYPH=""
-SYN_THEME_GROUP="neutral"
+SYN_THEME_GROUP="vanilla"

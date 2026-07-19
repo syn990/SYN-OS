@@ -1,0 +1,74 @@
+@define-color syn_bg           SYN_BG;
+@define-color syn_bg_alt       SYN_BG_ALT;
+@define-color syn_panel        SYN_PANEL;
+@define-color syn_panel_hover  SYN_PANEL_HOVER;
+@define-color syn_accent       SYN_ACCENT;
+@define-color syn_accent_dim   SYN_ACCENT_DIM;
+@define-color syn_text         SYN_TEXT;
+@define-color syn_urgent       SYN_URGENT;
+
+* {
+  font-family: FontAwesome, Roboto, Terminus, "Noto Sans Symbols", "Noto Color Emoji";
+  font-size: 14px;
+  color: @syn_text;
+}
+
+window#waybar {
+  background-color: @syn_bg;
+  border-bottom: 2px solid @syn_accent_dim;
+  transition: background-color 0.5s;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+#custom-window-title { color: @syn_accent; }
+
+/* Halo: outlines carry the color, module backgrounds stay on @syn_bg —
+   see waybar-style.css.tmpl's comment on why button:hover needs
+   "background: inherit" rather than a plain background-color. */
+#taskbar { padding: 0 4px; }
+#taskbar button {
+  padding: 0 6px;
+  margin: 2px 1px;
+  background-color: transparent;
+  border: 1px solid @syn_bg_alt;
+  border-radius: 0;
+  box-shadow: none;
+}
+#taskbar button:hover { background: inherit; border-color: @syn_accent_dim; }
+#taskbar button.active { background: inherit; border-color: @syn_accent; box-shadow: 0 0 4px @syn_accent; }
+#taskbar button.urgent { background: inherit; border-color: @syn_urgent; animation: blink-border 0.5s steps(12) infinite alternate; }
+
+#workspaces, #clock, #battery, #cpu, #memory, #temperature, #custom-disk,
+#network, #pulseaudio, #backlight, #custom-vpn, #custom-synshare, #custom-power {
+  padding: 0 10px;
+  margin: 2px 1px;
+  border: 1px solid @syn_accent_dim;
+  background-color: transparent;
+}
+
+#clock:hover, #battery:hover, #cpu:hover, #memory:hover, #network:hover, #pulseaudio:hover,
+#custom-disk:hover, #temperature:hover, #custom-synshare:hover, #custom-power:hover {
+  border-color: @syn_accent;
+  color: @syn_accent;
+}
+
+#custom-synshare.active { color: @syn_accent; border-color: @syn_accent; }
+
+#custom-glyph { font-size: 16px; color: @syn_accent; padding: 0 12px; }
+#custom-media { color: @syn_urgent; border: 1px solid @syn_urgent; }
+
+/* Threshold states: driven by "states": {"warning": N, "critical": N} in
+   config.jsonc, which waybar turns into .warning/.critical classes. */
+#cpu.warning, #memory.warning, #custom-disk.warning { border-color: @syn_accent; color: @syn_accent; }
+#cpu.critical, #memory.critical, #custom-disk.critical, #temperature.critical {
+  border-color: @syn_urgent;
+  color: @syn_urgent;
+  animation: blink-border 0.5s steps(12) infinite alternate;
+}
+
+#battery.critical:not(.charging) { border-color: @syn_urgent; color: @syn_urgent; animation: blink-border 0.5s steps(12) infinite alternate; }
+@keyframes blink-border { to { border-color: @syn_bg; color: @syn_text; } }
+
+#custom-recording { color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
+@keyframes blink-text { to { color: @syn_text; } }

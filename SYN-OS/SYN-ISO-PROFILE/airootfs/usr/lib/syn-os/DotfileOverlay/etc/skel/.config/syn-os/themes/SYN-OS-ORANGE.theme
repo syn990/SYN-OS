@@ -1,6 +1,8 @@
 # SYN-OS theme palette: ORANGE
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-ORANGE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#0a0500"
 SYN_BG_ALT="#1a0d00"
 SYN_PANEL="#2b1700"

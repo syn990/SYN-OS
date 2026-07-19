@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-STEEL
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-STEEL"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#0d0f12"
+SYN_BG_ALT="#15171b"
+SYN_PANEL="#1a1d21"
+SYN_PANEL_HOVER="#20242a"
+SYN_ACCENT="#7fb8dd"
+SYN_ACCENT_DIM="#2e4a5c"
+SYN_TEXT="#e8edf2"
+SYN_BORDER="#4a5058"
+SYN_URGENT="#d9534f"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-STEEL-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

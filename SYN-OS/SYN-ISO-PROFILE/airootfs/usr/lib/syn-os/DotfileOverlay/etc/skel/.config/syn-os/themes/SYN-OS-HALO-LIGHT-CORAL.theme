@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-LIGHT-CORAL
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-LIGHT-CORAL"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#fff7f5"
+SYN_BG_ALT="#f7e5e0"
+SYN_PANEL="#fff7f5"
+SYN_PANEL_HOVER="#f2e2de"
+SYN_ACCENT="#5c1a0d"
+SYN_ACCENT_DIM="#996b5c"
+SYN_TEXT="#1a1210"
+SYN_BORDER="#e0b8a8"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-LIGHT-CORAL-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

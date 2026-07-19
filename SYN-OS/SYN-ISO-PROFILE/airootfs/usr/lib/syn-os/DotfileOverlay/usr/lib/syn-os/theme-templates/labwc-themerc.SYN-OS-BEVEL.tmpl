@@ -1,0 +1,95 @@
+!! SYN_THEME_NAME
+!! Font: Terminus
+!! Bevel family: gradient titlebar + drop shadow, real skeuomorphism —
+!! same Gradient Vertical mechanism WIN95's override proved out, applied
+!! as its own family rather than copying WIN95's specific proportions.
+!! Same key pruning as the other overrides: labwc-theme(5) doesn't
+!! implement cornerRadius, window.active.label.bg, .client.color,
+!! .handle.bg, .grip.bg, or .indicator.tiled.color.
+
+border.width:                   1
+padding.width:                  1
+padding.height:                 1
+
+window.handle.width:            6
+window.client.padding.width:    0
+window.client.padding.height:   0
+
+window.active.shadow.size:      8
+window.inactive.shadow.size:    4
+
+window.active.label.text.font:  Terminus 10
+window.label.text.justify:      left
+
+menu.title.text.font:           Terminus 10
+menu.title.text.justify:        left
+menu.items.font:                Terminus 10
+
+menu.width.min:                 200
+menu.width.max:                 460
+menu.border.width:              1
+menu.overlap.x:                 -6
+menu.overlap.y:                 -6
+
+menu.title.bg:                  Gradient Vertical
+menu.title.bg.color:            SYN_ACCENT
+menu.title.bg.colorTo:          SYN_ACCENT_DIM
+menu.title.text.color:          SYN_TEXT
+
+menu.items.bg:                  flat solid
+menu.items.bg.color:            SYN_PANEL
+menu.items.text.color:          SYN_TEXT
+
+menu.items.active.bg:           Gradient Vertical
+menu.items.active.bg.color:     SYN_ACCENT
+menu.items.active.bg.colorTo:   SYN_ACCENT_DIM
+menu.items.active.text.color:   SYN_TEXT
+
+menu.items.disabled.text.color: SYN_BORDER
+menu.separator.color:           SYN_BORDER
+
+window.active.border.color:        SYN_BORDER
+window.inactive.border.color:      SYN_BG_ALT
+
+window.active.title.bg:            Gradient Vertical
+window.active.title.bg.color:      SYN_ACCENT
+window.active.title.bg.colorTo:    SYN_ACCENT_DIM
+window.active.label.text.color:    SYN_TEXT
+
+window.active.handle.bg:           Gradient Vertical
+window.active.handle.bg.color:     SYN_PANEL_HOVER
+window.active.handle.bg.colorTo:   SYN_PANEL
+
+window.inactive.title.bg:          Gradient Vertical
+window.inactive.title.bg.color:    SYN_PANEL_HOVER
+window.inactive.title.bg.colorTo:  SYN_PANEL
+window.inactive.label.text.color:  SYN_BORDER
+
+window.inactive.handle.bg:         flat solid
+window.inactive.handle.bg.color:   SYN_PANEL
+
+window.active.button.unpressed.bg:            Gradient Vertical
+window.active.button.unpressed.bg.color:      SYN_ACCENT
+window.active.button.unpressed.bg.colorTo:    SYN_ACCENT_DIM
+window.active.button.unpressed.image.color:   SYN_TEXT
+
+window.active.button.hover.bg:                 flat solid
+window.active.button.hover.bg.color:           SYN_PANEL_HOVER
+window.active.button.hover.image.color:        SYN_ACCENT
+
+window.inactive.button.unpressed.bg:           flat solid
+window.inactive.button.unpressed.bg.color:     SYN_PANEL
+window.inactive.button.unpressed.image.color:  SYN_BORDER
+
+osd.border.width:       1
+osd.border.color:       SYN_BORDER
+osd.bg:                 Gradient Vertical
+osd.bg.color:            SYN_PANEL_HOVER
+osd.bg.colorTo:          SYN_PANEL
+osd.label.text.color:   SYN_TEXT
+osd.label.text.font:    Terminus 10
+osd.hilight.bg:         Gradient Vertical
+osd.hilight.bg.color:   SYN_ACCENT
+osd.hilight.bg.colorTo: SYN_ACCENT_DIM
+osd.unhilight.bg:       flat solid
+osd.unhilight.bg.color: SYN_PANEL

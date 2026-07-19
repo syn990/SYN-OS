@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-LIGHT-MINT
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-LIGHT-MINT"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#f5fff9"
+SYN_BG_ALT="#e0f5e8"
+SYN_PANEL="#f5fff9"
+SYN_PANEL_HOVER="#e0f2e8"
+SYN_ACCENT="#053018"
+SYN_ACCENT_DIM="#4d8a68"
+SYN_TEXT="#101a14"
+SYN_BORDER="#a8d9bd"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-LIGHT-MINT-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"
