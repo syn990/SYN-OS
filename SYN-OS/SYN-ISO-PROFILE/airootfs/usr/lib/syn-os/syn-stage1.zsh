@@ -75,14 +75,17 @@ syn_ui::step_done "Password set for ${UserAccountName}"
 # rather than leave it in plaintext on the installed disk.
 sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
-# syn-filemanager builds here rather than shipping as a prebuilt binary
-# (see syn-pacstrap.zsh) — cmake/qt6-base are already installed by this
-# point (desktopStack in syn-packages.zsh), and makepkg refuses to run
-# as root, so it's built as the just-created user and installed with
-# pacman -U straight after. A build failure here is a recoverable
-# default, not a dead end (see Philosophy) — warn and move on rather
-# than aborting a system that's otherwise perfectly installable; the
-# source is left in place under /usr/src/syn-filemanager for a manual
+# Every locally-authored native tool (syn-filemanager, and the three
+# plain-C waybar module backends below) builds here rather than shipping
+# as a prebuilt binary (see syn-pacstrap.zsh for why) — each one's build
+# deps (cmake plus, for syn-filemanager/syn-bar-window-title specifically,
+# qt6-base/wlr-protocols) are already installed by this point
+# (desktopStack in syn-packages.zsh), and makepkg refuses to run as root,
+# so every one of these is built as the just-created user and installed
+# with pacman -U straight after. A build failure in any one of these is a
+# recoverable default, not a dead end (see Philosophy) — warn and move on
+# rather than aborting a system that's otherwise perfectly installable;
+# each tool's source is left in place under /usr/src/<name> for a manual
 # retry instead of being deleted along with the evidence of what failed.
 if [ -d /usr/src/syn-filemanager ]; then
   syn_ui::step "Building syn-filemanager"
@@ -96,7 +99,6 @@ if [ -d /usr/src/syn-filemanager ]; then
   fi
 fi
 
-# Same pattern as syn-filemanager above.
 if [ -d /usr/src/syn-bar-window-title ]; then
   syn_ui::step "Building syn-bar-window-title"
   chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-bar-window-title
@@ -106,6 +108,42 @@ if [ -d /usr/src/syn-bar-window-title ]; then
     syn_ui::step_done "syn-bar-window-title installed"
   else
     syn_ui::error "syn-bar-window-title build/install failed — see output above. The centered window title in waybar won't work until this is built manually from /usr/src/syn-bar-window-title."
+  fi
+fi
+
+if [ -d /usr/src/syn-bar-disk ]; then
+  syn_ui::step "Building syn-bar-disk"
+  chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-bar-disk
+  if su "$UserAccountName" -c 'cd /usr/src/syn-bar-disk && makepkg -f --noconfirm' \
+    && pacman -U /usr/src/syn-bar-disk/syn-bar-disk-*.pkg.tar.zst --noconfirm; then
+    rm -rf /usr/src/syn-bar-disk
+    syn_ui::step_done "syn-bar-disk installed"
+  else
+    syn_ui::error "syn-bar-disk build/install failed — see output above. The disk usage module in waybar won't work until this is built manually from /usr/src/syn-bar-disk."
+  fi
+fi
+
+if [ -d /usr/src/syn-bar-vpn ]; then
+  syn_ui::step "Building syn-bar-vpn"
+  chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-bar-vpn
+  if su "$UserAccountName" -c 'cd /usr/src/syn-bar-vpn && makepkg -f --noconfirm' \
+    && pacman -U /usr/src/syn-bar-vpn/syn-bar-vpn-*.pkg.tar.zst --noconfirm; then
+    rm -rf /usr/src/syn-bar-vpn
+    syn_ui::step_done "syn-bar-vpn installed"
+  else
+    syn_ui::error "syn-bar-vpn build/install failed — see output above. The VPN indicator in waybar won't work until this is built manually from /usr/src/syn-bar-vpn."
+  fi
+fi
+
+if [ -d /usr/src/syn-crypter ]; then
+  syn_ui::step "Building syn-crypter"
+  chown -R "${UserAccountName}:${UserAccountName}" /usr/src/syn-crypter
+  if su "$UserAccountName" -c 'cd /usr/src/syn-crypter && makepkg -f --noconfirm' \
+    && pacman -U /usr/src/syn-crypter/syn-crypter-*.pkg.tar.zst --noconfirm; then
+    rm -rf /usr/src/syn-crypter
+    syn_ui::step_done "syn-crypter installed"
+  else
+    syn_ui::error "syn-crypter build/install failed — see output above. SYN-CRYPTER (AES/Blowfish/RSA/Redshirt file encryption) won't work until this is built manually from /usr/src/syn-crypter."
   fi
 fi
 

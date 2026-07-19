@@ -76,22 +76,42 @@ pacstrapMain() {
     chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
   fi
 
-  # syn-filemanager ships as source, not a prebuilt binary — Stage 1
-  # (running inside arch-chroot on the target, after cmake/qt6-base are
-  # already pacstrap'd) builds and installs it natively there via
-  # makepkg. Avoids needing a repo/pacman.conf entry just for one
-  # locally-authored package, and avoids baking a binary that'd need to
+  # SYN-OS's locally-authored native tools (one Qt6 GUI app, three plain-C
+  # waybar module backends, and syn-crypter linked against libcrypto) all
+  # ship as source under this profile, not as prebuilt binaries — Stage 1
+  # (running inside arch-chroot on the target, once each tool's build deps
+  # are pacstrap'd) builds and installs every one of them natively there
+  # via makepkg. That avoids needing a repo/pacman.conf entry just for
+  # locally-authored packages, and avoids baking binaries that'd need to
   # match whatever CPU the live ISO's build host happened to have.
+  # syn-bar-disk and syn-bar-vpn need nothing beyond glibc/cmake, both
+  # already pacstrap'd for the other two, so neither adds a new
+  # makedepends entry anywhere; syn-crypter links openssl, which is a
+  # transitive dependency of pacman/sudo/systemd/git themselves and thus
+  # always present, so it doesn't need one either.
   if [ -d /usr/lib/syn-os/syn-filemanager-src ]; then
     syn_ui::info "Deploying syn-filemanager source to ${RootMountLocation}…"
     cp -r /usr/lib/syn-os/syn-filemanager-src "${RootMountLocation}/usr/src/syn-filemanager"
   fi
 
-  # Same reasoning as syn-filemanager above — Stage 1 builds this natively
-  # in the chroot via makepkg, once wlr-protocols/cmake are pacstrap'd.
   if [ -d /usr/lib/syn-os/syn-bar-window-title-src ]; then
     syn_ui::info "Deploying syn-bar-window-title source to ${RootMountLocation}…"
     cp -r /usr/lib/syn-os/syn-bar-window-title-src "${RootMountLocation}/usr/src/syn-bar-window-title"
+  fi
+
+  if [ -d /usr/lib/syn-os/syn-bar-disk-src ]; then
+    syn_ui::info "Deploying syn-bar-disk source to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/syn-bar-disk-src "${RootMountLocation}/usr/src/syn-bar-disk"
+  fi
+
+  if [ -d /usr/lib/syn-os/syn-bar-vpn-src ]; then
+    syn_ui::info "Deploying syn-bar-vpn source to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/syn-bar-vpn-src "${RootMountLocation}/usr/src/syn-bar-vpn"
+  fi
+
+  if [ -d /usr/lib/syn-os/syn-crypter-src ]; then
+    syn_ui::info "Deploying syn-crypter source to ${RootMountLocation}…"
+    cp -r /usr/lib/syn-os/syn-crypter-src "${RootMountLocation}/usr/src/syn-crypter"
   fi
 
   # Docs are static system data, not a per-user dotfile, so they get their

@@ -75,22 +75,17 @@
             label="SYN-SHARE (file transfer hub)"
             execute="zsh /usr/lib/syn-os/syn-pipe-share.zsh" />
 
-      <!-- syn-crypter-prompt.zsh / syn-redshirt-prompt.zsh collect
-           whatever the underlying tool needs (action, algorithm, file,
-           password/key) via rofi, then run the real work inside
-           syn_popup::run — same shape as SYN-SHARE's own prompt script,
-           and for the same reason: labwc's <command> goes straight to
-           execvp(), so every bit of prompt logic has to live in a script
-           keyed by a bare invocation, not a command string built here. -->
-      <item label="SYN-CRYPTER (AES/Blowfish/RSA file encryption)">
+      <!-- syn-crypter is its own interactive ncurses TUI (menus + a real
+           directory-browsing file picker + masked password entry, all
+           colored from the live SYN-OS theme) when run with no
+           arguments — unlike SYN-SHARE below, it needs no rofi-based
+           prompt script in front of it; foot -e runs it directly. Covers
+           AES-256, Blowfish, RSA, and Redshirt (the Uplink-style XOR
+           joke "encryption") all from its own algorithm menu, so there's
+           no separate SYN-REDSHIRT entry anymore either. -->
+      <item label="SYN-CRYPTER (AES/Blowfish/RSA/Redshirt file encryption)">
         <action name="Execute">
-          <command>/usr/lib/syn-os/syn-crypter-prompt.zsh</command>
-        </action>
-      </item>
-
-      <item label="SYN-REDSHIRT (Uplink-style XOR obfuscation)">
-        <action name="Execute">
-          <command>/usr/lib/syn-os/syn-redshirt-prompt.zsh</command>
+          <command>foot -e /usr/lib/syn-os/syn-crypter</command>
         </action>
       </item>
 
