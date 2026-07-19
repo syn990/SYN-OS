@@ -77,6 +77,16 @@ EnableSsh="$(toYesNo "${EnableSsh:-no}")"
 : "${TimeZone:?TimeZone not set}"
 : "${VconsoleFont:?VconsoleFont not set}"
 
+# UserAccountPassword is only actually consumed by Stage 1, inside the
+# chroot — but checked here too, before Stage 0 touches the disk at all.
+# Catching this after partitioning/pacstrap (Stage 1's own check, kept as
+# defense-in-depth) means a forgotten password wipes the disk for nothing.
+: "${UserAccountPassword:?UserAccountPassword not set}"
+if [ "$UserAccountPassword" = "CHANGE_ME" ]; then
+  echo "ERROR: UserAccountPassword is still 'CHANGE_ME' in synos.conf — set a real password before installing." >&2
+  exit 1
+fi
+
 # Disk and filesystems
 [ -b "${Disk:-}" ] || { echo "ERROR: Disk '${Disk:-}' is not a block device" >&2; exit 1; }
 

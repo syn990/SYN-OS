@@ -15,9 +15,31 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-source /usr/lib/syn-os/syn-ui.zsh
-
 ConfFile="/etc/syn-os/synos.conf"
+
+# fzf's --preview shells out to this same script with --preview-line N —
+# prints the contiguous '# ...' comment block directly above line N in
+# synos.conf (the same explanation you'd see reading the file in an
+# editor) and exits, without touching the picker's own state at all.
+if [ "${1:-}" = "--preview-line" ]; then
+  target="${2:?}"
+  awk -v target="$target" '
+    { lines[NR] = $0 }
+    END {
+      n = target - 1
+      out = ""
+      while (n >= 1 && lines[n] ~ /^#/) {
+        out = lines[n] "\n" out
+        n--
+      }
+      if (out == "") out = "(no comment above this key)\n"
+      printf "%s", out
+    }
+  ' "$ConfFile"
+  exit 0
+fi
+
+source /usr/lib/syn-os/syn-ui.zsh
 
 if [ ! -w "$ConfFile" ]; then
   syn_ui::error "$ConfFile not writable (run with doas)"
@@ -32,15 +54,21 @@ if [ ${#Lines[@]} -eq 0 ]; then
   exit 1
 fi
 
-# fzf shows "KEY = value", picking one yields that same line back.
-Picked="$(printf '%s\n' "${Lines[@]}" | sed -E 's/^([0-9]+):([A-Za-z0-9_]+)="([^"]*)"/\2 = \3/' \
-  | fzf --prompt="synos.conf key > " --height=~60% --border --header="Enter to edit, Esc to cancel")"
+# fzf shows "N: KEY = value" — N is real line number in $ConfFile, kept in
+# the row so the preview pane can look up that key's comment, but hidden
+# from display via --with-nth so the picker still just reads "KEY = value".
+Picked="$(printf '%s\n' "${Lines[@]}" | sed -E 's/^([0-9]+):([A-Za-z0-9_]+)="([^"]*)"/\1: \2 = \3/' \
+  | fzf --prompt="synos.conf key > " --height=~60% --border --header="Enter to edit, Esc to cancel" \
+        --delimiter=': ' --with-nth=2.. \
+        --preview="zsh /usr/lib/syn-os/syn-conf-picker.zsh --preview-line {1}" \
+        --preview-window=down:6:wrap)"
 
 if [ -z "$Picked" ]; then
   syn_ui::info "Cancelled, nothing changed"
   exit 0
 fi
 
+Picked="${Picked#*: }"
 Key="${Picked%% = *}"
 CurrentValue="${Picked#* = }"
 
@@ -52,6 +80,17 @@ if [ -z "$NewValue" ] && [ "$NewValue" != "$CurrentValue" ]; then
   syn_ui::info "Empty input, nothing changed"
   exit 0
 fi
+
+# synos.conf values are always KEY="value" — a literal " in NewValue would
+# close that quote early and spill the rest into the file as raw shell
+# syntax, which syn-config.zsh then sources. Reject rather than try to
+# escape a quote inside an already-quoted shell string.
+case "$NewValue" in
+  *'"'*)
+    syn_ui::error "Value can't contain a double-quote character (breaks synos.conf's KEY=\"value\" format)"
+    exit 1
+    ;;
+esac
 
 # Escape / and & for sed's replacement side; the search side only ever
 # matches a literal ^Key=" anchor, no user input there.
