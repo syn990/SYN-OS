@@ -53,7 +53,7 @@
 
   "custom/vpn": {
     "format": "",
-    "exec": "ip link show wg0 >/dev/null 2>&1 && echo on || echo ''",
+    "exec": "/usr/lib/syn-os/syn-bar-vpn",
     "interval": 5
   },
 
@@ -61,7 +61,7 @@
     "interval": 60,
     "return-type": "json",
     "format": " {}",
-    "exec": "/usr/lib/syn-os/syn-bar-disk.zsh",
+    "exec": "/usr/lib/syn-os/syn-bar-disk",
     "on-click": "foot -e spf /"
   },
 

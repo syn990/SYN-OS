@@ -1,0 +1,24 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-crypter
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS's file encryption tool — AES-256-GCM, Blowfish-CBC+HMAC, RSA-OAEP (hybrid), and Redshirt (Uplink-style XOR), with its own ncurses file picker/menus"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('openssl' 'ncurses')
+makedepends=('cmake')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}

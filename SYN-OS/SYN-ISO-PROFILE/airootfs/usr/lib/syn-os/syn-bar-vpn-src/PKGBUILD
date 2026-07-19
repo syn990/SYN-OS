@@ -1,0 +1,24 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-bar-vpn
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS waybar custom/vpn backend — checks for a wg0 interface via if_nametoindex"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('glibc')
+makedepends=('cmake')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}
