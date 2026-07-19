@@ -135,7 +135,7 @@ list that can drift from what's actually installed.
 
 ## Download and install
 
-[**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/1MFceD89VX8kxDUn4kMmDmg2Wp5CvY1ba/view?usp=sharing)
+[**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/19H1V6DspvHrKRNBZ-87rfoeSTaIRSq-x/view?usp=sharing)
 
 ```bash
 lsblk                          # find your USB, e.g. /dev/sdb
