@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-COBALT
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-COBALT"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#05080a"
+SYN_BG_ALT="#0a1016"
+SYN_PANEL="#0d1820"
+SYN_PANEL_HOVER="#152530"
+SYN_ACCENT="#5cabff"
+SYN_ACCENT_DIM="#2c5480"
+SYN_TEXT="#dceeff"
+SYN_BORDER="#2e4d66"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-COBALT-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

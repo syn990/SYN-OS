@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-ROSE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-ROSE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#000000"
+SYN_BG_ALT="#0d0008"
+SYN_PANEL="#000000"
+SYN_PANEL_HOVER="#180010"
+SYN_ACCENT="#ff4db8"
+SYN_ACCENT_DIM="#80265c"
+SYN_TEXT="#ffe0f0"
+SYN_BORDER="#59002e"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-ROSE-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

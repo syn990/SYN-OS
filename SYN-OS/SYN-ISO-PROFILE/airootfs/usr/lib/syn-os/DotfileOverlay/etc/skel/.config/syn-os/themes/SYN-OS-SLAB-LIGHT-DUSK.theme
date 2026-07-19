@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-LIGHT-DUSK
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-LIGHT-DUSK"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#f2eef2"
+SYN_BG_ALT="#e6d9e6"
+SYN_PANEL="#ddd0dd"
+SYN_PANEL_HOVER="#c9b8c9"
+SYN_ACCENT="#3d1a3d"
+SYN_ACCENT_DIM="#8a668a"
+SYN_TEXT="#1a141a"
+SYN_BORDER="#b09fb0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-LIGHT-DUSK-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

@@ -1,0 +1,82 @@
+@define-color syn_bg           SYN_BG;
+@define-color syn_bg_alt       SYN_BG_ALT;
+@define-color syn_panel        SYN_PANEL;
+@define-color syn_panel_hover  SYN_PANEL_HOVER;
+@define-color syn_accent       SYN_ACCENT;
+@define-color syn_accent_dim   SYN_ACCENT_DIM;
+@define-color syn_text         SYN_TEXT;
+@define-color syn_urgent       SYN_URGENT;
+
+* {
+  font-family: FontAwesome, Roboto, Terminus, "Noto Sans Symbols", "Noto Color Emoji";
+  font-size: 14px;
+  color: @syn_text;
+}
+
+window#waybar {
+  background-color: @syn_bg;
+  border-bottom: 6px solid @syn_bg_alt;
+  transition: background-color 0.5s;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+#custom-window-title { color: @syn_text; font-weight: bold; }
+
+/* See waybar-style.css.tmpl's comment on this same rule for why
+   background: inherit is used instead of a plain background-color. */
+#taskbar { padding: 0 6px; }
+#taskbar button {
+  padding: 0 10px;
+  margin: 3px 2px;
+  background-color: @syn_panel;
+  border: 2px solid @syn_bg_alt;
+  border-radius: 0;
+  box-shadow: none;
+}
+#taskbar button:hover { background: @syn_panel_hover; border-color: @syn_accent_dim; }
+#taskbar button.active { background-color: @syn_panel; border-color: @syn_accent; box-shadow: none; }
+#taskbar button.urgent { background-color: @syn_accent; border-color: @syn_accent; animation: blink 0.5s steps(12) infinite alternate; }
+
+#workspaces, #clock, #battery, #cpu, #memory, #temperature, #custom-disk,
+#network, #pulseaudio, #backlight, #custom-vpn, #custom-synshare, #custom-power {
+  padding: 0 14px;
+  margin: 3px 2px;
+  border: 2px solid @syn_bg_alt;
+}
+
+#cpu, #memory, #temperature, #custom-disk, #network, #pulseaudio, #backlight,
+#custom-synshare, #custom-power, #clock, #battery {
+  background-color: @syn_panel;
+}
+
+#clock:hover, #battery:hover, #cpu:hover, #memory:hover, #network:hover, #pulseaudio:hover,
+#custom-disk:hover, #temperature:hover, #custom-synshare:hover, #custom-power:hover {
+  background-color: @syn_panel_hover;
+  border-color: @syn_accent_dim;
+}
+
+#custom-synshare.active { color: @syn_accent; border-color: @syn_accent; }
+
+#custom-glyph { font-size: 16px; font-weight: bold; color: @syn_accent; padding: 0 14px; }
+#custom-media { background-color: @syn_accent_dim; color: @syn_urgent; border: 2px solid @syn_bg_alt; }
+
+/* Threshold states: driven by "states": {"warning": N, "critical": N} in
+   config.jsonc, which waybar turns into .warning/.critical classes. */
+#cpu.warning, #memory.warning, #custom-disk.warning {
+  background-color: @syn_accent_dim;
+  border-color: @syn_accent_dim;
+  color: @syn_bg;
+}
+#cpu.critical, #memory.critical, #custom-disk.critical, #temperature.critical {
+  background-color: @syn_urgent;
+  border-color: @syn_urgent;
+  color: @syn_bg;
+  animation: blink 0.5s steps(12) infinite alternate;
+}
+
+#battery.critical:not(.charging) { background-color: @syn_accent; border-color: @syn_accent; animation: blink 0.5s steps(12) infinite alternate; }
+@keyframes blink { to { background-color: @syn_accent; color: @syn_text; } }
+
+#custom-recording { color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
+@keyframes blink-text { to { color: @syn_text; } }

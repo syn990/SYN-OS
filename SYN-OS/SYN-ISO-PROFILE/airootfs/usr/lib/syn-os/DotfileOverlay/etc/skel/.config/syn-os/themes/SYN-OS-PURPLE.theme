@@ -1,6 +1,8 @@
 # SYN-OS theme palette: PURPLE
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-PURPLE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#000000"
 SYN_BG_ALT="#150021"
 SYN_PANEL="#2a1638"

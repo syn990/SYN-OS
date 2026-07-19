@@ -1,0 +1,70 @@
+@define-color syn_bg           SYN_BG;
+@define-color syn_bg_alt       SYN_BG_ALT;
+@define-color syn_panel        SYN_PANEL;
+@define-color syn_panel_hover  SYN_PANEL_HOVER;
+@define-color syn_accent       SYN_ACCENT;
+@define-color syn_accent_dim   SYN_ACCENT_DIM;
+@define-color syn_text         SYN_TEXT;
+@define-color syn_urgent       SYN_URGENT;
+
+* {
+  font-family: FontAwesome, Roboto, Terminus, "Noto Sans Symbols", "Noto Color Emoji";
+  font-size: 14px;
+  color: @syn_text;
+}
+
+/* Flatline: no module has a background, border, or hover fill of its own
+   — text directly on the bar background is the whole look. Everything
+   below only sets padding/color, never background-color, except the
+   handful of state changes (warning/critical/urgent) that have to stay
+   visible as more than just a color shift on a text-only surface. */
+window#waybar {
+  background-color: @syn_bg;
+  transition: background-color 0.5s;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+#custom-window-title { color: @syn_text; }
+
+#taskbar { padding: 0 4px; }
+#taskbar button {
+  padding: 0 6px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: @syn_text;
+}
+#taskbar button:hover { background: inherit; box-shadow: none; color: @syn_accent; }
+#taskbar button.active { background: inherit; box-shadow: none; color: @syn_accent; }
+#taskbar button.urgent { background: inherit; color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
+
+#workspaces, #clock, #battery, #cpu, #memory, #temperature, #custom-disk,
+#network, #pulseaudio, #backlight, #custom-vpn, #custom-synshare, #custom-power {
+  padding: 0 10px;
+}
+
+#clock:hover, #battery:hover, #cpu:hover, #memory:hover, #network:hover, #pulseaudio:hover,
+#custom-disk:hover, #temperature:hover, #custom-synshare:hover, #custom-power:hover {
+  color: @syn_accent;
+}
+
+#custom-synshare.active { color: @syn_accent; }
+
+#custom-glyph { font-size: 16px; color: @syn_accent; padding: 0 12px; }
+#custom-media { color: @syn_urgent; }
+
+/* Threshold states: driven by "states": {"warning": N, "critical": N} in
+   config.jsonc, which waybar turns into .warning/.critical classes. Text
+   color only, matching the rest of this file's no-background rule. */
+#cpu.warning, #memory.warning, #custom-disk.warning { color: @syn_accent_dim; }
+#cpu.critical, #memory.critical, #custom-disk.critical, #temperature.critical {
+  color: @syn_urgent;
+  animation: blink-text 1s steps(12) infinite alternate;
+}
+
+#battery.critical:not(.charging) { color: @syn_urgent; animation: blink-text 0.5s steps(12) infinite alternate; }
+
+#custom-recording { color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
+@keyframes blink-text { to { color: @syn_text; } }

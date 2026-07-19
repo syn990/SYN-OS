@@ -1,0 +1,17 @@
+# SYN-OS theme palette: VANILLA-LIGHT-FROST
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-VANILLA-LIGHT-FROST"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
+SYN_BG="#f0f4f7"
+SYN_BG_ALT="#dbe6ec"
+SYN_PANEL="#f0f4f7"
+SYN_PANEL_HOVER="#dbe6ec"
+SYN_ACCENT="#003350"
+SYN_ACCENT_DIM="#4d7a99"
+SYN_TEXT="#12161a"
+SYN_BORDER="#b0cfe0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-VANILLA-LIGHT-FROST-wallpaper.png"
+SYN_GLYPH="❄"
+SYN_THEME_GROUP="vanilla"

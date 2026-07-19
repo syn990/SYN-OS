@@ -3,6 +3,8 @@
 # Colors from the third-party "Retro 1 (Terminal)" Matrix/Green-DOS openbox
 # themerc (by Anna Schroder) found in the repo's old Openbox theme archive.
 SYN_THEME_NAME="SYN-OS-MATRIX"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
 SYN_BG="#000000"
 SYN_BG_ALT="#001a00"
 SYN_PANEL="#003300"
@@ -14,4 +16,4 @@ SYN_BORDER="#228b22"
 SYN_URGENT="#ff5555"
 SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-MATRIX-wallpaper.png"
 SYN_GLYPH=""
-SYN_THEME_GROUP="homage"
+SYN_THEME_GROUP="flatline"

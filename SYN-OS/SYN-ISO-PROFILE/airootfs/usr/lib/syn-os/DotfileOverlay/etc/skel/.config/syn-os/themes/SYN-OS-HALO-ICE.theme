@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-ICE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-ICE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#000000"
+SYN_BG_ALT="#00080d"
+SYN_PANEL="#000000"
+SYN_PANEL_HOVER="#001018"
+SYN_ACCENT="#4db8ff"
+SYN_ACCENT_DIM="#265c80"
+SYN_TEXT="#dcf2ff"
+SYN_BORDER="#003859"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-ICE-wallpaper.png"
+SYN_GLYPH="❄"
+SYN_THEME_GROUP="halo"

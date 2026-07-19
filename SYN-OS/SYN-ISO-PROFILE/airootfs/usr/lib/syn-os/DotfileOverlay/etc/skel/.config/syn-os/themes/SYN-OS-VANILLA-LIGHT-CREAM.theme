@@ -1,0 +1,17 @@
+# SYN-OS theme palette: VANILLA-LIGHT-CREAM
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-VANILLA-LIGHT-CREAM"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
+SYN_BG="#faf6ee"
+SYN_BG_ALT="#f0e9d4"
+SYN_PANEL="#faf6ee"
+SYN_PANEL_HOVER="#ede4cc"
+SYN_ACCENT="#3d2900"
+SYN_ACCENT_DIM="#8a7040"
+SYN_TEXT="#1a1712"
+SYN_BORDER="#d9c9a0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-VANILLA-LIGHT-CREAM-wallpaper.png"
+SYN_GLYPH="●"
+SYN_THEME_GROUP="vanilla"

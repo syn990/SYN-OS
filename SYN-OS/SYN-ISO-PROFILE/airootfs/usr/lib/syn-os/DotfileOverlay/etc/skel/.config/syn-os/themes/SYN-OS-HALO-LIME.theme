@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-LIME
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-LIME"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#000000"
+SYN_BG_ALT="#080d00"
+SYN_PANEL="#000000"
+SYN_PANEL_HOVER="#0f1e00"
+SYN_ACCENT="#99ff33"
+SYN_ACCENT_DIM="#4d7a1a"
+SYN_TEXT="#e8ffcc"
+SYN_BORDER="#335900"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-LIME-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

@@ -1,0 +1,17 @@
+# SYN-OS theme palette: HALO-LIGHT-AZURE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-HALO-LIGHT-AZURE"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-HALO"
+SYN_BG="#ffffff"
+SYN_BG_ALT="#eef5fa"
+SYN_PANEL="#ffffff"
+SYN_PANEL_HOVER="#f0f0f0"
+SYN_ACCENT="#052d47"
+SYN_ACCENT_DIM="#4d7a99"
+SYN_TEXT="#1a1a1a"
+SYN_BORDER="#b0cfe0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-HALO-LIGHT-AZURE-wallpaper.png"
+SYN_GLYPH="◈"
+SYN_THEME_GROUP="halo"

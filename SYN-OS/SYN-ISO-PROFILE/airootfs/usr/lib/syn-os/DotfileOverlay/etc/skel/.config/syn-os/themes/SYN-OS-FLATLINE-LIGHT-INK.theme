@@ -1,0 +1,17 @@
+# SYN-OS theme palette: FLATLINE-LIGHT-INK
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-FLATLINE-LIGHT-INK"
+SYN_THEME_MODE="light"
+SYN_THEME_FAMILY="SYN-OS-FLATLINE"
+SYN_BG="#f5f5f5"
+SYN_BG_ALT="#e8e8e8"
+SYN_PANEL="#f5f5f5"
+SYN_PANEL_HOVER="#e0e0e0"
+SYN_ACCENT="#1a1a1a"
+SYN_ACCENT_DIM="#8a8a8a"
+SYN_TEXT="#1a1a1a"
+SYN_BORDER="#c0c0c0"
+SYN_URGENT="#c01c28"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-FLATLINE-LIGHT-INK-wallpaper.png"
+SYN_GLYPH="▪"
+SYN_THEME_GROUP="flatline"

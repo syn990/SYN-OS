@@ -1,6 +1,8 @@
 # SYN-OS theme palette: RED (default)
 # Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
 SYN_THEME_NAME="SYN-OS-RED"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-VANILLA"
 SYN_BG="#000000"
 SYN_BG_ALT="#100000"
 SYN_PANEL="#2c0101"

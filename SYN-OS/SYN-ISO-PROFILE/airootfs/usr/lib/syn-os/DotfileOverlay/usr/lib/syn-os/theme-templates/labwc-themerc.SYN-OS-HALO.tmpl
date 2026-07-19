@@ -1,0 +1,75 @@
+!! SYN_THEME_NAME
+!! Font: Terminus
+!! Halo family: a glowing accent-colored outline is the only chrome —
+!! titlebar fill matches the client body (SYN_BG) so the border reads as
+!! a floating neon frame, not a filled bar. Same key pruning as the other
+!! overrides: labwc-theme(5) doesn't implement cornerRadius,
+!! window.active.label.bg, .client.color, .handle.bg, .grip.bg, or
+!! .indicator.tiled.color.
+
+border.width:                   2
+padding.width:                  1
+padding.height:                 1
+
+window.handle.width:            0
+window.client.padding.width:    0
+window.client.padding.height:   0
+
+window.active.shadow.size:      0
+window.inactive.shadow.size:    0
+
+window.active.label.text.font:  Terminus 10
+window.label.text.justify:      center
+
+menu.title.text.font:           Terminus 10
+menu.title.text.justify:        center
+menu.items.font:                Terminus 10
+
+menu.width.min:                 200
+menu.width.max:                 460
+menu.border.width:              2
+menu.overlap.x:                 -6
+menu.overlap.y:                 -6
+
+menu.title.bg:                  flat solid
+menu.title.bg.color:            SYN_BG
+menu.title.text.color:          SYN_ACCENT
+
+menu.items.bg:                  flat solid
+menu.items.bg.color:            SYN_BG
+menu.items.text.color:          SYN_ACCENT_DIM
+
+menu.items.active.bg:           flat solid
+menu.items.active.bg.color:     SYN_BG
+menu.items.active.text.color:   SYN_ACCENT
+
+menu.items.disabled.text.color: SYN_BORDER
+menu.separator.color:           SYN_ACCENT_DIM
+
+window.active.border.color:        SYN_ACCENT
+window.inactive.border.color:      SYN_ACCENT_DIM
+
+window.active.title.bg:            flat solid
+window.active.title.bg.color:      SYN_BG
+window.active.label.text.color:    SYN_ACCENT
+
+window.inactive.title.bg:          flat solid
+window.inactive.title.bg.color:    SYN_BG
+window.inactive.label.text.color:  SYN_ACCENT_DIM
+
+window.active.button.unpressed.image.color:    SYN_ACCENT
+window.active.button.hover.bg:                 flat solid
+window.active.button.hover.bg.color:           SYN_BG
+window.active.button.hover.image.color:        SYN_TEXT
+window.inactive.button.unpressed.image.color:  SYN_ACCENT_DIM
+
+osd.border.width:       2
+osd.border.color:       SYN_ACCENT
+osd.bg:                 flat solid
+osd.bg.color:            SYN_BG
+osd.label.text.color:   SYN_ACCENT
+osd.label.text.font:    Terminus 10
+osd.hilight.bg:         flat solid
+osd.hilight.bg.color:   SYN_ACCENT
+osd.unhilight.bg:       flat solid
+osd.unhilight.bg.color: SYN_BG

@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-PLUM
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-PLUM"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#0a050d"
+SYN_BG_ALT="#150a1a"
+SYN_PANEL="#1e1024"
+SYN_PANEL_HOVER="#26142e"
+SYN_ACCENT="#b87ae6"
+SYN_ACCENT_DIM="#5c3d73"
+SYN_TEXT="#f0e0ff"
+SYN_BORDER="#473059"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-PLUM-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

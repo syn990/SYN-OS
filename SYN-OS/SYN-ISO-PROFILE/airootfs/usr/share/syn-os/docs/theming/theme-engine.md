@@ -1,6 +1,6 @@
 # Theme Engine
 
-SYN-OS ships 14 themes as flat, human-editable `.theme` files. Picking one from
+SYN-OS ships 63 themes as flat, human-editable `.theme` files. Picking one from
 the desktop's Themes menu re-renders every themed app's own config format —
 Waybar's CSS, LabWC's Openbox-style `themerc`, Qt's `qt6ct`/`qt5ct` color
 schemes, GTK3's CSS overrides, `foot`'s terminal palette, `mako`'s toast
@@ -32,7 +32,7 @@ to record where a palette's colors came from.
 
 ### The full `SYN_*` variable set
 
-Every one of the 14 shipped `.theme` files defines exactly these 13 keys, no
+Every one of the 63 shipped `.theme` files defines exactly these 15 keys, no
 more and no fewer. This table uses `SYN-OS-RED` — the default theme, applied
 automatically on first login — as the canonical reference, with a second
 example column from other themes to show the real range of values:
@@ -40,6 +40,8 @@ example column from other themes to show the real range of values:
 | Variable | Meaning | `SYN-OS-RED` value | Other examples |
 |---|---|---|---|
 | `SYN_THEME_NAME` | The theme's own identifier; must match the filename minus `.theme`. Used to look up theme-specific override templates and to name the rendered qt5ct/qt6ct/Superfile/LabWC theme directories. | `"SYN-OS-RED"` | `"SYN-OS-MATRIX"`, `"SYN-OS-WIN95"` |
+| `SYN_THEME_MODE` | `"dark"` or `"light"` — which top-level submenu of the Themes pipe-menu the theme is listed under. See [Mode and Family](#mode-and-family-how-63-themes-are-organized) below. | `"dark"` | `"light"` (BRIGHT, SILVER, WIN95, every `*-LIGHT-*` palette) |
+| `SYN_THEME_FAMILY` | Which structural family the theme belongs to — `SYN-OS-VANILLA`, `SYN-OS-FLATLINE`, `SYN-OS-SLAB`, `SYN-OS-HALO`, or `SYN-OS-BEVEL`. Selects both the pipe-menu submenu and, via `override_template()`, which shared override templates (if any) a theme without its own exact-name override falls back to. | `"SYN-OS-VANILLA"` | `"SYN-OS-FLATLINE"` (MATRIX), `"SYN-OS-BEVEL"` (WIN95) |
 | `SYN_BG` | Base background — window client area, terminal background, panel base in flat-solid contexts. | `#000000` | `#c0c0c0` (WIN95), `#f5f5f5` (BRIGHT) |
 | `SYN_BG_ALT` | Secondary background — titlebars, menu backgrounds, Waybar's own window background and bottom border. | `#100000` | `#001a00` (GREEN), `#d4d0c8` (WIN95) |
 | `SYN_PANEL` | Waybar module backgrounds (CPU/memory/network/etc. segments), Superfile file-panel selection background. | `#2c0101` | `#003300` (MATRIX), `#e8e8e8` (SILVER) |
@@ -51,7 +53,7 @@ example column from other themes to show the real range of values:
 | `SYN_URGENT` | Critical/urgent state color — Waybar critical thresholds, `mako`'s `[urgency=critical]` border, LabWC urgent workspace button. | `#ff5555` | `#a70b06` (BLUE), `#aa0000` (WIN95) |
 | `SYN_WALLPAPER` | Absolute path to the theme's wallpaper image, always under `$HOME/.wallpaper/`. | `"$HOME/.wallpaper/SYN-OS-RED-wallpaper.png"` | same pattern, one PNG per theme |
 | `SYN_GLYPH` | A single Unicode glyph shown in Waybar's `#custom-glyph` module. Several themes leave this empty (see below). | `"●"` | `"❄"` (BLUE), `"⚡"` (YELLOW), `""` (GRAPHITE, GREEN, M141, MATRIX, ORANGE, PURPLE, SILVER, WIN95) |
-| `SYN_THEME_GROUP` | Which submenu of the Themes pipe-menu the theme is listed under: `vanilla`, `homage`, or `neutral`. See [grouping](#the-vanillahomageneutral-grouping) below. | `"vanilla"` | `"homage"` (MATRIX, WIN95), `"neutral"` (BRIGHT, GRAPHITE, LIGHT, SILVER) |
+| `SYN_THEME_GROUP` | Legacy lowercase family label (`"vanilla"`, `"flatline"`, `"slab"`, `"halo"`, `"bevel"`). Predates `SYN_THEME_MODE`/`SYN_THEME_FAMILY` and is no longer read by `syn-pipe-theme.zsh` or `syn-theme-apply`; kept set on every theme for now since nothing has needed to remove it yet. | `"vanilla"` | `"flatline"` (MATRIX), `"bevel"` (WIN95) |
 
 `SYN_WALLPAPER`'s value is the one field that isn't a plain literal — it
 embeds `$HOME`, which the shell expands at source-time (every consumer that
@@ -67,65 +69,98 @@ future theme could ship pinned to the bottom bar without any change to
 `syn-theme-apply`, but as of today it's dead weight in every `.theme` file
 that doesn't set it (which is all of them).
 
-### All 14 themes
+### Mode and family: how 63 themes are organized
 
-| Theme | `SYN_THEME_GROUP` | `SYN_GLYPH` | Character |
-|---|---|---|---|
-| `SYN-OS-RED` | vanilla | `●` | Default. Near-black with a red tint, dark maroon accent. |
-| `SYN-OS-BLUE` | vanilla | `❄` | Pure black, cold blue accent (`#0986d3`). |
-| `SYN-OS-GREEN` | vanilla | *(none)* | Pure black, saturated green accent (`#1db31d`). |
-| `SYN-OS-M141` | vanilla | *(none)* | Pure black (not red-tinted, unlike RED) with a brighter scarlet accent (`#e00000`) — a dedicated variant built for a specific person's own red/black request, not a copy of RED. |
-| `SYN-OS-ORANGE` | vanilla | *(none)* | Near-black with warm amber tones, bright orange accent (`#ff8800`). |
-| `SYN-OS-PINK` | vanilla | `✦` | Near-black, hot magenta-pink accent (`#ff0080`), pink-tinted border. |
-| `SYN-OS-PURPLE` | vanilla | *(none)* | Pure black, violet accent (`#9b30d9`). |
-| `SYN-OS-YELLOW` | vanilla | `⚡` | Near-black with warm-yellow tones, gold accent (`#e6d000`). |
-| `SYN-OS-MATRIX` | homage | *(none)* | Green-on-black terminal look, sourced from a third-party "Retro 1 (Terminal)" Openbox theme. Mint-green text (`#90ee90`), lime accent (`#32cd32`). |
-| `SYN-OS-WIN95` | homage | *(none)* | Flat, beveled Windows 95 look — silver-gray (`#c0c0c0`) surfaces, classic titlebar blue accent (`#0a246a`), colors lifted from a Wine-registry-extracted "Classic 98" Openbox theme. |
-| `SYN-OS-BRIGHT` | neutral | *(none)* | The one genuinely light theme — near-white backgrounds (`#f5f5f5`), dark text, blue accent. |
-| `SYN-OS-GRAPHITE` | neutral | *(none)* | Neutral dark gray, desaturated gray-blue accent (`#8a8f98`) — no hue lean. |
-| `SYN-OS-LIGHT` | neutral | `◐` | Despite the name, a dark theme (`#1e1e1e` background) with a soft blue accent — a muted counterpart to GRAPHITE, not a light-background theme. |
-| `SYN-OS-SILVER` | neutral | *(none)* | Light gray-on-gray, dark slate accent (`#3a3d42`) — the other light-background theme besides BRIGHT. |
+Every theme belongs to exactly one **mode** (`dark` or `light`) and one
+**family** — a structural design language shared by every palette in it,
+independent of color. There are 5 families:
 
-9 of 14 themes leave `SYN_GLYPH` empty (`""`), including one whole group
-(neutral has none set at all). An empty `SYN_GLYPH` is a real, valid value —
+- **Vanilla** — the original SYN-OS look: flat color fields, no borders
+  beyond a hairline, no gradients or shadows. This is the historical
+  family, tracing back to the red/black and blue/black Openbox themes from
+  SYN-RTOS; every other family is a deliberate structural departure from
+  it, invented for this expansion rather than derived from an existing
+  reference.
+- **Flatline** — zero border-radius, zero shadow, hairline borders only;
+  Waybar modules have no panel background at all, just text on the bar's
+  own background. The most minimal family.
+- **Slab** — thick (6px) square-cornered borders, chunky bordered/margined
+  Waybar module blocks. The most maximal family.
+- **Halo** — glow/outline styling: accent-colored borders with no fill
+  (titlebar and module backgrounds match `SYN_BG` exactly), plus a
+  `box-shadow` glow on the active Waybar taskbar button.
+- **Bevel** — `Gradient Vertical` titlebars and buttons, `linear-gradient()`
+  Waybar module backgrounds, a drop shadow on the bar itself. The most
+  skeuomorphic family.
+
+Each family (other than Vanilla) has its own pair of override templates —
+`labwc-themerc.<SYN_THEME_FAMILY>.tmpl` and
+`waybar-style.<SYN_THEME_FAMILY>.css.tmpl` — that every theme in that family
+renders through, unless the theme also has its own *exact-name* override
+(see [override templates](#theme-specific-override-templates-matrix-and-win95)
+below — this is how MATRIX and WIN95 keep their unique looks despite now
+also carrying a `SYN_THEME_FAMILY`).
+
+`SYN_THEME_MODE` is orthogonal to family: every family ships both a `dark`
+set and a `light` set, so switching mode never means switching structural
+language, only the underlying palette.
+
+Full breakdown, 63 themes total:
+
+| Family | Dark | Light |
+|---|---|---|
+| Vanilla | 10: RED, BLUE, GREEN, M141, ORANGE, PINK, PURPLE, YELLOW, GRAPHITE, LIGHT | 4: BRIGHT, SILVER, VANILLA-LIGHT-CREAM, VANILLA-LIGHT-FROST |
+| Flatline | 9: FLATLINE-CYAN, FLATLINE-MAGENTA, FLATLINE-LIME, FLATLINE-GOLD, FLATLINE-ICE, FLATLINE-CRIMSON, FLATLINE-TEAL, FLATLINE-SLATE, MATRIX | 4: FLATLINE-LIGHT-INK, FLATLINE-LIGHT-ROSE, FLATLINE-LIGHT-AMBER, FLATLINE-LIGHT-SKY |
+| Slab | 8: SLAB-AMBER, SLAB-CRIMSON, SLAB-FOREST, SLAB-COBALT, SLAB-VIOLET, SLAB-BRASS, SLAB-ROSE, SLAB-MONO | 4: SLAB-LIGHT-STONE, SLAB-LIGHT-SAGE, SLAB-LIGHT-DUSK, SLAB-LIGHT-CLAY |
+| Halo | 8: HALO-VIOLET, HALO-CYAN, HALO-AMBER, HALO-CRIMSON, HALO-LIME, HALO-ROSE, HALO-ICE, HALO-GOLD | 4: HALO-LIGHT-AZURE, HALO-LIGHT-CORAL, HALO-LIGHT-MINT, HALO-LIGHT-ORCHID |
+| Bevel | 8: BEVEL-STEEL, BEVEL-COPPER, BEVEL-EMERALD, BEVEL-SLATE, BEVEL-WINE, BEVEL-BRONZE, BEVEL-TEAL, BEVEL-PLUM | 4: BEVEL-LIGHT-PEARL, BEVEL-LIGHT-BLUSH, BEVEL-LIGHT-SEAFOAM, WIN95 |
+
+MATRIX and WIN95 — previously their own "Homage" category — are now
+classified structurally: MATRIX's flat, hairline-bordered, no-background
+look is Flatline; WIN95's gradient-titlebar, beveled look is Bevel, and its
+genuinely light `SYN_BG` (`#c0c0c0`) means it belongs in Bevel's light set,
+not dark. GRAPHITE and LIGHT (previously "Neutral") are structurally plain
+flat color fields with no distinguishing border/shadow treatment, so they
+became ordinary Vanilla-dark themes. BRIGHT and SILVER — the only other
+former-Neutral themes, and the two that are genuinely light-background —
+became Vanilla-light. None of these six themes' colors changed as part of
+reclassification, though BRIGHT and SILVER separately had a real
+`SYN_ACCENT` contrast bug fixed at the same time (both had an accent color
+that failed a 4.5 contrast ratio against their own light background) —
+that fix was independent of the mode/family relabeling itself.
+
+9 of the original 14 themes leave `SYN_GLYPH` empty (`""`); the new
+palettes generally set one. An empty `SYN_GLYPH` is a real, valid value —
 `syn-theme-apply` falls back to `●` (`"${SYN_GLYPH:-●}"`) only when the
 variable is entirely unset, and a `.theme` file that defines
 `SYN_GLYPH=""` still counts as "set," so Waybar's glyph module renders
-blank for those themes rather than falling back to a dot. This is a real,
-observable current-state quirk, not a bug fixed as part of this document.
+blank for those themes rather than falling back to a dot.
 
-### The vanilla/homage/neutral grouping
+### The Mode > Family > Palette pipe menu
 
-![The Themes pipe-menu open, grouped into Vanilla/Homage/Neutral submenus](../screenshots/menu-themes-pipe-open.png)
-*Placeholder — LabWC's Preferences > Themes menu open, showing the three
-grouped submenus this section describes.*
+![The Themes pipe-menu open, nested Dark/Light then family submenus](../screenshots/menu-themes-pipe-open.png)
+*Placeholder — LabWC's Preferences > Themes menu open, showing the
+Dark/Light top level and one family submenu expanded.*
 
-`syn-pipe-theme.zsh`, the script behind the desktop's Themes menu, builds
-three separate LabWC submenus — **Vanilla**, **Homage**, **Neutral** — by
-sourcing each `.theme` file in a subshell and reading back
-`SYN_THEME_GROUP`, defaulting to `vanilla` for any theme that doesn't set it
-(none currently omit it, but the fallback exists in the code regardless):
+`syn-pipe-theme.zsh`, the script behind the desktop's Themes menu, builds a
+3-level nested menu — **Dark**/**Light**, each containing **Vanilla**/
+**Flatline**/**Slab**/**Halo**/**Bevel** submenus, each containing that
+family+mode's individual palettes. It sources each `.theme` file in a
+subshell and reads back `SYN_THEME_MODE` and `SYN_THEME_FAMILY` (defaulting
+to `dark`/`SYN-OS-VANILLA` for a theme that sets neither), bucketing into a
+flat `"$mode:$family"`-keyed associative array since zsh has no native
+nested associative arrays:
 
 ```zsh
-case "$group" in
-  homage)  homage_themes+=("${f:t:r}") ;;
-  neutral) neutral_themes+=("${f:t:r}") ;;
-  *)       vanilla_themes+=("${f:t:r}") ;;
-esac
+key="${mode}:${family}"
+themes_by_mode_family[$key]="${themes_by_mode_family[$key]:-}${theme_name}|${label}"$'\n'
 ```
 
-Verified against the actual `SYN_THEME_GROUP` value in all 14 files, the
-grouping is:
-
-- **Vanilla** (8): RED, BLUE, GREEN, M141, ORANGE, PINK, PURPLE, YELLOW —
-  original SYN-OS palettes with no external reference point.
-- **Homage** (2): MATRIX, WIN95 — deliberate recreations of a specific
-  well-known look, both sourced from third-party Openbox `themerc` files
-  found in the project's old theme archive (see the override templates
-  section below for why these two specifically need more than the shared
-  templates).
-- **Neutral** (4): BRIGHT, GRAPHITE, LIGHT, SILVER — desaturated or
-  monochrome palettes with no strong accent hue.
+Each leaf item's label is the palette's own name with the family/mode
+prefix stripped (`SYN-OS-FLATLINE-LIGHT-SKY` renders as just "Sky") — the
+enclosing Dark/Light and family submenus already carry that information,
+so repeating it in every leaf label would be redundant. The currently
+active theme is marked with `(active)` in its label, exactly as before.
 
 ## `theme-templates/`: one template per consumer
 
@@ -173,6 +208,44 @@ no Qt5 application is currently installed — every real Qt app SYN-OS ships
 running app; qt5ct's is rendered defensively, in case a Qt5-only binary is
 ever installed by hand.
 
+### Override resolution: exact-name, then family, then shared default
+
+`syn-theme-apply` resolves which template a consumer renders from through a
+three-tier lookup, `override_template()`:
+
+```zsh
+override_template() {
+  local base="$1" ext="$2"
+  if [[ -f "$TEMPLATES_DIR/$base.$SYN_THEME_NAME.$ext" ]]; then
+    print -r -- "$TEMPLATES_DIR/$base.$SYN_THEME_NAME.$ext"
+  elif [[ -n "${SYN_THEME_FAMILY:-}" && -f "$TEMPLATES_DIR/$base.$SYN_THEME_FAMILY.$ext" ]]; then
+    print -r -- "$TEMPLATES_DIR/$base.$SYN_THEME_FAMILY.$ext"
+  else
+    print -r -- "$TEMPLATES_DIR/$base.$ext"
+  fi
+}
+```
+
+1. **Exact-name override** — `<template>.<SYN_THEME_NAME>.tmpl` — a one-off
+   template for that one specific theme, regardless of family. This is how
+   MATRIX and WIN95 keep their unique looks (below) even though both now
+   also carry a `SYN_THEME_FAMILY`.
+2. **Family override** — `<template>.<SYN_THEME_FAMILY>.tmpl` — a template
+   shared by every palette in a structural family (Flatline, Slab, Halo,
+   Bevel; Vanilla has none, since it *is* the shared default). This is what
+   makes one Flatline template correctly style 13 different Flatline
+   palettes instead of needing 13 near-duplicate override files.
+3. **Shared default** — `<template>.tmpl` — used by Vanilla and by any
+   theme in another family that has no family override for a given
+   consumer (no family currently overrides `foot` or `gtk3`, for instance).
+
+Only Waybar and LabWC templates use this lookup (`qt5ct`, `qt6ct`, `gtk3`,
+`mako`, and `superfile` render through the shared template unconditionally
+for every theme) — `foot` is the one exception, still resolved by an
+exact-name check only (`<template>.<SYN_THEME_NAME>.tmpl` or the shared
+default; no family tier), since WIN95 is still the only theme that needs a
+`foot` override and no family has needed one yet.
+
 ### Theme-specific override templates: MATRIX and WIN95
 
 Three templates exist as theme-specific overrides, selected automatically by
@@ -184,10 +257,12 @@ exists next to the shared one:
 - `foot-colors-dark.SYN-OS-WIN95.tmpl` (MATRIX uses the shared `foot`
   template — only WIN95 overrides `foot`)
 
-Every other theme (the other 12) uses the shared template for every
-consumer. MATRIX and WIN95 need overrides because they're not new palettes
-on the shared visual language — they're recreations of a *specific,
-different* aesthetic, and the shared templates can't express either look:
+Every other theme uses either its family's override template or, for
+Vanilla, the shared template for every consumer. MATRIX and WIN95 need
+their own exact-name overrides — a tier above their families' own Flatline/
+Bevel overrides — because they're not new palettes on a shared visual
+language, they're recreations of a *specific, different* aesthetic that
+even their own family's override can't express:
 
 **LabWC (`labwc-themerc.*`)**: the shared `labwc-themerc.tmpl` sets several
 keys — `window.active.label.bg`, `.client.color`, `.handle.bg`, `.grip.bg`,
@@ -235,9 +310,11 @@ palette maps cleanly through the shared `SYN_*_RAW` substitution because its
 colors were already chosen as a terminal palette (foreground/background/ANSI
 green) in the first place.
 
-No theme other than MATRIX and WIN95 has an override template for anything —
-every other theme, including SILVER and BRIGHT despite being light-background
-themes, renders correctly through the 9 shared templates alone.
+No theme other than MATRIX and WIN95 has an exact-name override for
+`foot` — WIN95's remains the only one. For LabWC and Waybar, every other
+theme renders through its family's override template (Flatline, Slab,
+Halo, Bevel) or, for Vanilla themes including SILVER and BRIGHT despite
+being light-background, the shared default templates.
 
 ## The apply flow, end to end
 
@@ -250,12 +327,12 @@ no file watcher, and no background process involved anywhere in this flow.
 
 1. **User picks a theme.** The desktop's `Themes` pipe menu
    (`syn-pipe-theme.zsh`, reached from LabWC's root menu — see
-   [LabWC](../labwc.md)) lists all 14 themes grouped into Vanilla/Homage/
-   Neutral submenus (see [grouping](#the-vanillahomageneutral-grouping)
-   above), marking whichever one is currently active with `(active)` in its
-   label. Each entry's action is literally `syn-theme-apply <name>` — the
-   menu itself carries no theme logic beyond building the list and reading
-   the current theme for the active-item label.
+   [LabWC](../labwc.md)) lists all 63 themes nested Dark/Light > family (see
+   [Mode and family](#mode-and-family-how-63-themes-are-organized) above),
+   marking whichever one is currently active with `(active)` in its label.
+   Each entry's action is literally `syn-theme-apply <name>` — the menu
+   itself carries no theme logic beyond building the nested list and
+   reading the current theme for the active-item label.
 
 2. **`syn-theme-apply` sources the `.theme` file.** `source
    "$THEMES_DIR/$name.theme"` pulls every `SYN_*` variable from step 1
@@ -273,11 +350,11 @@ no file watcher, and no background process involved anywhere in this flow.
    suffix behind. Three variants of this helper exist for the three
    placeholder conventions described above (`render` for bare `SYN_*`,
    `render_qt` for the `_FF`/`_80` ARGB forms, `render_foot` for the `_RAW`
-   bare-hex form). For each of Waybar, LabWC, and `foot`, the script first
-   checks whether a theme-specific override template exists
-   (`$TEMPLATES_DIR/<template>.$SYN_THEME_NAME.tmpl`) and uses it in place
-   of the shared one if so — this is the exact mechanism behind the MATRIX/
-   WIN95 overrides above.
+   bare-hex form). For Waybar and LabWC, the script calls
+   `override_template()` — exact-name, then family, then shared default
+   (see [Override resolution](#override-resolution-exact-name-then-family-then-shared-default)
+   above). `foot` uses the same exact-name-or-default check it always has,
+   with no family tier.
 
    Along the way it also:
    - Writes `${SYN_GLYPH:-●}` to `~/.config/waybar/glyph`, read by
@@ -380,4 +457,4 @@ has already happened.
 - [Philosophy](../philosophy.md) — why the theme engine is the one
   deliberate exception to "every config ships as the literal file."
 - [Theme Gallery](./theme-gallery.md) — a screenshot-placeholder listing of
-  all 14 themes.
+  all 63 themes.
