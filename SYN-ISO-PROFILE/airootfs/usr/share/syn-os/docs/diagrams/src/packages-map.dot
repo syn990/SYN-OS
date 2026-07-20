@@ -1,0 +1,61 @@
+digraph package_map {
+  rankdir=LR;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="SYNSTALL, by category and what each depends on";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
+
+  synstall [label="SYNSTALL\nall 7 arrays, ~90 packages\n(SYNMINIMAL: baseCore+\nnetAndServices+shellAndCLI+\ndesktopStack+3 fonts only)", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+
+  subgraph cluster_base {
+    label="baseCore, 19\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    base_ex [label="base, linux,\ncryptsetup, lvm2,\nparted, opendoas,\nqemu-guest-agent", fillcolor="#330000"];
+  }
+
+  subgraph cluster_net {
+    label="netAndServices, 9"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    net_ex [label="dhcpcd, iwd,\nopenvpn, hostapd,\nopenssh, sshfs,\nbluez, bluez-utils\n(sshd/bluetooth installed,\nnever auto-enabled)", fillcolor="#330000"];
+  }
+
+  subgraph cluster_shell {
+    label="shellAndCLI, 18\nfeeds .zshrc directly"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    shell_ex [label="zsh, foot, btop,\nripgrep, bat, fzf,\nzoxide, glow", fillcolor="#330000"];
+  }
+
+  subgraph cluster_desktop {
+    label="desktopStack, 21\nthe Wayland session"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    desktop_ex [label="labwc, waybar, mako,\nwmenu, swaybg,\nswaylock, fuzzel,\nsuperfile, qt6-base\n(syn-filemanager links this)", fillcolor="#330000"];
+  }
+
+  subgraph cluster_dev {
+    label="devToolkit, 8\nself-hosting tools\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    dev_ex [label="gcc, archiso,\nandroid-tools,\nbinwalk", fillcolor="#330000"];
+  }
+
+  subgraph cluster_fonts {
+    label="fontsI18n, 9\n(SYNMINIMAL: 3 only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    fonts_ex [label="terminus-font,\nnoto-fonts-cjk,\nnerd-font glyphs", fillcolor="#330000"];
+  }
+
+  subgraph cluster_apps {
+    label="appsMedia, 6\nthe apps, one game\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    apps_ex [label="vlc, gimp,\nfalkon, openra\n(2022-11-07 -> today)", fillcolor="#4d1010", color="#ff2020", penwidth=1.5];
+  }
+
+  base_ex -> synstall;
+  net_ex -> synstall;
+  shell_ex -> synstall;
+  desktop_ex -> synstall;
+  dev_ex -> synstall;
+  fonts_ex -> synstall;
+  apps_ex -> synstall;
+
+  base_ex -> desktop_ex [style=dotted, color="#665522", label="  fuse, cryptsetup used\n  by superfile/archiver\n  at runtime"];
+  shell_ex -> desktop_ex [style=dotted, color="#665522", label="  foot is the terminal\n  labwc's keybind opens"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="Sizes roughly proportional to package count.\nCategorisation is organisational only, not a\ndependency hierarchy pacman enforces."];
+}

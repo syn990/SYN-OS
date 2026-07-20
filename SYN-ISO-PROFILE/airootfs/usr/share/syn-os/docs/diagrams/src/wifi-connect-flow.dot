@@ -1,0 +1,48 @@
+digraph wifi_connect_flow {
+  rankdir=TB;
+  bgcolor="#000000";
+  fontname="monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
+  edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
+
+  label="syn-wifi: from launch to a connected network";
+  labelloc="t"; fontsize=14; fontcolor="#ff6666";
+
+  launch [label="launch syn-wifi\n(waybar click, or\nsynos-wifi live-shell)", shape=oval, fillcolor="#1a0000"];
+
+  device [label="D-Bus ObjectManager\nGetManagedObjects\nfind Device.Mode==\"station\"", fillcolor="#330000"];
+  found [label="station-mode\ndevice found?", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  nodev [label="print error, exit", shape=doublecircle, fillcolor="#330000", penwidth=2, color="#ff2020", fontcolor="#ff8888"];
+
+  scan [label="Station.Scan()\npoll Station.Scanning\nuntil false (no fixed sleep)", fillcolor="#1a0000"];
+  getnet [label="Station.GetOrderedNetworks()\n+ per-network Properties.GetAll\n(Name, Type, Connected)", fillcolor="#330000"];
+
+  list [label="ncurses network list\n(signal bars, security,\nconnected marker, themed)", fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+  key [label="key pressed?", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  rescan [label="'r': re-scan", fillcolor="#330000"];
+  quit [label="Esc/q: exit", shape=doublecircle, fillcolor="#330000", penwidth=2, color="#666"];
+
+  connect [label="Enter: Network.Connect()", fillcolor="#1a0000"];
+  needpw [label="iwd needs a\npassphrase?", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];
+  agent [label="iwd calls back into our\nregistered net.connman.iwd.Agent\nRequestPassphrase(o) -> s", fillcolor="#330000"];
+  prompt [label="masked password TUI\nreplies with typed passphrase", fillcolor="#330000"];
+
+  result [label="result screen\n(back to network list)", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
+
+  launch -> device -> found;
+  found -> nodev [label=" no"];
+  found -> scan [label=" yes"];
+  scan -> getnet -> list -> key;
+  key -> rescan [label=" r"];
+  rescan -> scan;
+  key -> quit [label=" Esc/q"];
+  key -> connect [label=" Enter"];
+  connect -> needpw;
+  needpw -> agent [label=" yes"];
+  agent -> prompt -> result;
+  needpw -> result [label=" no\n(already known)"];
+  result -> list [label=" loop"];
+
+  note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",
+        label="No NetworkManager applet, no standalone wifi GUI.\nOne compiled tool talks to iwd directly over D-Bus --\nno iwctl subprocess, no intermediate config file."];
+}

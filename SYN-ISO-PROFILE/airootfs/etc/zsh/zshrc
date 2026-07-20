@@ -1,0 +1,197 @@
+#!/bin/zsh
+# =============================================================================
+#                             SYN-OS .zshrc
+#       Live ISO Environment Configuration & Installation Splash Screen
+# -----------------------------------------------------------------------------
+#   Branded Zsh setup for the SYN-OS live environment. Provides system info,
+#   installer hints, custom prompt, and useful defaults. Fast and self-contained.
+#   Author: William Hayward-Holland (synos-install)
+#   License: MIT
+# =============================================================================
+
+# Only clear and render splash for interactive TTYs
+if [[ -o interactive && -t 1 ]]; then
+  clear
+fi
+
+# =============================================================================
+# Live installer splash — bordered like the MOTD box above it (bright-white
+# frame, SYN-OS red/black inside), left edge only — no right-hand border to
+# pad every line out to, since padding around ANSI color codes is exactly
+# the kind of fragile-width arithmetic not worth doing for a splash screen.
+# One linear path: check network, edit config, install. Each command that's
+# actually meant to be typed gets its own indented line, set apart from the
+# prose around it — nothing to misread or half-remember out of a sentence.
+# =============================================================================
+if [[ -o interactive && -t 1 ]]; then
+  B=$'\033[1;37m│\033[0m'   # bright-white border, left edge only
+  R=$'\033[1;31m'           # SYN-OS red, for headings/emphasis
+  Z=$'\033[0m'
+
+  printf "\n${R}┌─ SYN-OS Live ─────────────────────────────────────────────${Z}\n"
+  printf "$B Temporary installer shell — not your final system.\n"
+  printf "$B It only exists to get SYN-OS onto a disk — three steps, in order:\n"
+  printf "$B\n"
+
+  printf "$B ${R}[1/3] Network${Z} — the installer needs internet to fetch packages.\n"
+  if curl -fsSIL --max-time 2 https://archlinux.org >/dev/null 2>&1; then
+    printf "$B Already connected, nothing to do here.\n"
+  else
+    printf "$B Not connected yet. Run one of:\n"
+    printf "$B       \033[1;37msynos-wifi\033[0m\033[2m  (Wi-Fi, picker UI)\033[0m\n"
+    printf "$B       \033[1;37miwctl\033[0m\033[2m       (Wi-Fi, command line)\033[0m\n"
+    printf "$B       \033[1;37mmmcli\033[0m\033[2m       (mobile/WWAN modem)\033[0m\n"
+  fi
+  printf "$B\n"
+
+  printf "$B ${R}[2/3] Configure${Z} — tell the installer what to build before you build it.\n"
+  printf "$B Everything lives in one file, \033[1msynos.conf\033[0m. Edit it with either:\n"
+  printf "$B       \033[1;37msynos-config-pick\033[0m\033[2m  (pick one setting at a time, fzf)\033[0m\n"
+  printf "$B       \033[1;37msynos-config\033[0m\033[2m       (edit the whole file, nano)\033[0m\n"
+  printf "$B At minimum, set \033[1mDisk\033[0m, \033[1mUserAccountPassword\033[0m, and \033[1mLuksPassphrase\033[0m if Encryption=yes.\n"
+  printf "$B\n"
+
+  printf "$B ${R}[3/3] Install${Z} — this is the point of no return.\n"
+  printf "$B \033[1mIt ERASES the disk named in synos.conf\033[0m — it'll ask you to confirm before wiping anything. Run:\n"
+  printf "$B       \033[1;37msynos-install\033[0m\n"
+  printf "${R}└─────────────────────────────────────────────────────────────${Z}\n"
+fi
+
+# =============================================================================
+# SYN‑OS Structure
+# =============================================================================
+printf "\n\033[1;35m[SYN‑OS Structure]\033[0m Scripts: /usr/lib/syn-os/  •  Config: /etc/syn-os/\n"
+
+# =============================================================================
+# Environment
+# =============================================================================
+export LANG=en_GB.UTF-8
+export EDITOR='nano'
+
+# XDG paths (cleaner FS layout)
+: "${XDG_CACHE_HOME:=${HOME}/.cache}"
+: "${XDG_STATE_HOME:=${HOME}/.local/state}"
+
+# =============================================================================
+# Zsh Options
+# =============================================================================
+setopt prompt_subst
+setopt interactivecomments
+setopt nocaseglob
+setopt nomatch
+setopt path_dirs
+unsetopt beep
+
+# History behaviour
+setopt appendhistory sharehistory inc_append_history
+setopt hist_ignore_space hist_reduce_blanks hist_verify
+setopt histignorealldups extended_history
+
+# Completion behaviour
+setopt complete_in_word auto_menu
+
+# =============================================================================
+# History
+# =============================================================================
+HISTDIR="${XDG_STATE_HOME}/zsh"
+mkdir -p "$HISTDIR"
+HISTFILE="${HISTDIR}/history"
+HISTSIZE=50000
+SAVEHIST=50000
+
+# =============================================================================
+# Completion (interactive menu + colours)
+# =============================================================================
+autoload -Uz compinit bashcompinit
+zmodload -i zsh/complist
+
+ZSH_CACHE="${XDG_CACHE_HOME}/zsh"
+mkdir -p "$ZSH_CACHE"
+
+# -i: insecure dirs ok in live env, -C: skip function check for speed
+compinit -i -C -d "${ZSH_CACHE}/zcompdump"
+
+# Interactive menu UI like OMZ
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*:*:*:*:descriptions' format '%F{blue}-- %d --%f'
+# Case-insensitive + smart matching for dots/underscores/hyphens
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' 'r:|[._-]=* r:|=*'
+zstyle ':completion:*' squeeze-slashes true
+
+# Reverse Shift-Tab in menu
+bindkey -M menuselect '^[[Z' reverse-menu-complete
+
+# =============================================================================
+# Keybinds (Foot-safe; fix Delete, Home/End, Ctrl+Delete, Backspace-word)
+# =============================================================================
+bindkey -e
+bindkey '^H' backward-kill-word               # Ctrl+Backspace on many layouts
+bindkey '^[[3;5~' kill-word                   # Ctrl+Delete → kill word
+bindkey '^[[3~' delete-char                   # Delete
+bindkey '^[[H' beginning-of-line              # Home
+bindkey '^[[F' end-of-line                    # End
+
+# =============================================================================
+# Tools
+# =============================================================================
+if command -v fzf >/dev/null 2>&1; then
+  [[ -r /usr/share/fzf/completion.zsh   ]] && source /usr/share/fzf/completion.zsh
+  [[ -r /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+  # Nice defaults for fzf
+  export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border"
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
+
+# Plugins: autosuggestions before syntax highlighting
+[[ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh       ]] && \
+  source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+[[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+  source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
+alias synos-config="doas nano /etc/syn-os/synos.conf"
+alias synos-config-pick="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
+# doas, not the wheel/network D-Bus policy groups synstigator is already
+# in — net.connman.iwd's Agent interface (what registers the passphrase
+# callback) is root-only in iwd-dbus.conf, unlike the rest of the Station/
+# Network interfaces those groups can already reach.
+alias synos-wifi="doas /usr/lib/syn-os/syn-wifi"
+
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+
+command -v bat >/dev/null 2>&1 && alias cat='bat --paging=never'
+command -v rg  >/dev/null 2>&1 && alias grep='rg'
+
+mkcd() { mkdir -p -- "$1" && builtin cd -- "$1"; }
+
+# =============================================================================
+# Prompt & VCS
+# =============================================================================
+autoload -Uz vcs_info
+precmd() { vcs_info }
+
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' formats '%F{cyan}(%b%u%c)%f'
+zstyle ':vcs_info:git:*' actionformats '%F{cyan}(%b|%a)%f'
+
+# Left prompt: user@host + cwd + git + brackets
+PROMPT='%F{blue}[%f%F{red}%n@%m%f %F{160}%~%f${vcs_info_msg_0_} %F{blue}]%f %# '
+# Right prompt: time + status (✔/✘ + code)
+RPROMPT='%F{white}%D{%H:%M:%S}%f %(?.%F{green}✔%f.%F{red}✘%?%f)'
+
+# =============================================================================
+# One line MOTD
+# =============================================================================
+if [[ -o interactive && -t 1 && -z ${SYN_MOTD_SHOWN} ]]; then
+  export SYN_MOTD_SHOWN=1
+  print -P "[SYN-OS Live] Zsh ready. Type 'synos-install' to start the installer."
+fi
