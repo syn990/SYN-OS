@@ -18,7 +18,7 @@ that check where a pty doesn't. Everything either script prints, in both
 stages, ends up in one timestamped log under `/root/`, which gets copied
 onto the freshly installed disk right after the chroot returns.
 
-![synos-install pipeline, Stage 0 through Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/diagrams/svg/installer-overview.svg)
+![synos-install pipeline, Stage 0 through Stage 1](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/diagrams/svg/installer-overview.svg)
 
 **Stage 0** sources `syn-config.zsh` (reads `/etc/syn-os/synos.conf`),
 `syn-packages.zsh`, `syn-disk.zsh`, `syn-pacstrap.zsh`. The only interactive
@@ -42,12 +42,12 @@ template config, Stage 1 stops here rather than shipping a system with a
 known default password. The password line is stripped out of
 `synos.conf` on the target disk immediately after use.
 
-`syn-filemanager` is built here, not shipped prebuilt: `makepkg` refuses to
-run as root, so Stage 1 `chown`s `/usr/src/syn-filemanager` to the new user
-and runs `makepkg` as them, then `pacman -U`s the result. If that fails,
-install continues anyway — it logs which key (`Super+E`) won't work and
-leaves the source in `/usr/src/syn-filemanager` for a manual retry, instead
-of aborting an otherwise-working install over one optional package. Same
+`syn-filemanager`, `syn-crypter`, `syn-wifi`, and the waybar module
+backends are all compiled once from source under `SYN-SOFTWARE/` when the
+ISO itself is built (`BUILD-ARCHISO.zsh`), not per-install — Stage 0 just
+copies each already-built binary onto the target disk, same as everything
+else it deploys. If one didn't build for this particular ISO, install
+continues anyway rather than aborting over one optional tool. Same
 philosophy shows up in `mkinitcpio` HOOKS assembly (`encrypt`/`lvm2` hooks
 only added if `Encryption`/`UseLvm` are actually set) and in bootloader
 selection, which branches on `PartitionStrat` three ways —
@@ -61,7 +61,7 @@ nano /etc/syn-os/synos.conf   # every choice lives here, read once, no prompts
 synos-install
 ```
 
-Full stage-by-stage detail: [Installer Overview](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md)
+Full stage-by-stage detail: [Installer Overview](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md)
 
 ---
 
@@ -159,15 +159,15 @@ ISO shell itself.
 ```bash
 sudo pacman -S archiso git
 git clone https://github.com/syn990/SYN-OS.git
-cd SYN-OS/SYN-OS
-sudo zsh ./BUILD-SYNOS-ISO.zsh
+cd SYN-OS
+sudo zsh ./BUILD-ARCHISO.zsh
 ```
 
 Output lands in `ISO_OUTPUT/*.iso`. From an installed desktop, the same
 build is `Super+Space` → SYN-OS Tools → ISO Builder, no terminal needed.
 Windows/macOS hosts can't run the build script natively — boot the
 downloaded ISO in any VM tool and build from inside that live shell.
-Details: [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md).
+Details: [Building the ISO](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/build/iso-builder.md).
 
 ---
 
@@ -176,18 +176,18 @@ Details: [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/d
 The same docs this README links to are browsable on the installed system
 itself — `Super+Space` → Docs — rendered by `syn-docs-view.zsh` exactly as
 described above. In the repo, they live under
-[`docs/`](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/):
+[`docs/`](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/):
 
 | Area | Docs |
 |---|---|
-| **Installer** | [Overview](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) · [Storage strategies](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/storage-strategies.md) |
-| **Packages** | [Package collection](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md) |
-| **Desktop** | [LabWC](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/labwc.md) · [Waybar](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/waybar.md) · [Dotfile overlay](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/dotfile-overlay.md) · [Zsh](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/zsh.md) · [Wayland vs X11](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/wayland.md) |
-| **Theming** | [Theme engine](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-engine.md) · [Theme gallery](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-gallery.md) |
-| **Tools** | [syn-filemanager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-filemanager.md) · [SYN-SHARE](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-share.md) · [SYN-CRYPTER](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-crypter.md) · [SYN-REDSHIRT](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-redshirt.md) · [SYN-GRAPHMAP](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-graphmap.md) · [WiFi menu](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/wifi.md) · [Screenshots/recording](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/screenshot-and-recording.md) · [Services toggle](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/services-toggle.md) · [BlackArch toggle](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/blackarch-toggle.md) · [Notifications](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/notifications.md) |
-| **Build** | [Building the ISO](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/building-the-iso.md) |
-| **Background** | [Philosophy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md) · [Project History](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/history.md) |
-| **Concepts** | [Window manager](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/window-manager.md) · [Wayland](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/wayland.md) · [Shell](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/shell.md) · [Arch Linux](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/arch-linux.md) · [Filesystem hierarchy](./SYN-OS/SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/filesystem.md) |
+| **Installer** | [Overview](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/installer-overview.md) · [Stage 0](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage0.md) · [Stage 1](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/stage1.md) · [synos.conf](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/synos-conf.md) · [Storage strategies](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/storage-strategies.md) |
+| **Packages** | [Package collection](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/packages.md) |
+| **Desktop** | [LabWC](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/labwc.md) · [Waybar](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/waybar.md) · [Dotfile overlay](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/dotfile-overlay.md) · [Zsh](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/zsh.md) · [Wayland vs X11](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/wayland.md) |
+| **Theming** | [Theme engine](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-engine.md) · [Theme gallery](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/theming/theme-gallery.md) |
+| **Tools** | [syn-filemanager](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-filemanager.md) · [SYN-SHARE](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-share.md) · [SYN-CRYPTER](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-crypter.md) · [SYN-REDSHIRT](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-redshirt.md) · [SYN-GRAPHMAP](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/syn-graphmap.md) · [WiFi menu](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/wifi.md) · [Screenshots/recording](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/screenshot-and-recording.md) · [Services toggle](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/services-toggle.md) · [BlackArch toggle](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/blackarch-toggle.md) · [Notifications](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/notifications.md) |
+| **Build** | [Building the ISO](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/build/iso-builder.md) |
+| **Background** | [Philosophy](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/philosophy.md) · [Project History](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/history.md) |
+| **Concepts** | [Window manager](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/window-manager.md) · [Wayland](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/wayland.md) · [Shell](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/shell.md) · [Arch Linux](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/arch-linux.md) · [Filesystem hierarchy](./SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/concepts/filesystem.md) |
 
 ---
 

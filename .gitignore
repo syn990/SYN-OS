@@ -1,5 +1,14 @@
 *.iso
 *.qcow2
+.claude
+SYN-ISO-PROFILE/airootfs/root
 WORKDIR/
 .syncache/
-.claude
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/pkgcache/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-os-base/PKGBUILD
+SYN-SOFTWARE/syn-filemanager-src/src/build/
+SYN-SOFTWARE/syn-filemanager-src/pkg/
+SYN-SOFTWARE/syn-filemanager-src/*.pkg.tar.zst
+SYN-SOFTWARE/syn-filemanager-src/*.pkg.tar.zst.sig
+SYN-SOFTWARE/*/build/
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-wifi

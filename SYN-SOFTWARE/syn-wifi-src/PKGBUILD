@@ -1,0 +1,24 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-wifi
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS's Wi-Fi picker — ncurses TUI talking to iwd directly over D-Bus, no iwctl subprocess"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('ncurses' 'systemd' 'iwd')
+makedepends=('cmake')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}
