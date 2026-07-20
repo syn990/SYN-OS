@@ -10,48 +10,40 @@
 #include <ncurses.h>
 #include <string.h>
 #include <locale.h>
+#include <langinfo.h>
 
-#define P_NORMAL 1
-#define P_SELECTED 2
-#define P_TITLE 3
-#define P_BORDER 4
-#define P_DIM 5
-#define P_STATUSBAR 6
-#define P_ACCENT 7
-
-/* Same custom-slot/init_color approach as syn-crypter's syn_tui.c — kept
- * this small rather than exposing that file's static apply_theme_colors()
- * just to share ~15 lines. */
-static short scale(short v) { return (short)((int)v * 1000 / 255); }
-
-static void apply_theme_colors(void) {
-	syn_palette pal;
-	syn_theme_load(&pal);
-	start_color();
-	init_color(16, scale(pal.bg.r), scale(pal.bg.g), scale(pal.bg.b));
-	init_color(17, scale(pal.text.r), scale(pal.text.g), scale(pal.text.b));
-	init_color(18, scale(pal.accent.r), scale(pal.accent.g), scale(pal.accent.b));
-	init_color(19, scale(pal.panel.r), scale(pal.panel.g), scale(pal.panel.b));
-	init_color(20, scale(pal.border.r), scale(pal.border.g), scale(pal.border.b));
-	init_pair(P_NORMAL, 17, 16);
-	init_pair(P_SELECTED, 16, 18);
-	init_pair(P_TITLE, 18, 16);
-	init_pair(P_BORDER, 19, 16);
-	init_pair(P_DIM, 20, 16);
-	init_pair(P_STATUSBAR, 16, 18);
-	init_pair(P_ACCENT, 18, 16);
-	bkgd(COLOR_PAIR(P_NORMAL));
-}
+#define P_NORMAL SYN_THEME_PAIR_NORMAL
+#define P_SELECTED SYN_THEME_PAIR_SELECTED
+#define P_TITLE SYN_THEME_PAIR_TITLE
+#define P_BORDER SYN_THEME_PAIR_BORDER
+#define P_DIM SYN_THEME_PAIR_DIM
+#define P_STATUSBAR SYN_THEME_PAIR_STATUSBAR
+#define P_ACCENT SYN_THEME_PAIR_COUNT /* slot 18 (theme accent) is already loaded by syn_theme_apply_curses_colors() */
 
 void syn_wifi_tui_init(void) {
+	/* doas strips LANG/LC_* from the environment before exec'ing the
+	 * target program (confirmed: `doas env | grep LANG` returns nothing,
+	 * even though the invoking shell has LANG=en_GB.UTF-8) — and this
+	 * runs under `foot -e doas /usr/lib/syn-os/syn-wifi`, so
+	 * setlocale(LC_ALL, "") silently resolves to the "C" locale, not
+	 * whatever the terminal actually is. That breaks UTF-8 rendering for
+	 * every box-drawing/glyph character this TUI draws. C.utf8 is a
+	 * portable fallback present on any glibc system, unlike a specific
+	 * language locale (en_GB.utf8 won't exist on every install) — force
+	 * it explicitly whenever the resolved locale isn't already UTF-8. */
 	setlocale(LC_ALL, "");
+	if (strcmp(nl_langinfo(CODESET), "UTF-8") != 0) {
+		setlocale(LC_ALL, "C.utf8");
+	}
 	initscr();
 	cbreak();
 	noecho();
 	keypad(stdscr, TRUE);
 	curs_set(0);
 	if (has_colors()) {
-		apply_theme_colors();
+		start_color();
+		syn_theme_apply_curses_colors();
+		init_pair(P_ACCENT, 18, -1); /* theme accent, wifi-specific (e.g. security label) */
 	}
 	refresh();
 }
@@ -129,7 +121,7 @@ int syn_wifi_tui_network_list(const syn_iwd_network *networks, int count, int sc
 
 		char info[64];
 		snprintf(info, sizeof(info), "%s%d/%d", scanning ? "scanning… " : "", count ? selected + 1 : 0, count);
-		draw_statusbar(rows, cols, "↑/↓ move   Enter connect   r rescan   Esc/q quit", info);
+		draw_statusbar(rows, cols, "↑/↓ move   Enter connect   d disconnect   r rescan   Esc/q quit", info);
 		refresh();
 
 		int ch = getch();
@@ -137,6 +129,7 @@ int syn_wifi_tui_network_list(const syn_iwd_network *networks, int count, int sc
 		case KEY_UP: case 'k': if (count) selected = (selected - 1 + count) % count; break;
 		case KEY_DOWN: case 'j': if (count) selected = (selected + 1) % count; break;
 		case '\n': case KEY_ENTER: return count ? selected : -1;
+		case 'd': return -3;
 		case 'r': return -2;
 		case 27: case 'q': return -1;
 		default: break;
@@ -193,4 +186,40 @@ void syn_wifi_tui_message(const char *title, const char *body) {
 	draw_statusbar(rows, cols, "Press any key to continue", NULL);
 	refresh();
 	getch();
+}
+
+/* Same layout as syn_wifi_tui_message() but draws and returns immediately
+ * — for a status screen shown right before a real blocking call (e.g. the
+ * Wi-Fi scan), where waiting on a keypress here would just be one more
+ * thing blocking before the actual wait even starts. */
+void syn_wifi_tui_message_noinput(const char *title, const char *body) {
+	erase();
+	int rows = getmaxy(stdscr), cols = getmaxx(stdscr);
+	draw_frame(title);
+	attron(COLOR_PAIR(P_NORMAL));
+	mvprintw(rows / 2, (cols - (int)strlen(body)) / 2, "%s", body);
+	attroff(COLOR_PAIR(P_NORMAL));
+	draw_statusbar(rows, cols, "Please wait…", NULL);
+	refresh();
+}
+
+/* Redraws syn_wifi_tui_message_noinput()'s screen with a spinner glyph
+ * appended, advancing one frame each call — meant to be called repeatedly
+ * (e.g. once per scan poll tick) so a wait that takes real seconds shows
+ * visible motion instead of sitting static. */
+void syn_wifi_tui_message_spin(const char *title, const char *body) {
+	static const char *frames[] = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
+	static int frame = 0;
+
+	erase();
+	int rows = getmaxy(stdscr), cols = getmaxx(stdscr);
+	draw_frame(title);
+	char line[256];
+	snprintf(line, sizeof(line), "%s  %s", body, frames[frame]);
+	frame = (frame + 1) % (int)(sizeof(frames) / sizeof(frames[0]));
+	attron(COLOR_PAIR(P_NORMAL));
+	mvprintw(rows / 2, (cols - (int)strlen(line)) / 2, "%s", line);
+	attroff(COLOR_PAIR(P_NORMAL));
+	draw_statusbar(rows, cols, "Please wait…", NULL);
+	refresh();
 }

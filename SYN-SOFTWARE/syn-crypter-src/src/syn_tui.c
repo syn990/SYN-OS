@@ -17,13 +17,13 @@
 #include <libgen.h>
 #include <locale.h>
 
-#define COLOR_PAIR_NORMAL 1
-#define COLOR_PAIR_SELECTED 2
-#define COLOR_PAIR_TITLE 3
-#define COLOR_PAIR_BORDER 4
-#define COLOR_PAIR_DIM 5       /* muted entries: parent-dir column, non-file rows */
-#define COLOR_PAIR_STATUSBAR 6 /* inverted footer bar, ranger/vim-style */
-#define COLOR_PAIR_DIR 7       /* directory names in the current listing */
+#define COLOR_PAIR_NORMAL SYN_THEME_PAIR_NORMAL
+#define COLOR_PAIR_SELECTED SYN_THEME_PAIR_SELECTED
+#define COLOR_PAIR_TITLE SYN_THEME_PAIR_TITLE
+#define COLOR_PAIR_BORDER SYN_THEME_PAIR_BORDER
+#define COLOR_PAIR_DIM SYN_THEME_PAIR_DIM       /* muted entries: parent-dir column, non-file rows */
+#define COLOR_PAIR_STATUSBAR SYN_THEME_PAIR_STATUSBAR /* inverted footer bar, ranger/vim-style */
+#define COLOR_PAIR_DIR SYN_THEME_PAIR_COUNT     /* directory names in the current listing */
 
 /* ncurses' init_color takes 0-1000, not 0-255. */
 static short scale(short v) {
@@ -49,36 +49,19 @@ static void apply_theme_colors(void) {
 	syn_theme_load(&pal);
 
 	start_color();
+	syn_theme_apply_curses_colors();
 
-	/* Custom color slots 16-22 (0-15 are the standard ANSI palette every
-	 * terminal expects to still mean what they normally mean) — redefined
-	 * to the theme's actual RGB via init_color, which only takes effect
-	 * on terminals that support palette redefinition (confirmed for foot,
-	 * this tool's only real host, via terminfo's initc capability). */
-	init_color(16, scale(pal.bg.r), scale(pal.bg.g), scale(pal.bg.b));
-	init_color(17, scale(pal.text.r), scale(pal.text.g), scale(pal.text.b));
-	init_color(18, scale(pal.accent.r), scale(pal.accent.g), scale(pal.accent.b));
-	init_color(19, scale(pal.panel.r), scale(pal.panel.g), scale(pal.panel.b));
-	init_color(20, scale(pal.border.r), scale(pal.border.g), scale(pal.border.b));
+	/* Some themes put text and accent close in luminance (the "glow" look),
+	 * which leaves the shared setup's bg-on-accent statusbar low-contrast
+	 * for those themes. Pick whichever of bg/text actually contrasts more
+	 * against accent, per theme, instead of assuming bg always wins —
+	 * crypter-specific, so this overrides STATUSBAR after the shared call. */
 	init_color(21, scale(pal.accent_dim.r), scale(pal.accent_dim.g), scale(pal.accent_dim.b));
-
-	/* Some themes put text and accent close in luminance (the "glow"
-	 * look), which leaves bg-on-accent low-contrast for those themes'
-	 * status bar. Pick whichever of bg/text actually contrasts more
-	 * against accent, per theme, instead of assuming bg always wins. */
 	syn_rgb statusbar_fg = contrast_ratio(pal.bg, pal.accent) >= contrast_ratio(pal.text, pal.accent)
 		? pal.bg : pal.text;
 	init_color(22, scale(statusbar_fg.r), scale(statusbar_fg.g), scale(statusbar_fg.b));
-
-	init_pair(COLOR_PAIR_NORMAL, 17, 16);
-	init_pair(COLOR_PAIR_SELECTED, 16, 18);  /* inverted: bg-colored text on accent background */
-	init_pair(COLOR_PAIR_TITLE, 18, 16);
-	init_pair(COLOR_PAIR_BORDER, 19, 16);
-	init_pair(COLOR_PAIR_DIM, 20, 16);
 	init_pair(COLOR_PAIR_STATUSBAR, 22, 18);
-	init_pair(COLOR_PAIR_DIR, 18, 16);        /* accent-colored directory names */
-
-	bkgd(COLOR_PAIR(COLOR_PAIR_NORMAL));
+	init_pair(COLOR_PAIR_DIR, 18, -1); /* accent-colored directory names */
 }
 
 void syn_tui_init(void) {

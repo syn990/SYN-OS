@@ -136,7 +136,7 @@ static bool get_scanning_property(sd_bus *bus, const char *device_path, bool *ou
 	return r >= 0;
 }
 
-bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, char *err, size_t err_len) {
+bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, syn_iwd_tick_cb tick_cb, void *userdata, char *err, size_t err_len) {
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	int r = sd_bus_call_method(bus, IWD_SERVICE, device_path, "net.connman.iwd.Station",
 	                           "Scan", &error, NULL, "");
@@ -160,6 +160,9 @@ bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, char *er
 		if (get_scanning_property(bus, device_path, &scanning) && scanning) {
 			break;
 		}
+		if (tick_cb) {
+			tick_cb(userdata);
+		}
 		struct pollfd pfd = {.fd = sd_bus_get_fd(bus), .events = POLLIN};
 		poll(&pfd, 1, 50);
 		sd_bus_process(bus, NULL);
@@ -171,6 +174,9 @@ bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, char *er
 		if (elapsed_ms > timeout_ms) {
 			set_err(err, err_len, "Scan timed out after %dms", timeout_ms);
 			return false;
+		}
+		if (tick_cb) {
+			tick_cb(userdata);
 		}
 		struct pollfd pfd = {.fd = sd_bus_get_fd(bus), .events = POLLIN};
 		poll(&pfd, 1, 100);
@@ -308,6 +314,25 @@ static const sd_bus_vtable agent_vtable[] = {
 	SD_BUS_VTABLE_END
 };
 
+typedef struct {
+	bool done;
+	bool ok;
+	char *err;
+	size_t err_len;
+} connect_call_ctx;
+
+static int on_connect_reply(sd_bus_message *reply, void *userdata, sd_bus_error *ret_error) {
+	(void)ret_error;
+	connect_call_ctx *c = userdata;
+	c->done = true;
+	c->ok = !sd_bus_message_is_method_error(reply, NULL);
+	if (!c->ok) {
+		const sd_bus_error *e = sd_bus_message_get_error(reply);
+		set_err(c->err, c->err_len, "%s", e && e->message ? e->message : "Connect failed");
+	}
+	return 0;
+}
+
 bool syn_iwd_connect(sd_bus *bus, const char *network_path, syn_iwd_password_cb cb, void *userdata, char *err, size_t err_len) {
 	agent_context ctx = {.cb = cb, .userdata = userdata};
 
@@ -341,14 +366,45 @@ bool syn_iwd_connect(sd_bus *bus, const char *network_path, syn_iwd_password_cb 
 		return false;
 	}
 
-	sd_bus_error connect_error = SD_BUS_ERROR_NULL;
-	r = sd_bus_call_method(bus, IWD_SERVICE, network_path, "net.connman.iwd.Network",
-	                       "Connect", &connect_error, NULL, "");
-	bool ok = (r >= 0);
-	if (!ok) {
-		set_err(err, err_len, "%s", connect_error.message ? connect_error.message : strerror(-r));
+	/* Connect() must be async: while iwd is servicing it, iwd calls back
+	 * into our own exported Agent object (RequestPassphrase) on this same
+	 * connection. A blocking sd_bus_call_method() here waits on its own
+	 * internal loop for Connect()'s reply specifically — it never gives
+	 * our agent_vtable a chance to run, so iwd's callback never gets
+	 * dispatched and everyone waits on everyone else forever (confirmed:
+	 * this hung indefinitely against a real network needing a fresh
+	 * passphrase, with RequestPassphrase never firing). Sending async and
+	 * driving our own sd_bus_process()/poll() loop below keeps this
+	 * process actively pumping the bus the whole time, so the callback
+	 * dispatches normally while we're still "waiting" for Connect(). */
+	sd_bus_message *connect_call = NULL;
+	r = sd_bus_message_new_method_call(bus, &connect_call, IWD_SERVICE, network_path,
+	                                    "net.connman.iwd.Network", "Connect");
+	bool ok = false;
+	if (r >= 0) {
+		connect_call_ctx cb_ctx = {.err = err, .err_len = err_len};
+		sd_bus_slot *call_slot = NULL;
+
+		r = sd_bus_call_async(bus, &call_slot, connect_call, on_connect_reply, &cb_ctx, 0);
+		sd_bus_message_unref(connect_call);
+
+		if (r >= 0) {
+			while (!cb_ctx.done) {
+				sd_bus_process(bus, NULL);
+				if (cb_ctx.done) {
+					break;
+				}
+				struct pollfd pfd = {.fd = sd_bus_get_fd(bus), .events = POLLIN};
+				poll(&pfd, 1, 100);
+			}
+			ok = cb_ctx.ok;
+		} else {
+			set_err(err, err_len, "Connect call failed: %s", strerror(-r));
+		}
+		sd_bus_slot_unref(call_slot);
+	} else {
+		set_err(err, err_len, "Could not build Connect call: %s", strerror(-r));
 	}
-	sd_bus_error_free(&connect_error);
 
 	sd_bus_error unreg_error = SD_BUS_ERROR_NULL;
 	sd_bus_call_method(bus, IWD_SERVICE, "/net/connman/iwd", "net.connman.iwd.AgentManager",
@@ -357,6 +413,19 @@ bool syn_iwd_connect(sd_bus *bus, const char *network_path, syn_iwd_password_cb 
 	sd_bus_slot_unref(slot);
 
 	return ok;
+}
+
+bool syn_iwd_disconnect(sd_bus *bus, const char *device_path, char *err, size_t err_len) {
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	int r = sd_bus_call_method(bus, IWD_SERVICE, device_path, "net.connman.iwd.Station",
+	                           "Disconnect", &error, NULL, "");
+	if (r < 0) {
+		set_err(err, err_len, "Disconnect failed: %s", error.message ? error.message : strerror(-r));
+		sd_bus_error_free(&error);
+		return false;
+	}
+	sd_bus_error_free(&error);
+	return true;
 }
 
 int syn_iwd_signal_bars(int16_t signal_strength) {
