@@ -6,6 +6,7 @@
  * ------------------------------------------------------------------------ */
 #include "syn_theme.h"
 
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,4 +115,24 @@ void syn_theme_load(syn_palette *out) {
 		}
 	}
 	fclose(f);
+}
+
+static short scale(short v) { return (short)((int)v * 1000 / 255); }
+
+void syn_theme_apply_curses_colors(void) {
+	syn_palette pal;
+	syn_theme_load(&pal);
+	use_default_colors();
+	init_color(16, scale(pal.bg.r), scale(pal.bg.g), scale(pal.bg.b));
+	init_color(17, scale(pal.text.r), scale(pal.text.g), scale(pal.text.b));
+	init_color(18, scale(pal.accent.r), scale(pal.accent.g), scale(pal.accent.b));
+	init_color(19, scale(pal.panel.r), scale(pal.panel.g), scale(pal.panel.b));
+	init_color(20, scale(pal.border.r), scale(pal.border.g), scale(pal.border.b));
+	init_pair(SYN_THEME_PAIR_NORMAL, 17, -1);
+	init_pair(SYN_THEME_PAIR_SELECTED, 16, 18);
+	init_pair(SYN_THEME_PAIR_TITLE, 18, -1);
+	init_pair(SYN_THEME_PAIR_BORDER, 19, -1);
+	init_pair(SYN_THEME_PAIR_DIM, 20, -1);
+	init_pair(SYN_THEME_PAIR_STATUSBAR, 16, 18);
+	bkgd(COLOR_PAIR(SYN_THEME_PAIR_NORMAL));
 }

@@ -89,7 +89,7 @@
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
     "interval": 2,
-    "on-click": "foot -e doas /usr/lib/syn-os/syn-wifi"
+    "on-click": "foot -e /usr/lib/syn-os/syn-wifi"
   },
 
   "cpu": {

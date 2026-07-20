@@ -35,10 +35,16 @@ typedef struct {
 bool syn_iwd_open(sd_bus **out_bus, char *device_path, size_t device_path_len, char *err, size_t err_len);
 void syn_iwd_close(sd_bus *bus);
 
+/* Called once per poll tick (every ~50-100ms) while syn_iwd_scan() waits,
+ * so a caller with a UI can redraw a spinner/animation — scanning takes
+ * real seconds and a static message alone gives no sign of life. */
+typedef void (*syn_iwd_tick_cb)(void *userdata);
+
 /* Triggers Station.Scan() and blocks (processing the bus) until the
  * Scanning property goes back to false, or timeout_ms elapses. No fixed
- * sleep — returns as soon as iwd actually reports the scan finished. */
-bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, char *err, size_t err_len);
+ * sleep — returns as soon as iwd actually reports the scan finished.
+ * tick_cb (may be NULL) is invoked on every poll iteration. */
+bool syn_iwd_scan(sd_bus *bus, const char *device_path, int timeout_ms, syn_iwd_tick_cb tick_cb, void *userdata, char *err, size_t err_len);
 
 /* Fills *out (caller-allocated array of out_cap entries) from
  * Station.GetOrderedNetworks + each Network object's Name/Type/Connected
@@ -56,6 +62,10 @@ int syn_iwd_get_networks(sd_bus *bus, const char *device_path, syn_iwd_network *
  * by the caller. */
 typedef bool (*syn_iwd_password_cb)(const char *ssid, char *passphrase_out, size_t passphrase_out_len, void *userdata);
 bool syn_iwd_connect(sd_bus *bus, const char *network_path, syn_iwd_password_cb cb, void *userdata, char *err, size_t err_len);
+
+/* Calls Station.Disconnect() on the device — drops whatever network is
+ * currently connected, if any. No Agent involved. */
+bool syn_iwd_disconnect(sd_bus *bus, const char *device_path, char *err, size_t err_len);
 
 /* Maps iwd's raw signal_strength (roughly dBm * 100, negative, e.g. -6000
  * for -60dBm) to a 0-4 bar count for display — same rough thresholds

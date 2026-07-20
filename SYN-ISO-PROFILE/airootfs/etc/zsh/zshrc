@@ -158,11 +158,7 @@ fi
 alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
 alias synos-config="doas nano /etc/syn-os/synos.conf"
 alias synos-config-pick="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
-# doas, not the wheel/network D-Bus policy groups synstigator is already
-# in — net.connman.iwd's Agent interface (what registers the passphrase
-# callback) is root-only in iwd-dbus.conf, unlike the rest of the Station/
-# Network interfaces those groups can already reach.
-alias synos-wifi="doas /usr/lib/syn-os/syn-wifi"
+alias synos-wifi="/usr/lib/syn-os/syn-wifi"
 
 alias ll='ls -lah'
 alias la='ls -A'

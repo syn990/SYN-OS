@@ -26,15 +26,20 @@ a real terminal UI, not a popup):
   "format-disconnected": "󰤮",
   "tooltip-format": "{ifname} {ipaddr}/{cidr}",
   "interval": 2,
-  "on-click": "foot -e doas /usr/lib/syn-os/syn-wifi"
+  "on-click": "foot -e /usr/lib/syn-os/syn-wifi"
 }
 ```
 
-`doas` is required: `syn-wifi` registers itself as a `net.connman.iwd.Agent`
-over D-Bus (see Step 4 below), and that interface is restricted to `root`
-in `iwd`'s own D-Bus policy (`/usr/share/dbus-1/system.d/iwd-dbus.conf`)
-— unlike the rest of the `Station`/`Network` interfaces, which the
-`wheel`/`network` groups can already reach without it.
+No `doas`/root needed: everything `syn-wifi` does — device discovery,
+scanning, listing, connecting (including registering the
+`net.connman.iwd.Agent` used for password entry, see Step 4 below) — is
+already reachable by the `wheel`/`network` groups per `iwd`'s own D-Bus
+policy (`/usr/share/dbus-1/system.d/iwd-dbus.conf`). The `root`-only
+carve-out in that file governs `iwd` itself sending with the `Agent`
+interface, not a plain user's process receiving `iwd`'s callback on its
+own exported Agent object — confirmed by running `syn-wifi` as a normal
+user end-to-end, including a fresh `RegisterAgent` + `Connect()` +
+`RequestPassphrase` round trip.
 
 The module itself (icon/essid/bandwidth text) is waybar's own built-in
 `network` module — `syn-wifi` only handles the click, not the bar display.
