@@ -46,57 +46,63 @@ if [ ! -w "$ConfFile" ]; then
   exit 1
 fi
 
-# Only real KEY="value" assignments, not comments or blank lines — same
-# shape synos.conf uses throughout, one assignment per line.
-Lines=("${(@f)$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*="' "$ConfFile")}")
-if [ ${#Lines[@]} -eq 0 ]; then
-  syn_ui::error "No KEY=\"value\" lines found in $ConfFile"
-  exit 1
-fi
-
-# fzf shows "N: KEY = value" — N is real line number in $ConfFile, kept in
-# the row so the preview pane can look up that key's comment, but hidden
-# from display via --with-nth so the picker still just reads "KEY = value".
-Picked="$(printf '%s\n' "${Lines[@]}" | sed -E 's/^([0-9]+):([A-Za-z0-9_]+)="([^"]*)"/\1: \2 = \3/' \
-  | fzf --prompt="synos.conf key > " --height=~60% --border --header="Enter to edit, Esc to cancel" \
-        --delimiter=': ' --with-nth=2.. \
-        --preview="zsh /usr/lib/syn-os/syn-conf-picker.zsh --preview-line {1}" \
-        --preview-window=down:6:wrap)"
-
-if [ -z "$Picked" ]; then
-  syn_ui::info "Cancelled, nothing changed"
-  exit 0
-fi
-
-Picked="${Picked#*: }"
-Key="${Picked%% = *}"
-CurrentValue="${Picked#* = }"
-
-syn_ui::info "Editing ${Key} (current: \"${CurrentValue}\")"
-printf "New value: "
-read -r NewValue </dev/tty
-
-if [ -z "$NewValue" ] && [ "$NewValue" != "$CurrentValue" ]; then
-  syn_ui::info "Empty input, nothing changed"
-  exit 0
-fi
-
-# synos.conf values are always KEY="value" — a literal " in NewValue would
-# close that quote early and spill the rest into the file as raw shell
-# syntax, which syn-config.zsh then sources. Reject rather than try to
-# escape a quote inside an already-quoted shell string.
-case "$NewValue" in
-  *'"'*)
-    syn_ui::error "Value can't contain a double-quote character (breaks synos.conf's KEY=\"value\" format)"
+# Loops until the user cancels out of the fzf picker (Esc / empty
+# selection) — each pass re-reads $ConfFile fresh so the list and preview
+# always reflect the value just set, and picking several settings in a row
+# doesn't mean re-running the command each time.
+while true; do
+  # Only real KEY="value" assignments, not comments or blank lines — same
+  # shape synos.conf uses throughout, one assignment per line.
+  Lines=("${(@f)$(grep -nE '^[A-Za-z_][A-Za-z0-9_]*="' "$ConfFile")}")
+  if [ ${#Lines[@]} -eq 0 ]; then
+    syn_ui::error "No KEY=\"value\" lines found in $ConfFile"
     exit 1
-    ;;
-esac
+  fi
 
-# Escape / and & for sed's replacement side; the search side only ever
-# matches a literal ^Key=" anchor, no user input there.
-EscapedValue="${NewValue//\\/\\\\}"
-EscapedValue="${EscapedValue//\//\\/}"
-EscapedValue="${EscapedValue//&/\\&}"
+  # fzf shows "N: KEY = value" — N is real line number in $ConfFile, kept in
+  # the row so the preview pane can look up that key's comment, but hidden
+  # from display via --with-nth so the picker still just reads "KEY = value".
+  Picked="$(printf '%s\n' "${Lines[@]}" | sed -E 's/^([0-9]+):([A-Za-z0-9_]+)="([^"]*)"/\1: \2 = \3/' \
+    | fzf --prompt="synos.conf key > " --height=~60% --border --header="Enter to edit, Esc when done" \
+          --delimiter=': ' --with-nth=2.. \
+          --preview="zsh /usr/lib/syn-os/syn-conf-picker.zsh --preview-line {1}" \
+          --preview-window=down:6:wrap)"
 
-sed -i -E "s/^${Key}=\"[^\"]*\"/${Key}=\"${EscapedValue}\"/" "$ConfFile"
-syn_ui::step_done "${Key} set to \"${NewValue}\""
+  if [ -z "$Picked" ]; then
+    syn_ui::info "Done editing"
+    break
+  fi
+
+  Picked="${Picked#*: }"
+  Key="${Picked%% = *}"
+  CurrentValue="${Picked#* = }"
+
+  syn_ui::info "Editing ${Key} (current: \"${CurrentValue}\")"
+  printf "New value: "
+  read -r NewValue </dev/tty
+
+  if [ -z "$NewValue" ] && [ "$NewValue" != "$CurrentValue" ]; then
+    syn_ui::info "Empty input, nothing changed"
+    continue
+  fi
+
+  # synos.conf values are always KEY="value" — a literal " in NewValue would
+  # close that quote early and spill the rest into the file as raw shell
+  # syntax, which syn-config.zsh then sources. Reject rather than try to
+  # escape a quote inside an already-quoted shell string.
+  case "$NewValue" in
+    *'"'*)
+      syn_ui::error "Value can't contain a double-quote character (breaks synos.conf's KEY=\"value\" format)"
+      continue
+      ;;
+  esac
+
+  # Escape / and & for sed's replacement side; the search side only ever
+  # matches a literal ^Key=" anchor, no user input there.
+  EscapedValue="${NewValue//\\/\\\\}"
+  EscapedValue="${EscapedValue//\//\\/}"
+  EscapedValue="${EscapedValue//&/\\&}"
+
+  sed -i -E "s/^${Key}=\"[^\"]*\"/${Key}=\"${EscapedValue}\"/" "$ConfFile"
+  syn_ui::step_done "${Key} set to \"${NewValue}\""
+done
