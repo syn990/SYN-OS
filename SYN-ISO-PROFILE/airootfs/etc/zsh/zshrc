@@ -58,9 +58,10 @@ if [[ -o interactive && -t 1 ]]; then
   printf "$B\n"
 
   printf "$B ${R}[2/3] Configure${Z} — tell the installer what to build before you build it.\n"
-  printf "$B Everything lives in one file, \033[1msynos.conf\033[0m. Edit it with either:\n"
-  printf "$B       \033[1;37msynos-config-pick\033[0m\033[2m  (pick one setting at a time, fzf)\033[0m\n"
-  printf "$B       \033[1;37msynos-config\033[0m\033[2m       (edit the whole file, nano)\033[0m\n"
+  printf "$B Everything lives in one file, \033[1m/etc/syn-os/synos.conf\033[0m. Edit it with either:\n"
+  printf "$B       \033[1;37msynos-config\033[0m\033[2m  (pick one setting at a time, fzf)\033[0m\n"
+  printf "$B       \033[1;37mnano /etc/syn-os/synos.conf\033[0m\033[2m  (edit the whole file by hand)\033[0m\n"
+  printf "$B       or scp/rsync your own pre-filled synos.conf over this one.\n"
   printf "$B At minimum, set \033[1mDisk\033[0m, \033[1mUserAccountPassword\033[0m, and \033[1mLuksPassphrase\033[0m if Encryption=yes.\n"
   printf "$B\n"
 
@@ -169,8 +170,7 @@ fi
 # Aliases
 # =============================================================================
 alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
-alias synos-config="doas nano /etc/syn-os/synos.conf"
-alias synos-config-pick="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
+alias synos-config="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
 alias synos-wifi="/usr/lib/syn-os/syn-wifi"
 
 alias ll='ls -lah'
