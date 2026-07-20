@@ -34,4 +34,10 @@ file_permissions=(
   ["/usr/lib/syn-os/syn-disk.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-pacstrap.zsh"]="0:0:755"
   ["/usr/lib/syn-os/syn-conf-picker.zsh"]="0:0:755"
+  ["/usr/lib/syn-os/syn-wifi"]="0:0:755"
+  ["/usr/lib/syn-os/syn-crypter"]="0:0:755"
+  ["/usr/lib/syn-os/syn-bar-disk"]="0:0:755"
+  ["/usr/lib/syn-os/syn-bar-vpn"]="0:0:755"
+  ["/usr/lib/syn-os/syn-bar-window-title"]="0:0:755"
+  ["/usr/bin/syn-filemanager"]="0:0:755"
 )
