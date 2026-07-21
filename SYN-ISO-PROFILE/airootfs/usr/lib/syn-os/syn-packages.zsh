@@ -65,7 +65,8 @@ shellAndCLI=(
   nano                      # Easy-to-use command line text editor
   foot                      # Lightweight Wayland terminal emulator
   brightnessctl             # Tool to read and control screen brightness
-  pamixer                   # PulseAudio command-line mixer
+  pamixer                   # PulseAudio command-line mixer (waybar scroll/middle-click; also pulls in libpulse, which syn-audio links against)
+  pipewire-pulse            # Provides pulse-native-provider (the running server syn-audio/pamixer talk to) — previously a transitive pull via pavucontrol-qt, now explicit since that package is gone
   glow                      # Markdown renderer for the terminal (Docs menu)
   parted                    # GNU Parted disk partitioning program
 )
@@ -84,7 +85,6 @@ desktopStack=(
   fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)
   rofi                # Window switcher, application launcher, and dmenu replacement
   feh                 # Lightweight image viewer and background setter
-  pavucontrol-qt      # Qt port of the PulseAudio volume controller
   qt5ct               # Qt5 Configuration Utility
   qt6ct               # Qt6 Configuration Utility
   kvantum             # SVG-based theme engine for Qt

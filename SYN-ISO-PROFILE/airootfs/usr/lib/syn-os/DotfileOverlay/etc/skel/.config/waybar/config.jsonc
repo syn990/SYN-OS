@@ -76,7 +76,7 @@
     "format-icons": {
       "default": ["", "", ""]
     },
-    "on-click": "pavucontrol",
+    "on-click": "foot -e /usr/lib/syn-os/syn-audio",
     "on-click-middle": "pamixer -t",
     "on-scroll-up": "pamixer -i 5",
     "on-scroll-down": "pamixer -d 5",

@@ -46,9 +46,9 @@ while read -r idx name rest; do
 done < <(pactl list short sources)
 print '</menu>'
 
-# -------- QUICK PAVUCONTROL --------
-print '<item label="Advanced Settings (pavucontrol)">'
-print '  <action name="Execute"><command>pavucontrol-qt</command></action>'
+# -------- ADVANCED (SYN-AUDIO TUI) --------
+print '<item label="Advanced Settings (syn-audio)">'
+print '  <action name="Execute"><command>foot -e /usr/lib/syn-os/syn-audio</command></action>'
 print '</item>'
 
 print '</openbox_pipe_menu>'
