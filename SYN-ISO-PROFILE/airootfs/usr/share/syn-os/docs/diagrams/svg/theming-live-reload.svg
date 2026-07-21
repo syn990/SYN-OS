@@ -9,7 +9,7 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 932.41)">
 <title>theming_live_reload</title>
 <polygon fill="#000000" stroke="none" points="-4,4 -4,-932.41 1099,-932.41 1099,4 -4,4"/>
-<text xml:space="preserve" text-anchor="middle" x="547.5" y="-911.11" font-family="monospace" font-size="14.00" fill="#ff6666">How a SYN&#45;OS theme reaches rofi/waybar/labwc/foot/superfile at click&#45;time</text>
+<text xml:space="preserve" text-anchor="middle" x="547.5" y="-911.11" font-family="monospace" font-size="14.00" fill="#ff6666">How a SYN&#45;OS theme reaches rofi/waybar/labwc/foot at click&#45;time</text>
 <g id="clust1" class="cluster">
 <title>cluster_switch</title>
 <path fill="#0a0a0a" stroke="#555555" d="M20,-548.85C20,-548.85 383,-548.85 383,-548.85 389,-548.85 395,-554.85 395,-560.85 395,-560.85 395,-811.16 395,-811.16 395,-817.16 389,-823.16 383,-823.16 383,-823.16 20,-823.16 20,-823.16 14,-823.16 8,-817.16 8,-811.16 8,-811.16 8,-560.85 8,-560.85 8,-554.85 14,-548.85 20,-548.85"/>
@@ -33,15 +33,15 @@
 <!-- apply -->
 <g id="node2" class="node">
 <title>apply</title>
-<path fill="#4d0000" stroke="#e00000" d="M364,-787.66C364,-787.66 210,-787.66 210,-787.66 204,-787.66 198,-781.66 198,-775.66 198,-775.66 198,-763.16 198,-763.16 198,-757.16 204,-751.16 210,-751.16 210,-751.16 364,-751.16 364,-751.16 370,-751.16 376,-757.16 376,-763.16 376,-763.16 376,-775.66 376,-775.66 376,-781.66 370,-787.66 364,-787.66"/>
-<text xml:space="preserve" text-anchor="middle" x="287" y="-774.16" font-family="monospace" font-size="10.00" fill="white">syn&#45;theme&#45;apply SYN&#45;OS&#45;BLUE</text>
-<text xml:space="preserve" text-anchor="middle" x="287" y="-759.91" font-family="monospace" font-size="10.00" fill="white">sources the .theme file</text>
+<path fill="#4d0000" stroke="#e00000" d="M365,-787.66C365,-787.66 211,-787.66 211,-787.66 205,-787.66 199,-781.66 199,-775.66 199,-775.66 199,-763.16 199,-763.16 199,-757.16 205,-751.16 211,-751.16 211,-751.16 365,-751.16 365,-751.16 371,-751.16 377,-757.16 377,-763.16 377,-763.16 377,-775.66 377,-775.66 377,-781.66 371,-787.66 365,-787.66"/>
+<text xml:space="preserve" text-anchor="middle" x="288" y="-774.16" font-family="monospace" font-size="10.00" fill="white">syn&#45;theme&#45;apply SYN&#45;OS&#45;BLUE</text>
+<text xml:space="preserve" text-anchor="middle" x="288" y="-759.91" font-family="monospace" font-size="10.00" fill="white">sources the .theme file</text>
 </g>
 <!-- themefile&#45;&gt;apply -->
 <g id="edge3" class="edge">
 <title>themefile&#45;&gt;apply</title>
-<path fill="none" stroke="#aaaaaa" d="M440.87,-849.72C407.6,-832.57 363.66,-809.92 331.26,-793.22"/>
-<polygon fill="#aaaaaa" stroke="#aaaaaa" points="333.01,-790.19 322.52,-788.72 329.8,-796.41 333.01,-790.19"/>
+<path fill="none" stroke="#aaaaaa" d="M441.11,-849.72C408,-832.57 364.28,-809.92 332.04,-793.22"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="333.84,-790.21 323.35,-788.72 330.62,-796.43 333.84,-790.21"/>
 </g>
 <!-- resource -->
 <g id="node7" class="node">
@@ -59,16 +59,16 @@
 <!-- render -->
 <g id="node3" class="node">
 <title>render</title>
-<path fill="#4d0000" stroke="#e00000" d="M371,-714.16C371,-714.16 187,-714.16 187,-714.16 181,-714.16 175,-708.16 175,-702.16 175,-702.16 175,-675.41 175,-675.41 175,-669.41 181,-663.41 187,-663.41 187,-663.41 371,-663.41 371,-663.41 377,-663.41 383,-669.41 383,-675.41 383,-675.41 383,-702.16 383,-702.16 383,-708.16 377,-714.16 371,-714.16"/>
-<text xml:space="preserve" text-anchor="middle" x="279" y="-700.66" font-family="monospace" font-size="10.00" fill="white">renders waybar/labwc/qt6ct/foot/</text>
-<text xml:space="preserve" text-anchor="middle" x="279" y="-686.41" font-family="monospace" font-size="10.00" fill="white">superfile templates with the</text>
-<text xml:space="preserve" text-anchor="middle" x="279" y="-672.16" font-family="monospace" font-size="10.00" fill="white">now&#45;in&#45;scope SYN_* variables</text>
+<path fill="#4d0000" stroke="#e00000" d="M370,-714.16C370,-714.16 192,-714.16 192,-714.16 186,-714.16 180,-708.16 180,-702.16 180,-702.16 180,-675.41 180,-675.41 180,-669.41 186,-663.41 192,-663.41 192,-663.41 370,-663.41 370,-663.41 376,-663.41 382,-669.41 382,-675.41 382,-675.41 382,-702.16 382,-702.16 382,-708.16 376,-714.16 370,-714.16"/>
+<text xml:space="preserve" text-anchor="middle" x="281" y="-700.66" font-family="monospace" font-size="10.00" fill="white">renders waybar/labwc/qt6ct/foot</text>
+<text xml:space="preserve" text-anchor="middle" x="281" y="-686.41" font-family="monospace" font-size="10.00" fill="white">templates with the</text>
+<text xml:space="preserve" text-anchor="middle" x="281" y="-672.16" font-family="monospace" font-size="10.00" fill="white">now&#45;in&#45;scope SYN_* variables</text>
 </g>
 <!-- apply&#45;&gt;render -->
 <g id="edge1" class="edge">
 <title>apply&#45;&gt;render</title>
-<path fill="none" stroke="#aaaaaa" d="M285.22,-750.96C284.47,-743.53 283.56,-734.59 282.67,-725.85"/>
-<polygon fill="#aaaaaa" stroke="#aaaaaa" points="286.18,-725.74 281.68,-716.15 279.21,-726.45 286.18,-725.74"/>
+<path fill="none" stroke="#aaaaaa" d="M286.45,-750.96C285.79,-743.53 284.99,-734.59 284.21,-725.85"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="287.72,-725.8 283.35,-716.15 280.75,-726.42 287.72,-725.8"/>
 </g>
 <!-- write -->
 <g id="node4" class="node">
@@ -80,8 +80,8 @@
 <!-- render&#45;&gt;write -->
 <g id="edge2" class="edge">
 <title>render&#45;&gt;write</title>
-<path fill="none" stroke="#aaaaaa" d="M276.56,-663C274.86,-645.79 272.6,-622.81 270.83,-604.8"/>
-<polygon fill="#aaaaaa" stroke="#aaaaaa" points="274.33,-604.65 269.87,-595.04 267.36,-605.33 274.33,-604.65"/>
+<path fill="none" stroke="#aaaaaa" d="M278.11,-663C276.11,-645.79 273.44,-622.81 271.34,-604.8"/>
+<polygon fill="#aaaaaa" stroke="#aaaaaa" points="274.84,-604.57 270.2,-595.04 267.88,-605.37 274.84,-604.57"/>
 </g>
 <!-- readcurrent -->
 <g id="node6" class="node">

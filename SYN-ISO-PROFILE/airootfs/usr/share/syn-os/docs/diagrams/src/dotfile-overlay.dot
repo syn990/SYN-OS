@@ -13,7 +13,7 @@ digraph dotfile_overlay {
   subgraph cluster_stage0 {
     label="Stage 0, still in the live ISO\n(syn-pacstrap.zsh, pacstrapMain)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     cp [label="cp -r DotfileOverlay/*\n$RootMountLocation/", fillcolor="#1a0000"];
-    chmod [label="chmod -R +x on:\nusr/lib/syn-os,\netc/skel/.config/{labwc,waybar,superfile}\n(execute bits not guaranteed\nto survive cp)", fillcolor="#1a0000"];
+    chmod [label="chmod -R +x on:\nusr/lib/syn-os,\netc/skel/.config/{labwc,waybar}\n(execute bits not guaranteed\nto survive cp)", fillcolor="#1a0000"];
     cp -> chmod;
   }
 
