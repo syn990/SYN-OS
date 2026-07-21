@@ -11,7 +11,7 @@ digraph package_map {
   synstall [label="SYNSTALL\nall 7 arrays, ~90 packages\n(SYNMINIMAL: baseCore+\nnetAndServices+shellAndCLI+\ndesktopStack+3 fonts only)", shape=doublecircle, fillcolor="#4d0000", penwidth=2, color="#ff2020"];
 
   subgraph cluster_base {
-    label="baseCore, 19\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="baseCore, 18\ninstalled on every machine\nregardless of storage strategy"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     base_ex [label="base, linux,\ncryptsetup, lvm2,\nparted, opendoas,\nqemu-guest-agent", fillcolor="#330000"];
   }
 
@@ -21,17 +21,17 @@ digraph package_map {
   }
 
   subgraph cluster_shell {
-    label="shellAndCLI, 18\nfeeds .zshrc directly"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="shellAndCLI, 20\nfeeds .zshrc directly"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     shell_ex [label="zsh, foot, btop,\nripgrep, bat, fzf,\nzoxide, glow", fillcolor="#330000"];
   }
 
   subgraph cluster_desktop {
-    label="desktopStack, 21\nthe Wayland session"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
-    desktop_ex [label="labwc, waybar, mako,\nwmenu, swaybg,\nswaylock, fuzzel,\nsuperfile, qt6-base\n(syn-filemanager links this)", fillcolor="#330000"];
+    label="desktopStack, 20\nthe Wayland session"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    desktop_ex [label="labwc, waybar, mako,\nwmenu, swaybg,\nswaylock, fuzzel,\nqt6-base\n(syn-filemanager links this)", fillcolor="#330000"];
   }
 
   subgraph cluster_dev {
-    label="devToolkit, 8\nself-hosting tools\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
+    label="devToolkit, 9\nself-hosting tools\n(SYNSTALL only)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     dev_ex [label="gcc, archiso,\nandroid-tools,\nbinwalk", fillcolor="#330000"];
   }
 
@@ -53,7 +53,7 @@ digraph package_map {
   fonts_ex -> synstall;
   apps_ex -> synstall;
 
-  base_ex -> desktop_ex [style=dotted, color="#665522", label="  fuse, cryptsetup used\n  by superfile/archiver\n  at runtime"];
+  base_ex -> desktop_ex [style=dotted, color="#665522", label="  fuse used by\n  lxqt-archiver\n  at runtime"];
   shell_ex -> desktop_ex [style=dotted, color="#665522", label="  foot is the terminal\n  labwc's keybind opens"];
 
   note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",

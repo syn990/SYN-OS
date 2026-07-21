@@ -1,30 +1,18 @@
-# Filesystem Hierarchy
+# How Linux organizes files
 
-Linux organizes everything under a single root (`/`), with no drive letters, and standardized top-level directories whose meaning is mostly fixed by convention (the [Filesystem Hierarchy Standard](https://wiki.archlinux.org/title/Arch_filesystem_hierarchy_standard)). A few of these show up constantly across this documentation, so it's worth being precise about what each one means and where SYN-OS actually writes to them.
+Linux keeps everything under one single root folder, no separate drive
+letters like C: or D:. A handful of top-level folders show up constantly
+once you start poking around, and it helps to know what each one's for.
 
-## `/etc`: system configuration
+- **`/etc`**: settings for the system itself. SYN-OS keeps its own
+  settings in `/etc/syn-os/`.
+- **`/usr`**: where installed software actually lives, programs, shared
+  files, and so on.
+- **`/home`**: your personal files, and your own settings for the apps
+  you use.
+- **`/mnt`**: a temporary spot to attach a drive you're working with,
+  this is where the installer works while setting up your new system,
+  before it's actually your system yet.
 
-Machine-specific config, almost always plain text. SYN-OS writes its own config here at a dedicated path, `/etc/syn-os/`, rather than scattering files across the top-level `/etc`:
-
-- `/etc/syn-os/synos.conf` — the installer's entire input; see [synos.conf](../synos-conf.md).
-- `/etc/syn-os/install.state` — written by Stage 0, read by Stage 1; see [Stage 0](../stage0.md).
-
-Standard Arch config also lives here: `/etc/fstab` (written by `genfstab`), `/etc/mkinitcpio.conf` (rewritten by [Stage 1](../stage1.md)), `/etc/locale.conf`, `/etc/hostname`.
-
-## `/usr`: installed software and shared data
-
-Where packages actually put their files: binaries typically under `/usr/bin`, shared libraries under `/usr/lib`, and static data under `/usr/share`. SYN-OS's own scripts live under `/usr/lib/syn-os/`, following the convention that `/usr/lib` holds a package's internal machinery, not just compiled libraries. This documentation, in turn, lives under `/usr/share/syn-os/docs/`, following the equally standard convention that `/usr/share` holds read-only, architecture-independent data. Both are copied there directly by Stage 0's pacstrap step, not delivered as pacman packages.
-
-`/usr/share/themes/` is the standard location desktop theme engines search. This is why SYN-OS's Openbox-format theme definitions live there rather than somewhere custom — [LabWC](../labwc.md) and Qt theming tools both expect themes at this path by convention.
-
-## `/home`: user data
-
-Every user's personal files and dotfiles-in-place (`~/.config`, `~/.zshrc`, etc.). SYN-OS never templates directly into `/home/<user>`; see [Dotfile Overlay](../dotfile-overlay.md) for why `/etc/skel` is the actual deployment target instead, with `useradd -m` doing the copy into each user's home at account-creation time.
-
-## `/mnt`: temporary mount point
-
-Conventionally where you mount something you're working with manually, rather than a location the system boots from — exactly SYN-OS's usage. Stage 0 runs from the live ISO and mounts the *target* system's not-yet-active root there temporarily, before `arch-chroot` makes it "real" from Stage 1's perspective.
-
-## Why this layout matters for SYN-OS specifically
-
-Because [the installer](../installer-overview.md) mounts a real filesystem hierarchy at `/mnt` and then chroots into it, every one of these directories effectively exists twice during an install: once in the live environment (where scripts run from) and once under `/mnt` (the system being built). Assuming `/etc/syn-os/synos.conf` in the live environment and on the target system are the same file is a common source of confusion — they start as copies of each other (Stage 0 copies the live one onto the target explicitly) but diverge the moment either is edited independently afterward.
+You don't need to memorize any of this to use SYN-OS day to day, it's
+here for when you're curious about where something lives.

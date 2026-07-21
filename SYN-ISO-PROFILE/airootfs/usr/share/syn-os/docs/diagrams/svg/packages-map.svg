@@ -13,7 +13,7 @@
 <g id="clust1" class="cluster">
 <title>cluster_base</title>
 <path fill="#0a0a0a" stroke="#555555" d="M20.75,-693C20.75,-693 260.25,-693 260.25,-693 266.25,-693 272.25,-699 272.25,-705 272.25,-705 272.25,-829 272.25,-829 272.25,-835 266.25,-841 260.25,-841 260.25,-841 20.75,-841 20.75,-841 14.75,-841 8.75,-835 8.75,-829 8.75,-829 8.75,-705 8.75,-705 8.75,-699 14.75,-693 20.75,-693"/>
-<text xml:space="preserve" text-anchor="middle" x="140.5" y="-823.7" font-family="monospace" font-size="14.00" fill="white">baseCore, 19</text>
+<text xml:space="preserve" text-anchor="middle" x="140.5" y="-823.7" font-family="monospace" font-size="14.00" fill="white">baseCore, 18</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-804.2" font-family="monospace" font-size="14.00" fill="white">installed on every machine</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-784.7" font-family="monospace" font-size="14.00" fill="white">regardless of storage strategy</text>
 </g>
@@ -25,19 +25,19 @@
 <g id="clust3" class="cluster">
 <title>cluster_shell</title>
 <path fill="#0a0a0a" stroke="#555555" d="M57.88,-546C57.88,-546 223.12,-546 223.12,-546 229.12,-546 235.12,-552 235.12,-558 235.12,-558 235.12,-647 235.12,-647 235.12,-653 229.12,-659 223.12,-659 223.12,-659 57.88,-659 57.88,-659 51.88,-659 45.88,-653 45.88,-647 45.88,-647 45.88,-558 45.88,-558 45.88,-552 51.88,-546 57.88,-546"/>
-<text xml:space="preserve" text-anchor="middle" x="140.5" y="-641.7" font-family="monospace" font-size="14.00" fill="white">shellAndCLI, 18</text>
+<text xml:space="preserve" text-anchor="middle" x="140.5" y="-641.7" font-family="monospace" font-size="14.00" fill="white">shellAndCLI, 20</text>
 <text xml:space="preserve" text-anchor="middle" x="140.5" y="-622.2" font-family="monospace" font-size="14.00" fill="white">feeds .zshrc directly</text>
 </g>
 <g id="clust4" class="cluster">
 <title>cluster_desktop</title>
 <path fill="#0a0a0a" stroke="#555555" d="M440.75,-586C440.75,-586 616.75,-586 616.75,-586 622.75,-586 628.75,-592 628.75,-598 628.75,-598 628.75,-717 628.75,-717 628.75,-723 622.75,-729 616.75,-729 616.75,-729 440.75,-729 440.75,-729 434.75,-729 428.75,-723 428.75,-717 428.75,-717 428.75,-598 428.75,-598 428.75,-592 434.75,-586 440.75,-586"/>
-<text xml:space="preserve" text-anchor="middle" x="528.75" y="-711.7" font-family="monospace" font-size="14.00" fill="white">desktopStack, 21</text>
+<text xml:space="preserve" text-anchor="middle" x="528.75" y="-711.7" font-family="monospace" font-size="14.00" fill="white">desktopStack, 20</text>
 <text xml:space="preserve" text-anchor="middle" x="528.75" y="-692.2" font-family="monospace" font-size="14.00" fill="white">the Wayland session</text>
 </g>
 <g id="clust5" class="cluster">
 <title>cluster_dev</title>
 <path fill="#0a0a0a" stroke="#555555" d="M459,-270C459,-270 599.5,-270 599.5,-270 605.5,-270 611.5,-276 611.5,-282 611.5,-282 611.5,-391 611.5,-391 611.5,-397 605.5,-403 599.5,-403 599.5,-403 459,-403 459,-403 453,-403 447,-397 447,-391 447,-391 447,-282 447,-282 447,-276 453,-270 459,-270"/>
-<text xml:space="preserve" text-anchor="middle" x="529.25" y="-385.7" font-family="monospace" font-size="14.00" fill="white">devToolkit, 8</text>
+<text xml:space="preserve" text-anchor="middle" x="529.25" y="-385.7" font-family="monospace" font-size="14.00" fill="white">devToolkit, 9</text>
 <text xml:space="preserve" text-anchor="middle" x="529.25" y="-366.2" font-family="monospace" font-size="14.00" fill="white">self&#45;hosting tools</text>
 <text xml:space="preserve" text-anchor="middle" x="529.25" y="-346.7" font-family="monospace" font-size="14.00" fill="white">(SYNSTALL only)</text>
 </g>
@@ -87,7 +87,7 @@
 <text xml:space="preserve" text-anchor="middle" x="528.75" y="-660.12" font-family="monospace" font-size="10.00" fill="white">labwc, waybar, mako,</text>
 <text xml:space="preserve" text-anchor="middle" x="528.75" y="-645.88" font-family="monospace" font-size="10.00" fill="white">wmenu, swaybg,</text>
 <text xml:space="preserve" text-anchor="middle" x="528.75" y="-631.62" font-family="monospace" font-size="10.00" fill="white">swaylock, fuzzel,</text>
-<text xml:space="preserve" text-anchor="middle" x="528.75" y="-617.38" font-family="monospace" font-size="10.00" fill="white">superfile, qt6&#45;base</text>
+<text xml:space="preserve" text-anchor="middle" x="528.75" y="-617.38" font-family="monospace" font-size="10.00" fill="white">qt6&#45;base</text>
 <text xml:space="preserve" text-anchor="middle" x="528.75" y="-603.12" font-family="monospace" font-size="10.00" fill="white">(syn&#45;filemanager links this)</text>
 </g>
 <!-- base_ex&#45;&gt;desktop_ex -->
@@ -95,8 +95,8 @@
 <title>base_ex&#45;&gt;desktop_ex</title>
 <path fill="none" stroke="#665522" stroke-dasharray="1,5" d="M199.32,-718.92C259.13,-703.46 353.38,-679.09 425.6,-660.41"/>
 <polygon fill="#665522" stroke="#665522" points="426.27,-663.85 435.08,-657.96 424.52,-657.08 426.27,-663.85"/>
-<text xml:space="preserve" text-anchor="middle" x="358.38" y="-722.66" font-family="monospace" font-size="9.00" fill="white"> &#160;fuse, cryptsetup used</text>
-<text xml:space="preserve" text-anchor="middle" x="358.38" y="-709.91" font-family="monospace" font-size="9.00" fill="white"> &#160;by superfile/archiver</text>
+<text xml:space="preserve" text-anchor="middle" x="358.38" y="-722.66" font-family="monospace" font-size="9.00" fill="white"> &#160;fuse used by</text>
+<text xml:space="preserve" text-anchor="middle" x="358.38" y="-709.91" font-family="monospace" font-size="9.00" fill="white"> &#160;lxqt&#45;archiver</text>
 <text xml:space="preserve" text-anchor="middle" x="358.38" y="-697.16" font-family="monospace" font-size="9.00" fill="white"> &#160;at runtime</text>
 </g>
 <!-- net_ex -->

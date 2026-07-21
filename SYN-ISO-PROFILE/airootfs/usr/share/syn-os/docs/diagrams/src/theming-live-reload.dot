@@ -5,7 +5,7 @@ digraph theming_live_reload {
   node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
   edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
 
-  label="How a SYN-OS theme reaches rofi/waybar/labwc/foot/superfile at click-time";
+  label="How a SYN-OS theme reaches rofi/waybar/labwc/foot at click-time";
   labelloc="t"; fontsize=14; fontcolor="#ff6666";
 
   themefile [label="~/.config/syn-os/themes/SYN-OS-BLUE.theme\n(flat KEY=\"#hex\" shell vars:\nSYN_BG, SYN_ACCENT, SYN_TEXT, ...)", shape=note, fillcolor="#330000"];
@@ -13,7 +13,7 @@ digraph theming_live_reload {
   subgraph cluster_switch {
     label="Theme switch (Themes menu -> syn-theme-apply)"; style="rounded"; color="#555555"; fontcolor="white"; bgcolor="#0a0a0a";
     apply [label="syn-theme-apply SYN-OS-BLUE\nsources the .theme file"];
-    render [label="renders waybar/labwc/qt6ct/foot/\nsuperfile templates with the\nnow-in-scope SYN_* variables"];
+    render [label="renders waybar/labwc/qt6ct/foot\ntemplates with the\nnow-in-scope SYN_* variables"];
     write [label="writes ~/.config/syn-os/current-theme\n= \"SYN-OS-BLUE\" (just the name)", fillcolor="#4d0000", color="#ff2020"];
     apply -> render -> write;
   }
