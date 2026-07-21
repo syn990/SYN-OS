@@ -92,7 +92,7 @@ Theme application itself — how picking an entry in the Themes pipe menu reache
 
 **System** submenu:
 - `Lock Screen` (`swaylock -f -c 1a0000`), `Volume Mixer` (`syn-audio`, a compiled ncurses audio TUI, in a `foot` window — see [syn-audio](./tools/audio.md))
-- `Kill Process` submenu: `Close Focused Window`, `Kill All Terminals (foot)` (`pkill foot`), `Kill Web Browser (Falkon)` (`pkill falkon`), `Kill File Browser (Superfile)` (`pkill spf`) — a short, deliberately fixed list, not a process browser. (Waybar/LabWC have their own kill entries in the submenu below, not here.)
+- `Kill Process` submenu: `Close Focused Window`, `Kill All Terminals (foot)` (`pkill foot`), `Kill Web Browser (Falkon)` (`pkill falkon`), `Kill File Browser (syn-filemanager)` (`pkill syn-filemanager`) — a short, deliberately fixed list, not a process browser. (Waybar/LabWC have their own kill entries in the submenu below, not here.)
 - `Edit Configuration Files` submenu, split into `Waybar Configurations` (`Waybar Config` → `featherpad ~/.config/waybar/config.jsonc`; `Waybar Style (overwritten by Themes switch)` → `featherpad ~/.config/waybar/style.css`, labeled as such because `syn-theme-apply` overwrites `style.css` wholesale on every theme switch) and `LabWC Configurations` (`Labwc Menu`, `Labwc RC`, `Labwc Autostart`, each opening the corresponding file in `featherpad`)
 - `Waybar & LabWC` submenu: `Reload LabWC Configuration` (`Reconfigure` action, same as `Super+Escape`), `Return to Tty1 (Kill LabWC)` (`pkill labwc`), `Launch Waybar`, `Kill Waybar`
 
@@ -126,7 +126,7 @@ This is **qt6ct**, not qt5ct. Every Qt application SYN-OS ships (Falkon, syn-fil
 
 `rc.xml`'s `<theme><name>SYN-OS-RED</name>` resolves to `usr/share/themes/SYN-OS-RED/openbox-3/themerc` in the overlay — colors, borders, and button styles in Openbox's theme format, which LabWC reads natively. Only `SYN-OS-RED` ships a `themerc`; the other 13 shipped themes apply entirely through `SYN_*` shell variables and rendered templates instead, with no separate Openbox theme directory of their own.
 
-How a `.theme` file's variables reach `themerc`-adjacent consumers (Waybar CSS, qt6ct colors, foot, Superfile, and — for `SYN-OS-RED` specifically — this `themerc`) at click-time, with no daemon and no polling, is documented in full in **[Theme Engine](./theming/theme-engine.md)**. This page intentionally stops at "here's where the theme name is set and where the theme file lives" — the trickle-down mechanism itself lives there.
+How a `.theme` file's variables reach `themerc`-adjacent consumers (Waybar CSS, qt6ct colors, foot, and — for `SYN-OS-RED` specifically — this `themerc`) at click-time, with no daemon and no polling, is documented in full in **[Theme Engine](./theming/theme-engine.md)**. This page intentionally stops at "here's where the theme name is set and where the theme file lives" — the trickle-down mechanism itself lives there.
 
 ## Customizing
 

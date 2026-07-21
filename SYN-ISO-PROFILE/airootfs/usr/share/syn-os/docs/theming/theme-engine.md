@@ -4,7 +4,7 @@ SYN-OS ships 63 themes as flat, human-editable `.theme` files. Picking one from
 the desktop's Themes menu re-renders every themed app's own config format —
 Waybar's CSS, LabWC's Openbox-style `themerc`, Qt's `qt6ct`/`qt5ct` color
 schemes, GTK3's CSS overrides, `foot`'s terminal palette, `mako`'s toast
-styling, Superfile's theme TOML — from that one file's variables. Nothing
+styling — from that one file's variables. Nothing
 about this is templated at build time or baked into a package: the `.theme`
 files, the templates that consume them, and the script that renders them are
 all plain text under `DotfileOverlay/`, editable on a running system exactly
@@ -39,12 +39,12 @@ example column from other themes to show the real range of values:
 
 | Variable | Meaning | `SYN-OS-RED` value | Other examples |
 |---|---|---|---|
-| `SYN_THEME_NAME` | The theme's own identifier; must match the filename minus `.theme`. Used to look up theme-specific override templates and to name the rendered qt5ct/qt6ct/Superfile/LabWC theme directories. | `"SYN-OS-RED"` | `"SYN-OS-MATRIX"`, `"SYN-OS-WIN95"` |
+| `SYN_THEME_NAME` | The theme's own identifier; must match the filename minus `.theme`. Used to look up theme-specific override templates and to name the rendered qt5ct/qt6ct/LabWC theme directories. | `"SYN-OS-RED"` | `"SYN-OS-MATRIX"`, `"SYN-OS-WIN95"` |
 | `SYN_THEME_MODE` | `"dark"` or `"light"` — which top-level submenu of the Themes pipe-menu the theme is listed under. See [Mode and Family](#mode-and-family-how-63-themes-are-organized) below. | `"dark"` | `"light"` (BRIGHT, SILVER, WIN95, every `*-LIGHT-*` palette) |
 | `SYN_THEME_FAMILY` | Which structural family the theme belongs to — `SYN-OS-VANILLA`, `SYN-OS-FLATLINE`, `SYN-OS-SLAB`, `SYN-OS-HALO`, or `SYN-OS-BEVEL`. Selects both the pipe-menu submenu and, via `override_template()`, which shared override templates (if any) a theme without its own exact-name override falls back to. | `"SYN-OS-VANILLA"` | `"SYN-OS-FLATLINE"` (MATRIX), `"SYN-OS-BEVEL"` (WIN95) |
 | `SYN_BG` | Base background — window client area, terminal background, panel base in flat-solid contexts. | `#000000` | `#c0c0c0` (WIN95), `#f5f5f5` (BRIGHT) |
 | `SYN_BG_ALT` | Secondary background — titlebars, menu backgrounds, Waybar's own window background and bottom border. | `#100000` | `#001a00` (GREEN), `#d4d0c8` (WIN95) |
-| `SYN_PANEL` | Waybar module backgrounds (CPU/memory/network/etc. segments), Superfile file-panel selection background. | `#2c0101` | `#003300` (MATRIX), `#e8e8e8` (SILVER) |
+| `SYN_PANEL` | Waybar module backgrounds (CPU/memory/network/etc. segments). | `#2c0101` | `#003300` (MATRIX), `#e8e8e8` (SILVER) |
 | `SYN_PANEL_HOVER` | Hover state for Waybar modules and LabWC window buttons. | `#400101` | `#006600` (MATRIX), `#dfdfdf` (WIN95) |
 | `SYN_ACCENT` | The theme's signature color — menu text, active window titlebar text, Waybar workspace-focus underline, LabWC border/button highlight, terminal ANSI color 1. | `#800000` (dark maroon) | `#32cd32` (MATRIX green), `#0a246a` (WIN95 titlebar blue) |
 | `SYN_ACCENT_DIM` | A muted variant of `SYN_ACCENT` — inactive window labels, OSD highlight background, qt palette's disabled-state highlight. | `#260101` | `#64aa64` (MATRIX), `#a6caf0` (WIN95) |
@@ -194,7 +194,6 @@ expects:
 | `gtk3.css.tmpl` | `~/.config/gtk-3.0/gtk.css` | Audacity, EtherApe, virt-manager, virt-viewer (GTK3/wxWidgets-on-GTK3/PyGObject apps qt6ct can't reach) | bare `SYN_*` |
 | `foot-colors-dark.tmpl` | rewrites `[colors-dark]` in `~/.config/foot/foot.ini` | `foot` terminal | `SYN_*_RAW` |
 | `mako-config.tmpl` | `~/.config/mako/config` | `mako` notification toasts | bare `SYN_*` |
-| `superfile-theme.toml.tmpl` | `~/.config/superfile/theme/syn-os.toml` | Superfile file manager's bundled theme | bare `SYN_*`, quoted TOML strings |
 
 `qt5ct-colors.conf.tmpl` and `qt6ct-colors.conf.tmpl` are near-identical
 21-role `QPalette::ColorRole` mappings (`active_colors=`/`disabled_colors=`/
@@ -240,7 +239,7 @@ override_template() {
    consumer (no family currently overrides `foot` or `gtk3`, for instance).
 
 Only Waybar and LabWC templates use this lookup (`qt5ct`, `qt6ct`, `gtk3`,
-`mako`, and `superfile` render through the shared template unconditionally
+and `mako` render through the shared template unconditionally
 for every theme) — `foot` is the one exception, still resolved by an
 exact-name check only (`<template>.<SYN_THEME_NAME>.tmpl` or the shared
 default; no family tier), since WIN95 is still the only theme that needs a
@@ -383,7 +382,7 @@ no file watcher, and no background process involved anywhere in this flow.
      `foot.ini`. This signal does not actually recolor an already-open
      terminal; only windows opened *after* the switch pick up the new
      palette. `syn-theme-apply`'s own final output says this explicitly.
-   - **qt5ct, qt6ct, GTK3, Superfile**: no reload signal exists for any of
+   - **qt5ct, qt6ct, GTK3**: no reload signal exists for any of
      these. The rendered files are correct on disk immediately, but each
      app only reads its config/theme path at its own next launch.
 

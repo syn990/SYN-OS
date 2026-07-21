@@ -17,7 +17,7 @@ DotfileOverlay/
 │           ├── waybar/           see docs/waybar.md (config.jsonc, style.css)
 │           ├── syn-os/themes/    14 SYN-OS-*.theme files (SYN_* vars) —
 │           │                      see docs/theming/theme-engine.md
-│           ├── foot/, superfile/, falkon/, vlc/
+│           ├── foot/, falkon/, vlc/
 │           └── qt5ct/, qt6ct/    both configs exist; environment currently
 │                                  points the live session at qt6ct only
 └── usr/
@@ -26,14 +26,14 @@ DotfileOverlay/
     ├── lib/
     │   └── syn-os/
     │       ├── syn-pipe-*.zsh     labwc pipe-menu generators (audio, display,
-    │       │                       docs, share, superfile, theme, blackarch)
+    │       │                       docs, share, theme, blackarch)
     │       ├── syn-bar-*.zsh      waybar modules/handlers (disk, launcher,
     │       │                       power, share-quickmenu, share-status,
     │       │                       toggle-position, wifi)
     │       ├── screenshot.zsh, screen-recorder.zsh
     │       ├── syn-*-toggle.zsh, syn-*-prompt.zsh, syn-graphmap-*.zsh
     │       └── theme-templates/  → /usr/lib/syn-os/theme-templates/
-    │                                (waybar/labwc/qt5ct/qt6ct/foot/superfile
+    │                                (waybar/labwc/qt5ct/qt6ct/foot
     │                                 templates rendered by syn-theme-apply)
     └── share/
         └── themes/
@@ -63,14 +63,13 @@ chmod -R +x "${RootMountLocation}/usr/lib/syn-os"
 chmod -R +x "${RootMountLocation}/usr/local/bin"
 chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
 chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
-chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
 ```
 
-`/usr/lib/syn-os` and `/usr/local/bin` need this because that's where the `syn-pipe-*`/`syn-bar-*` scripts and `syn-theme-apply`/`syn-docs-view.zsh` actually live; the three `.config` subdirectories need it because `labwc`'s `autostart` and files under `waybar`/`superfile` also have to execute in place. Note this same `pacstrapMain` step separately re-installs every `/usr/lib/syn-os/*.zsh` script directly (`install -Dm755`) before the overlay copy even runs, so the scripts are executable twice over by two different mechanisms — the `DotfileOverlay/usr/lib/syn-os/` copies and the top-level script copies end up at the same path, and the later overlay copy is what actually lands last.
+`/usr/lib/syn-os` and `/usr/local/bin` need this because that's where the `syn-pipe-*`/`syn-bar-*` scripts and `syn-theme-apply`/`syn-docs-view.zsh` actually live; the two `.config` subdirectories need it because `labwc`'s `autostart` and files under `waybar` also have to execute in place. Note this same `pacstrapMain` step separately re-installs every `/usr/lib/syn-os/*.zsh` script directly (`install -Dm755`) before the overlay copy even runs, so the scripts are executable twice over by two different mechanisms — the `DotfileOverlay/usr/lib/syn-os/` copies and the top-level script copies end up at the same path, and the later overlay copy is what actually lands last.
 
-Two more things happen in this same Stage 0 step, both worth knowing about since they're easy to miss reading only the tree above:
-- `synos.conf` (with `LuksPassphrase` already stripped — it was fully consumed earlier in Stage 0 and never needs to reach the target disk) is installed to `${RootMountLocation}/etc/syn-os/synos.conf` for Stage 1 to re-source.
-- `syn-filemanager`'s already-built binary (and `.desktop` file) is copied from the live ISO straight onto the target — built once from source under `SYN-SOFTWARE/syn-filemanager-src` at ISO-build time, not compiled per-install. See [syn-filemanager](./tools/syn-filemanager.md) and [Building the ISO](./build/iso-builder.md).
+One more thing happens in this same Stage 0 step, worth knowing about since it's easy to miss reading only the tree above: `synos.conf` (with `LuksPassphrase` already stripped — it was fully consumed earlier in Stage 0 and never needs to reach the target disk) is installed to `${RootMountLocation}/etc/syn-os/synos.conf` for Stage 1 to re-source.
+
+`syn-filemanager`'s already-built binary (and `.desktop` file) — built once from source under `SYN-SOFTWARE/syn-filemanager-src` at ISO-build time, not compiled per-install — is copied onto the target through the same native-tools loop as `syn-audio`/`syn-crypter`/`syn-wifi`/the waybar module backends, not a separate step. See [syn-filemanager](./tools/syn-filemanager.md) and [Building the ISO](./build/iso-builder.md).
 
 **Stage 1**, inside the chroot, creates the actual user account:
 

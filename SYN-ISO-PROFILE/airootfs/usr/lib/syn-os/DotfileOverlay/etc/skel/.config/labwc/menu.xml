@@ -225,9 +225,9 @@
           </action>
         </item>
 
-        <item label="Kill File Browser (Superfile)">
+        <item label="Kill File Browser (syn-filemanager)">
           <action name="Execute">
-            <command>pkill spf</command>
+            <command>pkill syn-filemanager</command>
           </action>
         </item>
       </menu>

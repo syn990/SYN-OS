@@ -104,7 +104,7 @@ its own terms, not uniformly:
 | `swaybg` wallpaper | live, process restarted with the new image |
 | LabWC `themerc` + `rc.xml` `<name>` | live, `labwc --reconfigure` |
 | `foot` | **new windows only** — foot has no live-reload signal, `SIGUSR1` only affects colors already loaded at startup |
-| `qt6ct` (falkon, syn-filemanager), GTK3, Superfile | next launch |
+| `qt6ct` (falkon, syn-filemanager), GTK3 | next launch |
 
 `qt5ct` gets rendered too, even though every Qt app on the system links
 Qt6 — kept as dead-but-ready code in case a Qt5 app ever gets installed,
@@ -127,7 +127,7 @@ itself renders the markdown with `glow` in that terminal, then greps the
 same file for `![...](./diagrams/svg/*.svg)` references and opens each as
 a real `feh` image window — the doc, and its diagram, from one menu click,
 without a browser. Same pipe-menu pattern drives Themes, Audio, Display,
-Share, Superfile, BlackArch, and Services from their own generator scripts
+Share, BlackArch, and Services from their own generator scripts
 under `/usr/lib/syn-os/syn-pipe-*.zsh` — none of them a hand-maintained
 list that can drift from what's actually installed.
 

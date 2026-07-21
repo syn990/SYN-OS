@@ -73,7 +73,6 @@ pacstrapMain() {
     chmod -R +x "${RootMountLocation}/usr/local/bin"
     chmod -R +x "${RootMountLocation}/etc/skel/.config/labwc"
     chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
-    chmod -R +x "${RootMountLocation}/etc/skel/.config/superfile"
   fi
 
   # SYN-OS's locally-authored native tools (syn-crypter, syn-filemanager,
@@ -83,27 +82,35 @@ pacstrapMain() {
   # in /usr/lib/syn-os and /usr/bin, so installing them onto the target is
   # a plain copy, same as every other live-ISO file this function deploys.
   # No build deps, no makepkg, no per-tool CPU-arch guessing on the target.
+  #
+  # Each entry is "binary_path[:extra_file]" — extra_file (if present) is
+  # copied alongside the binary at the same relative destination path, for
+  # syn-filemanager's .desktop entry. Everything else has no extra file.
   local -a nativeTools
-  nativeTools=(syn-audio syn-bar-disk syn-bar-vpn syn-bar-window-title syn-crypter syn-wifi)
-  for tool in "${nativeTools[@]}"; do
-    syn_ui::step "Installing $tool"
-    if [ -x "/usr/lib/syn-os/$tool" ]; then
-      install -Dm755 "/usr/lib/syn-os/$tool" "${RootMountLocation}/usr/lib/syn-os/$tool"
-      syn_ui::step_done "$tool installed"
+  nativeTools=(
+    /usr/lib/syn-os/syn-audio
+    /usr/lib/syn-os/syn-bar-disk
+    /usr/lib/syn-os/syn-bar-vpn
+    /usr/lib/syn-os/syn-bar-window-title
+    /usr/lib/syn-os/syn-crypter
+    /usr/lib/syn-os/syn-wifi
+    "/usr/bin/syn-filemanager:/usr/share/applications/syn-filemanager.desktop"
+  )
+  for entry in "${nativeTools[@]}"; do
+    local binPath="${entry%%:*}"
+    local extraPath="${entry#*:}"
+    [[ "$extraPath" == "$entry" ]] && extraPath=""
+    local toolName="${binPath:t}"
+
+    syn_ui::step "Installing $toolName"
+    if [ -x "$binPath" ]; then
+      install -Dm755 "$binPath" "${RootMountLocation}${binPath}"
+      [[ -n "$extraPath" ]] && install -Dm644 "$extraPath" "${RootMountLocation}${extraPath}"
+      syn_ui::step_done "$toolName installed"
     else
-      syn_ui::error "$tool missing from the live ISO — it wasn't built at ISO-build time (see BUILD-ARCHISO.zsh output), so it won't be available on this install."
+      syn_ui::error "$toolName missing from the live ISO — it wasn't built at ISO-build time (see BUILD-ARCHISO.zsh output), so it won't be available on this install."
     fi
   done
-
-  syn_ui::step "Installing syn-filemanager"
-  if [ -x /usr/bin/syn-filemanager ]; then
-    install -Dm755 /usr/bin/syn-filemanager "${RootMountLocation}/usr/bin/syn-filemanager"
-    install -Dm644 /usr/share/applications/syn-filemanager.desktop \
-      "${RootMountLocation}/usr/share/applications/syn-filemanager.desktop"
-    syn_ui::step_done "syn-filemanager installed"
-  else
-    syn_ui::error "syn-filemanager missing from the live ISO — it wasn't built at ISO-build time (see BUILD-ARCHISO.zsh output). File browser (Super+E) won't work until this is built manually."
-  fi
 
   # Docs are static system data, not a per-user dotfile, so they get their
   # own copy to /usr/share rather than living inside DotfileOverlay above.

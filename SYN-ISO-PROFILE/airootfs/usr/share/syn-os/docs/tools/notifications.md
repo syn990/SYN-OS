@@ -101,7 +101,7 @@ makoctl reload 2>/dev/null || true
 This is one of the components `syn-theme-apply` calls out as applying
 **live** — its own closing summary groups mako with waybar and labwc as
 taking effect immediately on theme switch, versus foot (new windows only)
-or qt6ct/gtk3/superfile apps (next launch only).
+or qt6ct/gtk3 apps (next launch only).
 
 ## Notification-emitting scripts
 
