@@ -201,7 +201,7 @@
 
       <item label="Volume Mixer">
         <action name="Execute">
-          <command>pavucontrol-qt</command>
+          <command>foot -e /usr/lib/syn-os/syn-audio</command>
         </action>
       </item>
 
