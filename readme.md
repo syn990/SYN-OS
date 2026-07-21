@@ -104,7 +104,7 @@ its own terms, not uniformly:
 | `swaybg` wallpaper | live, process restarted with the new image |
 | LabWC `themerc` + `rc.xml` `<name>` | live, `labwc --reconfigure` |
 | `foot` | **new windows only** — foot has no live-reload signal, `SIGUSR1` only affects colors already loaded at startup |
-| `qt6ct` (falkon, pavucontrol-qt, syn-filemanager), GTK3, Superfile | next launch |
+| `qt6ct` (falkon, syn-filemanager), GTK3, Superfile | next launch |
 
 `qt5ct` gets rendered too, even though every Qt app on the system links
 Qt6 — kept as dead-but-ready code in case a Qt5 app ever gets installed,

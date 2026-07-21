@@ -91,7 +91,7 @@ now generates.*
 Theme application itself — how picking an entry in the Themes pipe menu reaches every app's config — is the dedicated subject of [Theme Engine](./theming/theme-engine.md); this page only lists where the menu entry lives.
 
 **System** submenu:
-- `Lock Screen` (`swaylock -f -c 1a0000`), `Volume Mixer` (`pavucontrol-qt`)
+- `Lock Screen` (`swaylock -f -c 1a0000`), `Volume Mixer` (`syn-audio`, a compiled ncurses audio TUI, in a `foot` window — see [syn-audio](./tools/audio.md))
 - `Kill Process` submenu: `Close Focused Window`, `Kill All Terminals (foot)` (`pkill foot`), `Kill Web Browser (Falkon)` (`pkill falkon`), `Kill File Browser (Superfile)` (`pkill spf`) — a short, deliberately fixed list, not a process browser. (Waybar/LabWC have their own kill entries in the submenu below, not here.)
 - `Edit Configuration Files` submenu, split into `Waybar Configurations` (`Waybar Config` → `featherpad ~/.config/waybar/config.jsonc`; `Waybar Style (overwritten by Themes switch)` → `featherpad ~/.config/waybar/style.css`, labeled as such because `syn-theme-apply` overwrites `style.css` wholesale on every theme switch) and `LabWC Configurations` (`Labwc Menu`, `Labwc RC`, `Labwc Autostart`, each opening the corresponding file in `featherpad`)
 - `Waybar & LabWC` submenu: `Reload LabWC Configuration` (`Reconfigure` action, same as `Super+Escape`), `Return to Tty1 (Kill LabWC)` (`pkill labwc`), `Launch Waybar`, `Kill Waybar`
@@ -120,7 +120,7 @@ The current file sets one variable:
 QT_QPA_PLATFORMTHEME=qt6ct
 ```
 
-This is **qt6ct**, not qt5ct. Every Qt application SYN-OS ships (Falkon, pavucontrol-qt, syn-filemanager) links against Qt6, which cannot load the Qt5-only qt5ct platform-theme plugin at all — a comment in the file itself notes this explicitly. Both `~/.config/qt5ct/` and `~/.config/qt6ct/` exist in the dotfile overlay (qt5ct's config is kept for any Qt5 binary that might still get installed by hand), but `environment` only ever points the session at qt6ct.
+This is **qt6ct**, not qt5ct. Every Qt application SYN-OS ships (Falkon, syn-filemanager) links against Qt6, which cannot load the Qt5-only qt5ct platform-theme plugin at all — a comment in the file itself notes this explicitly. Both `~/.config/qt5ct/` and `~/.config/qt6ct/` exist in the dotfile overlay (qt5ct's config is kept for any Qt5 binary that might still get installed by hand), but `environment` only ever points the session at qt6ct.
 
 ## `themerc`: the Openbox-format theme file
 

@@ -40,7 +40,7 @@ The pieces that don't ship with Waybar itself — small scripts under `/usr/lib/
   *Placeholder — Lock / Log Out / Reboot / Power Off, themed and positioned
   near the power icon as described above.*
 
-Stock (non-custom) modules worth noting: `pulseaudio` (click opens `pavucontrol`, middle-click mutes via `pamixer -t`, scroll adjusts volume ±5%), `network` (click opens `syn-wifi`, a compiled ncurses Wi-Fi picker, in a `foot` window — see [Wi-Fi](./tools/wifi.md) for its D-Bus scan/connect flow), `cpu`/`memory`/`temperature` (click opens `btop` in a `foot` window), `backlight` (scroll-only, `intel_backlight` device), and `battery` (blinks on critical + not charging).
+Stock (non-custom) modules worth noting: `pulseaudio` (click opens `syn-audio`, a compiled ncurses audio TUI, in a `foot` window — see [Audio](./tools/audio.md); middle-click mutes via `pamixer -t`, scroll adjusts volume ±5%), `network` (click opens `syn-wifi`, a compiled ncurses Wi-Fi picker, in a `foot` window — see [Wi-Fi](./tools/wifi.md) for its D-Bus scan/connect flow), `cpu`/`memory`/`temperature` (click opens `btop` in a `foot` window), `backlight` (scroll-only, `intel_backlight` device), and `battery` (blinks on critical + not charging).
 
 ## Styling
 

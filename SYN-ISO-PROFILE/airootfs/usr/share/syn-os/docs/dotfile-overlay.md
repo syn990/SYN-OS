@@ -17,7 +17,7 @@ DotfileOverlay/
 │           ├── waybar/           see docs/waybar.md (config.jsonc, style.css)
 │           ├── syn-os/themes/    14 SYN-OS-*.theme files (SYN_* vars) —
 │           │                      see docs/theming/theme-engine.md
-│           ├── foot/, superfile/, falkon/, vlc/, pavucontrol-qt/
+│           ├── foot/, superfile/, falkon/, vlc/
 │           └── qt5ct/, qt6ct/    both configs exist; environment currently
 │                                  points the live session at qt6ct only
 └── usr/

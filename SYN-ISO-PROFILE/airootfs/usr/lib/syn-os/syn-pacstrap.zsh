@@ -84,7 +84,7 @@ pacstrapMain() {
   # a plain copy, same as every other live-ISO file this function deploys.
   # No build deps, no makepkg, no per-tool CPU-arch guessing on the target.
   local -a nativeTools
-  nativeTools=(syn-bar-disk syn-bar-vpn syn-bar-window-title syn-crypter syn-wifi)
+  nativeTools=(syn-audio syn-bar-disk syn-bar-vpn syn-bar-window-title syn-crypter syn-wifi)
   for tool in "${nativeTools[@]}"; do
     syn_ui::step "Installing $tool"
     if [ -x "/usr/lib/syn-os/$tool" ]; then

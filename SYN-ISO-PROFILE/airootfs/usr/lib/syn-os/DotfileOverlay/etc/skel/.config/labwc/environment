@@ -3,9 +3,9 @@
 # way Openbox does (see labwc-config(5)). Plain KEY=value only, no export,
 # no quotes; either one ends up in the literal, un-parsed environment value.
 #
-# qt6ct, not qt5ct: every Qt app installed here (falkon, pavucontrol-qt,
-# pcmanfm-qt) links against Qt6, which can't load the Qt5-only qt5ct
-# platform-theme plugin at all.
+# qt6ct, not qt5ct: every Qt app installed here (falkon, syn-filemanager)
+# links against Qt6, which can't load the Qt5-only qt5ct platform-theme
+# plugin at all.
 #
 
 # To set your language for displaying messages and time/date formats, use the following:

@@ -89,7 +89,8 @@ The zsh experience plus general CLI tooling — see [Zsh Configuration](./zsh.md
 | `nano` | Easy-to-use command line text editor |
 | `foot` | Lightweight Wayland terminal emulator |
 | `brightnessctl` | Tool to read and control screen brightness |
-| `pamixer` | PulseAudio command-line mixer |
+| `pamixer` | PulseAudio command-line mixer (waybar scroll/middle-click); also pulls in `libpulse`, which `syn-audio` links against |
+| `pipewire-pulse` | Provides `pulse-native-provider`, the running server `syn-audio`/`pamixer` talk to — previously only a transitive pull via `pavucontrol-qt`, now explicit |
 | `glow` | Markdown renderer for the terminal, backs the Docs pipe-menu |
 
 ### `desktopStack`
@@ -111,7 +112,6 @@ The Wayland desktop itself: compositor, launcher, panel, wallpaper, screenshot t
 | `fuzzel` | Application launcher for Wayland (bound to Super+A) |
 | `rofi` | Window switcher, application launcher, dmenu replacement |
 | `feh` | Lightweight image viewer and background setter |
-| `pavucontrol-qt` | Qt port of the PulseAudio volume controller |
 | `qt5ct` | Qt5 Configuration Utility |
 | `qt6ct` | Qt6 Configuration Utility |
 | `kvantum` | SVG-based theme engine for Qt |

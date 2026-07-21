@@ -190,7 +190,7 @@ expects:
 | `waybar-style.css.tmpl` | `~/.config/waybar/style.css` | Waybar bar CSS | bare `SYN_*` |
 | `labwc-themerc.tmpl` | `~/.local/share/themes/<name>/openbox-3/themerc` | LabWC window/menu/OSD decoration | bare `SYN_*` |
 | `qt5ct-colors.conf.tmpl` | `~/.config/qt5ct/colors/<name>.conf` | Qt5 apps via qt5ct (currently none installed) | `SYN_*_FF`/`SYN_*_80` |
-| `qt6ct-colors.conf.tmpl` | `~/.config/qt6ct/colors/<name>.conf` | Falkon, pavucontrol-qt, syn-filemanager | `SYN_*_FF`/`SYN_*_80` |
+| `qt6ct-colors.conf.tmpl` | `~/.config/qt6ct/colors/<name>.conf` | Falkon, syn-filemanager | `SYN_*_FF`/`SYN_*_80` |
 | `gtk3.css.tmpl` | `~/.config/gtk-3.0/gtk.css` | Audacity, EtherApe, virt-manager, virt-viewer (GTK3/wxWidgets-on-GTK3/PyGObject apps qt6ct can't reach) | bare `SYN_*` |
 | `foot-colors-dark.tmpl` | rewrites `[colors-dark]` in `~/.config/foot/foot.ini` | `foot` terminal | `SYN_*_RAW` |
 | `mako-config.tmpl` | `~/.config/mako/config` | `mako` notification toasts | bare `SYN_*` |
@@ -201,7 +201,7 @@ expects:
 `inactive_colors=`, comma-separated, in the exact enum order Qt expects).
 qt5ct's copy is rendered and kept current on every theme switch even though
 no Qt5 application is currently installed — every real Qt app SYN-OS ships
-(Falkon, pavucontrol-qt, syn-filemanager) links against Qt6, so `qt5ct`'s
+(Falkon, syn-filemanager) links against Qt6, so `qt5ct`'s
 `QT_QPA_PLATFORMTHEME` plugin is never actually loaded in a live session
 (`environment` sets `QT_QPA_PLATFORMTHEME=qt6ct` only — see
 [LabWC](../labwc.md)). The qt6ct template is the one that actually reaches a
