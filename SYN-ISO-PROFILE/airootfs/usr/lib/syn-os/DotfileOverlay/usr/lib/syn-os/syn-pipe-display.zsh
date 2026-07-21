@@ -3,8 +3,8 @@
 #                        S Y N - P I P E - D I S P L A Y
 #
 #   Generates a labwc pipe menu (Openbox XML format) per connected display,
-#   with power/persistence/primary/mode/scale/rotation controls built from
-#   live wlr-randr output.
+#   with power/persistence/primary/layout/mode/scale/rotation controls
+#   built from live wlr-randr output.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-PIPE-DISPLAY (Desktop)
@@ -18,6 +18,15 @@ set -euo pipefail
 # only ever holds names picked via this menu). autostart applies the
 # "only if something else is on" fallback — see labwc/autostart.
 DISABLED_OUTPUTS_FILE="$HOME/.config/syn-os/disabled-outputs"
+
+# Relative layout the user has chosen (e.g. "HDMI-A-1 right-of eDP-1"),
+# one relation per line, at most one per output — a fresh pick for an
+# output overwrites its old line rather than appending. Without this,
+# re-enabling an output after it was off leaves wlr-randr defaulting it
+# to 0,0, i.e. cloned onto whatever else is on. autostart replays these
+# relations in file order on every login, same pattern as
+# DISABLED_OUTPUTS_FILE above.
+LAYOUT_FILE="$HOME/.config/syn-os/display-layout"
 
 print '<?xml version="1.0" encoding="UTF-8"?>'
 print '<openbox_pipe_menu>'
@@ -56,6 +65,12 @@ if (( ${#outputs} == 0 )); then
   print '</openbox_pipe_menu>'
   exit 0
 fi
+
+# Total currently-enabled outputs — gates "Turn OFF" below so the menu
+# itself can never be used to switch off the last screen (autostart's
+# apply_persisted_display_state only guards the reboot path; this is the
+# equivalent guard for live clicks).
+enabled_count="$(awk '/Enabled:/ && $2=="yes"' <<<"${(F)rr}" | wc -l)"
 
 # -------- Helpers --------
 get_block() {
@@ -106,11 +121,13 @@ for name in "${outputs[@]}"; do
     print "    <action name=\"Execute\"><command>wlr-randr --output \"${name}\" --on</command></action>"
     print "    <action name=\"Reconfigure\"/>"
     print "  </item>"
-  else
+  elif (( enabled_count > 1 )); then
     print "  <item label=\"Turn OFF\">"
     print "    <action name=\"Execute\"><command>wlr-randr --output \"${name}\" --off</command></action>"
     print "    <action name=\"Reconfigure\"/>"
     print "  </item>"
+  else
+    print "  <item label=\"Turn OFF (disabled — last screen on)\"/>"
   fi
 
   # -------- PERSISTENCE (see labwc/autostart's fallback: this output only
@@ -136,6 +153,28 @@ for name in "${outputs[@]}"; do
     print "  <item label=\"Set as PRIMARY\">"
     print "    <action name=\"Execute\"><command>wlr-randr --output \"${name}\" --primary</command></action>"
     print "  </item>"
+  fi
+
+  # -------- LAYOUT (relative position vs. every other enabled output;
+  # see LAYOUT_FILE comment above for why this exists — turning a cloned
+  # output back on otherwise leaves it stacked at 0,0) --------
+  if [[ "$state" == "on" && ${#outputs} -gt 1 ]]; then
+    print "  <separator label=\" LAYOUT \"/>"
+    for other in "${outputs[@]}"; do
+      [[ "$other" == "$name" ]] && continue
+      other_block="$(get_block "$other")"
+      other_enabled="$(awk '/Enabled:/ {print $2}' <<<"$other_block")"
+      [[ "$other_enabled" != "yes" ]] && continue
+      safe_other="$(xml_escape "$other")"
+
+      for rel in left-of right-of above below; do
+        rel_label="${rel//-/ }"
+        print "  <item label=\"${rel_label:u} ${safe_other}\">"
+        print "    <action name=\"Execute\"><command>sh -c 'wlr-randr --output \"${name}\" --${rel} \"${other}\"; mkdir -p \"\${HOME}/.config/syn-os\"; grep -v \"^${name} \" \"$LAYOUT_FILE\" > \"$LAYOUT_FILE.tmp\" 2>/dev/null; mv \"$LAYOUT_FILE.tmp\" \"$LAYOUT_FILE\"; echo \"${name} ${rel} ${other}\" >> \"$LAYOUT_FILE\"'</command></action>"
+        print "    <action name=\"Reconfigure\"/>"
+        print "  </item>"
+      done
+    done
   fi
 
   # -------- MODES --------

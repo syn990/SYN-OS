@@ -55,6 +55,23 @@ apply_persisted_display_state() {
   fi
 }
 
+# Restores relative monitor positions persisted via the Display & Screens
+# menu (~/.config/syn-os/display-layout, lines like "HDMI-A-1 right-of
+# eDP-1"). Without this, an output that was off and gets turned back on
+# defaults to 0,0 — cloned onto whatever else is already on — instead of
+# wherever the user last placed it. Replayed after
+# apply_persisted_display_state so both outputs in a relation are already
+# in their final on/off state before positioning runs.
+apply_persisted_display_layout() {
+  LAYOUT_FILE="$HOME/.config/syn-os/display-layout"
+  if [ -f "$LAYOUT_FILE" ] && command -v wlr-randr >/dev/null 2>&1; then
+    while IFS=' ' read -r out_name rel other_name; do
+      [ -z "$out_name" ] && continue
+      wlr-randr --output "$out_name" --"$rel" "$other_name" 2>/dev/null
+    done < "$LAYOUT_FILE"
+  fi
+}
+
 # First login (no current-theme yet): stamps the default theme into every
 # app's own config format via syn-theme-apply, which also starts waybar
 # itself. Later logins: current-theme already reflects an applied theme,
@@ -72,5 +89,6 @@ bootstrap_or_relaunch_theme() {
 }
 
 apply_persisted_display_state
+apply_persisted_display_layout
 bootstrap_or_relaunch_theme
 mako &
