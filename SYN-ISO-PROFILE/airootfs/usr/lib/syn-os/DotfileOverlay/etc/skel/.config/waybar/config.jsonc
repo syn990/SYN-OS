@@ -97,7 +97,7 @@
     "format": "{usage}% ",
     "tooltip-format": "Load average: {load}",
     "states": { "warning": 70, "critical": 90 },
-    "on-click": "foot -e btop"
+    "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=cpu"
   },
 
   "memory": {
@@ -105,7 +105,7 @@
     "format": "{percentage}% ",
     "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G",
     "states": { "warning": 75, "critical": 90 },
-    "on-click": "foot -e btop"
+    "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=mem"
   },
 
   "temperature": {
@@ -113,7 +113,7 @@
     "format": "{temperatureC}°C ",
     "tooltip-format": "{temperatureC}°C ({temperatureF}°F)",
     "interval": 5,
-    "on-click": "foot -e btop"
+    "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=sensors"
   },
 
   "backlight": {

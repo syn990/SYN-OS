@@ -16,5 +16,7 @@ SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-crypter
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-disk
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-vpn
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-window-title
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-audio
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-sysmon
 SYN-ISO-PROFILE/airootfs/usr/bin/syn-filemanager
 SYN-ISO-PROFILE/airootfs/usr/share/applications/syn-filemanager.desktop
