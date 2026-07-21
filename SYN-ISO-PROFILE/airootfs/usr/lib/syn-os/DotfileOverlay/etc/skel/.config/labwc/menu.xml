@@ -3,7 +3,10 @@
 
   <menu id="root-menu" label="SYN-OS">
 
-    <!-- Applications -->
+    <!-- Applications: general-purpose software. "All Applications" is a
+         live pipe-menu (xdg_menu, regenerated from whatever's actually
+         installed) — not a hand-sorted list, and not something to merge
+         with the hand-placed items below it. -->
     <separator label=" APPLICATIONS " />
 
     <item label="Terminal">
@@ -12,7 +15,6 @@
       </action>
     </item>
 
-    <!-- File Browser -->
     <item label="File browser">
       <action name="Execute">
         <command>syn-filemanager</command>
@@ -61,16 +63,64 @@
       </item>
     </menu>
 
-    <!-- SYN-OS Tools: the custom scripts in /usr/lib/syn-os/ have no other
-         GUI entry point — without this menu the only way to find them is
-         already knowing the filename. Each opens in a terminal since
-         they're all interactive TUIs, not GUI apps. Every entry ends its
-         script with `; exec zsh` so an early failure (missing dependency,
-         permission error) leaves the terminal open with the error visible
-         instead of the window just vanishing. -->
+    <!-- SYN-OS Tools: every purpose-built tool this project ships lives
+         here, and only here — one place, one rule, instead of the old
+         split where Wi-Fi/Volume/Monitor sat under System while
+         Share/Crypter/Graphmap/Docs sat in their own menu for no
+         principled reason. If it's a tool SYN-OS built, it's in this
+         list. If it's a system-maintenance action (kill a process, edit
+         a config file, restart the bar), it's in System instead — see
+         the separator there. Each opens in a terminal since they're
+         interactive TUIs, not GUI apps; every entry ends its script with
+         `; exec zsh` so an early failure (missing dependency, permission
+         error) leaves the terminal open with the error visible instead
+         of the window just vanishing. -->
     <separator label=" SYN-OS TOOLS " />
 
     <menu id="synos-tools" label="SYN-OS Tools">
+      <item label="Wi-Fi Picker">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-wifi</command>
+        </action>
+      </item>
+
+      <item label="Volume Mixer">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-audio</command>
+        </action>
+      </item>
+
+      <!-- Three separate entries (not one syn-sysmon launcher the user
+           Tabs from) so each jumps straight to the stat you actually
+           want, same deep-link the matching waybar icon's on-click uses. -->
+      <item label="System Monitor - CPU">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=cpu</command>
+        </action>
+      </item>
+
+      <item label="System Monitor - RAM">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=mem</command>
+        </action>
+      </item>
+
+      <item label="System Monitor - Sensors">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=sensors</command>
+        </action>
+      </item>
+
+      <!-- Opens straight to the unit picker, not any single stat — the
+           waybar cpu/memory/temperature icons already deep-link to their
+           own syn-sysmon view, so this is deliberately the one entry
+           point not duplicated on the bar itself. -->
+      <item label="System Logs">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=logs</command>
+        </action>
+      </item>
+
       <menu id="syn-share-menu"
             label="SYN-SHARE (file transfer hub)"
             execute="zsh /usr/lib/syn-os/syn-pipe-share.zsh" />
@@ -78,7 +128,7 @@
       <!-- syn-crypter is its own interactive ncurses TUI (menus + a real
            directory-browsing file picker + masked password entry, all
            colored from the live SYN-OS theme) when run with no
-           arguments — unlike SYN-SHARE below, it needs no rofi-based
+           arguments — unlike SYN-SHARE above, it needs no rofi-based
            prompt script in front of it; foot -e runs it directly. Covers
            AES-256, Blowfish, RSA, and Redshirt (the Uplink-style XOR
            joke "encryption") all from its own algorithm menu, so there's
@@ -124,12 +174,19 @@
           <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-build-launcher.zsh; exec zsh'</command>
         </action>
       </item>
+
+      <!-- Reference material you open, not a tool you run — but it's the
+           same shape as everything above it (a thing SYN-OS built that
+           needs a menu entry to be findable at all), so it lives here
+           rather than under Preferences, which is settings you tune. -->
+      <menu id="docs-pipe"
+            label="Docs"
+            execute="/usr/lib/syn-os/syn-pipe-docs.zsh" />
     </menu>
 
-    <!-- Audio / Display / Themes / Bar toggle / Docs: everything that's a
-         setting or reference rather than a thing you launch, tucked one
-         level deep instead of sitting bare at root. Audio/Display/Themes/
-         Docs are each a real dynamic pipe-menu (queries pactl/wlr-randr/
+    <!-- Audio / Display / Themes / Bar toggle: settings you tune, tucked
+         one level deep instead of sitting bare at root. Audio/Display/
+         Themes are each a real dynamic pipe-menu (queries pactl/wlr-randr/
          theme dir live). -->
     <separator label=" SETTINGS " />
 
@@ -177,19 +234,15 @@
           <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
         </action>
       </item>
-
-      <separator label=" REFERENCE " />
-
-      <menu id="docs-pipe"
-            label="Docs"
-            execute="/usr/lib/syn-os/syn-pipe-docs.zsh" />
     </menu>
 
-    <!-- System: everything that isn't reached for every day (lock/volume
-         are the exception since those genuinely are frequent, but folding
-         them in keeps root from growing every time something new needs a
-         home — kill-process/edit-configs/waybar-labwc were previously
-         three more flat root entries on top of these). -->
+    <!-- System: maintenance actions only — locking the screen, killing a
+         stuck process, editing a config file by hand, restarting the bar
+         or the compositor. Every SYN-OS tool used to live scattered
+         between here and the old Tools menu with no consistent rule for
+         which one a given tool landed in; they've all moved to SYN-OS
+         Tools above, so everything left in this menu is genuinely about
+         maintaining the running session, not launching a tool. -->
     <separator label=" SYSTEM " />
 
     <menu id="system-menu" label="System">
@@ -199,15 +252,10 @@
         </action>
       </item>
 
-      <item label="Volume Mixer">
-        <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-audio</command>
-        </action>
-      </item>
-
-      <!-- Waybar/LabWC have their own kill entries below (Waybar & LabWC
-           submenu) — this is for the other common programs, kept to a short,
-           known list on purpose rather than a full process browser. -->
+      <!-- Waybar/LabWC have their own entries below (Waybar & LabWC menu
+           for launch/reload, Kill Process for the kill side of both) —
+           this is for the other common programs, kept to a short, known
+           list on purpose rather than a full process browser. -->
       <menu id="kill-process" label="Kill Process">
         <item label="Close Focused Window">
           <action name="Close" />
@@ -228,6 +276,15 @@
         <item label="Kill File Browser (syn-filemanager)">
           <action name="Execute">
             <command>pkill syn-filemanager</command>
+          </action>
+        </item>
+
+        <!-- Genuinely a kill action (of labwc itself, the escape hatch
+             back to a bare tty) — belongs here with the other kills, not
+             paired with Waybar & LabWC's launch/reload actions below. -->
+        <item label="Return to Tty1 (Kill LabWC)">
+          <action name="Execute">
+            <command>pkill labwc</command>
           </action>
         </item>
       </menu>
@@ -277,26 +334,24 @@
 
       </menu>
 
+      <!-- Launch/reload only — SYN-OS never auto-starts a GUI session on
+           its own, waybar/labwc restarting is a routine part of driving
+           the desktop rather than a rare recovery action, so both live
+           here as one clean step each. The kill side of each (labwc's
+           "Return to Tty1", waybar's half of the restart below) lives in
+           Kill Process instead — see the comment there. -->
       <menu id="waybar-labwc" label="Waybar &amp; LabWC">
         <item label="Reload LabWC Configuration">
           <action name="Reconfigure" />
         </item>
 
-        <item label="Return to Tty1 (Kill LabWC)">
+        <!-- One action, not separate Launch/Kill entries — "kill" alone
+             leaves no bar, "launch" alone assumes it's already dead;
+             neither is useful on its own the way Kill Process's other
+             entries are. -->
+        <item label="Restart Waybar">
           <action name="Execute">
-            <command>pkill labwc</command>
-          </action>
-        </item>
-
-        <item label="Launch Waybar">
-          <action name="Execute">
-            <command>waybar</command>
-          </action>
-        </item>
-
-        <item label="Kill Waybar">
-          <action name="Execute">
-            <command>pkill waybar</command>
+            <command>pkill waybar; waybar</command>
           </action>
         </item>
       </menu>
