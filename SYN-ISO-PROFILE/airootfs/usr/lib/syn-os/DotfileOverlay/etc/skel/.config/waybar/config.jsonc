@@ -62,7 +62,7 @@
     "return-type": "json",
     "format": " {}",
     "exec": "/usr/lib/syn-os/syn-bar-disk",
-    "on-click": "foot -e spf /"
+    "on-click": "syn-filemanager /"
   },
 
   "custom/power": {

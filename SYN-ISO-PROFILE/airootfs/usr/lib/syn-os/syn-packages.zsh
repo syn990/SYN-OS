@@ -89,7 +89,6 @@ desktopStack=(
   qt6ct               # Qt6 Configuration Utility
   kvantum             # SVG-based theme engine for Qt
   kvantum-qt5         # Qt5 styles for the Kvantum theme engine
-  superfile           # Pretty fancy and modern terminal file manager
   qt6-base            # Qt6 core libraries — syn-filemanager (File browser, Super+E) links
                       # against this at runtime; built at ISO-build time, not pacstrap'd as
                       # source, but the shared libraries themselves are still needed here

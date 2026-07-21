@@ -111,7 +111,7 @@ done
 
 print '  <separator/>'
 print '  <item label="Edit Themes Folder (new theme = copy a .theme file)">'
-print '    <action name="Execute"><command>foot -e spf '"$THEMES_DIR"'</command></action>'
+print '    <action name="Execute"><command>syn-filemanager '"$THEMES_DIR"'</command></action>'
 print '  </item>'
 
 print '</openbox_pipe_menu>'

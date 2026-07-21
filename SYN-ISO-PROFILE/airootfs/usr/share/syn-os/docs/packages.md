@@ -116,7 +116,6 @@ The Wayland desktop itself: compositor, launcher, panel, wallpaper, screenshot t
 | `qt6ct` | Qt6 Configuration Utility |
 | `kvantum` | SVG-based theme engine for Qt |
 | `kvantum-qt5` | Qt5 styles for the Kvantum theme engine |
-| `superfile` | Terminal file manager |
 | `qt6-base` | Qt6 core libraries — `syn-filemanager` (file browser, Super+E) links against this at runtime. `syn-filemanager` itself isn't built here: it's compiled once from source (`SYN-SOFTWARE/syn-filemanager-src`) at ISO-build time and already on this disk as a prebuilt binary before `pacstrap` even runs — see [Building the ISO](./build/iso-builder.md) |
 | `lxqt-archiver` | Lightweight archive manager (Qt port of Xarchiver) |
 | `featherpad` | Lightweight text editor from the LXQt project |
