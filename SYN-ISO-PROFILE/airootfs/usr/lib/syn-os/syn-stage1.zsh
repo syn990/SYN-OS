@@ -71,14 +71,34 @@ fi
 echo "${UserAccountName}:${UserAccountPassword}" | chpasswd
 syn_ui::step_done "Password set for ${UserAccountName}"
 
+# Renders this install its own take on every theme's wallpaper, replacing
+# the stock PNGs skel just copied in — same palette per theme, slightly
+# different composition (light position, ring/band counts, ...) each
+# install, since syn-wallgen reseeds its RNG from /dev/urandom every run.
+# syn-wallgen is a prebuilt binary (see the native-tools note above), so
+# there's no compile step here — just running it. UserHome comes from
+# getent rather than assuming /home/$name, since useradd -m honors a
+# non-default HOME dir if synos.conf ever sets one.
+UserHome="$(getent passwd "$UserAccountName" | cut -d: -f6)"
+if [ -x /usr/lib/syn-os/syn-wallgen ] && [ -d "$UserHome/.config/syn-os/themes" ]; then
+  syn_ui::step "Generating this install's wallpaper set"
+  if /usr/lib/syn-os/syn-wallgen --themes-dir "$UserHome/.config/syn-os/themes" --out-dir "$UserHome/.wallpaper"; then
+    chown -R "${UserAccountName}:${UserAccountName}" "$UserHome/.wallpaper"
+    syn_ui::step_done "Wallpapers generated for ${UserAccountName}"
+  else
+    syn_ui::error "syn-wallgen failed — stock wallpapers from the dotfile overlay are still in place, continuing"
+  fi
+fi
+
 # synos.conf only needed the password to reach this point — strip it
 # rather than leave it in plaintext on the installed disk.
 sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
 # Every locally-authored native tool (syn-filemanager, the waybar module
-# backends, syn-crypter, syn-wifi) is already on this disk by this point
-# — syn-pacstrap.zsh copies each one's already-built binary straight from
-# the live ISO before Stage 0 even chroots in here. Nothing to build.
+# backends, syn-crypter, syn-wifi, syn-wallgen) is already on this disk by
+# this point — syn-pacstrap.zsh copies each one's already-built binary
+# straight from the live ISO before Stage 0 even chroots in here. Nothing
+# to build.
 
 # mkinitcpio hooks — same set for UEFI and BIOS
 configure_mkinitcpio() {
