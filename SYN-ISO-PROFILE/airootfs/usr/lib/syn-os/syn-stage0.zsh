@@ -68,7 +68,7 @@ syn_ui::step_done "Stage 0 pipeline complete"
 SynStage0Complete=1
 
 # Summary
-syn_ui::end_summary "${RootPart}" "${RootMountLocation}" "${BootPart:-}" "${BootMountLocation}" "${BootFs}" "${RootFs}" "${PartitionStrat}"
+syn_ui::end_summary "${RootPart}" "${RootMountLocation}" "${BootPart:-}" "${BootMountLocation}" "${RootFs}" "${PartitionStrat}"
 
 syn_ui::info "Mounts:"
 mount | grep -E "${RootMountLocation}|${BootMountLocation}" || echo "(none)"

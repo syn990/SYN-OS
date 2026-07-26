@@ -30,12 +30,18 @@ pacstrapMain() {
   syn_ui::step_done "Mirrors and keyring ready"
 
   # Bootloader package follows directly from PartitionStrat — see synos.conf.
-  # systemd (uefi-bootctl's systemd-boot) is already in baseCore; only
-  # efibootmgr is extra there.
+  # systemd (uefi-bootctl's/uefi-refind's systemd-boot) is already in
+  # baseCore; only efibootmgr is extra there. uefi-refind additionally
+  # needs refind itself (a normal extra-repo package, not AUR) — it chains
+  # to the same systemd-boot entry uefi-bootctl creates. uefi-clover is
+  # reserved/not yet implemented (see syn-stage1.zsh), no package for it
+  # yet either.
   local -a bootPkgs
   case "${PartitionStrat}" in
     uefi-bootctl) bootPkgs=(efibootmgr) ;;
-    mbr-grub)     bootPkgs=(grub) ;;
+    uefi-refind)  bootPkgs=(efibootmgr refind) ;;
+    uefi-clover)  bootPkgs=(efibootmgr) ;;
+    mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) bootPkgs=(grub) ;;
     *)            bootPkgs=(syslinux) ;;
   esac
 
@@ -121,6 +127,17 @@ pacstrapMain() {
     syn_ui::info "Deploying docs to ${RootMountLocation}/usr/share/syn-os/docs…"
     mkdir -p "${RootMountLocation}/usr/share/syn-os"
     cp -r /usr/share/syn-os/docs "${RootMountLocation}/usr/share/syn-os/docs"
+  fi
+
+  # Same reasoning as docs above — these are the same branded splash
+  # images the live ISO's own grub/syslinux boot menus already use
+  # (SYN-ISO-PROFILE/grub/splash.png, SYN-ISO-PROFILE/syslinux/splash.png),
+  # staged here so syn-stage1.zsh can copy the right one into /boot once
+  # it knows which bootloader this install is actually using.
+  if [ -d /usr/share/syn-os/branding ]; then
+    syn_ui::info "Deploying boot splash assets to ${RootMountLocation}/usr/share/syn-os/branding…"
+    mkdir -p "${RootMountLocation}/usr/share/syn-os"
+    cp -r /usr/share/syn-os/branding "${RootMountLocation}/usr/share/syn-os/branding"
   fi
 
   # Persist state for Stage 1 — only facts stage0 computed at runtime

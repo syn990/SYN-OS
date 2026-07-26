@@ -114,22 +114,27 @@ if [ "$(lower "${PartitionStrat:-auto}")" = "auto" ]; then
   fi
 fi
 
-# Strategy validation
+# Strategy validation — each value is a single, complete template (see
+# synos.conf's own comment for the full breakdown). uefi-clover is valid
+# here (reserved for future support) but errors clearly later, once
+# syn-stage1.zsh actually reaches the point of installing a bootloader.
 case "${PartitionStrat:-}" in
-  uefi-bootctl|mbr-syslinux|mbr-grub) : ;;
+  uefi-bootctl|uefi-refind|uefi-clover|mbr-syslinux|mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) : ;;
   *) echo "ERROR: Unknown PartitionStrat '${PartitionStrat:-}'" >&2; exit 1 ;;
 esac
 
 # Catches an explicit PartitionStrat that doesn't match detected firmware
 # (e.g. a synos.conf copied from a UEFI machine onto BIOS hardware).
-if [ "$PartitionStrat" = "uefi-bootctl" ] && [ "$SynosEnv" != "UEFI" ]; then
-  echo "ERROR: PartitionStrat=uefi-bootctl but this machine booted in BIOS/legacy mode (no /sys/firmware/efi/efivars)." >&2
-  echo "Use PartitionStrat=mbr-syslinux or mbr-grub, or set PartitionStrat=auto to detect automatically." >&2
+# Prefix-matched (uefi-*/mbr-*) rather than enumerated per value, so a
+# future named template doesn't need a third place updated.
+if [[ "$PartitionStrat" == uefi-* ]] && [ "$SynosEnv" != "UEFI" ]; then
+  echo "ERROR: PartitionStrat=${PartitionStrat} but this machine booted in BIOS/legacy mode (no /sys/firmware/efi/efivars)." >&2
+  echo "Use mbr-syslinux, mbr-grub (or one of its variants), or set PartitionStrat=auto to detect automatically." >&2
   exit 1
 fi
-if { [ "$PartitionStrat" = "mbr-syslinux" ] || [ "$PartitionStrat" = "mbr-grub" ]; } && [ "$SynosEnv" = "UEFI" ]; then
+if [[ "$PartitionStrat" == mbr-* ]] && [ "$SynosEnv" = "UEFI" ]; then
   echo "ERROR: PartitionStrat=${PartitionStrat} but this machine booted in UEFI mode." >&2
-  echo "Use PartitionStrat=uefi-bootctl, or set PartitionStrat=auto to detect automatically." >&2
+  echo "Use uefi-bootctl (or uefi-refind), or set PartitionStrat=auto to detect automatically." >&2
   exit 1
 fi
 
@@ -148,7 +153,7 @@ fi
 # need mbr-grub instead.
 if [ "$PartitionStrat" = "mbr-syslinux" ] && [ "$Encryption" = "yes" ]; then
   echo "ERROR: PartitionStrat=mbr-syslinux cannot use Encryption=yes — syslinux has no LUKS support." >&2
-  echo "Use PartitionStrat=mbr-grub for encrypted BIOS/MBR installs, or PartitionStrat=uefi-bootctl." >&2
+  echo "Use an mbr-grub* value for encrypted BIOS/MBR installs, or a uefi-* value." >&2
   exit 1
 fi
 
@@ -193,7 +198,7 @@ export \
   Encryption UseLvm EnableSsh \
   VgName LvRootName LvSwapName SwapSize \
   ZramPercent ZramMaxMiB \
-  BootFs RootFs \
+  RootFs \
   RootMountLocation BootMountLocation \
   LuksCipher LuksKeySize LuksPbkdf LuksLabel LuksPassphrase \
   KernelOpts \

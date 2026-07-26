@@ -143,7 +143,8 @@ if [ -n "${SwapDev:-}" ]; then
 fi
 
 syn_ui::step "Installing bootloader (${PartitionStrat})"
-if [ "$PartitionStrat" = "uefi-bootctl" ]; then
+case "${PartitionStrat}" in
+uefi-bootctl|uefi-refind)
   bootctl --path=/boot install
   mkdir -p /boot/loader/entries
   cat > /boot/loader/loader.conf <<'EOF'
@@ -162,28 +163,77 @@ linux   /vmlinuz-linux
 ${INITRD_LINES}
 options ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}
 EOF
-elif [ "$PartitionStrat" = "mbr-syslinux" ]; then
+
+  # uefi-refind chains to the systemd-boot entry just created above —
+  # rEFInd becomes what firmware actually boots first. This is the piece
+  # that matters for real Apple hardware: Mac firmware doesn't reliably
+  # persist a plain systemd-boot NVRAM entry across reboots, and rEFInd's
+  # own installer handles registering itself (including the ESP fallback
+  # path, EFI/BOOT/BOOTX64.EFI) in a way that does.
+  if [ "$PartitionStrat" = "uefi-refind" ]; then
+    refind-install
+  fi
+  ;;
+mbr-syslinux)
   syslinux-install_update -i -a -m || true
   if [ -f /boot/syslinux/syslinux.cfg ]; then
     sed -i "s|APPEND .*|APPEND ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}|" /boot/syslinux/syslinux.cfg
+    # Branded graphical menu, same asset/mechanism as the live ISO's own
+    # syslinux.cfg (SYN-ISO-PROFILE/syslinux/) — syn-pacstrap.zsh staged
+    # the source PNG to /usr/share/syn-os/branding, copy it into place
+    # here now that syslinux-install_update has created /boot/syslinux/.
+    # syslinux-install_update's auto-generated config has no UI directive
+    # at all by default (vesamenu is opt-in), so this replaces the line if
+    # present and prepends it otherwise, rather than assuming a sed
+    # replace has something to match.
+    if [ -f /usr/share/syn-os/branding/syslinux-splash.png ]; then
+      install -Dm755 /usr/share/syn-os/branding/syslinux-splash.png /boot/syslinux/splash.png
+      if grep -q "^UI " /boot/syslinux/syslinux.cfg; then
+        sed -i "s|^UI .*|UI vesamenu.c32|" /boot/syslinux/syslinux.cfg
+      else
+        sed -i "1i UI vesamenu.c32" /boot/syslinux/syslinux.cfg
+      fi
+      if ! grep -q "^MENU BACKGROUND" /boot/syslinux/syslinux.cfg; then
+        sed -i "/^UI vesamenu.c32/a MENU BACKGROUND splash.png" /boot/syslinux/syslinux.cfg
+      fi
+    fi
   fi
+  ;;
 # See syn-disk.zsh's partitionStrat_mbr_grub for why this strategy
 # needs its own unencrypted /boot. Because of that, GRUB itself never
 # touches encryption — cryptdevice= is resolved by the initramfs's
 # encrypt hook at boot, same as uefi-bootctl.
-elif [ "$PartitionStrat" = "mbr-grub" ]; then
+mbr-grub|mbr-grub-btrfs|mbr-grub-xfs)
+  # GRUB module name matches PartitionStrat 1:1 except mbr-grub's ext4,
+  # which is read by the "ext2" module — GRUB's ext2 driver auto-detects
+  # ext2/3/4, there's no separate ext4 module in mainline GRUB (confirmed
+  # against the installed grub package: /usr/lib/grub/i386-pc/ has
+  # exactly ext2.mod, btrfs.mod, xfs.mod — one module per family). This
+  # must stay in lockstep with syn-disk.zsh's volumeMain mkfs call (same
+  # PartitionStrat value) — a mismatch means the disk formats fine but
+  # GRUB can't read its own /boot at boot time: install succeeds, machine
+  # doesn't boot.
+  case "${PartitionStrat}" in
+    mbr-grub)       grubFsModule="ext2"  ;;
+    mbr-grub-btrfs) grubFsModule="btrfs" ;;
+    mbr-grub-xfs)   grubFsModule="xfs"   ;;
+  esac
+
   grub-install --target=i386-pc --recheck --boot-directory=/boot \
-    --modules="part_msdos ext2 biosdisk" "${Disk}"
+    --modules="part_msdos ${grubFsModule} biosdisk" "${Disk}"
 
   INITRD_LINES="initrd /initramfs-linux.img"
   [ -f /boot/intel-ucode.img ] && INITRD_LINES="initrd /intel-ucode.img /initramfs-linux.img"
   [ -f /boot/amd-ucode.img ] && INITRD_LINES="initrd /amd-ucode.img /initramfs-linux.img"
 
   mkdir -p /boot/grub
-  # No splash image ships yet — this degrades gracefully to a plain text
-  # menu. To add branding later, deploy a splash.png to /boot/grub/ (e.g.
-  # via DotfileOverlay + a pacstrapMain copy step) and this picks it up
-  # automatically.
+  # Same branded asset as the live ISO's own grub/splash.png —
+  # syn-pacstrap.zsh staged it to /usr/share/syn-os/branding, copy it
+  # into place now that /boot/grub exists. Degrades gracefully to a plain
+  # text menu if it's ever missing.
+  if [ -f /usr/share/syn-os/branding/grub-splash.png ]; then
+    install -Dm755 /usr/share/syn-os/branding/grub-splash.png /boot/grub/splash.png
+  fi
   {
     echo "set default=0"
     echo "set timeout=0"
@@ -196,15 +246,21 @@ elif [ "$PartitionStrat" = "mbr-grub" ]; then
     echo ""
     echo "menuentry 'SYN-OS' {"
     echo "  insmod part_msdos"
-    echo "  insmod ext2"
+    echo "  insmod ${grubFsModule}"
     echo "  linux /vmlinuz-linux ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}"
     echo "  ${INITRD_LINES}"
     echo "}"
   } > /boot/grub/grub.cfg
-else
+  ;;
+uefi-clover)
+  syn_ui::error "PartitionStrat=uefi-clover is reserved for future support — not yet implemented. Use uefi-bootctl or uefi-refind instead."
+  exit 1
+  ;;
+*)
   syn_ui::error "Unsupported PartitionStrat '$PartitionStrat'"
   exit 1
-fi
+  ;;
+esac
 syn_ui::step_done "Bootloader installed"
 
 # Enable baseline services

@@ -171,10 +171,24 @@ syn_ui::intro_montage() {
 }
 
 syn_ui::end_summary() {
-  # 7th arg is PartitionStrat, not firmware type — uefi-bootctl and mbr-grub
-  # both have a separate boot partition; mbr-syslinux doesn't (BootPart ==
-  # RootPart there, see syn-disk.zsh's partitionStrat_mbr_syslinux).
-  local root_part="$1" root_mnt="$2" boot_part="$3" boot_mnt="$4" boot_fs="$5" root_fs="$6" partition_strat="$7"
+  # 6th arg is PartitionStrat, not firmware type — every uefi-* and
+  # mbr-grub* value has a separate boot partition; mbr-syslinux doesn't
+  # (BootPart == RootPart there, see syn-disk.zsh's
+  # partitionStrat_mbr_syslinux). Boot filesystem is derived here purely
+  # from partition_strat, one case arm per named template, rather than
+  # taken as a stored display value that has to be kept in sync by hand
+  # (synos.conf used to have a static BootFs="fat32" that did exactly
+  # that — wrong for mbr-grub installs; a later BootFsStrat variable made
+  # the same mistake in a different shape before being folded into these
+  # named PartitionStrat values instead).
+  local root_part="$1" root_mnt="$2" boot_part="$3" boot_mnt="$4" root_fs="$5" partition_strat="$6"
+  local boot_fs=""
+  case "$partition_strat" in
+    uefi-bootctl|uefi-refind|uefi-clover) boot_fs="fat32" ;;
+    mbr-grub)       boot_fs="ext4"  ;;
+    mbr-grub-btrfs) boot_fs="btrfs" ;;
+    mbr-grub-xfs)   boot_fs="xfs"   ;;
+  esac
   syn_ui::clear
   printf "\n%s✓ SUMMARY:%s %sStage 0 complete. Proceeding to Stage 1.%s\n\n" "$C_OK" "$RESET" "$C_VALUE" "$RESET"
   printf "%s•%s Root: %s%s%s mounted at %s%s%s\n" "$C_DIM" "$RESET" "$C_ACCENT" "$root_part" "$RESET" "$C_ACCENT" "$root_mnt" "$RESET"

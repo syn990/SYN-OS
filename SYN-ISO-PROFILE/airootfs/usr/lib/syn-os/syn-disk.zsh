@@ -150,10 +150,15 @@ partitionMain() {
   dd if=/dev/zero of="${Disk}" bs=1M count=4 status=none || true
   sync
 
+  # uefi-refind/uefi-clover reuse uefi-bootctl's GPT/ESP+ROOT layout — both
+  # sit on a standard ESP, the difference is which bootloader syn-stage1.zsh
+  # installs onto it, not the partition layout itself. Same for
+  # mbr-grub-btrfs/mbr-grub-xfs reusing mbr-grub's BOOT+ROOT layout — only
+  # the /boot filesystem differs, handled below in volumeMain.
   case "${PartitionStrat}" in
-    uefi-bootctl) partitionStrat_uefi_bootctl ;;
-    mbr-syslinux) partitionStrat_mbr_syslinux ;;
-    mbr-grub)     partitionStrat_mbr_grub ;;
+    uefi-bootctl|uefi-refind|uefi-clover) partitionStrat_uefi_bootctl ;;
+    mbr-syslinux)                         partitionStrat_mbr_syslinux ;;
+    mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) partitionStrat_mbr_grub ;;
     *) syn_ui::error "Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
   esac
 
@@ -264,20 +269,38 @@ volumeStrat_plain() {
 # Volume: main dispatcher + ESP formatting
 # =========================================================
 volumeMain() {
-  # Format the separate boot partition, if this strategy has one.
-  # uefi-bootctl needs a FAT32 ESP; mbr-grub needs a plain filesystem GRUB
-  # can read directly (ext4) since it's not an EFI System Partition.
+  # Format the separate boot partition, if this strategy has one. Boot
+  # filesystem is fixed per PartitionStrat name, not a separate config
+  # variable — uefi-* always needs a FAT32 ESP (UEFI firmware spec
+  # requirement, not a SYN-OS choice); the mbr-grub family varies by name
+  # (mbr-grub/mbr-grub-btrfs/mbr-grub-xfs) since GRUB 2 can read several
+  # filesystems for /boot. Keep this in sync with syn-stage1.zsh's
+  # grub-install --modules list and grub.cfg's insmod line, both also
+  # keyed off PartitionStrat: a mismatch there produces an install that
+  # succeeds but can't boot.
   if [ -n "${BootPart:-}" ] && [ "${BootPart}" != "${RootPart}" ]; then
     [ -b "${BootPart}" ] || { syn_ui::error "BootPart not a block device"; exit 1; }
     case "${PartitionStrat}" in
-      uefi-bootctl)
+      uefi-bootctl|uefi-refind|uefi-clover)
         syn_ui::step "Formatting ESP on ${BootPart}"
         mkfs.vfat -F32 -n ESP "${BootPart}"
         syn_ui::step_done "ESP formatted"
         ;;
       mbr-grub)
-        syn_ui::step "Formatting BOOT on ${BootPart}"
+        syn_ui::step "Formatting BOOT on ${BootPart} (ext4)"
         mkfs.ext4 -F -L BOOT "${BootPart}"
+        syn_ui::step_done "BOOT formatted"
+        ;;
+      mbr-grub-btrfs)
+        modprobe btrfs 2>/dev/null || true
+        syn_ui::step "Formatting BOOT on ${BootPart} (btrfs)"
+        mkfs.btrfs -f -L BOOT "${BootPart}"
+        syn_ui::step_done "BOOT formatted"
+        ;;
+      mbr-grub-xfs)
+        modprobe xfs 2>/dev/null || true
+        syn_ui::step "Formatting BOOT on ${BootPart} (xfs)"
+        mkfs.xfs -f -L BOOT "${BootPart}"
         syn_ui::step_done "BOOT formatted"
         ;;
       *)
