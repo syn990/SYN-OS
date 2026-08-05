@@ -2,18 +2,30 @@
 # ------------------------------------------------------------------------------
 #                   S Y N - O S   I S O   B U I L D E R
 #
-#   Builds a SYN-OS ISO. Two modes:
-#     (no flags)       today's mainline SYN-OS (this working tree)
-#     --build=<name>   one of the named historical builds in
-#                      SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/
-#                      build-manifest.json (see --list-builds) — pulled
-#                      from the real, unmodified git history of
-#                      syn990/SYN-OS and syn990/SYN-RTOS at the exact
-#                      commit and profile directory that shipped
+#   Builds a SYN-OS ISO. Picks exactly one target:
+#     (no flags)          interactive menu (below)
+#     --build=<name>       a named historical build from build-manifest.json
+#                           (see --list-builds) — real git history, not this
+#                           working tree
+#     --commit=<sha>       any commit in this repo's own history — extracted
+#                           via git archive, profiledef.sh found by search
+#     --profile=<path>      a local directory containing profiledef.sh
+#                           (e.g. a checkout you're editing by hand)
+#     (none of the above)  today's mainline SYN-OS (this working tree)
 #
 #   full/minimal package selection is synos.conf's PackageProfile,
 #   resolved at install time (see syn-pacstrap.zsh) — not a build-time
 #   flag here.
+#
+#   Whole script runs as root (see Root Check below) — mkarchiso needs
+#   it for the real build, and every other step here (SYN-SOFTWARE
+#   compiles, scratch wipe, git extraction) is safe to run as root too,
+#   same as this script always has. A prior C rewrite tried to shrink
+#   this to a single privileged mkarchiso call and split everything
+#   else into an unprivileged phase — that introduced more bugs
+#   (stale-ownership wipe failures, log-ordering issues in the
+#   SYN-SOFTWARE build loop) than the privilege split was worth, so
+#   it's reverted: one root run, same as this script's whole history.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : BUILD-ARCHISO (Build)
@@ -22,11 +34,10 @@
 # ------------------------------------------------------------------------------
 
 # ---- Configuration ---------------------------------------------------
-# Everything --build touches lives under .syncache/:
-#   sources/    bare clones of syn990/SYN-OS + syn990/SYN-RTOS (cached,
-#               reused across every named-build run)
-#   extracted/  one historical profile tree per named build, pulled from
-#               sources/ via git archive
+# Everything --build/--commit touch live under .syncache/:
+#   sources/    bare clone of syn990/SYN-OS (cached, reused across runs)
+#   extracted/  one tree per named build or browsed commit, pulled via
+#               git archive, keyed by build id or short SHA
 #   isos/       every finished ISO, permanent — WORKDIR/ISO_OUTPUT below
 #               are scratch space wiped on every run
 BASE_DIR="${0:A:h}"
@@ -58,12 +69,16 @@ NC=$'%f'
 
 # ---- Parse args --------------------------------------------------------
 BUILD_NAME_ID=""
+COMMIT_SHA=""
+LOCAL_PROFILE=""
 LIST_BUILDS=0
 FLAGS_GIVEN=0
 for arg in "$@"; do
   FLAGS_GIVEN=1
   case "$arg" in
     --build=*)       BUILD_NAME_ID="${arg#--build=}" ;;
+    --commit=*)      COMMIT_SHA="${arg#--commit=}" ;;
+    --profile=*)     LOCAL_PROFILE="${arg#--profile=}" ;;
     --list-builds)   LIST_BUILDS=1 ;;
   esac
 done
@@ -90,10 +105,49 @@ for e in data:
   exit 0
 fi
 
-# No flags: interactive menu rather than silently picking a default.
+# ---- Resolve any commit's profiledef.sh via git archive + bounded search ----
+# Same shape as --build='s extraction below, but for an arbitrary commit
+# where the profile path isn't known ahead of time from a manifest —
+# extracts the whole tree then searches shallowly (profiledef.sh has
+# never been more than 3-4 path segments deep anywhere in this repo's
+# history) instead of requiring a caller-supplied --strip-components.
+resolve_commit() {
+  local sha="$1"
+  local short_sha="${sha:0:12}"
+  local dest="$EXTRACTED_DIR/$short_sha"
+
+  mkdir -p "$SOURCES_DIR"
+  if [[ ! -d "$MAIN_MIRROR" ]]; then
+    print -P "${BLUE}First use of --commit: cloning $MAIN_REMOTE (one-time, cached at $MAIN_MIRROR)...${NC}"
+    git clone --mirror "$MAIN_REMOTE" "$MAIN_MIRROR" || { print -P "${RED}Clone failed.${NC}"; exit 1; }
+  else
+    git --git-dir="$MAIN_MIRROR" fetch --quiet origin '+refs/heads/*:refs/heads/*' 2>/dev/null || true
+  fi
+
+  if ! git --git-dir="$MAIN_MIRROR" cat-file -e "$sha" 2>/dev/null; then
+    print -P "${RED}Commit $sha not found in $MAIN_MIRROR.${NC}"
+    exit 1
+  fi
+
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  git --git-dir="$MAIN_MIRROR" archive "$sha" | tar -x -C "$dest"
+
+  local found
+  found="$(find "$dest" -maxdepth 4 -name profiledef.sh -print -quit 2>/dev/null)"
+  if [[ -z "$found" ]]; then
+    print -P "${RED}No profiledef.sh found within 4 levels of $sha's tree.${NC}"
+    exit 1
+  fi
+  print -r -- "${found:h}"
+}
+
+# ---- No flags: interactive menu ---------------------------------------
 if [[ $FLAGS_GIVEN -eq 0 ]]; then
   print -P "${YELLOW}SYN-OS ISO builder — what do you want to build?${NC}"
   print -P "  ${BLUE}1)${NC} Current SYN-OS — this local working tree ($PROFILE_DEFAULT), uncommitted changes included"
+  print -P "  ${BLUE}2)${NC} Browse commit history (any commit in this repo)"
+  print -P "  ${BLUE}3)${NC} A local directory containing profiledef.sh"
   if [[ -r "$MANIFEST" ]]; then
     print -P "  ${BLUE}--${NC} Named builds — fetched fresh from real git history, NOT this working tree ${BLUE}--${NC}"
     BUILD_MENU_LINES="$(python3 -c "
@@ -104,7 +158,7 @@ def weight(n):
     if n < 40: return 'thin'
     if n < 100: return 'medium'
     return 'fat'
-for i, e in enumerate(data, start=2):
+for i, e in enumerate(data, start=4):
     w = weight(e['package_count'])
     print(f\"{i}|{e['id']}|{e['commit_date']}  {e['name'].split('(')[0].strip()} [{w}, {e['package_count']} pkgs]\")
 ")"
@@ -122,6 +176,21 @@ for i, e in enumerate(data, start=2):
   read "choice?Pick a number (or Ctrl+C to cancel): "
   case "$choice" in
     1) : ;;
+    2)
+      if ! command -v fzf >/dev/null 2>&1; then
+        print -P "${RED}fzf not installed — can't browse commit history interactively. Use --commit=<sha> instead.${NC}"
+        exit 1
+      fi
+      picked="$(git -C "$BASE_DIR" log --pretty=format:'%h  %ad  %an  %s' --date=short \
+        | fzf --prompt="Pick a commit> " --header="Enter to select, Esc to cancel")"
+      [[ -n "$picked" ]] || { print -P "Aborted."; exit 1; }
+      COMMIT_SHA="${picked%%  *}"
+      ;;
+    3)
+      read "profpath?Path to profile directory: "
+      [[ -n "$profpath" ]] || { print -P "Aborted."; exit 1; }
+      LOCAL_PROFILE="$profpath"
+      ;;
     *)
       if [[ -n "${BuildMenuIds[$choice]:-}" ]]; then
         BUILD_NAME_ID="${BuildMenuIds[$choice]}"
@@ -139,8 +208,25 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# ---- Resolve PROFILE: either today's mainline, or a real named build
-if [[ -n "$BUILD_NAME_ID" ]]; then
+# ---- Resolve PROFILE: mainline, a named build, a browsed commit, or a
+#      local profile directory --------------------------------------
+BUILD_ID=""
+BUILD_LABEL=""
+if [[ -n "$LOCAL_PROFILE" ]]; then
+  PROFILE="${LOCAL_PROFILE:A}"
+  if [[ ! -f "$PROFILE/profiledef.sh" ]]; then
+    print -P "${RED}$PROFILE has no profiledef.sh.${NC}"
+    exit 1
+  fi
+  BUILD_ID="local-$(date +%Y-%m-%d)"
+  BUILD_LABEL="Local profile directory: $PROFILE"
+elif [[ -n "$COMMIT_SHA" ]]; then
+  PROFILE="$(resolve_commit "$COMMIT_SHA")"
+  short_sha="${COMMIT_SHA:0:7}"
+  commit_date="$(git -C "$BASE_DIR" show -s --format=%as "$COMMIT_SHA" 2>/dev/null || date +%Y-%m-%d)"
+  BUILD_ID="${commit_date}-${short_sha}"
+  BUILD_LABEL="Commit $short_sha ($(git -C "$BASE_DIR" show -s --format=%s "$COMMIT_SHA" 2>/dev/null))"
+elif [[ -n "$BUILD_NAME_ID" ]]; then
   if [[ ! -r "$MANIFEST" ]]; then
     print -P "${RED}Manifest not found at $MANIFEST — can't resolve --build=$BUILD_NAME_ID${NC}"
     exit 1
@@ -205,9 +291,10 @@ print(match['name'])
     print -P "  Looked for: $BUILD_PROFILE_PATH at $BUILD_COMMIT in $MIRROR"
     exit 1
   fi
-  SYNOS_LIB="$PROFILE/airootfs/usr/lib/syn-os"
   print -P "${YELLOW}Building historical edition:${NC} $BUILD_NAME"
   print -P "${BLUE}Source:${NC} $BUILD_REPO @ ${BUILD_COMMIT:0:10}"
+  BUILD_ID="$BUILD_NAME_ID"
+  BUILD_LABEL="$BUILD_NAME (fetched from git, not this working tree)"
 
   # Arch retired [community] in mid-2023, merging its packages into
   # [extra] under the same names — every package still resolves via
@@ -229,18 +316,15 @@ print(match['name'])
   fi
 else
   PROFILE="$PROFILE_DEFAULT"
-  SYNOS_LIB="$PROFILE/airootfs/usr/lib/syn-os"
+  BUILD_ID="mainline-$(date +%Y-%m-%d)"
+  BUILD_LABEL="Current SYN-OS — this local working tree, uncommitted changes included"
 fi
 
 # ---- Confirmation ----------------------------------------------------
 print -P "${YELLOW}This will build a fresh SYN‑OS ISO.${NC}"
 print -P "${BLUE}Profile:${NC} $PROFILE"
 print -P "${BLUE}Output:${NC}  $OUTPUT"
-if [[ -n "$BUILD_NAME_ID" ]]; then
-  print -P "${BLUE}Build:${NC}   $BUILD_NAME (fetched from git, not this working tree)"
-else
-  print -P "${BLUE}Build:${NC}   Current SYN-OS — this local working tree, uncommitted changes included"
-fi
+print -P "${BLUE}Build:${NC}   $BUILD_LABEL"
 read "ok?Continue? (y/n): "
 
 [[ "$ok" =~ ^[Yy]$ ]] || { print -P "Aborted."; exit 1; }
@@ -315,10 +399,11 @@ STATUS=$?
 
 if [[ $STATUS -eq 0 ]]; then
     ISO=$(ls "$OUTPUT"/*.iso 2>/dev/null | head -n1)
-    # Named after the build id (or "mainline") and moved out of OUTPUT,
-    # which the next run wipes.
+    # Named after the resolved build id (mainline date, named build,
+    # commit date+sha, or local-<date>) and moved out of OUTPUT, which
+    # the next run wipes.
     mkdir -p "$BUILD_ISOS"
-    ArchiveName="${BUILD_NAME_ID:-mainline}.iso"
+    ArchiveName="${BUILD_ID}.iso"
     mv "$ISO" "$BUILD_ISOS/$ArchiveName"
     print -P "${GREEN}✔ ISO build complete:${NC} $BUILD_ISOS/$ArchiveName"
 else

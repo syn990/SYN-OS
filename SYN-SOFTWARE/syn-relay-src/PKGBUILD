@@ -1,0 +1,29 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-relay
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS's remote-node tool — connect to another machine's live stats, serve this machine's stats to others, or watch/control a remote screen. One binary, one PID/state model per role. Unauthenticated, LAN-only by design."
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('glibc' 'wayland' 'ffmpeg' 'sdl2')
+optdepends=('moonlight-qt: opens a stream to a connected stats node if Sunshine is running there'
+            'libnotify: desktop notifications for connect/disconnect/watch/host events'
+            'nvidia-utils: GPU utilization via nvidia-smi in the stats server role'
+            'wlr-randr: automatic screen-resolution detection when being watched'
+            'rofi: IP-address prompts for --connect/--watch/--host-watched when called with no argument')
+makedepends=('cmake' 'wayland-protocols')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}

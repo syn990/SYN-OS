@@ -90,36 +90,39 @@
         </action>
       </item>
 
-      <!-- Three separate entries (not one syn-sysmon launcher the user
-           Tabs from) so each jumps straight to the stat you actually
-           want, same deep-link the matching waybar icon's on-click uses. -->
-      <item label="System Monitor - CPU">
-        <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=cpu</command>
-        </action>
-      </item>
+      <!-- All four are the same syn-sysmon binary, deep-linked to a
+           different view (not one launcher the user Tabs from) so each
+           jumps straight to the stat you actually want, same deep-link
+           the matching waybar icon's on-click uses. Logs opens straight
+           to the unit picker rather than any single stat — the waybar
+           cpu/memory/temperature icons already deep-link to their own
+           syn-sysmon view, so Logs is deliberately the one entry point
+           not duplicated on the bar itself. -->
+      <menu id="syn-sysmon-menu" label="System Monitor">
+        <item label="CPU">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=cpu</command>
+          </action>
+        </item>
 
-      <item label="System Monitor - RAM">
-        <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=mem</command>
-        </action>
-      </item>
+        <item label="RAM">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=mem</command>
+          </action>
+        </item>
 
-      <item label="System Monitor - Sensors">
-        <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=sensors</command>
-        </action>
-      </item>
+        <item label="Sensors">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=sensors</command>
+          </action>
+        </item>
 
-      <!-- Opens straight to the unit picker, not any single stat — the
-           waybar cpu/memory/temperature icons already deep-link to their
-           own syn-sysmon view, so this is deliberately the one entry
-           point not duplicated on the bar itself. -->
-      <item label="System Logs">
-        <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-sysmon --view=logs</command>
-        </action>
-      </item>
+        <item label="Logs">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=logs</command>
+          </action>
+        </item>
+      </menu>
 
       <menu id="syn-share-menu"
             label="SYN-SHARE (file transfer hub)"
@@ -138,6 +141,80 @@
           <command>foot -e /usr/lib/syn-os/syn-crypter</command>
         </action>
       </item>
+
+      <!-- SYN-RELAY: connect to another machine with one click, then see
+           its actual programs in the menu right below — that's the whole
+           point of this menu, so Connect to Gateway/Remote Apps/Disconnect
+           and the Gateway Services toggle stay at the top level. Screen
+           watch/host are real, independent roles (see PROTOCOL.md) but
+           secondary to that, so they live one level down under More
+           rather than competing for equal attention. Naming here
+           ("Gateway"/"Gateway Services") is deliberate flavor, not used
+           anywhere else in this menu — an intentional choice for this
+           entry specifically. No pairing/auth on any of this yet (see
+           PROTOCOL.md's security posture section) — trusted-LAN only.
+           No automatic desktop theme swap on connect/disconnect either
+           — removed by request, connecting doesn't change how this
+           machine looks. -->
+      <menu id="syn-relay-menu" label="Gateway">
+        <item label="Connect to Gateway">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --connect || notify-send "SYN-RELAY" "Could not connect — host unreachable?"'</command>
+          </action>
+        </item>
+
+        <menu id="syn-relay-apps-menu"
+              label="Remote Apps"
+              execute="/usr/lib/syn-os/syn-relay --list-apps" />
+
+        <item label="Disconnect">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --disconnect</command>
+          </action>
+        </item>
+
+        <item label="Enable Gateway Services">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --start || notify-send "SYN-RELAY" "Could not start — already running?"'</command>
+          </action>
+        </item>
+
+        <item label="Disable Gateway Services">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --stop || notify-send "SYN-RELAY" "Could not stop — not running?"'</command>
+          </action>
+        </item>
+
+        <menu id="syn-relay-more-menu" label="More">
+          <menu id="syn-relay-watch-menu" label="Watch/Control Remote Screen">
+            <item label="Watch/Control Remote Node">
+              <action name="Execute">
+                <command>/usr/lib/syn-os/syn-relay --watch</command>
+              </action>
+            </item>
+
+            <item label="Stop Watching">
+              <action name="Execute">
+                <command>/usr/lib/syn-os/syn-relay --stop-watching</command>
+              </action>
+            </item>
+          </menu>
+
+          <menu id="syn-relay-host-menu" label="Let This Machine Be Watched">
+            <item label="Let This Machine Be Watched">
+              <action name="Execute">
+                <command>/usr/lib/syn-os/syn-relay --host-watched</command>
+              </action>
+            </item>
+
+            <item label="Stop Being Watched">
+              <action name="Execute">
+                <command>/usr/lib/syn-os/syn-relay --stop-hosting</command>
+              </action>
+            </item>
+          </menu>
+        </menu>
+      </menu>
 
       <!-- SYN-GRAPHMAP always prompts via rofi for the target directory
            and output format (leaving both args empty triggers those
@@ -167,11 +244,18 @@
 
       <!-- The ISO build itself stays a full, normal, decorated terminal —
            it runs for minutes with real scrolling output, unlike every
-           other tool here's one-line result. syn-build-launcher.zsh
-           handles its own doas framing internally. -->
+           other tool here's one-line result. syn-iso-builder is a native
+           ncurses front-end (see SYN-SOFTWARE/syn-iso-builder-src/):
+           live git commit browsing instead of the static
+           build-manifest.json list, plus local-profile-dir and
+           custom-repo-URL options. It runs unprivileged and drops to a
+           plain interactive `doas` prompt only for the actual
+           privileged build step — no doas.conf changes.
+           BUILD-ARCHISO.zsh and syn-build-launcher.zsh have been
+           removed; this binary is fully self-contained. -->
       <item label="SYN-OS ISO Builder">
         <action name="Execute">
-          <command>foot -e zsh -c 'zsh /usr/lib/syn-os/syn-build-launcher.zsh; exec zsh'</command>
+          <command>foot -e zsh -c 'cd "$HOME/GithubProjects/SYN-OS" 2>/dev/null || git clone https://github.com/syn990/SYN-OS.git "$HOME/GithubProjects/SYN-OS" &amp;&amp; cd "$HOME/GithubProjects/SYN-OS"; /usr/lib/syn-os/syn-iso-builder; exec zsh'</command>
         </action>
       </item>
 

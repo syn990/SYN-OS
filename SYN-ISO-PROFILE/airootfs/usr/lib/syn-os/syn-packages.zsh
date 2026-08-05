@@ -108,6 +108,10 @@ devToolkit=(
   hexedit             # View and edit files in hexadecimal or ASCII
   lshw                # Utility to extract detailed hardware configuration
   yt-dlp              # Command-line audio/video downloader (youtube-dl fork)
+  wayland-protocols   # Protocol XML used to generate syn-relay's screen-capture/input-inject code
+  ffmpeg              # Dev headers (libavcodec/libavformat/libavutil/libswscale) for syn-relay's
+                      # screen watch/host roles — Arch ships headers+.pc files in this same package
+  sdl2                # Dev headers for syn-relay's screen watch role (video display)
 )
 
 fontsI18n=(

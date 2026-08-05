@@ -23,6 +23,8 @@ Right side, left to right:
   Click for a quick menu to start, stop, or check them. See [File sharing](./tools/syn-share.md).
 - **VPN.** Shows up only when a WireGuard connection is active, otherwise
   it's not there at all.
+- **SSH.** Shows a count of your active outbound SSH sessions, and blinks
+  while any are open. Not there at all when you have none.
 - **Network.** Wi-Fi name and speed, or a disconnected icon. Click it to
   open the Wi-Fi picker. See [Wi-Fi](./tools/wifi.md).
 - **Backlight.** Screen brightness. Scroll up or down to change it.

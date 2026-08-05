@@ -35,30 +35,46 @@ window#waybar.hidden { opacity: 0.2; }
 #taskbar button.active { background-color: @syn_bg_alt; box-shadow: inset 0 3px @syn_accent; }
 #taskbar button.urgent { background-color: @syn_accent; animation: blink 0.5s steps(12) infinite alternate; }
 
-#workspaces, #clock, #battery, #cpu, #memory, #temperature, #custom-disk,
-#network, #pulseaudio, #backlight, #custom-vpn {
+#workspaces, #clock, #battery, #custom-cpu, #custom-mem, #temperature, #custom-disk,
+#network, #pulseaudio, #backlight, #custom-vpn, #custom-ssh {
   padding: 0 10px;
 }
 
-#cpu, #memory, #temperature, #custom-disk, #network, #pulseaudio, #backlight {
+#custom-cpu, #custom-mem, #temperature, #custom-disk, #network, #pulseaudio, #backlight {
   background-color: @syn_panel;
   border-left: 1px solid @syn_bg_alt;
 }
 
-#clock:hover, #battery:hover, #cpu:hover, #memory:hover, #network:hover, #pulseaudio:hover, #custom-disk:hover, #temperature:hover {
+#clock:hover, #battery:hover, #custom-cpu:hover, #custom-mem:hover, #network:hover, #pulseaudio:hover, #custom-disk:hover, #temperature:hover {
   background-color: @syn_panel_hover;
 }
+
+#custom-ssh.active { background-color: @syn_urgent; color: @syn_bg; animation: blink 0.5s steps(12) infinite alternate; }
 
 #custom-glyph { font-size: 16px; color: @syn_accent; padding: 0 12px; }
 #custom-media { background-color: @syn_accent_dim; color: @syn_urgent; }
 
-/* Threshold states: driven by "states": {"warning": N, "critical": N} in
-   config.jsonc, which waybar turns into .warning/.critical classes. */
-#cpu.warning, #memory.warning, #custom-disk.warning {
+/* relay-waiting: syn-relay's stats client role is active but hasn't connected to a
+   stats server yet — dim/inert look. relay-connected: showing a real
+   remote machine's live stats. */
+#custom-cpu.relay-waiting, #custom-mem.relay-waiting, #custom-disk.relay-waiting {
+  background-color: @syn_bg_alt;
+  color: @syn_accent_dim;
+}
+#custom-cpu.relay-connected, #custom-mem.relay-connected, #custom-disk.relay-connected {
+  background-color: @syn_panel;
+  color: @syn_accent;
+}
+
+/* Local (no relay) threshold states — custom modules have no built-in
+   "states": {...} feature like waybar's stock cpu/memory types did, so
+   syn-relay emits warning/critical itself when showing local
+   numbers only (see threshold_class() in syn-relay-src/src/cmd_stats_client.c). */
+#custom-cpu.warning, #custom-mem.warning, #custom-disk.warning {
   background-color: @syn_accent;
   color: @syn_panel_hover;
 }
-#cpu.critical, #memory.critical, #custom-disk.critical, #temperature.critical {
+#custom-cpu.critical, #custom-mem.critical, #custom-disk.critical, #temperature.critical {
   background-color: @syn_urgent;
   color: @syn_bg;
   animation: blink 0.5s steps(12) infinite alternate;

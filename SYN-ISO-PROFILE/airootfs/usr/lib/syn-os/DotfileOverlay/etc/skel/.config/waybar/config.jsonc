@@ -15,11 +15,16 @@
     "custom/recording",
     "custom/synshare",
     "custom/vpn",
+    "custom/ssh",
+    "custom/relay-status",
+    "custom/relay-serving",
+    "custom/agent-watching",
+    "custom/agent-serving",
     "network",
     "backlight",
     "pulseaudio",
-    "cpu",
-    "memory",
+    "custom/cpu",
+    "custom/mem",
     "temperature",
     "custom/disk",
     "battery",
@@ -57,8 +62,16 @@
     "interval": 5
   },
 
+  "custom/ssh": {
+    "return-type": "json",
+    "format": "{}",
+    "max-length": 60,
+    "exec": "/usr/lib/syn-os/syn-bar-ssh",
+    "interval": 5
+  },
+
   "custom/disk": {
-    "interval": 60,
+    "interval": 15,
     "return-type": "json",
     "format": " {}",
     "exec": "/usr/lib/syn-os/syn-bar-disk",
@@ -92,19 +105,82 @@
     "on-click": "foot -e /usr/lib/syn-os/syn-wifi"
   },
 
-  "cpu": {
+  // custom/cpu and custom/mem replace waybar's stock cpu/memory module
+  // types — those have no exec hook at all (they always read local
+  // /proc internally, no way to redirect them), so making them relay
+  // -aware required switching to the custom/* contract, same as
+  // custom/disk already was. syn-relay --stat-cpu/--stat-mem handle all
+  // three states themselves: real local /proc numbers when the stats
+  // client role has never been touched, a dead "--" indicator while
+  // active-but-not-yet-connected, and a remote machine's real stats
+  // once connected — see syn-relay-src's syn_node_state.h. Persistent
+  // "connected: <hostname>" / "no connection to remote host" label —
+  // the only always-visible (not hover-tooltip-only) indicator of
+  // relay state. Empty text/no bar space used at all when ABSENT
+  // (never touched). Also the module whose poll notices a dead remote
+  // and reflects that here, in case the remote died without a clean
+  // --disconnect. No automatic desktop theme swap on connect/disconnect
+  // — removed by request, connecting should not change how this
+  // machine looks, only what its bar/menu show.
+  "custom/relay-status": {
+    "interval": 3,
+    "return-type": "json",
+    "format": "{}",
+    "exec": "/usr/lib/syn-os/syn-relay --stat-relay-status"
+  },
+
+  // Server-role counterpart to custom/relay-status above: shows
+  // "serving: <ip>" the moment a client connects to this machine's
+  // stats server role, "serving (idle)" while running but nobody's
+  // attached, nothing at all when the server role isn't running — so
+  // being connected-to is as visible as connecting-out is.
+  "custom/relay-serving": {
+    "interval": 5,
+    "return-type": "json",
+    "format": "{}",
+    "exec": "/usr/lib/syn-os/syn-relay --stat-serving"
+  },
+
+  // Screen-watch role counterpart: shows "watching: <ip>" while this
+  // machine is actively viewing/controlling a remote node's screen,
+  // nothing when it isn't. syn-relay is one binary with several
+  // independent roles (see PROTOCOL.md) — this and custom/relay-status
+  // above can both show real state simultaneously, since a machine can
+  // be a connected stats client and watching a screen at the same time.
+  "custom/agent-watching": {
+    "interval": 3,
+    "return-type": "json",
+    "format": "{}",
+    "exec": "/usr/lib/syn-os/syn-relay --stat-watching"
+  },
+
+  // Screen-host role counterpart: "agent: live" the moment this
+  // machine's video+input processes are both up (started via
+  // menu.xml's "Let This Machine Be Watched"), nothing when they
+  // aren't. Deliberately doesn't distinguish idle-vs-attached like
+  // custom/relay-serving does — the screen-host role has no
+  // pairing/attach concept yet (see PROTOCOL.md's security posture
+  // section), so "running" is the only state there is.
+  "custom/agent-serving": {
+    "interval": 5,
+    "return-type": "json",
+    "format": "{}",
+    "exec": "/usr/lib/syn-os/syn-relay --stat-agent"
+  },
+
+  "custom/cpu": {
     "interval": 2,
-    "format": "{usage}% ",
-    "tooltip-format": "Load average: {load}",
-    "states": { "warning": 70, "critical": 90 },
+    "return-type": "json",
+    "format": " {}",
+    "exec": "/usr/lib/syn-os/syn-bar-cpu",
     "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=cpu"
   },
 
-  "memory": {
+  "custom/mem": {
     "interval": 5,
-    "format": "{percentage}% ",
-    "tooltip-format": "RAM: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G",
-    "states": { "warning": 75, "critical": 90 },
+    "return-type": "json",
+    "format": " {}",
+    "exec": "/usr/lib/syn-os/syn-bar-mem",
     "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=mem"
   },
 
