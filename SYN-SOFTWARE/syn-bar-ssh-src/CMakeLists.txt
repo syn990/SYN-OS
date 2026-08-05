@@ -12,7 +12,7 @@ endif()
 set(CMAKE_C_FLAGS_RELEASE "-Os")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 
-add_executable(syn-bar-ssh src/main.c)
+add_executable(syn-bar-ssh src/main.c src/syn_bar_tone.c)
 target_link_libraries(syn-bar-ssh PRIVATE m)
 
 install(TARGETS syn-bar-ssh RUNTIME DESTINATION lib/syn-os)

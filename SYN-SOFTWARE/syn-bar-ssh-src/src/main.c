@@ -138,68 +138,6 @@ static int was_already_seen(const char seen[][INET6_ADDRSTRLEN], int seen_count,
 	return 0;
 }
 
-/* Generates TONE_SECONDS of a TONE_HZ sine wave as signed 16-bit mono
- * PCM and streams it directly into paplay's stdin — no temp file, no
- * extra tone-generation dependency. A short linear fade-in/out avoids
- * the audible click a hard-edged tone burst would otherwise have. */
-static void play_connect_tone(void) {
-	pid_t pid = fork();
-	if (pid < 0) {
-		return;
-	}
-	if (pid == 0) {
-		int pipefd[2];
-		if (pipe(pipefd) != 0) {
-			_exit(1);
-		}
-		pid_t player = fork();
-		if (player < 0) {
-			_exit(1);
-		}
-		if (player == 0) {
-			dup2(pipefd[0], STDIN_FILENO);
-			close(pipefd[0]);
-			close(pipefd[1]);
-			int devnull = open("/dev/null", O_WRONLY);
-			if (devnull >= 0) {
-				dup2(devnull, STDOUT_FILENO);
-				dup2(devnull, STDERR_FILENO);
-				close(devnull);
-			}
-			execlp("paplay", "paplay", "--raw",
-				"--rate=44100", "--format=s16le", "--channels=1",
-				(char *)NULL);
-			_exit(127);
-		}
-		close(pipefd[0]);
-
-		int total_samples = (int)(SAMPLE_RATE * TONE_SECONDS);
-		int fade_samples = SAMPLE_RATE / 200; /* 5ms fade */
-		for (int i = 0; i < total_samples; i++) {
-			double t = (double)i / SAMPLE_RATE;
-			double amp = 0.5;
-			if (i < fade_samples) {
-				amp *= (double)i / fade_samples;
-			} else if (i > total_samples - fade_samples) {
-				amp *= (double)(total_samples - i) / fade_samples;
-			}
-			int16_t sample = (int16_t)(amp * 32767.0 * sin(2.0 * M_PI * TONE_HZ * t));
-			if (write(pipefd[1], &sample, sizeof(sample)) != sizeof(sample)) {
-				break;
-			}
-		}
-		close(pipefd[1]);
-
-		int status;
-		waitpid(player, &status, 0);
-		_exit(0);
-	}
-	/* Parent (the real syn-bar-ssh process) doesn't wait — waybar is
-	 * timing this exec's own exit for the next poll, so the tone-player
-	 * grandchild is left to finish on its own via the intermediate
-	 * fork above, which does wait for it. */
-}
-
 int main(void) {
 	struct ssh_session sessions[MAX_SESSIONS];
 	int count = 0;
@@ -297,7 +235,7 @@ int main(void) {
 		}
 	}
 	if (any_new_inbound) {
-		play_connect_tone();
+		syn_bar_tone_play(TONE_HZ, TONE_SECONDS);
 	}
 	save_seen(sessions, count);
 
