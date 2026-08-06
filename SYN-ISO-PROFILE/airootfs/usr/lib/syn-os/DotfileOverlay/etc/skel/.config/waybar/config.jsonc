@@ -58,7 +58,7 @@
 
   "custom/vpn": {
     "format": "",
-    "exec": "/usr/lib/syn-os/syn-bar-vpn",
+    "exec": "/usr/lib/syn-os/syn-bar --vpn",
     "interval": 5
   },
 
@@ -66,7 +66,7 @@
     "return-type": "json",
     "format": "{}",
     "max-length": 60,
-    "exec": "/usr/lib/syn-os/syn-bar-ssh",
+    "exec": "/usr/lib/syn-os/syn-bar --ssh",
     "interval": 5
   },
 
@@ -74,7 +74,7 @@
     "interval": 15,
     "return-type": "json",
     "format": " {}",
-    "exec": "/usr/lib/syn-os/syn-bar-disk",
+    "exec": "/usr/lib/syn-os/syn-bar --disk",
     "on-click": "syn-filemanager /"
   },
 
@@ -172,7 +172,7 @@
     "interval": 2,
     "return-type": "json",
     "format": " {}",
-    "exec": "/usr/lib/syn-os/syn-bar-cpu",
+    "exec": "/usr/lib/syn-os/syn-bar --cpu",
     "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=cpu"
   },
 
@@ -180,7 +180,7 @@
     "interval": 5,
     "return-type": "json",
     "format": " {}",
-    "exec": "/usr/lib/syn-os/syn-bar-mem",
+    "exec": "/usr/lib/syn-os/syn-bar --mem",
     "on-click": "foot -e /usr/lib/syn-os/syn-sysmon --view=mem"
   },
 
@@ -216,7 +216,7 @@
 
   "custom/window-title": {
     "format": "{}",
-    "exec": "/usr/lib/syn-os/syn-bar-window-title",
+    "exec": "/usr/lib/syn-os/syn-bar --window-title",
     "max-length": 60,
     "tooltip": false
   },

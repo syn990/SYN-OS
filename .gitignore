@@ -15,12 +15,8 @@ SYN-SOFTWARE/*/build/
 SYN-SOFTWARE/*-src-build/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-wifi
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-crypter
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-cpu
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-disk
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-mem
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-ssh
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-vpn
-SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-window-title
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-core
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-audio
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-iso-builder
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-relay

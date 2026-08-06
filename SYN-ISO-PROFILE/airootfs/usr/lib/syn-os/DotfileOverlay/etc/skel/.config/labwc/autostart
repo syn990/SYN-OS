@@ -1,18 +1,11 @@
 # ------------------------------------------------------------------------------
 #                           A U T O S T A R T
 #
-#   Run by labwc itself right after it reads its config — this is the
-#   session's one entrypoint (labwc allows exactly one autostart file, no
-#   shebang; runs under /bin/sh, not zsh). Restores persisted display
-#   state, then brings the theme up (first login) or relaunches its
-#   wallpaper (later logins), starts mako (backgrounded — every
-#   notify-send call in SYN-OS depends on it being alive, and it has to be
-#   up before anything fires a toast). waybar itself is started inside
-#   bootstrap_or_relaunch_theme(), not here — on first login,
-#   syn-theme-apply already starts it as part of applying SYN-OS-RED; a
-#   second unconditional `waybar` here used to run alongside that one,
-#   leaving two waybar processes racing over the same bar on every fresh
-#   install's first login.
+#   labwc's one entrypoint (no shebang, runs under /bin/sh). Restores
+#   display state, brings up the theme/wallpaper, starts mako and
+#   waybar. waybar is started inside bootstrap_or_relaunch_theme(), not
+#   here — an unconditional `waybar` here would race the one
+#   syn-theme-apply already starts on first login.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : AUTOSTART (Desktop)
@@ -23,16 +16,13 @@
 . /usr/lib/syn-os/syn-theme-lib.zsh
 
 # Restores outputs persisted as "always OFF at boot" via the Display &
-# Screens menu (~/.config/syn-os/disabled-outputs, one real wlr-randr
-# output name per line). A persisted output only actually turns off if
-# another one is confirmed on first — never leaving a black screen.
+# Screens menu. Only turns an output off if another is confirmed on
+# first — never leaving a black screen.
 apply_persisted_display_state() {
   DISABLED_OUTPUTS_FILE="$HOME/.config/syn-os/disabled-outputs"
   if [ -f "$DISABLED_OUTPUTS_FILE" ] && command -v wlr-randr >/dev/null 2>&1; then
     wlr_state="$(wlr-randr 2>/dev/null)"
-    # Anchored on each output's own block boundary (a line starting with
-    # its name), not proximity-based grep, since the gap to Enabled:
-    # varies by output.
+    # Anchored on each output's own block boundary, not proximity grep.
     per_output_state="$(echo "$wlr_state" | awk '
       /^[A-Za-z]/ { name = $1 }
       /Enabled:/ { print name "|" $2 }
@@ -56,12 +46,8 @@ apply_persisted_display_state() {
 }
 
 # Restores relative monitor positions persisted via the Display & Screens
-# menu (~/.config/syn-os/display-layout, lines like "HDMI-A-1 right-of
-# eDP-1"). Without this, an output that was off and gets turned back on
-# defaults to 0,0 — cloned onto whatever else is already on — instead of
-# wherever the user last placed it. Replayed after
-# apply_persisted_display_state so both outputs in a relation are already
-# in their final on/off state before positioning runs.
+# menu. Runs after apply_persisted_display_state so both outputs in a
+# relation are already in their final on/off state.
 apply_persisted_display_layout() {
   LAYOUT_FILE="$HOME/.config/syn-os/display-layout"
   if [ -f "$LAYOUT_FILE" ] && command -v wlr-randr >/dev/null 2>&1; then
@@ -72,12 +58,8 @@ apply_persisted_display_layout() {
   fi
 }
 
-# First login (no current-theme yet): stamps the default theme into every
-# app's own config format via syn-theme-apply, which also starts waybar
-# itself. Later logins: current-theme already reflects an applied theme,
-# so just relaunch its wallpaper and waybar directly — re-running
-# syn-theme-apply here isn't needed and would be redundant work on every
-# login. Either branch starts waybar exactly once.
+# First login: apply the default theme (also starts waybar). Later
+# logins: relaunch wallpaper + waybar directly.
 bootstrap_or_relaunch_theme() {
   if [ -f "$HOME/.config/syn-os/current-theme" ]; then
     ( syn_theme_load
@@ -90,5 +72,9 @@ bootstrap_or_relaunch_theme() {
 
 apply_persisted_display_state
 apply_persisted_display_layout
+
+# Started before waybar so its socket exists for waybar's first poll.
+/usr/lib/syn-os/syn-bar-core &
+
 bootstrap_or_relaunch_theme
 mako &

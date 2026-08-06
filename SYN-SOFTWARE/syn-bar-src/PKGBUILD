@@ -1,12 +1,12 @@
 # Maintainer: William Hayward-Holland (Syntax990)
-pkgname=syn-bar-cpu
+pkgname=syn-bar
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="SYN-OS waybar custom/cpu backend — local CPU usage as JSON via /proc/stat"
+pkgdesc="SYN-OS waybar module stub — one flag-selected binary (--cpu/--mem/--disk/--ssh/--vpn/--window-title) querying syn-bar-core over a Unix socket"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
-depends=('glibc')
+depends=('syn-bar-core')
 makedepends=('cmake')
 source=()
 sha256sums=()

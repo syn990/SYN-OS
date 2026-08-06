@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(syn-bar-window-title LANGUAGES C)
+project(syn-bar-core LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -31,16 +31,17 @@ add_custom_command(OUTPUT ${PROTOCOL_SOURCE}
   COMMAND ${WAYLAND_SCANNER} private-code ${PROTOCOL_XML} ${PROTOCOL_SOURCE}
   DEPENDS ${PROTOCOL_XML})
 
-add_executable(syn-bar-window-title
+add_executable(syn-bar-core
   src/main.c
+  src/syn_bar_tone.c
   ${PROTOCOL_SOURCE}
   ${PROTOCOL_HEADER}
 )
 
-target_include_directories(syn-bar-window-title PRIVATE
+target_include_directories(syn-bar-core PRIVATE
   ${CMAKE_BINARY_DIR}
   ${WAYLAND_CLIENT_INCLUDE_DIRS}
 )
-target_link_libraries(syn-bar-window-title PRIVATE ${WAYLAND_CLIENT_LIBRARIES})
+target_link_libraries(syn-bar-core PRIVATE ${WAYLAND_CLIENT_LIBRARIES} m)
 
-install(TARGETS syn-bar-window-title RUNTIME DESTINATION lib/syn-os)
+install(TARGETS syn-bar-core RUNTIME DESTINATION lib/syn-os)

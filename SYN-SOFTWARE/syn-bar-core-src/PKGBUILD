@@ -1,8 +1,8 @@
 # Maintainer: William Hayward-Holland (Syntax990)
-pkgname=syn-bar-window-title
+pkgname=syn-bar-core
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="SYN-OS waybar custom/window-title backend — prints the focused window's title via wlr-foreign-toplevel-management"
+pkgdesc="SYN-OS waybar stats/state daemon — owns window-title tracking (wlr-foreign-toplevel-management) and local /proc reads, served over a Unix socket the syn-bar stub binary queries"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')

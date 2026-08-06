@@ -142,22 +142,12 @@
         </action>
       </item>
 
-      <!-- SYN-RELAY: connect to another machine with one click, then see
-           its actual programs in the menu right below — that's the whole
-           point of this menu, so Connect to Gateway/Remote Apps/Disconnect
-           and the Gateway Services toggle stay at the top level. Screen
-           watch/host are real, independent roles (see PROTOCOL.md) but
-           secondary to that, so they live one level down under More
-           rather than competing for equal attention. Naming here
-           ("Gateway"/"Gateway Services") is deliberate flavor, not used
-           anywhere else in this menu — an intentional choice for this
-           entry specifically. No pairing/auth on any of this yet (see
-           PROTOCOL.md's security posture section) — trusted-LAN only.
-           No automatic desktop theme swap on connect/disconnect either
-           — removed by request, connecting doesn't change how this
-           machine looks. -->
-      <menu id="syn-relay-menu" label="Gateway">
-        <item label="Connect to Gateway">
+      <!-- Screen watch/host live one level down under More. Label
+           matches the tool's real name (SYN-RELAY), not the old
+           "Gateway" flavor-text. Menu tree naming/structure cleanup is
+           deferred — see plan notes. Trusted-LAN only, no auth yet. -->
+      <menu id="syn-relay-menu" label="SYN-RELAY">
+        <item label="Connect">
           <action name="Execute">
             <command>sh -c '/usr/lib/syn-os/syn-relay --connect || notify-send "SYN-RELAY" "Could not connect — host unreachable?"'</command>
           </action>
@@ -173,13 +163,13 @@
           </action>
         </item>
 
-        <item label="Enable Gateway Services">
+        <item label="Enable Services">
           <action name="Execute">
             <command>sh -c '/usr/lib/syn-os/syn-relay --start || notify-send "SYN-RELAY" "Could not start — already running?"'</command>
           </action>
         </item>
 
-        <item label="Disable Gateway Services">
+        <item label="Disable Services">
           <action name="Execute">
             <command>sh -c '/usr/lib/syn-os/syn-relay --stop || notify-send "SYN-RELAY" "Could not stop — not running?"'</command>
           </action>
@@ -429,13 +419,13 @@
           <action name="Reconfigure" />
         </item>
 
-        <!-- One action, not separate Launch/Kill entries — "kill" alone
-             leaves no bar, "launch" alone assumes it's already dead;
-             neither is useful on its own the way Kill Process's other
-             entries are. -->
+        <!-- Also restarts syn-bar-core — its lifetime is coupled to
+             waybar's. sh -c wrapper required: labwc's Execute runs via
+             execvp() directly, no shell, so a bare "a; b" string is one
+             nonexistent literal program name and silently no-ops. -->
         <item label="Restart Waybar">
           <action name="Execute">
-            <command>pkill waybar; waybar</command>
+            <command>sh -c "pkill waybar; pkill syn-bar-core; /usr/lib/syn-os/syn-bar-core &amp; waybar"</command>
           </action>
         </item>
       </menu>

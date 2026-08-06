@@ -96,12 +96,8 @@ pacstrapMain() {
   local -a nativeTools
   nativeTools=(
     /usr/lib/syn-os/syn-audio
-    /usr/lib/syn-os/syn-bar-cpu
-    /usr/lib/syn-os/syn-bar-disk
-    /usr/lib/syn-os/syn-bar-mem
-    /usr/lib/syn-os/syn-bar-ssh
-    /usr/lib/syn-os/syn-bar-vpn
-    /usr/lib/syn-os/syn-bar-window-title
+    /usr/lib/syn-os/syn-bar
+    /usr/lib/syn-os/syn-bar-core
     /usr/lib/syn-os/syn-crypter
     /usr/lib/syn-os/syn-iso-builder
     /usr/lib/syn-os/syn-relay
