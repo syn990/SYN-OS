@@ -12,4 +12,7 @@
 /* Forks and returns immediately — does not wait for playback. */
 void syn_bar_tone_play(double hz, double seconds);
 
+/* Same, but plays hz1 and hz2 simultaneously (DTMF-style dual tone). */
+void syn_bar_tone_play_dtmf(double hz1, double hz2, double seconds);
+
 #endif

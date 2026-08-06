@@ -109,24 +109,20 @@
   // types — those have no exec hook at all (they always read local
   // /proc internally, no way to redirect them), so making them relay
   // -aware required switching to the custom/* contract, same as
-  // custom/disk already was. syn-relay --stat-cpu/--stat-mem handle all
-  // three states themselves: real local /proc numbers when the stats
-  // client role has never been touched, a dead "--" indicator while
-  // active-but-not-yet-connected, and a remote machine's real stats
-  // once connected — see syn-relay-src's syn_node_state.h. Persistent
-  // "connected: <hostname>" / "no connection to remote host" label —
-  // the only always-visible (not hover-tooltip-only) indicator of
-  // relay state. Empty text/no bar space used at all when ABSENT
-  // (never touched). Also the module whose poll notices a dead remote
-  // and reflects that here, in case the remote died without a clean
-  // --disconnect. No automatic desktop theme swap on connect/disconnect
-  // — removed by request, connecting should not change how this
-  // machine looks, only what its bar/menu show.
+  // custom/disk already was. syn-bar-core handles all three states
+  // itself on the CPU/MEM/DISK verbs: real local /proc numbers when the
+  // stats client role has never been touched, a dead "--" indicator
+  // while active-but-not-yet-connected, and a remote machine's real
+  // stats once connected — see syn-bar-core-src's relay_cached_state.
+  // custom/relay-status is the persistent "connected: <hostname>" /
+  // "no connection to remote host" label — the only always-visible
+  // (not hover-tooltip-only) indicator of relay state. Empty text/no
+  // bar space used at all when ABSENT (never touched).
   "custom/relay-status": {
     "interval": 3,
     "return-type": "json",
     "format": "{}",
-    "exec": "/usr/lib/syn-os/syn-relay --stat-relay-status"
+    "exec": "/usr/lib/syn-os/syn-bar --relay-status"
   },
 
   // Server-role counterpart to custom/relay-status above: shows
@@ -138,7 +134,7 @@
     "interval": 5,
     "return-type": "json",
     "format": "{}",
-    "exec": "/usr/lib/syn-os/syn-relay --stat-serving"
+    "exec": "/usr/lib/syn-os/syn-bar --relay-serving"
   },
 
   // Screen-watch role counterpart: shows "watching: <ip>" while this
@@ -151,7 +147,7 @@
     "interval": 3,
     "return-type": "json",
     "format": "{}",
-    "exec": "/usr/lib/syn-os/syn-relay --stat-watching"
+    "exec": "/usr/lib/syn-os/syn-bar --agent-watching"
   },
 
   // Screen-host role counterpart: "agent: live" the moment this
@@ -165,7 +161,7 @@
     "interval": 5,
     "return-type": "json",
     "format": "{}",
-    "exec": "/usr/lib/syn-os/syn-relay --stat-agent"
+    "exec": "/usr/lib/syn-os/syn-bar --agent-serving"
   },
 
   "custom/cpu": {

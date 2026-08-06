@@ -1,10 +1,9 @@
 /* ------------------------------------------------------------------------
  *                            S Y N - B A R
  *
- *   Thin stub selected by flag (--cpu/--mem/--disk/--ssh/--vpn/
- *   --window-title): connects to syn-bar-core's socket, sends the
- *   matching verb, prints the reply, exits. --window-title stays
- *   connected and relays pushed lines instead (push, not poll).
+ *   Thin stub selected by flag: connects to syn-bar-core's socket,
+ *   sends the matching verb, prints the reply, exits. --window-title
+ *   stays connected and relays pushed lines instead (push, not poll).
  *   If syn-bar-core isn't running, prints nothing and exits quietly.
  *
  *   SYN-OS     : The Syntax Operating System
@@ -96,7 +95,8 @@ static int run_watch(const char *verb) {
 int main(int argc, char **argv) {
 	if (argc != 2) {
 		fprintf(stderr,
-			"usage: %s <--cpu|--mem|--disk|--ssh|--vpn|--window-title>\n",
+			"usage: %s <--cpu|--mem|--disk|--ssh|--vpn|--window-title|"
+			"--relay-status|--relay-serving|--agent-watching|--agent-serving>\n",
 			argv[0]);
 		return 1;
 	}
@@ -120,6 +120,18 @@ int main(int argc, char **argv) {
 	}
 	if (strcmp(flag, "--window-title") == 0) {
 		return run_watch("WATCH-WINDOW-TITLE");
+	}
+	if (strcmp(flag, "--relay-status") == 0) {
+		return run_request_reply("RELAY-STATUS");
+	}
+	if (strcmp(flag, "--relay-serving") == 0) {
+		return run_request_reply("RELAY-SERVING");
+	}
+	if (strcmp(flag, "--agent-watching") == 0) {
+		return run_request_reply("AGENT-WATCHING");
+	}
+	if (strcmp(flag, "--agent-serving") == 0) {
+		return run_request_reply("AGENT-SERVING");
 	}
 
 	fprintf(stderr, "syn-bar: unknown flag '%s'\n", flag);

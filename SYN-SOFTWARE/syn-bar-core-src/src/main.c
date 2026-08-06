@@ -24,10 +24,14 @@
 #include <sys/un.h>
 #include <sys/time.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
 #include <mntent.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <wayland-client.h>
 
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
@@ -49,6 +53,229 @@ struct toplevel {
 static struct toplevel *toplevels = NULL;
 static struct toplevel *active = NULL;
 static char *current_title = NULL;
+
+/* ---- SYN-RELAY interconnect ----------------------------------------
+ * Reads syn-relay's own $XDG_RUNTIME_DIR state files (same formats as
+ * syn_node_state.c/syn_agent_state.c/cmd_stats_server.c) — no changes
+ * to syn-relay itself. The client-state fetch is a real network round
+ * trip (up to 2s), so it runs on its own timer and caches the result;
+ * refresh_cpu/mem/disk and the RELAY-STATUS verb just read the cache. */
+#define RELAY_INTERVAL_MS 2000
+#define RELAY_PORT 47991
+#define RELAY_MAX_LINE 1024
+#define RELAY_REQUEST_TIMEOUT_SEC 2
+#define RELAY_CONNECT_TONE_HZ 1900.0
+#define RELAY_TONE_SECONDS 0.2
+/* DTMF-style dual tones, matching the digit pairs on a real telephone
+ * keypad — digit '0' for a clean disconnect, digit '1' for the remote
+ * going unreachable without one. */
+#define RELAY_DISCONNECT_DTMF_LOW 941.0
+#define RELAY_DISCONNECT_DTMF_HIGH 1336.0
+#define RELAY_FAIL_DTMF_LOW 697.0
+#define RELAY_FAIL_DTMF_HIGH 1209.0
+#define RELAY_DTMF_SECONDS 0.15
+
+typedef enum {
+	RELAY_STATE_ABSENT,
+	RELAY_STATE_ACTIVE,
+	RELAY_STATE_CONNECTED,
+} relay_state;
+
+static relay_state relay_cached_state = RELAY_STATE_ABSENT;
+static int relay_was_up = 0; /* CONNECTED-and-reachable, as of the last tick */
+static char relay_host[256] = "";
+static int relay_reachable = 0;
+static char relay_hostname[256] = "";
+static double relay_cpu_pct = 0.0;
+static unsigned long long relay_mem_used_kb = 0, relay_mem_total_kb = 0;
+static unsigned long long relay_disk_used_kb = 0, relay_disk_total_kb = 0;
+
+static void runtime_file_path(const char *filename, char *out, size_t out_size) {
+	const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
+	if (!runtime_dir) {
+		runtime_dir = "/tmp";
+	}
+	snprintf(out, out_size, "%s/%s", runtime_dir, filename);
+}
+
+static void strip_eol(char *s) {
+	size_t len = strlen(s);
+	while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r')) {
+		s[--len] = '\0';
+	}
+}
+
+static int pid_alive(long pid) {
+	return pid > 0 && kill((pid_t)pid, 0) == 0;
+}
+
+/* Reaps syn_bar_tone_play()'s outer fork — it returns immediately and
+ * doesn't wait, so without this its children would zombie once done. */
+static void handle_sigchld(int sig) {
+	(void)sig;
+	int saved_errno = errno;
+	while (waitpid(-1, NULL, WNOHANG) > 0) {
+	}
+	errno = saved_errno;
+}
+
+static relay_state relay_node_state_get(char *host_out, size_t host_out_size) {
+	if (host_out_size > 0) {
+		host_out[0] = '\0';
+	}
+	char path[512];
+	runtime_file_path("syn-relay.client-state", path, sizeof(path));
+
+	FILE *f = fopen(path, "r");
+	if (!f) {
+		return RELAY_STATE_ABSENT;
+	}
+	char line[256] = {0};
+	int has_line = fgets(line, sizeof(line), f) != NULL;
+	fclose(f);
+
+	if (!has_line) {
+		return RELAY_STATE_ACTIVE;
+	}
+	strip_eol(line);
+	if (line[0] == '\0') {
+		return RELAY_STATE_ACTIVE;
+	}
+	snprintf(host_out, host_out_size, "%s", line);
+	return RELAY_STATE_CONNECTED;
+}
+
+/* Same wire protocol as syn_relay_conn.c's syn_relay_request(): connect,
+ * write "STATS\n", read one JSON line back. */
+static int relay_fetch_stats(const char *host, char *reply, size_t reply_size) {
+	reply[0] = '\0';
+
+	struct addrinfo hints = {0};
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	char port_str[8];
+	snprintf(port_str, sizeof(port_str), "%d", RELAY_PORT);
+
+	struct addrinfo *res;
+	if (getaddrinfo(host, port_str, &hints, &res) != 0) {
+		return 0;
+	}
+
+	int fd = -1;
+	for (struct addrinfo *rp = res; rp; rp = rp->ai_next) {
+		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (fd < 0) {
+			continue;
+		}
+		struct timeval tv = {.tv_sec = RELAY_REQUEST_TIMEOUT_SEC, .tv_usec = 0};
+		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+		setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+		if (connect(fd, rp->ai_addr, rp->ai_addrlen) == 0) {
+			break;
+		}
+		close(fd);
+		fd = -1;
+	}
+	freeaddrinfo(res);
+	if (fd < 0) {
+		return 0;
+	}
+
+	const char *cmd = "STATS\n";
+	if (write(fd, cmd, strlen(cmd)) < 0) {
+		close(fd);
+		return 0;
+	}
+	ssize_t n = read(fd, reply, reply_size - 1);
+	close(fd);
+	if (n <= 0) {
+		return 0;
+	}
+	reply[n] = '\0';
+	strip_eol(reply);
+	return 1;
+}
+
+/* Hand-rolled, fixed-shape JSON field pull — matches syn_json_extract.c's
+ * own rationale (no JSON library for a protocol this repo controls both
+ * ends of). */
+static int relay_json_number(const char *json, const char *key, double *out) {
+	char pattern[64];
+	snprintf(pattern, sizeof(pattern), "\"%s\":", key);
+	const char *p = strstr(json, pattern);
+	if (!p) {
+		return 0;
+	}
+	p += strlen(pattern);
+	*out = strtod(p, NULL);
+	return 1;
+}
+
+static int relay_json_string(const char *json, const char *key, char *out, size_t out_size) {
+	char pattern[64];
+	snprintf(pattern, sizeof(pattern), "\"%s\":\"", key);
+	const char *p = strstr(json, pattern);
+	if (!p) {
+		return 0;
+	}
+	p += strlen(pattern);
+	size_t i = 0;
+	while (*p && *p != '"' && i < out_size - 1) {
+		out[i++] = *p++;
+	}
+	out[i] = '\0';
+	return 1;
+}
+
+static void refresh_relay(void) {
+	relay_cached_state = relay_node_state_get(relay_host, sizeof(relay_host));
+	relay_reachable = 0;
+
+	if (relay_cached_state != RELAY_STATE_CONNECTED) {
+		if (relay_was_up) {
+			syn_bar_tone_play_dtmf(RELAY_DISCONNECT_DTMF_LOW, RELAY_DISCONNECT_DTMF_HIGH,
+				RELAY_DTMF_SECONDS);
+		}
+		relay_was_up = 0;
+		return;
+	}
+
+	char reply[RELAY_MAX_LINE];
+	if (!relay_fetch_stats(relay_host, reply, sizeof(reply))) {
+		/* State file still says CONNECTED but the fetch failed — the
+		 * remote went unreachable without a clean --disconnect. Only
+		 * once per outage, not on every failed retry tick. */
+		if (relay_was_up) {
+			syn_bar_tone_play_dtmf(RELAY_FAIL_DTMF_LOW, RELAY_FAIL_DTMF_HIGH,
+				RELAY_DTMF_SECONDS);
+		}
+		relay_was_up = 0;
+		return;
+	}
+	relay_reachable = 1;
+	if (!relay_was_up) {
+		syn_bar_tone_play(RELAY_CONNECT_TONE_HZ, RELAY_TONE_SECONDS);
+	}
+	relay_was_up = 1;
+
+	double cpu = 0, mem_used = 0, mem_total = 0, disk_used = 0, disk_total = 0;
+	relay_json_number(reply, "cpu_pct", &cpu);
+	relay_json_number(reply, "mem_used_kb", &mem_used);
+	relay_json_number(reply, "mem_total_kb", &mem_total);
+	relay_json_number(reply, "disk_used_kb", &disk_used);
+	relay_json_number(reply, "disk_total_kb", &disk_total);
+	relay_cpu_pct = cpu;
+	relay_mem_used_kb = (unsigned long long)mem_used;
+	relay_mem_total_kb = (unsigned long long)mem_total;
+	relay_disk_used_kb = (unsigned long long)disk_used;
+	relay_disk_total_kb = (unsigned long long)disk_total;
+
+	if (!relay_json_string(reply, "hostname", relay_hostname, sizeof(relay_hostname)) ||
+			!relay_hostname[0]) {
+		snprintf(relay_hostname, sizeof(relay_hostname), "%s", relay_host);
+	}
+}
 
 /* ---- CPU ---------------------------------------------------------- */
 #define CPU_INTERVAL_MS 2000
@@ -104,6 +331,18 @@ static const char *threshold_class(double pct, double warning, double critical) 
 }
 
 static void refresh_cpu(void) {
+	if (relay_cached_state == RELAY_STATE_ACTIVE || (relay_cached_state == RELAY_STATE_CONNECTED && !relay_reachable)) {
+		snprintf(cpu_reply, sizeof(cpu_reply),
+			"{\"text\": \" --\", \"tooltip\": \"Relay client active, not connected\", \"class\": \"relay-waiting\"}\n");
+		return;
+	}
+	if (relay_cached_state == RELAY_STATE_CONNECTED) {
+		snprintf(cpu_reply, sizeof(cpu_reply),
+			"{\"text\": \" %.0f%% \", \"tooltip\": \"%s: CPU %.1f%%\", \"class\": \"relay-connected\"}\n",
+			relay_cpu_pct, relay_host, relay_cpu_pct);
+		return;
+	}
+
 	cpu_snapshot now;
 	read_cpu_snapshot(&now);
 
@@ -156,6 +395,19 @@ static void mem_kb(unsigned long long *used_kb, unsigned long long *total_kb) {
 }
 
 static void refresh_mem(void) {
+	if (relay_cached_state == RELAY_STATE_ACTIVE || (relay_cached_state == RELAY_STATE_CONNECTED && !relay_reachable)) {
+		snprintf(mem_reply, sizeof(mem_reply),
+			"{\"text\": \" --\", \"tooltip\": \"Relay client active, not connected\", \"class\": \"relay-waiting\"}\n");
+		return;
+	}
+	if (relay_cached_state == RELAY_STATE_CONNECTED) {
+		double pct = relay_mem_total_kb > 0 ? (double)relay_mem_used_kb * 100.0 / (double)relay_mem_total_kb : 0.0;
+		snprintf(mem_reply, sizeof(mem_reply),
+			"{\"text\": \" %.0f%% \", \"tooltip\": \"%s: RAM %.1fG / %.1fG\", \"class\": \"relay-connected\"}\n",
+			pct, relay_host, relay_mem_used_kb / 1048576.0, relay_mem_total_kb / 1048576.0);
+		return;
+	}
+
 	unsigned long long used_kb, total_kb;
 	mem_kb(&used_kb, &total_kb);
 	double pct = total_kb > 0 ? (double)used_kb * 100.0 / (double)total_kb : 0.0;
@@ -216,6 +468,19 @@ static void disk_human_size(unsigned long long bytes, char *out, size_t outlen) 
 }
 
 static void refresh_disk(void) {
+	if (relay_cached_state == RELAY_STATE_ACTIVE || (relay_cached_state == RELAY_STATE_CONNECTED && !relay_reachable)) {
+		snprintf(disk_reply, sizeof(disk_reply),
+			"{\"text\": \"DISK --\", \"tooltip\": \"Relay client active, not connected\", \"class\": \"relay-waiting\"}\n");
+		return;
+	}
+	if (relay_cached_state == RELAY_STATE_CONNECTED) {
+		snprintf(disk_reply, sizeof(disk_reply),
+			"{\"text\": \"%.1fG/%.1fG\", \"tooltip\": \"%s: %.1fG used of %.1fG\", \"class\": \"relay-connected\"}\n",
+			relay_disk_used_kb / 1048576.0, relay_disk_total_kb / 1048576.0,
+			relay_host, relay_disk_used_kb / 1048576.0, relay_disk_total_kb / 1048576.0);
+		return;
+	}
+
 	struct statvfs root_st;
 	if (statvfs("/", &root_st) != 0) {
 		snprintf(disk_reply, sizeof(disk_reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
@@ -597,6 +862,136 @@ static const struct wl_registry_listener registry_listener = {
 	.global_remove = (void (*)(void *, struct wl_registry *, uint32_t))handle_noop,
 };
 
+/* ---- SYN-RELAY status verbs -------------------------------------------
+ * RELAY-STATUS reads from refresh_relay()'s cache (a network fetch, too
+ * slow to do per-request). The other three are pure local file/PID
+ * reads — cheap enough to do inline, same as PING/TITLE. */
+
+static void write_relay_status(int fd) {
+	char reply[512];
+	if (relay_cached_state == RELAY_STATE_ABSENT) {
+		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
+	} else if (relay_cached_state == RELAY_STATE_ACTIVE || !relay_reachable) {
+		snprintf(reply, sizeof(reply),
+			"{\"text\": \" no connection to remote host\", \"tooltip\": \"%s\", \"class\": \"relay-waiting\"}\n",
+			relay_cached_state == RELAY_STATE_ACTIVE
+				? "Relay client active, not connected"
+				: "Lost connection to remote host");
+	} else {
+		snprintf(reply, sizeof(reply),
+			"{\"text\": \" connected: %s\", \"tooltip\": \"Connected to %s\", \"class\": \"relay-connected\"}\n",
+			relay_hostname, relay_host);
+	}
+	write(fd, reply, strlen(reply));
+}
+
+static void write_relay_serving(int fd) {
+	char pid_path[512];
+	runtime_file_path("syn-relay.server.pid", pid_path, sizeof(pid_path));
+	FILE *f = fopen(pid_path, "r");
+	long pid_val = 0;
+	int running = 0;
+	if (f) {
+		running = fscanf(f, "%ld", &pid_val) == 1 && pid_alive(pid_val);
+		fclose(f);
+	}
+
+	char reply[512];
+	if (!running) {
+		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
+		write(fd, reply, strlen(reply));
+		return;
+	}
+
+	char client_path[512];
+	runtime_file_path("syn-relay.server.last-client", client_path, sizeof(client_path));
+	char ip[256] = "";
+	time_t mtime = 0;
+	f = fopen(client_path, "r");
+	if (f) {
+		if (fgets(ip, sizeof(ip), f)) {
+			strip_eol(ip);
+		}
+		fclose(f);
+		struct stat st;
+		if (stat(client_path, &st) == 0) {
+			mtime = st.st_mtime;
+		}
+	}
+
+	int fresh = ip[0] && (time(NULL) - mtime <= 30);
+	if (fresh) {
+		snprintf(reply, sizeof(reply),
+			"{\"text\": \" serving: %s\", \"tooltip\": \"%s connected\", \"class\": \"relay-connected\"}\n", ip, ip);
+	} else {
+		snprintf(reply, sizeof(reply),
+			"{\"text\": \" serving (idle)\", \"tooltip\": \"syn-relay server role running, no client connected\", \"class\": \"relay-waiting\"}\n");
+	}
+	write(fd, reply, strlen(reply));
+}
+
+static void write_agent_watching(int fd) {
+	char pid_path[512], host_path[512];
+	runtime_file_path("syn-relay.watch.pid", pid_path, sizeof(pid_path));
+	runtime_file_path("syn-relay.watch.host", host_path, sizeof(host_path));
+
+	FILE *f = fopen(pid_path, "r");
+	long pid_val = 0;
+	char reply[512];
+	if (!f || fscanf(f, "%ld", &pid_val) != 1 || !pid_alive(pid_val)) {
+		if (f) fclose(f);
+		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
+		write(fd, reply, strlen(reply));
+		return;
+	}
+	fclose(f);
+
+	char host[256] = "";
+	f = fopen(host_path, "r");
+	if (f) {
+		if (fgets(host, sizeof(host), f)) {
+			strip_eol(host);
+		}
+		fclose(f);
+	}
+	snprintf(reply, sizeof(reply),
+		"{\"text\": \" watching: %s\", \"tooltip\": \"SYN-RELAY watching %s\", \"class\": \"agent-watching\"}\n",
+		host, host);
+	write(fd, reply, strlen(reply));
+}
+
+static void write_agent_serving(int fd) {
+	char pid_path[512];
+	runtime_file_path("syn-relay.host.pid", pid_path, sizeof(pid_path));
+
+	FILE *f = fopen(pid_path, "r");
+	long video_val = 0, input_val = 0;
+	char reply[512];
+	if (!f || fscanf(f, "%ld %ld", &video_val, &input_val) != 2 ||
+			!pid_alive(video_val) || !pid_alive(input_val)) {
+		if (f) fclose(f);
+		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
+		write(fd, reply, strlen(reply));
+		return;
+	}
+	fclose(f);
+
+	char viewer_path[512];
+	runtime_file_path("syn-relay.host.viewer", viewer_path, sizeof(viewer_path));
+	char viewer[256] = "";
+	f = fopen(viewer_path, "r");
+	if (f) {
+		if (fgets(viewer, sizeof(viewer), f)) {
+			strip_eol(viewer);
+		}
+		fclose(f);
+	}
+	snprintf(reply, sizeof(reply),
+		"{\"text\": \" agent: live\", \"tooltip\": \"SYN-RELAY streaming to %s\", \"class\": \"agent-live\"}\n",
+		viewer);
+	write(fd, reply, strlen(reply));
+}
+
 /* ---- Unix socket ------------------------------------------------------ */
 
 static void socket_path(char *out, size_t out_size) {
@@ -693,6 +1088,18 @@ static void handle_one_client(int listen_fd) {
 	} else if (strncmp(request, "SSH", 3) == 0) {
 		write(client_fd, ssh_reply, strlen(ssh_reply));
 		close(client_fd);
+	} else if (strncmp(request, "RELAY-STATUS", 12) == 0) {
+		write_relay_status(client_fd);
+		close(client_fd);
+	} else if (strncmp(request, "RELAY-SERVING", 13) == 0) {
+		write_relay_serving(client_fd);
+		close(client_fd);
+	} else if (strncmp(request, "AGENT-WATCHING", 14) == 0) {
+		write_agent_watching(client_fd);
+		close(client_fd);
+	} else if (strncmp(request, "AGENT-SERVING", 13) == 0) {
+		write_agent_serving(client_fd);
+		close(client_fd);
 	} else {
 		const char *reply = "{}\n";
 		write(client_fd, reply, strlen(reply));
@@ -701,6 +1108,11 @@ static void handle_one_client(int listen_fd) {
 }
 
 int main(void) {
+	struct sigaction sa = {0};
+	sa.sa_handler = handle_sigchld;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGCHLD, &sa, NULL);
+
 	struct wl_display *display = wl_display_connect(NULL);
 	if (!display) {
 		fprintf(stderr, "syn-bar-core: cannot connect to Wayland display\n");
@@ -726,6 +1138,7 @@ int main(void) {
 	int wayland_fd = wl_display_get_fd(display);
 
 	syn_bar_timer timers[] = {
+		{.interval_ms = RELAY_INTERVAL_MS, .refresh = refresh_relay},
 		{.interval_ms = CPU_INTERVAL_MS, .refresh = refresh_cpu},
 		{.interval_ms = MEM_INTERVAL_MS, .refresh = refresh_mem},
 		{.interval_ms = DISK_INTERVAL_MS, .refresh = refresh_disk},
