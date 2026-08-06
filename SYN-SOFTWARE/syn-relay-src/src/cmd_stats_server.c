@@ -304,7 +304,18 @@ static int open_listen_socket(void) {
  * "a live, correct pid" — never a half-written one. */
 static int run_server(int listen_fd) {
 	signal(SIGCHLD, SIG_IGN); /* reap forked LAUNCH_APP children automatically */
-	signal(SIGTERM, handle_sigterm);
+
+	/* signal() on glibc/Linux installs SIGTERM with implicit SA_RESTART
+	 * (BSD semantics), which silently restarts the blocked accept()
+	 * below instead of interrupting it — --stop's SIGTERM would then
+	 * never be noticed until the next inbound connection wakes accept()
+	 * up on its own. sigaction() with sa_flags=0 is required to actually
+	 * get EINTR out of it. */
+	struct sigaction sa = {0};
+	sa.sa_handler = handle_sigterm;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGTERM, &sa, NULL);
 
 	char pid_path[512];
 	pid_file_path(pid_path, sizeof(pid_path));
@@ -403,8 +414,22 @@ int cmd_server_stop(void) {
 		perror("syn-relay: kill");
 		return 1;
 	}
-	printf("Stopped (pid %d)\n", pid);
-	return 0;
+
+	/* kill() succeeding only means the signal was delivered, not that
+	 * the process has actually exited yet — confirm it's really gone
+	 * before reporting success, rather than printing "Stopped" for a
+	 * process that's still alive a moment later. */
+	for (int i = 0; i < 20; i++) {
+		if (kill(pid, 0) != 0) {
+			printf("Stopped (pid %d)\n", pid);
+			return 0;
+		}
+		struct timespec wait = {.tv_sec = 0, .tv_nsec = 100000000L};
+		nanosleep(&wait, NULL);
+	}
+
+	fprintf(stderr, "syn-relay: sent SIGTERM to pid %d but it's still running after 2s\n", pid);
+	return 1;
 }
 
 int cmd_server_status(void) {

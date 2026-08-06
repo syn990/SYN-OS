@@ -279,8 +279,17 @@ static int capture_one_frame(struct capture_state *st) {
 
 /* Runs entirely in the video-send child. dest_url is udp://<viewer-ip>:<port>. */
 static int run_video_child(const char *dest_url) {
-	signal(SIGINT, handle_video_signal);
-	signal(SIGTERM, handle_video_signal);
+	/* signal()'s implicit SA_RESTART on glibc/Linux would silently
+	 * restart the blocked wl_display_dispatch() in capture_one_frame()
+	 * instead of interrupting it, so --stop-hosting's SIGTERM wouldn't
+	 * be noticed until the next Wayland event arrives on its own —
+	 * sigaction() with sa_flags=0 is required to actually get EINTR. */
+	struct sigaction sa = {0};
+	sa.sa_handler = handle_video_signal;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
 
 	struct capture_state st;
 	memset(&st, 0, sizeof(st));
@@ -573,8 +582,14 @@ static uint32_t now_ms(void) {
  * normalized 0..65535 coordinates back to real pixel positions —
  * auto-detected by the caller via wlr-randr before forking. */
 static int run_input_child(int listen_port, uint32_t screen_width, uint32_t screen_height) {
-	signal(SIGINT, handle_input_signal);
-	signal(SIGTERM, handle_input_signal);
+	/* Same SA_RESTART trap as run_video_child() above — the blocking
+	 * recv() below needs a real EINTR to notice --stop-hosting. */
+	struct sigaction sa = {0};
+	sa.sa_handler = handle_input_signal;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
 
 	struct injector_state st;
 	memset(&st, 0, sizeof(st));
