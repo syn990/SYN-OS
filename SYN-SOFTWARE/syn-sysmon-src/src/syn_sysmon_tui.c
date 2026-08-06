@@ -199,6 +199,10 @@ static int run_cpu_view(void) {
 			mvprintw(5, 2, "Aggregate");
 			attroff(A_BOLD);
 			draw_bar(5, 14, bar_width, remote.total_pct);
+			/* Keep prev fresh while showing remote so the first local
+			 * reading after switching back isn't diffed against a
+			 * snapshot that's been stale for the whole remote session. */
+			syn_stats_cpu_read(&prev);
 		} else {
 			syn_stats_cpu_read(&cur);
 			double total_pct = syn_stats_cpu_usage(&prev, &cur, -1);
