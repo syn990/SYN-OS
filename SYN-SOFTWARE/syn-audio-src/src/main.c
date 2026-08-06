@@ -42,12 +42,15 @@ static void print_usage(const char *argv0) {
 		argv0, argv0, argv0, argv0, argv0, argv0);
 }
 
+/* default and muted are independent — a device can be both at once, so
+ * each gets its own field rather than one collapsed state string. */
 static void print_device_list(const syn_pulse_device *devices, int count) {
 	for (int i = 0; i < count && i < MAX_DEVICES; i++) {
 		const syn_pulse_device *d = &devices[i];
-		printf("%u\t%s\t%s\t%s\t%d%%\n",
+		printf("%u\t%s\t%s\t%s\t%s\t%d%%\n",
 			d->index, d->name, d->description,
-			d->muted ? "muted" : (d->is_default ? "default" : "-"),
+			d->is_default ? "default" : "-",
+			d->muted ? "muted" : "-",
 			d->volume_pct);
 	}
 }
