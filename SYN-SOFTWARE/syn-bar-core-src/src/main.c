@@ -36,6 +36,7 @@
 
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
 #include "syn_bar_tone.h"
+#include "syn_stats.h"
 
 typedef struct {
 	struct timespec next_due;
@@ -280,33 +281,10 @@ static void refresh_relay(void) {
 /* ---- CPU ---------------------------------------------------------- */
 #define CPU_INTERVAL_MS 2000
 
-typedef struct {
-	unsigned long long idle, total;
-} cpu_snapshot;
-
-static cpu_snapshot cpu_prev = {0, 0};
+static syn_cpu_snapshot cpu_prev, cpu_cur;
 static int cpu_prev_valid = 0;
 static char cpu_reply[512] = "{\"text\": \"\", \"tooltip\": \"\"}\n";
-
-static void read_cpu_snapshot(cpu_snapshot *out) {
-	out->idle = 0;
-	out->total = 0;
-
-	FILE *f = fopen("/proc/stat", "r");
-	if (!f) {
-		return;
-	}
-	char line[256];
-	if (fgets(line, sizeof(line), f)) {
-		unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
-		if (sscanf(line, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-			&user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8) {
-			out->idle = idle + iowait;
-			out->total = out->idle + user + nice + system + irq + softirq + steal;
-		}
-	}
-	fclose(f);
-}
+static char sysmon_cpu_reply[2048] = "{}\n";
 
 static void cpu_load_avg(double *one, double *five, double *fifteen) {
 	*one = *five = *fifteen = 0.0;
@@ -334,27 +312,27 @@ static void refresh_cpu(void) {
 	if (relay_cached_state == RELAY_STATE_ACTIVE || (relay_cached_state == RELAY_STATE_CONNECTED && !relay_reachable)) {
 		snprintf(cpu_reply, sizeof(cpu_reply),
 			"{\"text\": \" --\", \"tooltip\": \"Relay client active, not connected\", \"class\": \"relay-waiting\"}\n");
+		snprintf(sysmon_cpu_reply, sizeof(sysmon_cpu_reply),
+			"{\"source\": \"waiting\"}\n");
 		return;
 	}
 	if (relay_cached_state == RELAY_STATE_CONNECTED) {
 		snprintf(cpu_reply, sizeof(cpu_reply),
 			"{\"text\": \" %.0f%% \", \"tooltip\": \"%s: CPU %.1f%%\", \"class\": \"relay-connected\"}\n",
 			relay_cpu_pct, relay_host, relay_cpu_pct);
+		snprintf(sysmon_cpu_reply, sizeof(sysmon_cpu_reply),
+			"{\"source\": \"remote\", \"host\": \"%s\", \"total_pct\": %.2f}\n",
+			relay_hostname, relay_cpu_pct);
 		return;
 	}
 
-	cpu_snapshot now;
-	read_cpu_snapshot(&now);
+	cpu_prev = cpu_cur;
+	syn_stats_cpu_read(&cpu_cur);
 
 	double pct = 0.0;
-	if (cpu_prev_valid && now.total > cpu_prev.total) {
-		unsigned long long total_delta = now.total - cpu_prev.total;
-		unsigned long long idle_delta = now.idle - cpu_prev.idle;
-		if (idle_delta <= total_delta) {
-			pct = (double)(total_delta - idle_delta) * 100.0 / (double)total_delta;
-		}
+	if (cpu_prev_valid) {
+		pct = syn_stats_cpu_usage(&cpu_prev, &cpu_cur, -1);
 	}
-	cpu_prev = now;
 	cpu_prev_valid = 1;
 
 	double one, five, fifteen;
@@ -363,41 +341,29 @@ static void refresh_cpu(void) {
 	snprintf(cpu_reply, sizeof(cpu_reply),
 		"{\"text\": \" %.0f%% \", \"tooltip\": \"Load average: %.2f %.2f %.2f\", \"class\": \"%s\"}\n",
 		pct, one, five, fifteen, threshold_class(pct, 70.0, 90.0));
+
+	size_t pos = (size_t)snprintf(sysmon_cpu_reply, sizeof(sysmon_cpu_reply),
+		"{\"source\": \"local\", \"total_pct\": %.2f, \"load1\": %.2f, \"load5\": %.2f, \"load15\": %.2f, \"cores\": [",
+		pct, one, five, fifteen);
+	for (int i = 0; i < cpu_cur.core_count && pos < sizeof(sysmon_cpu_reply); i++) {
+		double core_pct = cpu_prev_valid ? syn_stats_cpu_usage(&cpu_prev, &cpu_cur, i) : 0.0;
+		pos += (size_t)snprintf(sysmon_cpu_reply + pos, sizeof(sysmon_cpu_reply) - pos,
+			"%s%.2f", i > 0 ? ", " : "", core_pct);
+	}
+	snprintf(sysmon_cpu_reply + pos, sizeof(sysmon_cpu_reply) - pos, "]}\n");
 }
 
 /* ---- MEM ---------------------------------------------------------- */
 #define MEM_INTERVAL_MS 5000
 
 static char mem_reply[512] = "{\"text\": \"\", \"tooltip\": \"\"}\n";
-
-static void mem_kb(unsigned long long *used_kb, unsigned long long *total_kb) {
-	*used_kb = 0;
-	*total_kb = 0;
-
-	FILE *f = fopen("/proc/meminfo", "r");
-	if (!f) {
-		return;
-	}
-
-	unsigned long long total = 0, available = 0;
-	char line[256];
-	while (fgets(line, sizeof(line), f)) {
-		if (strncmp(line, "MemTotal:", 9) == 0) {
-			sscanf(line + 9, "%llu", &total);
-		} else if (strncmp(line, "MemAvailable:", 13) == 0) {
-			sscanf(line + 13, "%llu", &available);
-		}
-	}
-	fclose(f);
-
-	*total_kb = total;
-	*used_kb = total > available ? total - available : 0;
-}
+static char sysmon_mem_reply[512] = "{}\n";
 
 static void refresh_mem(void) {
 	if (relay_cached_state == RELAY_STATE_ACTIVE || (relay_cached_state == RELAY_STATE_CONNECTED && !relay_reachable)) {
 		snprintf(mem_reply, sizeof(mem_reply),
 			"{\"text\": \" --\", \"tooltip\": \"Relay client active, not connected\", \"class\": \"relay-waiting\"}\n");
+		snprintf(sysmon_mem_reply, sizeof(sysmon_mem_reply), "{\"source\": \"waiting\"}\n");
 		return;
 	}
 	if (relay_cached_state == RELAY_STATE_CONNECTED) {
@@ -405,16 +371,26 @@ static void refresh_mem(void) {
 		snprintf(mem_reply, sizeof(mem_reply),
 			"{\"text\": \" %.0f%% \", \"tooltip\": \"%s: RAM %.1fG / %.1fG\", \"class\": \"relay-connected\"}\n",
 			pct, relay_host, relay_mem_used_kb / 1048576.0, relay_mem_total_kb / 1048576.0);
+		snprintf(sysmon_mem_reply, sizeof(sysmon_mem_reply),
+			"{\"source\": \"remote\", \"host\": \"%s\", \"total_kb\": %llu, \"used_kb\": %llu}\n",
+			relay_hostname, relay_mem_total_kb, relay_mem_used_kb);
 		return;
 	}
 
-	unsigned long long used_kb, total_kb;
-	mem_kb(&used_kb, &total_kb);
-	double pct = total_kb > 0 ? (double)used_kb * 100.0 / (double)total_kb : 0.0;
+	syn_mem_snapshot mem;
+	syn_stats_mem_read(&mem);
+	unsigned long long used_kb = mem.total_kb > mem.available_kb ? mem.total_kb - mem.available_kb : 0;
+	double pct = mem.total_kb > 0 ? (double)used_kb * 100.0 / (double)mem.total_kb : 0.0;
 
 	snprintf(mem_reply, sizeof(mem_reply),
 		"{\"text\": \" %.0f%% \", \"tooltip\": \"RAM: %.1fG / %.1fG\", \"class\": \"%s\"}\n",
-		pct, used_kb / 1048576.0, total_kb / 1048576.0, threshold_class(pct, 75.0, 90.0));
+		pct, used_kb / 1048576.0, mem.total_kb / 1048576.0, threshold_class(pct, 75.0, 90.0));
+
+	snprintf(sysmon_mem_reply, sizeof(sysmon_mem_reply),
+		"{\"source\": \"local\", \"total_kb\": %llu, \"free_kb\": %llu, \"available_kb\": %llu, "
+		"\"buffers_kb\": %llu, \"cached_kb\": %llu, \"swap_total_kb\": %llu, \"swap_free_kb\": %llu}\n",
+		mem.total_kb, mem.free_kb, mem.available_kb, mem.buffers_kb, mem.cached_kb,
+		mem.swap_total_kb, mem.swap_free_kb);
 }
 
 /* ---- DISK --------------------------------------------------------- */
@@ -1099,6 +1075,12 @@ static void handle_one_client(int listen_fd) {
 		close(client_fd);
 	} else if (strncmp(request, "AGENT-SERVING", 13) == 0) {
 		write_agent_serving(client_fd);
+		close(client_fd);
+	} else if (strncmp(request, "SYSMON-CPU", 10) == 0) {
+		write(client_fd, sysmon_cpu_reply, strlen(sysmon_cpu_reply));
+		close(client_fd);
+	} else if (strncmp(request, "SYSMON-MEM", 10) == 0) {
+		write(client_fd, sysmon_mem_reply, strlen(sysmon_mem_reply));
 		close(client_fd);
 	} else {
 		const char *reply = "{}\n";

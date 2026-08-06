@@ -31,9 +31,15 @@ add_custom_command(OUTPUT ${PROTOCOL_SOURCE}
   COMMAND ${WAYLAND_SCANNER} private-code ${PROTOCOL_XML} ${PROTOCOL_SOURCE}
   DEPENDS ${PROTOCOL_XML})
 
+# syn_stats.c/.h (per-core CPU + full meminfo readers) reused as-is from
+# syn-sysmon-src rather than duplicated — same sibling-source reuse
+# syn-wifi-src/syn-sysmon-src already make for syn_theme.c.
+set(SYSMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-sysmon-src/src)
+
 add_executable(syn-bar-core
   src/main.c
   src/syn_bar_tone.c
+  ${SYSMON_SRC}/syn_stats.c
   ${PROTOCOL_SOURCE}
   ${PROTOCOL_HEADER}
 )
@@ -41,6 +47,7 @@ add_executable(syn-bar-core
 target_include_directories(syn-bar-core PRIVATE
   ${CMAKE_BINARY_DIR}
   ${WAYLAND_CLIENT_INCLUDE_DIRS}
+  ${SYSMON_SRC}
 )
 target_link_libraries(syn-bar-core PRIVATE ${WAYLAND_CLIENT_LIBRARIES} m)
 

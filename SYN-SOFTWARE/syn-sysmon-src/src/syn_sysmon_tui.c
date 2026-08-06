@@ -8,6 +8,7 @@
 #include "syn_stats.h"
 #include "syn_journal.h"
 #include "syn_theme.h"
+#include "syn_bar_client.h"
 
 #include <ncurses.h>
 #include <string.h>
@@ -152,6 +153,22 @@ static void draw_bar(int row, int col, int width, double pct) {
 	mvprintw(row, label_col, "%s", pct_label);
 }
 
+/* Row 3 (below the header's key-hints line): "LOCAL" when syn-bar-core
+ * is unreachable or not relay-connected, "REMOTE: <host>" when it's
+ * handing back a connected SYN-RELAY node's stats, or a waiting note
+ * while relay is active but not yet connected. */
+static void draw_source_row(syn_bar_source source, const char *host) {
+	attron(COLOR_PAIR(SYN_THEME_PAIR_DIM));
+	if (source == SYN_BAR_SOURCE_REMOTE) {
+		mvprintw(3, 2, "REMOTE: %s", host);
+	} else if (source == SYN_BAR_SOURCE_WAITING) {
+		mvprintw(3, 2, "SYN-RELAY active, not connected — showing local stats");
+	} else {
+		mvprintw(3, 2, "LOCAL");
+	}
+	attroff(COLOR_PAIR(SYN_THEME_PAIR_DIM));
+}
+
 static int run_cpu_view(void) {
 	syn_cpu_snapshot prev, cur;
 	syn_stats_cpu_read(&prev);
@@ -166,30 +183,41 @@ static int run_cpu_view(void) {
 		}
 		handle_tick_keys(ch);
 
-		syn_stats_cpu_read(&cur);
+		syn_bar_cpu_reply remote;
+		bool have_remote = syn_bar_client_cpu(&remote)
+			&& remote.source == SYN_BAR_SOURCE_REMOTE;
 
 		erase();
 		draw_header(SYN_SYSMON_VIEW_CPU);
+		draw_source_row(have_remote ? SYN_BAR_SOURCE_REMOTE : SYN_BAR_SOURCE_LOCAL, remote.host);
 
 		int width = getmaxx(stdscr);
 		int bar_width = width > 40 ? width - 20 : 20;
 
-		double total_pct = syn_stats_cpu_usage(&prev, &cur, -1);
-		attron(A_BOLD);
-		mvprintw(4, 2, "Aggregate");
-		attroff(A_BOLD);
-		draw_bar(4, 14, bar_width, total_pct);
+		if (have_remote) {
+			attron(A_BOLD);
+			mvprintw(5, 2, "Aggregate");
+			attroff(A_BOLD);
+			draw_bar(5, 14, bar_width, remote.total_pct);
+		} else {
+			syn_stats_cpu_read(&cur);
+			double total_pct = syn_stats_cpu_usage(&prev, &cur, -1);
+			attron(A_BOLD);
+			mvprintw(5, 2, "Aggregate");
+			attroff(A_BOLD);
+			draw_bar(5, 14, bar_width, total_pct);
 
-		int row = 6;
-		for (int i = 0; i < cur.core_count && row < getmaxy(stdscr) - 1; i++) {
-			double pct = syn_stats_cpu_usage(&prev, &cur, i);
-			mvprintw(row, 2, "core%-2d", i);
-			draw_bar(row, 14, bar_width, pct);
-			row++;
+			int row = 7;
+			for (int i = 0; i < cur.core_count && row < getmaxy(stdscr) - 1; i++) {
+				double pct = syn_stats_cpu_usage(&prev, &cur, i);
+				mvprintw(row, 2, "core%-2d", i);
+				draw_bar(row, 14, bar_width, pct);
+				row++;
+			}
+			prev = cur;
 		}
 
 		refresh();
-		prev = cur;
 	}
 }
 
@@ -208,38 +236,55 @@ static int run_mem_view(void) {
 		}
 		handle_tick_keys(ch);
 
-		syn_mem_snapshot mem;
-		syn_stats_mem_read(&mem);
+		syn_bar_mem_reply remote;
+		bool have_remote = syn_bar_client_mem(&remote)
+			&& remote.source == SYN_BAR_SOURCE_REMOTE;
 
 		erase();
 		draw_header(SYN_SYSMON_VIEW_MEM);
-
-		unsigned long long used_kb = mem.total_kb > mem.available_kb ? mem.total_kb - mem.available_kb : 0;
-		double used_pct = mem.total_kb ? (double)used_kb * 100.0 / (double)mem.total_kb : 0.0;
+		draw_source_row(have_remote ? SYN_BAR_SOURCE_REMOTE : SYN_BAR_SOURCE_LOCAL, remote.host);
 
 		int width = getmaxx(stdscr);
 		int bar_width = width > 40 ? width - 20 : 20;
-		attron(A_BOLD);
-		mvprintw(4, 2, "RAM used");
-		attroff(A_BOLD);
-		draw_bar(4, 14, bar_width, used_pct);
 
-		draw_kb_row(6, "Total", mem.total_kb);
-		draw_kb_row(7, "Used", used_kb);
-		draw_kb_row(8, "Available", mem.available_kb);
-		draw_kb_row(9, "Cached", mem.cached_kb);
-		draw_kb_row(10, "Buffers", mem.buffers_kb);
-
-		if (mem.swap_total_kb > 0) {
-			unsigned long long swap_used = mem.swap_total_kb > mem.swap_free_kb ? mem.swap_total_kb - mem.swap_free_kb : 0;
-			double swap_pct = (double)swap_used * 100.0 / (double)mem.swap_total_kb;
+		if (have_remote) {
+			double used_pct = remote.total_kb ? (double)remote.used_kb * 100.0 / (double)remote.total_kb : 0.0;
 			attron(A_BOLD);
-			mvprintw(12, 2, "Swap used");
+			mvprintw(5, 2, "RAM used");
 			attroff(A_BOLD);
-			draw_bar(12, 14, bar_width, swap_pct);
-			draw_kb_row(14, "Swap total", mem.swap_total_kb);
+			draw_bar(5, 14, bar_width, used_pct);
+
+			draw_kb_row(7, "Total", remote.total_kb);
+			draw_kb_row(8, "Used", remote.used_kb);
 		} else {
-			mvprintw(12, 2, "No swap configured");
+			syn_mem_snapshot mem;
+			syn_stats_mem_read(&mem);
+
+			unsigned long long used_kb = mem.total_kb > mem.available_kb ? mem.total_kb - mem.available_kb : 0;
+			double used_pct = mem.total_kb ? (double)used_kb * 100.0 / (double)mem.total_kb : 0.0;
+
+			attron(A_BOLD);
+			mvprintw(5, 2, "RAM used");
+			attroff(A_BOLD);
+			draw_bar(5, 14, bar_width, used_pct);
+
+			draw_kb_row(7, "Total", mem.total_kb);
+			draw_kb_row(8, "Used", used_kb);
+			draw_kb_row(9, "Available", mem.available_kb);
+			draw_kb_row(10, "Cached", mem.cached_kb);
+			draw_kb_row(11, "Buffers", mem.buffers_kb);
+
+			if (mem.swap_total_kb > 0) {
+				unsigned long long swap_used = mem.swap_total_kb > mem.swap_free_kb ? mem.swap_total_kb - mem.swap_free_kb : 0;
+				double swap_pct = (double)swap_used * 100.0 / (double)mem.swap_total_kb;
+				attron(A_BOLD);
+				mvprintw(13, 2, "Swap used");
+				attroff(A_BOLD);
+				draw_bar(13, 14, bar_width, swap_pct);
+				draw_kb_row(15, "Swap total", mem.swap_total_kb);
+			} else {
+				mvprintw(13, 2, "No swap configured");
+			}
 		}
 
 		refresh();

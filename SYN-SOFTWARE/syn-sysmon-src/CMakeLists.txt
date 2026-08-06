@@ -24,6 +24,7 @@ add_executable(syn-sysmon
   src/syn_stats.c
   src/syn_journal.c
   src/syn_sysmon_tui.c
+  src/syn_bar_client.c
   ${CRYPTER_SRC}/syn_theme.c
 )
 
