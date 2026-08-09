@@ -104,6 +104,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-connect
     /usr/lib/syn-os/syn-sysmon
     /usr/lib/syn-os/syn-wallgen
+    /usr/lib/syn-os/syn-uplink-dialpad
     "/usr/bin/syn-filemanager:/usr/share/applications/syn-filemanager.desktop"
   )
   for entry in "${nativeTools[@]}"; do
