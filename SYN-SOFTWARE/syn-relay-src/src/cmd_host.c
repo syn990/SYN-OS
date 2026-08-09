@@ -16,9 +16,10 @@
  *   cmd_host_start() daemonizes the whole pair (fork+setsid+background,
  *   matching cmd_stats_server.c's --start pattern), tracks both child
  *   PIDs via syn_agent_state.h, and prompts for the viewer's IP via
- *   rofi when called with none — stream_send is a UDP sender, it needs
- *   a real destination; no pairing/discovery exists yet to learn this
- *   automatically (trusted-LAN-only posture, matching the stats roles).
+ *   syn-uplink-dialpad when called with none — stream_send is a UDP
+ *   sender, it needs a real destination; no pairing/discovery exists yet
+ *   to learn this automatically (trusted-LAN-only posture, matching the
+ *   stats roles).
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-RELAY (screen host role)
@@ -31,7 +32,7 @@
 #include "wlr-virtual-pointer-unstable-v1-client-protocol.h"
 #include "input_protocol.h"
 #include "syn_agent_state.h"
-#include "syn_rofi_prompt.h"
+#include "syn_dialpad_prompt.h"
 
 #include <wayland-client.h>
 
@@ -709,7 +710,7 @@ int cmd_host_start(const char *viewer_ip_arg) {
 	char prompted[256];
 	const char *viewer_ip = viewer_ip_arg;
 	if (!viewer_ip || !viewer_ip[0]) {
-		if (!syn_rofi_prompt("Allow which machine to watch/control this one (IP):", prompted, sizeof(prompted))) {
+		if (!syn_dialpad_prompt("Allow which machine to watch/control this one (IP):", prompted, sizeof(prompted))) {
 			return 0; /* cancelled */
 		}
 		viewer_ip = prompted;

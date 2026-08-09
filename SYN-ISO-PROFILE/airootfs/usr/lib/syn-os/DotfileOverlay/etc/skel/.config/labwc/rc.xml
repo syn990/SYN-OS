@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- ==============================================================================
+                              S Y N - O S   R C
+
+     LabWC compositor config: theme, window rules, desktops, mouse and
+     keyboard bindings.
+
+     SYN-OS     : The Syntax Operating System
+     Component  : RC (LabWC)
+     Author     : William Hayward-Holland (Syntax990)
+     License    : MIT License
+     ============================================================================== -->
 <labwc_config>
 
   <theme>
@@ -45,6 +56,13 @@
     </windowRule>
     <windowRule title="SYN-OS Docs: *" serverDecoration="yes">
       <action name="ResizeTo" width="900" height="650" />
+    </windowRule>
+    <!-- syn-uplink-dialpad is a native Wayland client (xdg-shell, no
+         terminal involved) that sizes its own window to its content via
+         xdg_toplevel_set_min/max_size, so no ResizeTo is needed here —
+         just undecorated + centered, same as syn-os-popup. -->
+    <windowRule identifier="syn-uplink-dialpad" serverDecoration="no">
+      <action name="AutoPlace" policy="center" />
     </windowRule>
   </windowRules>
 

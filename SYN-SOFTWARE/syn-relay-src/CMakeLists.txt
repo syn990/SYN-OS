@@ -24,8 +24,10 @@ add_executable(syn-relay
   src/cmd_stats_server.c
   src/cmd_watch.c
   src/cmd_host.c
-  src/syn_rofi_prompt.c
+  src/cmd_stream_app.c
+  src/syn_dialpad_prompt.c
   src/syn_relay_conn.c
+  src/syn_ssh_resolve.c
   src/syn_node_state.c
   src/syn_json_extract.c
   src/syn_local_stats.c
@@ -35,6 +37,7 @@ add_executable(syn-relay
   src/syn_sunshine.c
   src/syn_apps.c
   src/syn_agent_state.c
+  src/syn_bar_notify.c
   protocol/ext-image-capture-source-v1-protocol.c
   protocol/ext-image-copy-capture-v1-protocol.c
   protocol/ext-foreign-toplevel-list-v1-protocol.c

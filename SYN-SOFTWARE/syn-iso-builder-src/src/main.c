@@ -50,25 +50,41 @@
  * single root process structurally can't have. Re-exec under doas here
  * rather than just erroring, so launching this directly (double-click,
  * right-click menu, plain terminal) always works without the caller
- * needing to remember to prefix doas themselves. */
+ * needing to remember to prefix doas themselves.
+ *
+ * Goes through syn-uplink-dialpad's --exec mode rather than a bare
+ * `execvp("doas", ...)` so the password is collected via the themed
+ * graphical prompt (matching syn_tui_modal.h's original, never-wired-up
+ * intent for this exact popup) instead of doas's raw /dev/tty text
+ * prompt. syn-uplink-dialpad still needs a real controlling terminal to
+ * relay this program's own ncurses session through once authenticated
+ * — this call site has one (we're still pre-syn_tui_init(), running in
+ * whatever terminal launched us, e.g. menu.xml's foot -e wrapper), so
+ * the handoff works exactly as if doas's own prompt had been answered
+ * directly in that same terminal. */
 static void reexec_as_root_if_needed(int argc, char **argv) {
 	if (geteuid() == 0) {
 		return;
 	}
 
-	char **new_argv = malloc(sizeof(char *) * (size_t)(argc + 2));
+	/* {"/usr/lib/syn-os/syn-uplink-dialpad", "--exec", "--", "doas",
+	 *  argv[0], argv[1..], NULL} */
+	char **new_argv = malloc(sizeof(char *) * (size_t)(argc + 5));
 	if (!new_argv) {
 		fprintf(stderr, "syn-iso-builder: out of memory re-execing under doas.\n");
 		exit(1);
 	}
-	new_argv[0] = "doas";
-	new_argv[1] = argv[0];
+	new_argv[0] = "/usr/lib/syn-os/syn-uplink-dialpad";
+	new_argv[1] = "--exec";
+	new_argv[2] = "--";
+	new_argv[3] = "doas";
+	new_argv[4] = argv[0];
 	for (int i = 1; i < argc; i++) {
-		new_argv[i + 1] = argv[i];
+		new_argv[i + 4] = argv[i];
 	}
-	new_argv[argc + 1] = NULL;
+	new_argv[argc + 4] = NULL;
 
-	execvp("doas", new_argv);
+	execvp(new_argv[0], new_argv);
 	/* execvp only returns on failure. */
 	fprintf(stderr, "syn-iso-builder: could not re-exec under doas — run this with doas yourself.\n");
 	exit(1);

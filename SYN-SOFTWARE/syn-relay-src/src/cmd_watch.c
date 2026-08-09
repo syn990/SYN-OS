@@ -13,8 +13,8 @@
  *   in this file: cmd_watch_start() daemonizes (fork+setsid+background,
  *   matching cmd_stats_server.c's --start pattern) instead of running
  *   in the foreground, tracks its PID via syn_agent_state.h, and
- *   prompts for the remote IP via rofi when called with none — no more
- *   separate wrapper script for that.
+ *   prompts for the remote IP via syn-uplink-dialpad when called with
+ *   none — no more separate wrapper script for that.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-RELAY (screen watch role)
@@ -24,7 +24,7 @@
 #include "cmd_watch.h"
 #include "input_protocol.h"
 #include "syn_agent_state.h"
-#include "syn_rofi_prompt.h"
+#include "syn_dialpad_prompt.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -366,7 +366,7 @@ int cmd_watch_start(const char *ip_arg) {
 	char prompted[256];
 	const char *remote_ip = ip_arg;
 	if (!remote_ip || !remote_ip[0]) {
-		if (!syn_rofi_prompt("Watch/control node (IP or hostname):", prompted, sizeof(prompted))) {
+		if (!syn_dialpad_prompt("Watch/control node (IP or hostname):", prompted, sizeof(prompted))) {
 			return 0; /* cancelled */
 		}
 		remote_ip = prompted;

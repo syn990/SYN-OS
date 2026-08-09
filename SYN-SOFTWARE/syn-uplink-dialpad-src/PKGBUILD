@@ -1,0 +1,24 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-uplink-dialpad
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="SYN-OS DTMF dialpad — a native Wayland popup, press a key, hear the tone, an Uplink-style dialer"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('libpulse' 'wayland' 'libxkbcommon' 'ncurses')
+makedepends=('cmake' 'wayland-protocols')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}
