@@ -44,6 +44,15 @@ netAndServices=(
   hostapd             # Host Access Point Daemon (turn your machine into a Wi-Fi hotspot)
   openssh             # SSH server/client (sshd, disabled by default; enable with: sudo systemctl enable --now sshd)
   sshfs               # Mount a remote SSH filesystem locally (FUSE-based)
+  waypipe             # Forwards a single Wayland app's window over SSH (syn-relay --stream-app)
+  ffmpeg              # syn-relay's screen watch/host roles link libavcodec/libavformat/libavutil/
+                      # libswscale — Arch ships headers+.so in this same package, so this is a
+                      # real runtime dep too, not just build-time. Was in devToolkit, but
+                      # syn-pacstrap.zsh installs syn-relay unconditionally on every profile
+                      # including SYNMINIMAL (which excludes devToolkit), so it has to live
+                      # somewhere both profiles actually get.
+  sdl2                # Same reasoning as ffmpeg above — syn-relay's screen watch role links it
+                      # for video display, not just headers at build time.
   bluez               # Bluetooth protocol stack (bluetooth.service, disabled by default, same as sshd)
   bluez-utils         # bluetoothctl and friends
 )
@@ -80,6 +89,7 @@ desktopStack=(
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
   mako                # Lightweight Wayland notification daemon (renders notify-send toasts)
+  libnotify           # Provides the notify-send binary itself (mako only renders what's sent to it)
   swaybg              # Background setter for Sway and wlroots-based compositors
   swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)
   fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)
@@ -109,9 +119,6 @@ devToolkit=(
   lshw                # Utility to extract detailed hardware configuration
   yt-dlp              # Command-line audio/video downloader (youtube-dl fork)
   wayland-protocols   # Protocol XML used to generate syn-relay's screen-capture/input-inject code
-  ffmpeg              # Dev headers (libavcodec/libavformat/libavutil/libswscale) for syn-relay's
-                      # screen watch/host roles — Arch ships headers+.pc files in this same package
-  sdl2                # Dev headers for syn-relay's screen watch role (video display)
 )
 
 fontsI18n=(
