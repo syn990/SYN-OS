@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(syn-wifi LANGUAGES C)
+project(syn-connect LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -18,15 +18,24 @@ pkg_check_modules(SDBUS REQUIRED libsystemd)
 # code — reused as-is from syn-crypter-src rather than duplicated.
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
-add_executable(syn-wifi
+# Bluetooth support talks to BlueZ purely over the system D-Bus (see
+# syn_bluez.c) — same as syn_iwd.c does for iwd. No BlueZ dev package or
+# libbluetooth needed at build time; only libsystemd (already linked for
+# iwd) for sd-bus. bluez itself is a runtime dependency (bluetoothd must
+# be running), declared in PKGBUILD, not here.
+
+add_executable(syn-connect
   src/main.c
   src/syn_iwd.c
-  src/syn_wifi_tui.c
+  src/syn_bluez.c
+  src/syn_eth.c
+  src/syn_vpn.c
+  src/syn_tui.c
   ${CRYPTER_SRC}/syn_theme.c
 )
 
-target_include_directories(syn-wifi PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDBUS_INCLUDE_DIRS} ${CRYPTER_SRC})
-target_link_libraries(syn-wifi PRIVATE ${NCURSES_LIBRARIES} ${SDBUS_LIBRARIES})
-target_compile_options(syn-wifi PRIVATE ${NCURSES_CFLAGS_OTHER} ${SDBUS_CFLAGS_OTHER})
+target_include_directories(syn-connect PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDBUS_INCLUDE_DIRS} ${CRYPTER_SRC})
+target_link_libraries(syn-connect PRIVATE ${NCURSES_LIBRARIES} ${SDBUS_LIBRARIES})
+target_compile_options(syn-connect PRIVATE ${NCURSES_CFLAGS_OTHER} ${SDBUS_CFLAGS_OTHER})
 
-install(TARGETS syn-wifi RUNTIME DESTINATION lib/syn-os)
+install(TARGETS syn-connect RUNTIME DESTINATION lib/syn-os)

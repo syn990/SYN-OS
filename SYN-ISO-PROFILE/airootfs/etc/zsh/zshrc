@@ -171,7 +171,7 @@ fi
 # =============================================================================
 alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
 alias synos-config="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
-alias synos-wifi="/usr/lib/syn-os/syn-wifi"
+alias synos-connect="/usr/lib/syn-os/syn-connect"
 
 alias ll='ls -lah'
 alias la='ls -A'

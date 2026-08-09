@@ -5,10 +5,10 @@ digraph wifi_connect_flow {
   node [shape=box, style="rounded,filled", fillcolor="#4d0000", color="#e00000", fontcolor="white", fontname="monospace", fontsize=10];
   edge [color="#AAAAAA", fontcolor="white", fontname="monospace", fontsize=9];
 
-  label="syn-wifi: from launch to a connected network";
+  label="syn-connect (Wi-Fi tab): from launch to a connected network";
   labelloc="t"; fontsize=14; fontcolor="#ff6666";
 
-  launch [label="launch syn-wifi\n(waybar click, or\nsynos-wifi live-shell)", shape=oval, fillcolor="#1a0000"];
+  launch [label="launch syn-connect\n(waybar click, or\nsynos-connect live-shell)", shape=oval, fillcolor="#1a0000"];
 
   device [label="D-Bus ObjectManager\nGetManagedObjects\nfind Device.Mode==\"station\"", fillcolor="#330000"];
   found [label="station-mode\ndevice found?", shape=diamond, fillcolor="#1a1608", color="#8a6a2f", fontcolor="#e0c896"];

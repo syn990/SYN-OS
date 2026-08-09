@@ -1,12 +1,20 @@
 # Maintainer: William Hayward-Holland (Syntax990)
-pkgname=syn-wifi
+pkgname=syn-connect
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="SYN-OS's Wi-Fi picker — ncurses TUI talking to iwd directly over D-Bus, no iwctl subprocess"
+pkgdesc="SYN-OS's Wi-Fi + Bluetooth + Ethernet + VPN picker — ncurses TUI talking to iwd and BlueZ directly over D-Bus, no iwctl/bluetoothctl subprocess"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
-depends=('ncurses' 'systemd' 'iwd')
+# The VPN tab's credential prompt and privileged connect step both shell
+# out to /usr/lib/syn-os/syn-uplink-dialpad (SYN-SOFTWARE/syn-uplink-
+# dialpad-src/) — a sibling SYN-OS-authored binary, not a pacman package,
+# so it can't go in depends=(). It must be installed alongside this one
+# (same as every other native tool, via syn-pacstrap.zsh) for the VPN
+# tab to work; without it, VPN connect/credential-entry fails cleanly
+# with an error rather than being unavailable at the package-manager
+# level.
+depends=('ncurses' 'systemd' 'iwd' 'bluez' 'openvpn' 'opendoas')
 makedepends=('cmake')
 source=()
 sha256sums=()
