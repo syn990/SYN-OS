@@ -33,7 +33,7 @@ add_custom_command(OUTPUT ${PROTOCOL_SOURCE}
 
 # syn_stats.c/.h (per-core CPU + full meminfo readers) reused as-is from
 # syn-sysmon-src rather than duplicated — same sibling-source reuse
-# syn-wifi-src/syn-sysmon-src already make for syn_theme.c.
+# syn-connect-src/syn-sysmon-src already make for syn_theme.c.
 set(SYSMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-sysmon-src/src)
 
 add_executable(syn-bar-core

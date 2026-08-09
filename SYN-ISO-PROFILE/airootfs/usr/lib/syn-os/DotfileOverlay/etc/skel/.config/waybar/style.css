@@ -57,6 +57,27 @@ window#waybar.hidden { opacity: 0.2; }
   color: #ffaa33;
 }
 
+/* custom/relay-serving's two states — this machine's server role being
+   connected TO, not connecting out (that's relay-status above). Sits
+   right next to waybar's generic network module in modules-right, which
+   was causing real confusion (an idle relay indicator next to this
+   machine's own IP read as one connected statement) — relay-listening
+   is deliberately near-invisible (same text color as the bar, no
+   distinct background) so it doesn't compete for attention while
+   nothing is happening, and relay-intrusion is the opposite: an
+   Uplink-style unmissable blinking alert the instant another machine is
+   actually polling this one, since that's the one state on this whole
+   bar that's genuinely worth interrupting the user for. */
+#custom-relay-serving.relay-listening {
+  background-color: transparent;
+  color: #666666;
+}
+#custom-relay-serving.relay-intrusion {
+  background-color: #800000;
+  color: #ffffff;
+  animation: blink 0.6s steps(12) infinite alternate;
+}
+
 /* Local (no relay) threshold coloring — replaces the "states": {...}
    config key waybar's stock cpu/memory modules used to get this for
    free from; custom modules have no such built-in feature. */

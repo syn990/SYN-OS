@@ -75,6 +75,17 @@ static char *current_title = NULL;
 #define RELAY_FAIL_DTMF_LOW 697.0
 #define RELAY_FAIL_DTMF_HIGH 1209.0
 #define RELAY_DTMF_SECONDS 0.15
+/* Digit 'C' on the DTMF grid (852/1633Hz) — the highest, sharpest pair
+ * on the whole keypad and unused by any other tone here, so it reads as
+ * distinctly more alarming than the calmer 1900Hz CONNECT tone. Someone
+ * else's machine actively connected to THIS one's server role is the
+ * one state on this whole bar that's genuinely worth interrupting the
+ * user for — see write_relay_serving()'s own comment on why this is
+ * modeled after Uplink's LanMonitor siren, not TraceTracker's
+ * per-window opt-in beep. */
+#define INTRUSION_DTMF_LOW 852.0
+#define INTRUSION_DTMF_HIGH 1633.0
+#define INTRUSION_TONE_SECONDS 0.2
 
 typedef enum {
 	RELAY_STATE_ABSENT,
@@ -895,16 +906,48 @@ static void write_relay_serving(int fd) {
 		}
 	}
 
+	/* Uplink-style framing: another machine actively polling this one's
+	 * stats within the last ~30s is exactly "an intrusion in progress"
+	 * from this machine's point of view — unmissable, blinking (see
+	 * waybar's style.css .relay-intrusion). Idle stays near-invisible,
+	 * same "don't clutter the bar with nothing happening" philosophy as
+	 * relay-status's own ABSENT state. Mirrors syn-relay's own (unused
+	 * by this waybar module, but kept in sync) cmd_stat_serving(). */
 	int fresh = ip[0] && (time(NULL) - mtime <= 30);
+
+	/* This function is called fresh per client request (waybar's own
+	 * 5s custom/relay-serving poll interval), not from a shared timer
+	 * loop like refresh_relay() — so "did this just start" has to be
+	 * tracked here as its own static, comparing against what the LAST
+	 * request saw, rather than reusing refresh_relay()'s before/after
+	 * pattern directly. Modeled on LanMonitor's siren in the real
+	 * Uplink source (fires once per genuinely new attack, not once per
+	 * UI poll) rather than TraceTracker's per-window opt-in beep — see
+	 * this repo's own design notes on why that distinction matters for
+	 * a system-wide security alert. */
+	static int was_fresh = 0;
+	if (fresh && !was_fresh) {
+		syn_bar_tone_play_dtmf(INTRUSION_DTMF_LOW, INTRUSION_DTMF_HIGH, INTRUSION_TONE_SECONDS);
+	}
+	was_fresh = fresh;
+
 	if (fresh) {
 		snprintf(reply, sizeof(reply),
-			"{\"text\": \" serving: %s\", \"tooltip\": \"%s connected\", \"class\": \"relay-connected\"}\n", ip, ip);
+			"{\"text\": \" INTRUSION: %s\", \"tooltip\": \"%s is connected to this machine\", \"class\": \"relay-intrusion\"}\n", ip, ip);
 	} else {
 		snprintf(reply, sizeof(reply),
-			"{\"text\": \" serving (idle)\", \"tooltip\": \"syn-relay server role running, no client connected\", \"class\": \"relay-waiting\"}\n");
+			"{\"text\": \" LISTENING\", \"tooltip\": \"syn-relay server role running, no client connected\", \"class\": \"relay-listening\"}\n");
 	}
 	write(fd, reply, strlen(reply));
 }
+
+/* Digit 'A' (697/1633Hz) for starting a watch session — the other
+ * unused DTMF corner, distinct from every other tone above. Same
+ * per-request transition-tracking shape as write_relay_serving()'s
+ * was_fresh, since this function is also called fresh per client
+ * request rather than from a shared polling timer. */
+#define AGENT_WATCHING_DTMF_LOW 697.0
+#define AGENT_WATCHING_DTMF_HIGH 1633.0
 
 static void write_agent_watching(int fd) {
 	char pid_path[512], host_path[512];
@@ -914,13 +957,20 @@ static void write_agent_watching(int fd) {
 	FILE *f = fopen(pid_path, "r");
 	long pid_val = 0;
 	char reply[512];
-	if (!f || fscanf(f, "%ld", &pid_val) != 1 || !pid_alive(pid_val)) {
-		if (f) fclose(f);
+	int watching = f && fscanf(f, "%ld", &pid_val) == 1 && pid_alive(pid_val);
+	if (f) fclose(f);
+
+	static int was_watching = 0;
+	if (watching && !was_watching) {
+		syn_bar_tone_play_dtmf(AGENT_WATCHING_DTMF_LOW, AGENT_WATCHING_DTMF_HIGH, RELAY_DTMF_SECONDS);
+	}
+	was_watching = watching;
+
+	if (!watching) {
 		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
 		write(fd, reply, strlen(reply));
 		return;
 	}
-	fclose(f);
 
 	char host[256] = "";
 	f = fopen(host_path, "r");
@@ -936,21 +986,36 @@ static void write_agent_watching(int fd) {
 	write(fd, reply, strlen(reply));
 }
 
+/* Digit 'B' (770/1633Hz) for another machine actually beginning to
+ * watch/control THIS one — the most safety-relevant of these four
+ * transitions (it's granting a remote peer real input control, not
+ * just stats visibility), so it gets its own distinct tone rather than
+ * reusing AGENT_WATCHING's. Same was_* transition-tracking shape. */
+#define AGENT_SERVING_DTMF_LOW 770.0
+#define AGENT_SERVING_DTMF_HIGH 1633.0
+
 static void write_agent_serving(int fd) {
 	char pid_path[512];
 	runtime_file_path("syn-relay.host.pid", pid_path, sizeof(pid_path));
 
 	FILE *f = fopen(pid_path, "r");
 	long video_val = 0, input_val = 0;
+	int serving = f && fscanf(f, "%ld %ld", &video_val, &input_val) == 2 &&
+		pid_alive(video_val) && pid_alive(input_val);
+	if (f) fclose(f);
+
+	static int was_serving = 0;
+	if (serving && !was_serving) {
+		syn_bar_tone_play_dtmf(AGENT_SERVING_DTMF_LOW, AGENT_SERVING_DTMF_HIGH, RELAY_DTMF_SECONDS);
+	}
+	was_serving = serving;
+
 	char reply[512];
-	if (!f || fscanf(f, "%ld %ld", &video_val, &input_val) != 2 ||
-			!pid_alive(video_val) || !pid_alive(input_val)) {
-		if (f) fclose(f);
+	if (!serving) {
 		snprintf(reply, sizeof(reply), "{\"text\": \"\", \"tooltip\": \"\"}\n");
 		write(fd, reply, strlen(reply));
 		return;
 	}
-	fclose(f);
 
 	char viewer_path[512];
 	runtime_file_path("syn-relay.host.viewer", viewer_path, sizeof(viewer_path));
@@ -1081,6 +1146,26 @@ static void handle_one_client(int listen_fd) {
 		close(client_fd);
 	} else if (strncmp(request, "SYSMON-MEM", 10) == 0) {
 		write(client_fd, sysmon_mem_reply, strlen(sysmon_mem_reply));
+		close(client_fd);
+	} else if (strncmp(request, "TONE-DTMF ", 10) == 0) {
+		/* "TONE-DTMF <hz1> <hz2> <seconds>\n" — this is the single place
+		 * in the whole OS that's allowed to call syn_bar_tone_play_dtmf
+		 * (see syn_bar_tone.h's own header comment on why: only
+		 * syn-bar-core talks to PulseAudio, everything else that wants a
+		 * sound asks the bar to make it, the same way everything else
+		 * that wants the bar to react already works). No reply expected
+		 * — fire-and-forget, same as syn_bar_tone_play itself. */
+		double hz1 = 0, hz2 = 0, seconds = 0;
+		if (sscanf(request + 10, "%lf %lf %lf", &hz1, &hz2, &seconds) == 3 && seconds > 0) {
+			syn_bar_tone_play_dtmf(hz1, hz2, seconds);
+		}
+		close(client_fd);
+	} else if (strncmp(request, "TONE ", 5) == 0) {
+		/* "TONE <hz> <seconds>\n" — single-tone counterpart. */
+		double hz = 0, seconds = 0;
+		if (sscanf(request + 5, "%lf %lf", &hz, &seconds) == 2 && seconds > 0) {
+			syn_bar_tone_play(hz, seconds);
+		}
 		close(client_fd);
 	} else {
 		const char *reply = "{}\n";
