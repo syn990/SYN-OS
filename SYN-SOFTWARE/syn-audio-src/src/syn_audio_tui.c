@@ -18,10 +18,10 @@
 #define P_BORDER SYN_THEME_PAIR_BORDER
 #define P_DIM SYN_THEME_PAIR_DIM
 #define P_STATUSBAR SYN_THEME_PAIR_STATUSBAR
-#define P_ACCENT SYN_THEME_PAIR_COUNT /* slot 18 (theme accent), same convention as syn-wifi */
+#define P_ACCENT SYN_THEME_PAIR_COUNT /* slot 18 (theme accent), same convention as syn-connect */
 
 void syn_audio_tui_init(void) {
-	/* Same C.utf8 fallback as syn-wifi: launched via `foot -e syn-audio`
+	/* Same C.utf8 fallback as syn-connect: launched via `foot -e syn-audio`
 	 * with no doas involved here, but LANG can still be unset/mismatched
 	 * in some launch contexts (e.g. a bare waybar on-click exec), so this
 	 * guards the box-drawing glyphs below the same way regardless. */

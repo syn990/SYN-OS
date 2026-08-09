@@ -4,7 +4,7 @@
  *   (unit picker + live-streaming journal scrollback). Each view redraws
  *   on a fixed tick and reads input non-blockingly so the numbers stay
  *   live while idle. Colored from the live SYN-OS theme, same pattern as
- *   syn-wifi/syn-crypter's TUIs.
+ *   syn-connect/syn-crypter's TUIs.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-SYSMON (Desktop)

@@ -27,7 +27,7 @@ static int tick_ms = 250;
 #define TICK_STEP_MS 50
 
 void syn_sysmon_tui_init(void) {
-	/* Same C.utf8 fallback as syn-wifi's TUI: whatever launches this
+	/* Same C.utf8 fallback as syn-connect's TUI: whatever launches this
 	 * (waybar's on-click, doas, a bare foot -e) may not carry LANG/LC_*
 	 * through, and setlocale(LC_ALL, "") silently resolves to the "C"
 	 * locale in that case — which breaks ncursesw's handling of the
@@ -169,6 +169,36 @@ static void draw_source_row(syn_bar_source source, const char *host) {
 	attroff(COLOR_PAIR(SYN_THEME_PAIR_DIM));
 }
 
+/* Sensors (hwmon) and Logs (systemd journal) have no remote equivalent —
+ * syn_relay_protocol.h's STATS reply carries no temperature or journal
+ * field, so there's nothing to fetch even in principle today. Unlike
+ * CPU/RAM (which genuinely switch to a connected node's live numbers,
+ * see draw_source_row above), silently rendering THIS machine's own
+ * sensors/journal while relay is connected — with no on-screen
+ * indication that's what happened — would be actively misleading: it
+ * looks like "the remote's temps/logs" with nothing to tell you
+ * otherwise. Reuses SYSMON-CPU purely to read the cached connection
+ * state (cheap — syn-bar-core answers from its own poll cache, no
+ * per-call network fetch) rather than adding a second verb just to ask
+ * "are we connected." */
+static bool remote_connected(char *host_out, size_t host_out_size) {
+	syn_bar_cpu_reply remote;
+	if (!syn_bar_client_cpu(&remote) || remote.source != SYN_BAR_SOURCE_REMOTE) {
+		return false;
+	}
+	if (host_out && host_out_size > 0) {
+		snprintf(host_out, host_out_size, "%s", remote.host);
+	}
+	return true;
+}
+
+static void draw_remote_unavailable_placeholder(const char *host) {
+	attron(COLOR_PAIR(SYN_THEME_PAIR_DIM));
+	mvprintw(3, 2, "REMOTE: %s", host);
+	attroff(COLOR_PAIR(SYN_THEME_PAIR_DIM));
+	mvprintw(5, 2, "Not available for remote nodes — this view stays local-only for now.");
+}
+
 static int run_cpu_view(void) {
 	syn_cpu_snapshot prev, cur;
 	syn_stats_cpu_read(&prev);
@@ -306,11 +336,18 @@ static int run_sensors_view(void) {
 		}
 		handle_tick_keys(ch);
 
-		syn_sensor_reading readings[SYN_STATS_MAX_SENSORS];
-		int count = syn_stats_sensors_read(readings, SYN_STATS_MAX_SENSORS);
-
 		erase();
 		draw_header(SYN_SYSMON_VIEW_SENSORS);
+
+		char host[256];
+		if (remote_connected(host, sizeof(host))) {
+			draw_remote_unavailable_placeholder(host);
+			refresh();
+			continue;
+		}
+
+		syn_sensor_reading readings[SYN_STATS_MAX_SENSORS];
+		int count = syn_stats_sensors_read(readings, SYN_STATS_MAX_SENSORS);
 
 		int row = 4;
 		for (int i = 0; i < count && row < getmaxy(stdscr) - 1; i++) {
@@ -543,6 +580,37 @@ static int stream_unit(const char *unit) {
 	return result;
 }
 
+/* Same "don't silently show the wrong machine's data" rule as Sensors
+ * (see remote_connected()/draw_remote_unavailable_placeholder() above) —
+ * the journal is inherently local, so this blocks entry to the unit
+ * picker entirely rather than letting it stream this machine's own log
+ * while relay is connected. Re-checks on a normal tick so disconnecting
+ * while parked here recovers into the real picker without restarting
+ * the view. */
+static int run_logs_view_remote_placeholder(void) {
+	while (1) {
+		char host[256];
+		if (!remote_connected(host, sizeof(host))) {
+			return 0; /* connection dropped — fall through to the real picker */
+		}
+
+		erase();
+		draw_header(SYN_SYSMON_VIEW_LOGS);
+		draw_remote_unavailable_placeholder(host);
+		refresh();
+
+		timeout(tick_ms);
+		int ch = getch();
+		if (ch == 'q' || ch == 27) {
+			return -1;
+		}
+		if (ch == '\t') {
+			return SYN_SYSMON_VIEW_CPU;
+		}
+		handle_tick_keys(ch);
+	}
+}
+
 static int run_logs_view(void) {
 	static char units[SYN_JOURNAL_MAX_UNITS][SYN_JOURNAL_UNIT_NAME_LEN];
 	static int unit_count = -1; /* -1 = not loaded yet; loaded once per process, units rarely change mid-session */
@@ -556,6 +624,11 @@ static int run_logs_view(void) {
 	}
 
 	while (1) {
+		int placeholder_result = run_logs_view_remote_placeholder();
+		if (placeholder_result != 0) {
+			return placeholder_result; /* -1 (quit) or a view index (Tab) */
+		}
+
 		pick_unit_outcome outcome;
 		const char *chosen = pick_unit(units, unit_count, &selected, &outcome);
 		if (outcome == PICK_UNIT_QUIT) {

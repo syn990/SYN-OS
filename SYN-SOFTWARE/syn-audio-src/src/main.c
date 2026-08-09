@@ -7,7 +7,7 @@
  *   Run with no arguments for the interactive ncurses dashboard (see
  *   syn_audio_tui.h), themed from the live SYN-OS theme (see syn_theme.h).
  *   Flag form below is for scripting/menu.xml — same shape as syn-crypter
- *   and syn-wifi.
+ *   and syn-connect.
  *
  *   Usage:
  *     syn-audio                                              (interactive)

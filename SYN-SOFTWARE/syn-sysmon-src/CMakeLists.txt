@@ -16,7 +16,7 @@ pkg_check_modules(SDJOURNAL REQUIRED libsystemd)
 
 # syn_theme.c/.h are generic SYN_* palette loading, no crypter-specific
 # code — reused as-is from syn-crypter-src rather than duplicated (same
-# reuse syn-wifi-src already makes).
+# reuse syn-connect-src already makes).
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
 add_executable(syn-sysmon

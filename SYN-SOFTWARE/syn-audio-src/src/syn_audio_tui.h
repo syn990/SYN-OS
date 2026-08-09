@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------
  *   ncurses UI for syn-audio: two scrollable lists (outputs/inputs) with
  *   volume bars, mute state, and a default-device marker. Same widget
- *   shape as syn-wifi's network list. Colored from the live SYN-OS theme.
+ *   shape as syn-connect's network list. Colored from the live SYN-OS theme.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-AUDIO (Desktop)

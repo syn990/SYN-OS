@@ -16,7 +16,7 @@ pkg_check_modules(LIBPULSE REQUIRED libpulse)
 
 # syn_theme.c/.h are generic SYN_* palette loading, no crypter-specific
 # code — reused as-is from syn-crypter-src rather than duplicated (same
-# convention syn-wifi-src follows).
+# convention syn-connect-src follows).
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
 add_executable(syn-audio
