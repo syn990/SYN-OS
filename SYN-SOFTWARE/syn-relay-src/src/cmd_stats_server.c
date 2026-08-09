@@ -132,7 +132,16 @@ static void handle_stats(FILE *out) {
 
 	fprintf(out, "{\"hostname\":\"");
 	print_json_escaped(out, hostname);
-	fprintf(out, "\",\"cpu_pct\":%.1f,\"mem_used_kb\":%llu,\"mem_total_kb\":%llu,"
+	/* This server role is always the real syn-relay Linux binary — a
+	 * lightweight Windows/macOS agent reports its own "os" and a
+	 * capability set matching whatever it's actually implemented (see
+	 * syn_relay_protocol.h). watch_window is false until per-window
+	 * capture (ext-foreign-toplevel-*, replacing today's LAUNCH_APP-only
+	 * story) actually ships. */
+	fprintf(out, "\",\"os\":\"linux\",\"capabilities\":{\"apps\":true,"
+	             "\"watch_desktop\":true,\"watch_window\":false,"
+	             "\"host_watched\":true}");
+	fprintf(out, ",\"cpu_pct\":%.1f,\"mem_used_kb\":%llu,\"mem_total_kb\":%llu,"
 	             "\"disk_used_kb\":%llu,\"disk_total_kb\":%llu,\"gpu_pct\":",
 		cpu_pct,
 		mem.total_kb - mem.available_kb, mem.total_kb,
@@ -159,6 +168,8 @@ static void handle_list_apps(FILE *out) {
 		print_json_escaped(out, apps[i].name);
 		fprintf(out, "\",\"icon\":\"");
 		print_json_escaped(out, apps[i].icon);
+		fprintf(out, "\",\"exec\":\"");
+		print_json_escaped(out, apps[i].exec);
 		fprintf(out, "\"}");
 	}
 	fprintf(out, "]}\n");
@@ -468,11 +479,18 @@ int cmd_stat_serving(void) {
 		}
 	}
 
+	/* Uplink-style framing: someone actively polling this machine's stats
+	 * (a STATS request within the last 30s, roughly matching a normal
+	 * poll interval) is exactly "an intrusion in progress" from this
+	 * machine's point of view — unmissable, blinking. Idle (server
+	 * running, nobody attached) stays deliberately near-invisible, same
+	 * "don't clutter the bar with nothing happening" philosophy as
+	 * relay-status's own ABSENT state. */
 	bool fresh = ip[0] && (time(NULL) - mtime <= 30);
 	if (fresh) {
-		printf("{\"text\": \" serving: %s\", \"tooltip\": \"%s connected\", \"class\": \"relay-connected\"}\n", ip, ip);
+		printf("{\"text\": \" INTRUSION: %s\", \"tooltip\": \"%s is connected to this machine\", \"class\": \"relay-intrusion\"}\n", ip, ip);
 	} else {
-		printf("{\"text\": \" serving (idle)\", \"tooltip\": \"syn-relay server role running, no client connected\", \"class\": \"relay-waiting\"}\n");
+		printf("{\"text\": \" LISTENING\", \"tooltip\": \"syn-relay server role running, no client connected\", \"class\": \"relay-listening\"}\n");
 	}
 	return 0;
 }

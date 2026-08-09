@@ -6,12 +6,12 @@ pkgdesc="SYN-OS's remote-node tool — connect to another machine's live stats, 
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
-depends=('glibc' 'wayland' 'ffmpeg' 'sdl2')
+depends=('glibc' 'wayland' 'ffmpeg' 'sdl2' 'syn-uplink-dialpad' 'waypipe')
 optdepends=('moonlight-qt: opens a stream to a connected stats node if Sunshine is running there'
             'libnotify: desktop notifications for connect/disconnect/watch/host events'
             'nvidia-utils: GPU utilization via nvidia-smi in the stats server role'
             'wlr-randr: automatic screen-resolution detection when being watched'
-            'rofi: IP-address prompts for --connect/--watch/--host-watched when called with no argument')
+            'openssh: --stream-app and Remote > menu entries need SSH host trust already set up')
 makedepends=('cmake' 'wayland-protocols')
 source=()
 sha256sums=()

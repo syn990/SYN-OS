@@ -11,9 +11,9 @@
  *
  *   Logic here is relocated verbatim from the pre-merge syn-relay-client
  *   binary's main.c — see the top-level merge plan for why; the one
- *   behavior change is --connect prompting via rofi when called with no
- *   host argument (menu.xml used to shell out to a tiny wrapper script
- *   for this, now the binary does it itself).
+ *   behavior change is --connect prompting via syn-uplink-dialpad when
+ *   called with no host argument (menu.xml used to shell out to a tiny
+ *   wrapper script for this, now the binary does it itself).
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-RELAY (stats client role)
@@ -28,7 +28,8 @@
 #include "syn_node_state.h"
 #include "syn_json_extract.h"
 #include "syn_local_stats.h"
-#include "syn_rofi_prompt.h"
+#include "syn_dialpad_prompt.h"
+#include "syn_ssh_resolve.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,29 +92,58 @@ int cmd_activate(void) {
 	return 0;
 }
 
+/* Reads "os"/"capabilities" out of a STATS reply (see
+ * syn_relay_protocol.h) into the state-cacheable form. Tolerant of a
+ * reply predating these fields — syn_json_string/syn_json_bool leave
+ * their outputs at the caller-supplied default when a key is absent, so
+ * an old-format reply just yields an empty os + all-false capabilities
+ * rather than failing. syn_json_bool nested under "capabilities" is
+ * looked up by its bare key name — see syn_json_extract.c's contract. */
+static void caps_from_stats_reply(const char *reply, syn_node_caps *caps) {
+	memset(caps, 0, sizeof(*caps));
+	syn_json_string(reply, "os", caps->os, sizeof(caps->os));
+	syn_json_bool(reply, "apps", &caps->apps);
+	syn_json_bool(reply, "watch_desktop", &caps->watch_desktop);
+	syn_json_bool(reply, "watch_window", &caps->watch_window);
+	syn_json_bool(reply, "host_watched", &caps->host_watched);
+}
+
 int cmd_connect(const char *host_arg) {
 	char prompted[256];
-	const char *host = host_arg;
-	if (!host || !host[0]) {
-		if (!syn_rofi_prompt("Connect to node (IP or hostname):", prompted, sizeof(prompted))) {
+	const char *ssh_target = host_arg;
+	if (!ssh_target || !ssh_target[0]) {
+		if (!syn_dialpad_prompt("Connect to node (IP or hostname):", prompted, sizeof(prompted))) {
 			return 0; /* cancelled — not an error */
 		}
-		host = prompted;
+		ssh_target = prompted;
+	}
+
+	/* ssh_target is what the user typed/picked (an ~/.ssh/config alias,
+	 * a bare IP, a plain hostname). stats_host is what actually gets
+	 * TCP-connected to for the stats protocol — resolved via `ssh -G`
+	 * so an aliased Host with a HostName override (or ProxyJump) still
+	 * finds the right machine; falls back to the typed string verbatim
+	 * if resolution fails or there's no ssh_config entry at all. */
+	char stats_host[256];
+	if (!syn_ssh_resolve_hostname(ssh_target, stats_host, sizeof(stats_host))) {
+		snprintf(stats_host, sizeof(stats_host), "%s", ssh_target);
 	}
 
 	char reply[SYN_RELAY_MAX_LINE];
-	if (!syn_relay_request(host, "STATS", reply, sizeof(reply))) {
-		fprintf(stderr, "syn-relay: no syn-relay server reachable at %s\n", host);
+	if (!syn_relay_request(stats_host, "STATS", reply, sizeof(reply))) {
+		fprintf(stderr, "syn-relay: no syn-relay server reachable at %s\n", stats_host);
 		return 1;
 	}
-	if (!syn_node_state_save(host)) {
+	syn_node_caps caps;
+	caps_from_stats_reply(reply, &caps);
+	if (!syn_node_state_save(stats_host, ssh_target, &caps)) {
 		fprintf(stderr, "syn-relay: failed to save connection state\n");
 		return 1;
 	}
 	char body[300];
-	snprintf(body, sizeof(body), "Connected to gateway %s", host);
+	snprintf(body, sizeof(body), "Connected to gateway %s", stats_host);
 	notify("SYN-RELAY", body);
-	printf("Connected to %s\n", host);
+	printf("Connected to %s\n", stats_host);
 	return 0;
 }
 
@@ -267,9 +297,55 @@ static void print_placeholder_menu(const char *label) {
 	printf("</openbox_pipe_menu>\n");
 }
 
-int cmd_list_apps(void) {
+/* Extracts "key":"value" from p onward — one field, repeated per key by
+ * syn_apps_parse_wire_reply() below. */
+static void extract_field(const char *p, const char *key, char *out, size_t out_size) {
+	out[0] = '\0';
+	char needle[32];
+	snprintf(needle, sizeof(needle), "\"%s\":\"", key);
+	const char *key_pos = strstr(p, needle);
+	if (!key_pos) {
+		return;
+	}
+	const char *v = key_pos + strlen(needle);
+	size_t i = 0;
+	while (v[i] && v[i] != '"' && i < out_size - 1) {
+		out[i] = v[i];
+		i++;
+	}
+	out[i] = '\0';
+}
+
+int syn_apps_parse_wire_reply(const char *reply, syn_app_entry *out, int max) {
+	int count = 0;
+	const char *p = reply;
+	while (count < max && (p = strstr(p, "\"id\":\""))) {
+		char id[sizeof(out[0].id)];
+		extract_field(p, "id", id, sizeof(id));
+		p += 6; /* past "id":" so the next strstr in extract_field can't re-match this same id */
+
+		if (!id[0]) {
+			continue;
+		}
+		snprintf(out[count].id, sizeof(out[count].id), "%s", id);
+		extract_field(p, "name", out[count].name, sizeof(out[count].name));
+		/* icon is a theme icon NAME (e.g. "firefox"), not a path — taken
+		 * straight from the remote's .desktop Icon= key. Resolution
+		 * against the LOCAL icon theme is labwc's job; a name absent
+		 * from the local theme just renders with no icon, which is a
+		 * cosmetic degradation, not a bug to work around here. */
+		extract_field(p, "icon", out[count].icon, sizeof(out[count].icon));
+		extract_field(p, "exec", out[count].exec, sizeof(out[count].exec));
+		count++;
+	}
+	return count;
+}
+
+int cmd_list_apps(const char *host_override) {
 	char host[256];
-	if (syn_node_state_get(host, sizeof(host)) != SYN_NODE_STATE_CONNECTED) {
+	if (host_override && host_override[0]) {
+		snprintf(host, sizeof(host), "%s", host_override);
+	} else if (syn_node_state_get(host, sizeof(host)) != SYN_NODE_STATE_CONNECTED) {
 		print_placeholder_menu("Not connected to a node");
 		return 0;
 	}
@@ -280,60 +356,35 @@ int cmd_list_apps(void) {
 		return 0;
 	}
 
+	static syn_app_entry apps[SYN_APPS_MAX];
+	int count = syn_apps_parse_wire_reply(reply, apps, SYN_APPS_MAX);
+
+	int streaming = host_override && host_override[0];
+
 	printf("<openbox_pipe_menu>\n");
-	/* Walk each {"id":"...","name":"...","icon":"..."} object by hand —
-	 * same "no JSON library, this repo's own fixed shape" rationale as
-	 * syn_json_extract.h. */
-	const char *p = reply;
 	int found = 0;
-	while ((p = strstr(p, "\"id\":\""))) {
-		p += 6;
-		char id[512];
-		size_t i = 0;
-		while (*p && *p != '"' && i < sizeof(id) - 1) {
-			id[i++] = *p++;
+	for (int i = 0; i < count; i++) {
+		if (!apps[i].name[0]) {
+			continue;
 		}
-		id[i] = '\0';
-
-		char name[256] = "";
-		const char *name_key = strstr(p, "\"name\":\"");
-		if (name_key) {
-			name_key += 8;
-			i = 0;
-			while (*name_key && *name_key != '"' && i < sizeof(name) - 1) {
-				name[i++] = *name_key++;
-			}
-			name[i] = '\0';
+		printf("  <item label=\"");
+		xml_escaped(apps[i].name);
+		if (apps[i].icon[0]) {
+			printf("\" icon=\"");
+			xml_escaped(apps[i].icon);
 		}
-
-		/* icon is a theme icon NAME (e.g. "firefox"), not a path — taken
-		 * straight from the remote's .desktop Icon= key. Resolution
-		 * against the LOCAL icon theme is labwc's job; a name absent
-		 * from the local theme just renders with no icon, which is a
-		 * cosmetic degradation, not a bug to work around here. */
-		char icon[256] = "";
-		const char *icon_key = strstr(p, "\"icon\":\"");
-		if (icon_key) {
-			icon_key += 8;
-			i = 0;
-			while (*icon_key && *icon_key != '"' && i < sizeof(icon) - 1) {
-				icon[i++] = *icon_key++;
-			}
-			icon[i] = '\0';
-		}
-
-		if (name[0]) {
-			printf("  <item label=\"");
-			xml_escaped(name);
-			if (icon[0]) {
-				printf("\" icon=\"");
-				xml_escaped(icon);
-			}
-			printf("\">\n    <action name=\"Execute\"><command>syn-relay --launch &quot;");
-			xml_escaped(id);
+		if (streaming) {
+			printf("\">\n    <action name=\"Execute\"><command>foot -e /usr/lib/syn-os/syn-relay --stream-app &quot;");
+			xml_escaped(apps[i].id);
+			printf("&quot; &quot;");
+			xml_escaped(host);
 			printf("&quot;</command></action>\n  </item>\n");
-			found++;
+		} else {
+			printf("\">\n    <action name=\"Execute\"><command>syn-relay --launch &quot;");
+			xml_escaped(apps[i].id);
+			printf("&quot;</command></action>\n  </item>\n");
 		}
+		found++;
 	}
 	if (!found) {
 		printf("  <item label=\"No applications found\"/>\n");

@@ -14,7 +14,7 @@
  *   every git interaction anywhere in this repo, including the retired
  *   BUILD-ARCHISO.zsh, shells out to the git CLI). Commands run via
  *   fork()+execvp(), never system()/popen(), matching
- *   syn-relay-src/syn-wifi-src's documented convention of
+ *   syn-relay-src/syn-connect-src's documented convention of
  *   avoiding a shell for a fixed argv.
  *
  *   SYN-OS     : The Syntax Operating System

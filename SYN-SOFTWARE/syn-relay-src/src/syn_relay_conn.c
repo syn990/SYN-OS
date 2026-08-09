@@ -9,6 +9,9 @@
 #include "syn_relay_conn.h"
 #include "syn_relay_protocol.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,6 +24,43 @@
 /* Short deadline: a node that isn't there should fail fast, not hang the
  * bar's 5s poll tick or the menu's pipe-menu render. */
 #define SYN_AGENT_TIMEOUT_SEC 2
+
+/* SO_RCVTIMEO/SO_SNDTIMEO (set below) only bound send()/recv() on an
+ * already-open socket — they do NOT bound connect() itself. A
+ * routable-but-unresponsive host (firewalled port, powered-off box that
+ * still ARP-resolves) would otherwise block on the kernel's own TCP
+ * SYN-retry timer (~127s default on Linux), not this function's
+ * intended 2s — which matters a lot now that pipe-menu rendering
+ * (menu.xml's "Remote Apps") calls this synchronously just from a user
+ * hovering a submenu, not only on an explicit --connect. Non-blocking
+ * connect + poll() enforces the same 2s deadline on the connect itself. */
+static int connect_with_timeout(int fd, const struct sockaddr *addr, socklen_t addrlen) {
+	int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+	int rc = connect(fd, addr, addrlen);
+	if (rc == 0) {
+		fcntl(fd, F_SETFL, flags); /* restore blocking mode for send/recv below */
+		return 0;
+	}
+	if (errno != EINPROGRESS) {
+		return -1;
+	}
+
+	struct pollfd pfd = {.fd = fd, .events = POLLOUT};
+	rc = poll(&pfd, 1, SYN_AGENT_TIMEOUT_SEC * 1000);
+	fcntl(fd, F_SETFL, flags);
+	if (rc <= 0) {
+		return -1; /* timeout (0) or poll() error (-1) */
+	}
+
+	int so_error = 0;
+	socklen_t so_error_len = sizeof(so_error);
+	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &so_error_len) != 0 || so_error != 0) {
+		return -1;
+	}
+	return 0;
+}
 
 bool syn_relay_request(const char *host, const char *command, char *reply, size_t reply_size) {
 	reply[0] = '\0';
@@ -48,7 +88,7 @@ bool syn_relay_request(const char *host, const char *command, char *reply, size_
 		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 		setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-		if (connect(fd, rp->ai_addr, rp->ai_addrlen) == 0) {
+		if (connect_with_timeout(fd, rp->ai_addr, rp->ai_addrlen) == 0) {
 			break;
 		}
 		close(fd);

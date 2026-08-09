@@ -102,7 +102,7 @@
     "format-disconnected": "󰤮",
     "tooltip-format": "{ifname} {ipaddr}/{cidr}",
     "interval": 2,
-    "on-click": "foot -e /usr/lib/syn-os/syn-wifi"
+    "on-click": "foot -e /usr/lib/syn-os/syn-connect"
   },
 
   // custom/cpu and custom/mem replace waybar's stock cpu/memory module

@@ -78,9 +78,9 @@
     <separator label=" SYN-OS TOOLS " />
 
     <menu id="synos-tools" label="SYN-OS Tools">
-      <item label="Wi-Fi Picker">
+      <item label="Wi-Fi / Bluetooth">
         <action name="Execute">
-          <command>foot -e /usr/lib/syn-os/syn-wifi</command>
+          <command>foot -e /usr/lib/syn-os/syn-connect</command>
         </action>
       </item>
 
@@ -142,20 +142,34 @@
         </action>
       </item>
 
-      <!-- Screen watch/host live one level down under More. Label
-           matches the tool's real name (SYN-RELAY), not the old
-           "Gateway" flavor-text. Menu tree naming/structure cleanup is
-           deferred — see plan notes. Trusted-LAN only, no auth yet. -->
-      <menu id="syn-relay-menu" label="SYN-RELAY">
+      <!-- SYN-RELAY: connect to another machine with one click, then see
+           its actual programs in the menu right below — that's the whole
+           point of this menu. One flat session-control panel now instead
+           of Watch/Host being buried under a "More" submenu: Connect,
+           Disconnect, Enable/Disable Services, Remote Apps, Remote, and
+           the Watch/Host pair all sit at the same level, since the
+           codebase already treats "connected" and "watching/being
+           watched" as one continuous session lifecycle (syn-sysmon's own
+           CPU/RAM views switch to showing the remote node's stats while
+           connected, and syn-bar-core reads syn-relay's runtime state
+           files directly to drive the bar's own indicators) — hiding
+           that behind a extra click didn't reflect how it actually
+           works. Connect/Disconnect/Enable-Disable Services are stable;
+           Remote Apps/Remote and the Watch/Host items are expected to be
+           restructured by the in-flight syn-relay connection-model
+           redesign (unifying Connect's SSH-config-alias resolution
+           with the separate syn-pipe-remote.zsh path) — don't hang new
+           structure off those two pending that landing. No pairing/auth
+           on any of this yet (see PROTOCOL.md's security posture
+           section) — trusted-LAN only. No automatic desktop theme swap
+           on connect/disconnect either — removed by request, connecting
+           doesn't change how this machine looks. -->
+      <menu id="syn-relay-menu" label="SYN-RELAY (Remote Session)">
         <item label="Connect">
           <action name="Execute">
             <command>sh -c '/usr/lib/syn-os/syn-relay --connect || notify-send "SYN-RELAY" "Could not connect — host unreachable?"'</command>
           </action>
         </item>
-
-        <menu id="syn-relay-apps-menu"
-              label="Remote Apps"
-              execute="/usr/lib/syn-os/syn-relay --list-apps" />
 
         <item label="Disconnect">
           <action name="Execute">
@@ -175,35 +189,40 @@
           </action>
         </item>
 
-        <menu id="syn-relay-more-menu" label="More">
-          <menu id="syn-relay-watch-menu" label="Watch/Control Remote Screen">
-            <item label="Watch/Control Remote Node">
-              <action name="Execute">
-                <command>/usr/lib/syn-os/syn-relay --watch</command>
-              </action>
-            </item>
+        <menu id="syn-relay-apps-menu"
+              label="Remote Apps"
+              execute="/usr/lib/syn-os/syn-relay --list-apps" />
 
-            <item label="Stop Watching">
-              <action name="Execute">
-                <command>/usr/lib/syn-os/syn-relay --stop-watching</command>
-              </action>
-            </item>
-          </menu>
+        <!-- Per ~/.ssh/config Host, not the CONNECTED node above — beams
+             an app's own window over via waypipe instead of running it
+             headless. -->
+        <menu id="syn-remote-menu"
+              label="Remote"
+              execute="zsh /usr/lib/syn-os/syn-pipe-remote.zsh" />
 
-          <menu id="syn-relay-host-menu" label="Let This Machine Be Watched">
-            <item label="Let This Machine Be Watched">
-              <action name="Execute">
-                <command>/usr/lib/syn-os/syn-relay --host-watched</command>
-              </action>
-            </item>
+        <item label="Watch Remote Node">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --watch</command>
+          </action>
+        </item>
 
-            <item label="Stop Being Watched">
-              <action name="Execute">
-                <command>/usr/lib/syn-os/syn-relay --stop-hosting</command>
-              </action>
-            </item>
-          </menu>
-        </menu>
+        <item label="Stop Watching">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --stop-watching</command>
+          </action>
+        </item>
+
+        <item label="Allow Remote Watching">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --host-watched</command>
+          </action>
+        </item>
+
+        <item label="Stop Being Watched">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --stop-hosting</command>
+          </action>
+        </item>
       </menu>
 
       <!-- SYN-GRAPHMAP always prompts via rofi for the target directory
@@ -267,47 +286,50 @@
     <menu id="preferences-menu" label="Preferences">
       <!-- Desktop settings: live, cosmetic/hardware controls you tune to
            taste. Each of Audio/Display/Themes is a real dynamic pipe-menu
-           (queries pactl/wlr-randr/theme dir live), not a static list. -->
-      <separator label=" DESKTOP " />
+           (queries pactl/wlr-randr/theme dir live), not a static list.
+           Real nested submenu now instead of a separator label, so it
+           collapses/expands the same way syn-sysmon-menu already does. -->
+      <menu id="preferences-desktop-menu" label="Desktop">
+        <menu id="audio-pipe"
+              label="Audio Settings"
+              execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
 
-      <menu id="audio-pipe"
-            label="Audio Settings"
-            execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
+        <menu id="displays-pipe"
+              label="Display &amp; Screens"
+              execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
 
-      <menu id="displays-pipe"
-            label="Display &amp; Screens"
-            execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
+        <menu id="themes-pipe"
+              label="Themes"
+              execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
 
-      <menu id="themes-pipe"
-            label="Themes"
-            execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
-
-      <item label="Toggle Bar Position">
-        <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
-      </item>
+        <item label="Toggle Bar Position">
+          <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
+        </item>
+      </menu>
 
       <!-- System toggles: enabling/disabling actual software, distinct
            from the cosmetic settings above. Both are live toggles on any
            already-installed system, no reinstall needed. No foot wrapper —
            the rofi pickers are their own popups, and each script opens its
            own syn_popup::run window for the actual doas action once a
-           choice is made. -->
-      <separator label=" SOFTWARE " />
+           choice is made. Real nested submenu now, same reasoning as
+           Desktop above. -->
+      <menu id="preferences-software-menu" label="Software">
+        <item label="BlackArch">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
+          </action>
+        </item>
 
-      <item label="BlackArch">
-        <action name="Execute">
-          <command>/usr/lib/syn-os/syn-blackarch-toggle.zsh</command>
-        </action>
-      </item>
-
-      <!-- Lists every real enabled/disabled systemd service on the box
-           (queried live), not a fixed shortlist — see
-           syn-services-toggle.zsh's own header for why. -->
-      <item label="Services (enable/disable any systemd unit)">
-        <action name="Execute">
-          <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
-        </action>
-      </item>
+        <!-- Lists every real enabled/disabled systemd service on the box
+             (queried live), not a fixed shortlist — see
+             syn-services-toggle.zsh's own header for why. -->
+        <item label="Services (enable/disable any systemd unit)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
+          </action>
+        </item>
+      </menu>
     </menu>
 
     <!-- System: maintenance actions only — locking the screen, killing a
@@ -419,10 +441,28 @@
           <action name="Reconfigure" />
         </item>
 
-        <!-- Also restarts syn-bar-core — its lifetime is coupled to
-             waybar's. sh -c wrapper required: labwc's Execute runs via
-             execvp() directly, no shell, so a bare "a; b" string is one
-             nonexistent literal program name and silently no-ops. -->
+        <!-- One action, not separate Launch/Kill entries — "kill" alone
+             leaves no bar, "launch" alone assumes it's already dead;
+             neither is useful on its own the way Kill Process's other
+             entries are. Also restarts syn-bar-core (the persistent
+             stats/state daemon every custom/* module's exec now talks
+             to over its socket — see SYN-SOFTWARE/syn-bar-core-src) in
+             the same action: its lifetime is deliberately coupled to
+             waybar's rather than surviving independently, so this one
+             menu item is a genuine clean-slate restart of the whole bar
+             stack, not just the bar process itself.
+
+             Wrapped in sh -c: labwc's Execute action runs the command
+             via execvp() directly, no shell — a bare multi-command
+             string like "pkill waybar; waybar" isn't split into two
+             commands, it's passed to execvp() as one literal (and
+             nonexistent) program name containing spaces and a
+             semicolon, so it silently fails to launch anything at all
+             (confirmed live: clicking the old unwrapped version did
+             nothing). sh -c "..." is labwc's own documented pattern for
+             exactly this case — see labwc-actions(5)'s VirtualOutputAdd
+             example, which wraps its own multi-command chain the same
+             way. -->
         <item label="Restart Waybar">
           <action name="Execute">
             <command>sh -c "pkill waybar; pkill syn-bar-core; /usr/lib/syn-os/syn-bar-core &amp; waybar"</command>

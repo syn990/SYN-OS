@@ -6,12 +6,22 @@
  *   PROTOCOL.md).
  *
  *   Commands:
- *     STATS\n        -> {"hostname":..,"cpu_pct":..,"mem_used_kb":..,
+ *     STATS\n        -> {"hostname":..,"os":"linux"|"windows"|"macos",
+ *                         "capabilities":{"apps":bool,"watch_desktop":bool,
+ *                         "watch_window":bool,"host_watched":bool},
+ *                         "cpu_pct":..,"mem_used_kb":..,
  *                         "mem_total_kb":..,"disk_used_kb":..,
  *                         "disk_total_kb":..,"gpu_pct":..|null,
  *                         "sunshine":{"running":bool,"port":47989}}
  *     LIST_APPS\n    -> {"apps":[{"id":..,"name":..,"icon":..}, ...]}
  *     LAUNCH_APP <id>\n -> {"ok":true} | {"ok":false,"error":".."}
+ *
+ *   "os"/"capabilities" are additive — a client that doesn't look for
+ *   them is unaffected. They let a Linux client tell a full syn-relay
+ *   Linux/Xorg peer apart from a lightweight Windows/macOS stats-only
+ *   agent, and let it hide menu options (e.g. per-window streaming) a
+ *   given peer's agent can't actually do, without guessing from the
+ *   "os" string alone or hardcoding a per-OS feature table.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-RELAY (Remote node)

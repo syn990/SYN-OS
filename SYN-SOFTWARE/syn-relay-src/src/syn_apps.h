@@ -37,4 +37,7 @@ int syn_apps_list(syn_app_entry *out, int max);
  * the .desktop file was found and a launch was attempted. */
 bool syn_apps_launch(const char *id);
 
+/* Strips %f/%u/%F/%U/%i/%c/%k-style desktop-entry field codes in place. */
+void syn_apps_strip_field_codes(char *exec);
+
 #endif

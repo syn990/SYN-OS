@@ -107,9 +107,7 @@ int syn_apps_list(syn_app_entry *out, int max) {
 	return count;
 }
 
-/* Strips %f/%u/%F/%U/%i/%c/%k-style desktop-entry field codes, since
- * nothing here supplies a file/URL argument to fill them with. */
-static void strip_field_codes(char *exec) {
+void syn_apps_strip_field_codes(char *exec) {
 	char cleaned[512];
 	size_t j = 0;
 	for (size_t i = 0; exec[i] && j < sizeof(cleaned) - 1; i++) {
@@ -128,7 +126,7 @@ bool syn_apps_launch(const char *id) {
 	if (!parse_desktop_file(id, &entry)) {
 		return false;
 	}
-	strip_field_codes(entry.exec);
+	syn_apps_strip_field_codes(entry.exec);
 
 	pid_t pid = fork();
 	if (pid < 0) {

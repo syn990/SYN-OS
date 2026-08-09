@@ -82,8 +82,8 @@ pacstrapMain() {
   fi
 
   # SYN-OS's locally-authored native tools (syn-crypter, syn-filemanager,
-  # the waybar module backends, syn-wifi, syn-sysmon, syn-wallgen) are all
-  # built once from source
+  # the waybar module backends, syn-connect, syn-sysmon, syn-wallgen) are
+  # all built once from source
   # at ISO-build time (see BUILD-ARCHISO.zsh, SYN-SOFTWARE/), not compiled
   # per-install — this live ISO already has the finished binaries sitting
   # in /usr/lib/syn-os and /usr/bin, so installing them onto the target is
@@ -101,7 +101,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-crypter
     /usr/lib/syn-os/syn-iso-builder
     /usr/lib/syn-os/syn-relay
-    /usr/lib/syn-os/syn-wifi
+    /usr/lib/syn-os/syn-connect
     /usr/lib/syn-os/syn-sysmon
     /usr/lib/syn-os/syn-wallgen
     "/usr/bin/syn-filemanager:/usr/share/applications/syn-filemanager.desktop"
