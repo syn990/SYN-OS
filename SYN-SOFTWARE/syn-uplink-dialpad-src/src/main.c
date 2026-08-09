@@ -75,6 +75,25 @@
 
 #define DTMF_SECONDS 0.15
 #define READBACK_GAP_MS 90
+
+/* Password/login field feedback: the same dual-tone "bop" character as
+ * the dial pad, but ONE fixed pair regardless of which character was
+ * typed — a real per-key DTMF tone here would leak the password's
+ * length and timing (and, cross-referenced against the visible keypad
+ * layout, plausible characters) over audio, same risk landline phones
+ * avoid by not tone-dialing while entering a PIN. 1050/1400Hz sits
+ * between the real DTMF grid's rows/columns (697-941 low, 1209-1633
+ * high — see keys[] above) so it can't be mistaken for any actual
+ * digit, while still sounding like this pad's own dial tones rather
+ * than an unrelated beep. Same pair for every keystroke, backspace, and
+ * field — submit gets its own distinct pair (below) once entry is done
+ * and there's nothing left to leak. */
+#define CRED_KEY_CLICK_LOW 1050.0
+#define CRED_KEY_CLICK_HIGH 1400.0
+#define CRED_KEY_CLICK_SECONDS 0.05
+#define CRED_SUBMIT_TONE_LOW 1050.0
+#define CRED_SUBMIT_TONE_HIGH 1633.0
+#define CRED_SUBMIT_TONE_SECONDS 0.12
 #define SEQUENCE_MAX 32
 #define GRID_ROWS 4
 #define GRID_COLS 4
@@ -564,6 +583,7 @@ static void cred_type_char(char c) {
 		cred_field[field_focus][cred_len[field_focus]++] = c;
 		cred_field[field_focus][cred_len[field_focus]] = '\0';
 		draw();
+		syn_bar_tone_play_dtmf(CRED_KEY_CLICK_LOW, CRED_KEY_CLICK_HIGH, CRED_KEY_CLICK_SECONDS);
 	}
 }
 
@@ -571,6 +591,7 @@ static void cred_backspace(void) {
 	if (cred_len[field_focus] > 0) {
 		cred_field[field_focus][--cred_len[field_focus]] = '\0';
 		draw();
+		syn_bar_tone_play_dtmf(CRED_KEY_CLICK_LOW, CRED_KEY_CLICK_HIGH, CRED_KEY_CLICK_SECONDS);
 	}
 }
 
@@ -602,6 +623,7 @@ static void cred_submit(void) {
 		printf("%s\n", cred_field[0]);
 	}
 	fflush(stdout);
+	syn_bar_tone_play_dtmf(CRED_SUBMIT_TONE_LOW, CRED_SUBMIT_TONE_HIGH, CRED_SUBMIT_TONE_SECONDS);
 	if (mode == MODE_EXEC) {
 		submit_pending = 1; /* main()'s loop breaks out to do the forkpty/doas work */
 	}
