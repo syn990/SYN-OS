@@ -62,14 +62,20 @@ syn_ui::error() {
 }
 
 # syn_ui::doas <command> [args...] — runs `doas`, framed like every other
-# step. doas reads the password straight from /dev/tty (no stdin, no way
-# to theme the prompt itself or PAM's own retry loop), so this only styles
-# what's actually ours: the announce line before, and a clear failure line
-# after if doas exits non-zero (wrong password three times, ^C, or not
-# permitted — doas doesn't distinguish, so neither do we).
+# step. Goes through syn-uplink-dialpad's --exec mode (themed graphical
+# password prompt, real pty underneath — see syn-uplink-dialpad-src's
+# run_under_doas_pty()) rather than calling doas directly, so every one
+# of this function's callers gets the same prompt experience for free.
+# Every real caller of this function today runs from a live desktop
+# session (menu.xml entries, all launched with a Wayland compositor up)
+# — confirmed no true pre-desktop installer stage (syn-stage0.zsh/
+# syn-stage1.zsh) actually calls syn_ui::doas(), even though they source
+# this file for its other helpers, so the Wayland dependency this adds
+# is safe. doas's own retry loop (three tries) still applies — this
+# function only sees the final pass/fail, same as before.
 syn_ui::doas() {
   syn_ui::step "Authenticating (doas)"
-  if doas "$@"; then
+  if /usr/lib/syn-os/syn-uplink-dialpad --exec -- doas "$@"; then
     syn_ui::step_done "Authenticated"
     return 0
   else
