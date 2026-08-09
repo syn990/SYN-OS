@@ -26,7 +26,7 @@ Right side, left to right:
 - **SSH.** Shows a count of your active outbound SSH sessions, and blinks
   while any are open. Not there at all when you have none.
 - **Network.** Wi-Fi name and speed, or a disconnected icon. Click it to
-  open the Wi-Fi picker. See [Wi-Fi](./tools/wifi.md).
+  open Wi-Fi/Bluetooth/Ethernet/VPN. See [Connectivity](./tools/syn-connect.md).
 - **Backlight.** Screen brightness. Scroll up or down to change it.
 - **Volume.** Click to open the audio mixer, middle-click to mute, scroll
   to adjust.
