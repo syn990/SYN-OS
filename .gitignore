@@ -14,6 +14,7 @@ SYN-SOFTWARE/syn-filemanager-src/*.pkg.tar.zst.sig
 SYN-SOFTWARE/*/build/
 SYN-SOFTWARE/*-src-build/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-connect
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-uplink-dialpad
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-crypter
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-core

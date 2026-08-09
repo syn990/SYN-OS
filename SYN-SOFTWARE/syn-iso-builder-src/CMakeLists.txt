@@ -13,6 +13,11 @@ set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSES REQUIRED ncursesw)
 
+# syn_bar_tone.c/.h reused as-is from syn-bar-core-src rather than
+# duplicated — same sibling-source reuse syn-uplink-dialpad-src already
+# makes for the same file.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 add_executable(syn-iso-builder
   src/main.c
   src/syn_theme.c
@@ -29,9 +34,10 @@ add_executable(syn-iso-builder
   src/syn_mount_cleanup.c
   src/syn_software_build.c
   src/syn_build_runner.c
+  ${BARCORE_SRC}/syn_bar_tone.c
 )
 
-target_include_directories(syn-iso-builder PRIVATE ${NCURSES_INCLUDE_DIRS})
-target_link_libraries(syn-iso-builder PRIVATE ${NCURSES_LIBRARIES} util)
+target_include_directories(syn-iso-builder PRIVATE ${NCURSES_INCLUDE_DIRS} ${BARCORE_SRC})
+target_link_libraries(syn-iso-builder PRIVATE ${NCURSES_LIBRARIES} util m)
 
 install(TARGETS syn-iso-builder RUNTIME DESTINATION lib/syn-os)

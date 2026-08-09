@@ -9,6 +9,7 @@
 #include "syn_build_runner.h"
 #include "syn_mount_cleanup.h"
 #include "syn_software_build.h"
+#include "syn_bar_tone.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,23 @@ typedef struct {
 	syn_build_provisional_cb on_provisional;
 	void *userdata;
 } emit_ctx;
+
+/* Same tone meanings syn-bar-core already uses OS-wide (see its
+ * RELAY_CONNECT_TONE_HZ/RELAY_FAIL_DTMF_*): a single 1900Hz tone means
+ * "succeeded", the 697/1209 DTMF pair means "failed" — a build success/
+ * failure should sound the same as every other success/failure in
+ * SYN-OS, not invent its own vocabulary. BUILD_START has no OS-wide
+ * precedent to match (nothing else "starts" a multi-minute background
+ * operation the way this does), so it gets its own low, unmistakably-
+ * distinct-from-both DTMF pair. */
+#define BUILD_START_DTMF_LOW 697.0
+#define BUILD_START_DTMF_HIGH 1477.0
+#define BUILD_START_TONE_SECONDS 0.15
+#define BUILD_SUCCESS_TONE_HZ 1900.0
+#define BUILD_SUCCESS_TONE_SECONDS 0.2
+#define BUILD_FAIL_DTMF_LOW 697.0
+#define BUILD_FAIL_DTMF_HIGH 1209.0
+#define BUILD_FAIL_DTMF_SECONDS 0.15
 
 static void emit(const emit_ctx *ctx, const char *fmt, ...) {
 	char buf[1200];
@@ -472,6 +490,7 @@ bool syn_build_run(const syn_build_target *target, const syn_build_paths *paths,
 	emit(&ctx, "Output:  %s/%s.iso", out_dir, out_name);
 	emit(&ctx, "Build:   %s", target->target_label);
 	emit(&ctx, "");
+	syn_bar_tone_play_dtmf(BUILD_START_DTMF_LOW, BUILD_START_DTMF_HIGH, BUILD_START_TONE_SECONDS);
 
 	/* Step 1: wipe+recreate scratch/output. Mount cleanup runs BEFORE
 	 * the wipe, not after — a stray bind mount from a crashed prior run
@@ -487,6 +506,7 @@ bool syn_build_run(const syn_build_target *target, const syn_build_paths *paths,
 	if (dir_exists(paths->scratch)) {
 		emit(&ctx, "Could not fully remove %s (still mounted, or a permissions "
 			"issue) — aborting rather than building on top of a stale tree.", paths->scratch);
+		syn_bar_tone_play_dtmf(BUILD_FAIL_DTMF_LOW, BUILD_FAIL_DTMF_HIGH, BUILD_FAIL_DTMF_SECONDS);
 		return false;
 	}
 	mkdir_p(paths->scratch);
@@ -533,15 +553,18 @@ bool syn_build_run(const syn_build_target *target, const syn_build_paths *paths,
 
 	if (!ok) {
 		emit(&ctx, "Build failed.");
+		syn_bar_tone_play_dtmf(BUILD_FAIL_DTMF_LOW, BUILD_FAIL_DTMF_HIGH, BUILD_FAIL_DTMF_SECONDS);
 		return false;
 	}
 
 	/* Step 7: archive. */
 	if (!archive_iso(paths->output, out_dir, out_name, software_log_dir, final_iso_path_out)) {
 		emit(&ctx, "mkarchiso succeeded but no .iso was found in %s — something's wrong.", paths->output);
+		syn_bar_tone_play_dtmf(BUILD_FAIL_DTMF_LOW, BUILD_FAIL_DTMF_HIGH, BUILD_FAIL_DTMF_SECONDS);
 		return false;
 	}
 
 	emit(&ctx, "ISO build complete: %s", final_iso_path_out);
+	syn_bar_tone_play(BUILD_SUCCESS_TONE_HZ, BUILD_SUCCESS_TONE_SECONDS);
 	return true;
 }
