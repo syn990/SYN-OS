@@ -11,6 +11,8 @@
 # To set your language for displaying messages and time/date formats, use the following:
 #LANG=en_CA.UTF8
 
-# To set your keyboard layout, you need to modify your X config:
-# http://www.google.com/search?q=how+to+set+keyboard+layout+xorg
+# Keyboard layout: XKB_DEFAULT_LAYOUT (see labwc-config(5)). Set by
+# syn-stage1.zsh from synos.conf's KeyMap at install time — see there
+# rather than editing this by hand unless you're changing it after install.
+XKB_DEFAULT_LAYOUT=gb
 QT_QPA_PLATFORMTHEME=qt6ct

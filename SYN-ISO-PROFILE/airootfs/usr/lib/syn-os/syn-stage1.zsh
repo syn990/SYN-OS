@@ -49,6 +49,22 @@ printf "KEYMAP=%s\nFONT=%s\n" "$KeyMap" "$VconsoleFont" > /etc/vconsole.conf
 hwclock --systohc
 syn_ui::step_done "Locale, hostname, time, console configured"
 
+# KeyMap only reaches the console (vconsole.conf/loadkeys above) — labwc
+# reads its own layout from XKB_DEFAULT_LAYOUT in ~/.config/labwc/environment
+# (labwc-config(5)), which nothing was ever setting. Console keymap names
+# and XKB layout codes differ for some layouts (uk -> gb); pass through
+# unchanged otherwise.
+case "$KeyMap" in
+  uk) XkbLayout="gb" ;;
+  *)  XkbLayout="$KeyMap" ;;
+esac
+LabwcEnv="/etc/skel/.config/labwc/environment"
+if [ -f "$LabwcEnv" ]; then
+  sed -i "/^XKB_DEFAULT_LAYOUT=/d" "$LabwcEnv"
+  echo "XKB_DEFAULT_LAYOUT=${XkbLayout}" >> "$LabwcEnv"
+  syn_ui::step_done "labwc keyboard layout set to ${XkbLayout} (from KeyMap=${KeyMap})"
+fi
+
 # doas + sudo shim setup
 if command -v doas >/dev/null 2>&1; then
   echo "permit persist :wheel" > /etc/doas.conf
@@ -95,8 +111,8 @@ fi
 sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
 # Every locally-authored native tool (syn-filemanager, the waybar module
-# backends, syn-crypter, syn-wifi, syn-wallgen) is already on this disk by
-# this point — syn-pacstrap.zsh copies each one's already-built binary
+# backends, syn-crypter, syn-connect, syn-wallgen) is already on this disk
+# by this point — syn-pacstrap.zsh copies each one's already-built binary
 # straight from the live ISO before Stage 0 even chroots in here. Nothing
 # to build.
 
@@ -271,6 +287,12 @@ if [ "${EnableSsh:-no}" = "yes" ]; then
   systemctl enable sshd.service 2>/dev/null || true
   syn_ui::step_done "sshd enabled (EnableSsh=yes in synos.conf)"
 fi
+
+# DS4/DualSense pairs fine but bonding never fully completes, so
+# BlueZ's default ClassicBondedOnly=true silently drops the HID
+# connection — light bar goes solid, no input ever arrives.
+sed -i 's/^#\?ClassicBondedOnly=.*/ClassicBondedOnly=false/' /etc/bluetooth/input.conf
+syn_ui::step_done "Bluetooth HID fixed for DS4/DualSense controllers"
 
 # zstd-compressed RAM-backed swap. The modules-load.d entry matters: without
 # it the zram module isn't guaranteed to be loaded before zram-generator's
