@@ -25,6 +25,8 @@
 #include "syn_eth.h"
 #include "syn_vpn.h"
 #include "syn_tui.h"
+#include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -50,6 +52,15 @@ static void toast(const char *urgency, const char *title, const char *body) {
 		waitpid(pid, &status, 0);
 	}
 }
+
+/* Same best-effort shape as toast() above: no PulseAudio session (e.g.
+ * the live installer TTY) just means silence, nothing to check for.
+ * Kept separate from toast()'s urgency string rather than derived from
+ * it — "normal" urgency covers both a genuine SUCCESS (connected) and a
+ * plain STOP (disconnected/forgotten), which sound different here. */
+static void tone_success(void) { syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS); }
+static void tone_fail(void) { syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS); }
+static void tone_stop(void) { syn_bar_tone_play_dtmf(SYN_TONE_STOP_LOW, SYN_TONE_STOP_HIGH, SYN_TONE_STOP_SECONDS); }
 
 static void wifi_scan_tick(void *userdata) {
 	(void)userdata;
@@ -257,6 +268,7 @@ int main(void) {
 			if (action == SYN_TUI_ACTION_DISCONNECT) {
 				bool ok = syn_iwd_disconnect(wifi_bus, wifi_device, wifi_err, sizeof(wifi_err));
 				toast(ok ? "normal" : "critical", "Wi-Fi", ok ? "Disconnected" : wifi_err);
+				ok ? tone_stop() : tone_fail();
 				wifi_scanning = 1; /* refresh the list's connected marker */
 				continue;
 			}
@@ -267,11 +279,13 @@ int main(void) {
 				if (ok) {
 					snprintf(msg, sizeof(msg), "Connected to %s", chosen->name);
 					toast("normal", "Wi-Fi", msg);
+					tone_success();
 					syn_tui_message("Wi-Fi", msg);
 					wifi_scanning = 1;
 				} else {
 					snprintf(msg, sizeof(msg), "Failed to connect to %s: %s", chosen->name, wifi_err);
 					toast("critical", "Wi-Fi", msg);
+					tone_fail();
 					syn_tui_message("Wi-Fi", msg);
 					/* stay in the list so the user can try another network
 					 * or re-enter the password without restarting */
@@ -287,6 +301,7 @@ int main(void) {
 				const syn_bluez_device *chosen = &devices[index];
 				bool ok = syn_bluez_disconnect(bt_bus, chosen->object_path, bt_err, sizeof(bt_err));
 				toast(ok ? "normal" : "critical", "Bluetooth", ok ? "Disconnected" : bt_err);
+				ok ? tone_stop() : tone_fail();
 				bt_scanning = 1;
 				continue;
 			}
@@ -294,6 +309,14 @@ int main(void) {
 				const syn_bluez_device *chosen = &devices[index];
 				bool ok = syn_bluez_remove(bt_bus, bt_adapter, chosen->object_path, bt_err, sizeof(bt_err));
 				toast(ok ? "normal" : "critical", "Bluetooth", ok ? "Forgotten" : bt_err);
+				/* TOGGLE_OFF, not STOP — "forgotten" un-pairs/un-trusts the
+				 * device permanently, a bigger deal than a plain
+				 * disconnect, so it gets a distinct sound. */
+				if (ok) {
+					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+				} else {
+					tone_fail();
+				}
 				bt_scanning = 1;
 				continue;
 			}
@@ -311,6 +334,7 @@ int main(void) {
 					if (!syn_bluez_pair_and_trust(bt_bus, device_path, bt_err, sizeof(bt_err))) {
 						snprintf(msg, sizeof(msg), "Failed to pair %s: %s", name, bt_err);
 						toast("critical", "Bluetooth", msg);
+						tone_fail();
 						syn_tui_message("Bluetooth", msg);
 						bt_scanning = 1;
 						continue;
@@ -322,10 +346,12 @@ int main(void) {
 				if (ok) {
 					snprintf(msg, sizeof(msg), "Connected to %s", name);
 					toast("normal", "Bluetooth", msg);
+					tone_success();
 					syn_tui_message("Bluetooth", msg);
 				} else {
 					snprintf(msg, sizeof(msg), "Paired with %s, but connect failed: %s", name, bt_err);
 					toast("critical", "Bluetooth", msg);
+					tone_fail();
 					syn_tui_message("Bluetooth", msg);
 				}
 				bt_scanning = 1;
@@ -359,6 +385,7 @@ int main(void) {
 				bool ok = syn_vpn_disconnect(target, vpn_err, sizeof(vpn_err));
 				syn_tui_init();
 				toast(ok ? "normal" : "critical", "VPN", ok ? "Disconnected" : vpn_err);
+				ok ? tone_stop() : tone_fail();
 				vpn_scanning = 1;
 				continue;
 			}
@@ -372,6 +399,7 @@ int main(void) {
 					 * underneath untouched, no syn_tui_end()/init() needed
 					 * here (unlike the plain-doas connect step below). */
 					if (!syn_vpn_write_credentials(chosen, vpn_err, sizeof(vpn_err))) {
+						tone_fail();
 						syn_tui_message("VPN", vpn_err);
 						continue;
 					}
@@ -398,10 +426,12 @@ int main(void) {
 				if (ok) {
 					snprintf(msg, sizeof(msg), "Connected to %s", chosen->name);
 					toast("normal", "VPN", msg);
+					tone_success();
 					syn_tui_message("VPN", msg);
 				} else {
 					snprintf(msg, sizeof(msg), "Failed to connect to %s: %s", chosen->name, vpn_err);
 					toast("critical", "VPN", msg);
+					tone_fail();
 					syn_tui_message("VPN", msg);
 				}
 				vpn_scanning = 1;

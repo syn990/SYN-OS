@@ -8,6 +8,14 @@
 #include <QFileDevice>
 #include <cerrno>
 
+// syn_bar_tone.c is a plain-C sibling source (see CMakeLists.txt) —
+// extern "C" so this TU links against its unmangled symbols rather than
+// looking for a C++-mangled name that doesn't exist.
+extern "C" {
+#include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
+}
+
 namespace {
 
 QString baseName(const QString &path)
@@ -19,6 +27,7 @@ void showFailures(QWidget *parent, const QString &title, const QStringList &fail
 {
   if (failures.isEmpty())
     return;
+  syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
   QMessageBox::warning(parent, title,
     QObject::tr("%1 item(s) could not be completed:\n\n%2")
       .arg(failures.size())

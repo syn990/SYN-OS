@@ -25,6 +25,8 @@
 #include "input_protocol.h"
 #include "syn_agent_state.h"
 #include "syn_dialpad_prompt.h"
+#include "syn_bar_notify.h"
+#include "syn_tone_vocab.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -375,6 +377,7 @@ int cmd_watch_start(const char *ip_arg) {
 	char existing_host[256];
 	if (syn_watch_state_get(existing_host, sizeof(existing_host)) != 0) {
 		fprintf(stderr, "syn-relay: already watching %s — stop that session first\n", existing_host);
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 
@@ -388,12 +391,18 @@ int cmd_watch_start(const char *ip_arg) {
 	pid_t pid = fork();
 	if (pid < 0) {
 		perror("syn-relay: fork");
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	if (pid > 0) {
 		if (!syn_watch_state_save(pid, remote_ip)) {
 			fprintf(stderr, "syn-relay: failed to save watch state\n");
 		}
+		/* Confirms the daemon launched, not that it's actually
+		 * connected yet (that happens deep in run_watch_child() below,
+		 * invisible from here) — same "session started" framing as
+		 * cmd_host_start()'s own tone below. */
+		syn_bar_notify_tone(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
 		printf("Watching %s\n", remote_ip);
 		return 0;
 	}
@@ -425,10 +434,12 @@ int cmd_watch_stop(void) {
 	if (pid == 0) {
 		fprintf(stderr, "syn-relay: not currently watching a node\n");
 		syn_watch_state_clear();
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	kill(pid, SIGTERM);
 	syn_watch_state_clear();
+	syn_bar_notify_tone_dtmf(SYN_TONE_STOP_LOW, SYN_TONE_STOP_HIGH, SYN_TONE_STOP_SECONDS);
 	printf("Stopped watching %s\n", host);
 	return 0;
 }

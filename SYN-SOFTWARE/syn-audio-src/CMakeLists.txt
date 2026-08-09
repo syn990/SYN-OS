@@ -19,15 +19,20 @@ pkg_check_modules(LIBPULSE REQUIRED libpulse)
 # convention syn-connect-src follows).
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
+# syn_bar_tone.c/.h + syn_tone_vocab.h reused as-is from syn-bar-core-src
+# — same sibling-source reuse pattern as CRYPTER_SRC above.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 add_executable(syn-audio
   src/main.c
   src/syn_pulse.c
   src/syn_audio_tui.c
   ${CRYPTER_SRC}/syn_theme.c
+  ${BARCORE_SRC}/syn_bar_tone.c
 )
 
-target_include_directories(syn-audio PRIVATE ${NCURSES_INCLUDE_DIRS} ${LIBPULSE_INCLUDE_DIRS} ${CRYPTER_SRC})
-target_link_libraries(syn-audio PRIVATE ${NCURSES_LIBRARIES} ${LIBPULSE_LIBRARIES})
+target_include_directories(syn-audio PRIVATE ${NCURSES_INCLUDE_DIRS} ${LIBPULSE_INCLUDE_DIRS} ${CRYPTER_SRC} ${BARCORE_SRC})
+target_link_libraries(syn-audio PRIVATE ${NCURSES_LIBRARIES} ${LIBPULSE_LIBRARIES} m)
 target_compile_options(syn-audio PRIVATE ${NCURSES_CFLAGS_OTHER} ${LIBPULSE_CFLAGS_OTHER})
 
 install(TARGETS syn-audio RUNTIME DESTINATION lib/syn-os)

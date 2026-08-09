@@ -18,6 +18,10 @@ pkg_check_modules(SDBUS REQUIRED libsystemd)
 # code — reused as-is from syn-crypter-src rather than duplicated.
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
+# syn_bar_tone.c/.h + syn_tone_vocab.h reused as-is from syn-bar-core-src
+# — same sibling-source reuse pattern as CRYPTER_SRC above.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 # Bluetooth support talks to BlueZ purely over the system D-Bus (see
 # syn_bluez.c) — same as syn_iwd.c does for iwd. No BlueZ dev package or
 # libbluetooth needed at build time; only libsystemd (already linked for
@@ -32,10 +36,11 @@ add_executable(syn-connect
   src/syn_vpn.c
   src/syn_tui.c
   ${CRYPTER_SRC}/syn_theme.c
+  ${BARCORE_SRC}/syn_bar_tone.c
 )
 
-target_include_directories(syn-connect PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDBUS_INCLUDE_DIRS} ${CRYPTER_SRC})
-target_link_libraries(syn-connect PRIVATE ${NCURSES_LIBRARIES} ${SDBUS_LIBRARIES})
+target_include_directories(syn-connect PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDBUS_INCLUDE_DIRS} ${CRYPTER_SRC} ${BARCORE_SRC})
+target_link_libraries(syn-connect PRIVATE ${NCURSES_LIBRARIES} ${SDBUS_LIBRARIES} m)
 target_compile_options(syn-connect PRIVATE ${NCURSES_CFLAGS_OTHER} ${SDBUS_CFLAGS_OTHER})
 
 install(TARGETS syn-connect RUNTIME DESTINATION lib/syn-os)

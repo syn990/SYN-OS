@@ -24,6 +24,8 @@
  * ------------------------------------------------------------------------ */
 #include "syn_pulse.h"
 #include "syn_audio_tui.h"
+#include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -55,6 +57,27 @@ static void print_device_list(const syn_pulse_device *devices, int count) {
 	}
 }
 
+/* Looks up `name`'s current mute state from a fresh device list —
+ * needed because syn_pulse_toggle_sink_mute()/etc. only report whether
+ * the toggle operation itself succeeded, not which way it landed.
+ * Returns false (treated as "assume unmuted") if the device can't be
+ * found, which only happens if it was unplugged between the mute call
+ * and this lookup — rare enough that guessing wrong here just means
+ * one cue plays backwards, not a real failure. */
+static bool device_is_muted(syn_pulse *p, bool is_sink, const char *name) {
+	syn_pulse_device devices[MAX_DEVICES];
+	char err[256];
+	int count = is_sink
+		? syn_pulse_list_sinks(p, devices, MAX_DEVICES, err, sizeof(err))
+		: syn_pulse_list_sources(p, devices, MAX_DEVICES, err, sizeof(err));
+	for (int i = 0; i < count; i++) {
+		if (strcmp(devices[i].name, name) == 0) {
+			return devices[i].muted;
+		}
+	}
+	return false;
+}
+
 static int run_cli(int argc, char **argv) {
 	char err[256] = {0};
 	syn_pulse *p = syn_pulse_open(err, sizeof(err));
@@ -83,7 +106,12 @@ static int run_cli(int argc, char **argv) {
 		bool ok = (strcmp(cmd, "--set-default-sink") == 0)
 			? syn_pulse_set_default_sink(p, argv[2], err, sizeof(err))
 			: syn_pulse_set_default_source(p, argv[2], err, sizeof(err));
-		if (!ok) { fprintf(stderr, "syn-audio: %s\n", err); rc = 1; }
+		if (!ok) {
+			fprintf(stderr, "syn-audio: %s\n", err); rc = 1;
+			syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		} else {
+			syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+		}
 
 	} else if (strcmp(cmd, "--mute-sink") == 0 || strcmp(cmd, "--mute-source") == 0) {
 		if (argc != 4) { print_usage(argv[0]); rc = 1; goto done; }
@@ -99,7 +127,14 @@ static int run_cli(int argc, char **argv) {
 		} else {
 			print_usage(argv[0]); rc = 1; goto done;
 		}
-		if (!ok) { fprintf(stderr, "syn-audio: %s\n", err); rc = 1; }
+		if (!ok) {
+			fprintf(stderr, "syn-audio: %s\n", err); rc = 1;
+			syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		} else if (device_is_muted(p, is_sink, argv[2])) {
+			syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_ON_LOW, SYN_TONE_TOGGLE_ON_HIGH, SYN_TONE_TOGGLE_SECONDS);
+		} else {
+			syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+		}
 
 	} else if (strcmp(cmd, "--set-sink-volume") == 0 || strcmp(cmd, "--set-source-volume") == 0) {
 		if (argc != 4) { print_usage(argv[0]); rc = 1; goto done; }
@@ -168,22 +203,41 @@ static int run_interactive(void) {
 			focused = (focused == SYN_AUDIO_TAB_OUTPUTS) ? SYN_AUDIO_TAB_INPUTS : SYN_AUDIO_TAB_OUTPUTS;
 			selected = 0;
 			break;
-		case SYN_AUDIO_ACTION_SET_DEFAULT:
+		case SYN_AUDIO_ACTION_SET_DEFAULT: {
 			if (have_selection) {
-				if (focused == SYN_AUDIO_TAB_OUTPUTS)
-					syn_pulse_set_default_sink(p, list[selected].name, err, sizeof(err));
-				else
-					syn_pulse_set_default_source(p, list[selected].name, err, sizeof(err));
+				bool ok = (focused == SYN_AUDIO_TAB_OUTPUTS)
+					? syn_pulse_set_default_sink(p, list[selected].name, err, sizeof(err))
+					: syn_pulse_set_default_source(p, list[selected].name, err, sizeof(err));
+				if (ok) {
+					syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+				} else {
+					syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+				}
 			}
 			break;
-		case SYN_AUDIO_ACTION_TOGGLE_MUTE:
+		}
+		case SYN_AUDIO_ACTION_TOGGLE_MUTE: {
 			if (have_selection) {
-				if (focused == SYN_AUDIO_TAB_OUTPUTS)
-					syn_pulse_toggle_sink_mute(p, list[selected].name, err, sizeof(err));
-				else
-					syn_pulse_toggle_source_mute(p, list[selected].name, err, sizeof(err));
+				/* list[selected].muted is the state BEFORE this toggle
+				 * (captured when `list` was read, above) — a successful
+				 * toggle flips it, so the new state is just its inverse.
+				 * No re-query needed. */
+				bool was_muted = list[selected].muted;
+				bool ok = (focused == SYN_AUDIO_TAB_OUTPUTS)
+					? syn_pulse_toggle_sink_mute(p, list[selected].name, err, sizeof(err))
+					: syn_pulse_toggle_source_mute(p, list[selected].name, err, sizeof(err));
+				if (!ok) {
+					syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+				} else if (!was_muted) {
+					/* now muted */
+					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_ON_LOW, SYN_TONE_TOGGLE_ON_HIGH, SYN_TONE_TOGGLE_SECONDS);
+				} else {
+					/* now unmuted */
+					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+				}
 			}
 			break;
+		}
 		case SYN_AUDIO_ACTION_VOLUME_UP:
 			if (have_selection) {
 				if (focused == SYN_AUDIO_TAB_OUTPUTS)

@@ -9,6 +9,8 @@
 #include "syn_journal.h"
 #include "syn_theme.h"
 #include "syn_bar_client.h"
+#include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
 
 #include <ncurses.h>
 #include <string.h>
@@ -349,11 +351,13 @@ static int run_sensors_view(void) {
 		syn_sensor_reading readings[SYN_STATS_MAX_SENSORS];
 		int count = syn_stats_sensors_read(readings, SYN_STATS_MAX_SENSORS);
 
+		bool any_hot = false;
 		int row = 4;
 		for (int i = 0; i < count && row < getmaxy(stdscr) - 1; i++) {
 			int pair = SYN_THEME_PAIR_NORMAL;
 			if (readings[i].celsius >= 90.0) {
 				pair = SYN_THEME_PAIR_TITLE; /* reuse accent-colored pair as the "hot" warning */
+				any_hot = true;
 			}
 			attron(COLOR_PAIR(pair));
 			mvprintw(row, 2, "%-32s %5.1f C", readings[i].label, readings[i].celsius);
@@ -363,6 +367,18 @@ static int run_sensors_view(void) {
 		if (count == 0) {
 			mvprintw(4, 2, "No hwmon sensors found");
 		}
+
+		/* Edge-detected, not fired every redraw tick while still hot —
+		 * same was_fresh/was_watching shape syn-bar-core's own main.c
+		 * uses for its transition-tracked tones. One sensor crossing
+		 * 90C is enough to trip this (not "all of them"), and it resets
+		 * the moment none are hot anymore so a second crossing later in
+		 * the same session re-alerts. */
+		static bool was_hot = false;
+		if (any_hot && !was_hot) {
+			syn_bar_tone_play_dtmf(SYN_TONE_ALERT_LOW, SYN_TONE_ALERT_HIGH, SYN_TONE_ALERT_SECONDS);
+		}
+		was_hot = any_hot;
 
 		refresh();
 	}

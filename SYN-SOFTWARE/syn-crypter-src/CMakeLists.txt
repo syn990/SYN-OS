@@ -14,6 +14,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(OPENSSL REQUIRED openssl)
 pkg_check_modules(NCURSES REQUIRED ncursesw)
 
+# syn_bar_tone.c/.h + syn_tone_vocab.h reused as-is from syn-bar-core-src
+# — same sibling-source reuse pattern syn-connect-src/syn-uplink-dialpad-src
+# already make for other files.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 add_executable(syn-crypter
   src/main.c
   src/syn_crypt_util.c
@@ -23,10 +28,11 @@ add_executable(syn-crypter
   src/syn_crypt_redshirt.c
   src/syn_theme.c
   src/syn_tui.c
+  ${BARCORE_SRC}/syn_bar_tone.c
 )
 
-target_include_directories(syn-crypter PRIVATE ${OPENSSL_INCLUDE_DIRS} ${NCURSES_INCLUDE_DIRS})
-target_link_libraries(syn-crypter PRIVATE ${OPENSSL_LIBRARIES} ${NCURSES_LIBRARIES})
+target_include_directories(syn-crypter PRIVATE ${OPENSSL_INCLUDE_DIRS} ${NCURSES_INCLUDE_DIRS} ${BARCORE_SRC})
+target_link_libraries(syn-crypter PRIVATE ${OPENSSL_LIBRARIES} ${NCURSES_LIBRARIES} m)
 target_compile_options(syn-crypter PRIVATE ${OPENSSL_CFLAGS_OTHER} ${NCURSES_CFLAGS_OTHER})
 
 install(TARGETS syn-crypter RUNTIME DESTINATION lib/syn-os)

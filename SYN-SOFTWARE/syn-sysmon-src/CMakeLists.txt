@@ -19,6 +19,10 @@ pkg_check_modules(SDJOURNAL REQUIRED libsystemd)
 # reuse syn-connect-src already makes).
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
+# syn_bar_tone.c/.h + syn_tone_vocab.h reused as-is from syn-bar-core-src
+# — same sibling-source reuse pattern as CRYPTER_SRC above.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 add_executable(syn-sysmon
   src/main.c
   src/syn_stats.c
@@ -26,10 +30,11 @@ add_executable(syn-sysmon
   src/syn_sysmon_tui.c
   src/syn_bar_client.c
   ${CRYPTER_SRC}/syn_theme.c
+  ${BARCORE_SRC}/syn_bar_tone.c
 )
 
-target_include_directories(syn-sysmon PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDJOURNAL_INCLUDE_DIRS} ${CRYPTER_SRC})
-target_link_libraries(syn-sysmon PRIVATE ${NCURSES_LIBRARIES} ${SDJOURNAL_LIBRARIES})
+target_include_directories(syn-sysmon PRIVATE ${NCURSES_INCLUDE_DIRS} ${SDJOURNAL_INCLUDE_DIRS} ${CRYPTER_SRC} ${BARCORE_SRC})
+target_link_libraries(syn-sysmon PRIVATE ${NCURSES_LIBRARIES} ${SDJOURNAL_LIBRARIES} m)
 target_compile_options(syn-sysmon PRIVATE ${NCURSES_CFLAGS_OTHER} ${SDJOURNAL_CFLAGS_OTHER})
 
 install(TARGETS syn-sysmon RUNTIME DESTINATION lib/syn-os)

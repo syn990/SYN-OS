@@ -37,6 +37,8 @@
  * ------------------------------------------------------------------------ */
 #include "syn_crypt.h"
 #include "syn_tui.h"
+#include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -190,9 +192,11 @@ static int run_cli(int argc, char **argv) {
 
 	if (rc != 0) {
 		fprintf(stderr, "syn-crypter: %s: %s\n", encrypt ? "encrypt" : "decrypt", err ? err : "unknown error");
+		syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	fprintf(stderr, "syn-crypter: %s complete\n", encrypt ? "encryption" : "decryption");
+	syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
 	return 0;
 }
 
@@ -219,9 +223,11 @@ static int run_interactive(void) {
 	char body[512];
 	if (rc == 0) {
 		snprintf(body, sizeof(body), "%s %s: succeeded", d.encrypt ? "Encrypt" : "Decrypt", d.file);
+		syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
 	} else {
 		snprintf(body, sizeof(body), "%s %s: FAILED — %s",
 			d.encrypt ? "Encrypt" : "Decrypt", d.file, err ? err : "unknown error");
+		syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 	}
 	/* Not fprintf(stderr, ...) — ncurses still owns the terminal here. */
 	syn_tui_message("Result", body);

@@ -18,6 +18,11 @@ pkg_check_modules(AVUTIL         REQUIRED libavutil)
 pkg_check_modules(SWSCALE        REQUIRED libswscale)
 pkg_check_modules(SDL2           REQUIRED sdl2)
 
+# syn_tone_vocab.h (OS-wide tone meaning -> Hz table) is header-only —
+# no source file to add, just the include path, same sibling-source
+# reuse pattern syn-connect-src/syn-crypter-src make for whole .c files.
+set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
+
 add_executable(syn-relay
   src/main.c
   src/cmd_stats_client.c
@@ -47,6 +52,7 @@ add_executable(syn-relay
 target_include_directories(syn-relay PRIVATE
   src
   protocol
+  ${BARCORE_SRC}
   ${WAYLAND_CLIENT_INCLUDE_DIRS}
   ${AVCODEC_INCLUDE_DIRS}
   ${AVFORMAT_INCLUDE_DIRS}

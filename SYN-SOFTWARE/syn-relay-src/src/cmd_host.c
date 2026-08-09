@@ -33,6 +33,8 @@
 #include "input_protocol.h"
 #include "syn_agent_state.h"
 #include "syn_dialpad_prompt.h"
+#include "syn_bar_notify.h"
+#include "syn_tone_vocab.h"
 
 #include <wayland-client.h>
 
@@ -720,12 +722,14 @@ int cmd_host_start(const char *viewer_ip_arg) {
 	char existing_viewer[256];
 	if (syn_host_state_get(&existing_video, &existing_input, existing_viewer, sizeof(existing_viewer))) {
 		fprintf(stderr, "syn-relay: already being watched by %s — stop that session first\n", existing_viewer);
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 
 	uint32_t screen_w, screen_h;
 	if (!detect_screen_resolution(&screen_w, &screen_h)) {
 		fprintf(stderr, "syn-relay: could not detect screen resolution (is wlr-randr installed?)\n");
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 
@@ -744,6 +748,7 @@ int cmd_host_start(const char *viewer_ip_arg) {
 	pid_t video_pid = fork();
 	if (video_pid < 0) {
 		perror("syn-relay: fork (video)");
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	if (video_pid == 0) {
@@ -768,6 +773,7 @@ int cmd_host_start(const char *viewer_ip_arg) {
 	if (input_pid < 0) {
 		perror("syn-relay: fork (input)");
 		kill(video_pid, SIGTERM);
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	if (input_pid == 0) {
@@ -792,6 +798,10 @@ int cmd_host_start(const char *viewer_ip_arg) {
 	if (!syn_host_state_save(video_pid, input_pid, viewer_ip)) {
 		fprintf(stderr, "syn-relay: failed to save host state\n");
 	}
+	/* Confirms both children forked, not that the stream is actually
+	 * flowing yet — same "session started" framing as cmd_watch_start()'s
+	 * own tone above. */
+	syn_bar_notify_tone(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
 	printf("Now being watched by %s (video+input ready)\n", viewer_ip);
 	return 0;
 }
@@ -802,11 +812,13 @@ int cmd_host_stop(void) {
 	if (!syn_host_state_get(&video_pid, &input_pid, viewer, sizeof(viewer))) {
 		fprintf(stderr, "syn-relay: not currently being watched\n");
 		syn_host_state_clear();
+		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
 		return 1;
 	}
 	kill(video_pid, SIGTERM);
 	kill(input_pid, SIGTERM);
 	syn_host_state_clear();
+	syn_bar_notify_tone_dtmf(SYN_TONE_STOP_LOW, SYN_TONE_STOP_HIGH, SYN_TONE_STOP_SECONDS);
 	printf("Stopped being watched\n");
 	return 0;
 }
