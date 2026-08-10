@@ -18,9 +18,11 @@ pkg_check_modules(AVUTIL         REQUIRED libavutil)
 pkg_check_modules(SWSCALE        REQUIRED libswscale)
 pkg_check_modules(SDL2           REQUIRED sdl2)
 
-# syn_tone_vocab.h (OS-wide tone meaning -> Hz table) is header-only —
-# no source file to add, just the include path, same sibling-source
-# reuse pattern syn-connect-src/syn-crypter-src make for whole .c files.
+# syn_bar_notify.c/.h ("ask the bar for a named tone") reused as-is
+# from syn-bar-core-src — only syn-bar-core itself links syn_bar_tone.c
+# (the actual paplay synthesis), see syn_bar_notify.h. Same sibling-
+# source reuse pattern syn-connect-src/syn-crypter-src make for other
+# files.
 set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
 
 add_executable(syn-relay
@@ -42,7 +44,7 @@ add_executable(syn-relay
   src/syn_sunshine.c
   src/syn_apps.c
   src/syn_agent_state.c
-  src/syn_bar_notify.c
+  ${BARCORE_SRC}/syn_bar_notify.c
   protocol/ext-image-capture-source-v1-protocol.c
   protocol/ext-image-copy-capture-v1-protocol.c
   protocol/ext-foreign-toplevel-list-v1-protocol.c

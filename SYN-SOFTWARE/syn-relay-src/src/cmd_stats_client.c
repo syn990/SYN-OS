@@ -31,7 +31,6 @@
 #include "syn_dialpad_prompt.h"
 #include "syn_ssh_resolve.h"
 #include "syn_bar_notify.h"
-#include "syn_tone_vocab.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,20 +133,20 @@ int cmd_connect(const char *host_arg) {
 	char reply[SYN_RELAY_MAX_LINE];
 	if (!syn_relay_request(stats_host, "STATS", reply, sizeof(reply))) {
 		fprintf(stderr, "syn-relay: no syn-relay server reachable at %s\n", stats_host);
-		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		syn_bar_notify_meaning("FAIL");
 		return 1;
 	}
 	syn_node_caps caps;
 	caps_from_stats_reply(reply, &caps);
 	if (!syn_node_state_save(stats_host, ssh_target, &caps)) {
 		fprintf(stderr, "syn-relay: failed to save connection state\n");
-		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		syn_bar_notify_meaning("FAIL");
 		return 1;
 	}
 	char body[300];
 	snprintf(body, sizeof(body), "Connected to gateway %s", stats_host);
 	notify("SYN-RELAY", body);
-	syn_bar_notify_tone(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+	syn_bar_notify_meaning("SUCCESS");
 	printf("Connected to %s\n", stats_host);
 	return 0;
 }
@@ -155,7 +154,7 @@ int cmd_connect(const char *host_arg) {
 int cmd_disconnect(void) {
 	syn_node_state_clear();
 	notify("SYN-RELAY", "Disconnected from gateway");
-	syn_bar_notify_tone_dtmf(SYN_TONE_STOP_LOW, SYN_TONE_STOP_HIGH, SYN_TONE_STOP_SECONDS);
+	syn_bar_notify_meaning("STOP");
 	printf("Disconnected\n");
 	return 0;
 }
@@ -403,7 +402,7 @@ int cmd_launch(const char *id) {
 	char host[256];
 	if (syn_node_state_get(host, sizeof(host)) != SYN_NODE_STATE_CONNECTED) {
 		fprintf(stderr, "syn-relay: not connected to a node\n");
-		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		syn_bar_notify_meaning("FAIL");
 		return 1;
 	}
 
@@ -413,7 +412,7 @@ int cmd_launch(const char *id) {
 	char reply[SYN_RELAY_MAX_LINE];
 	if (!syn_relay_request(host, cmd, reply, sizeof(reply))) {
 		fprintf(stderr, "syn-relay: launch request failed (node unreachable)\n");
-		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		syn_bar_notify_meaning("FAIL");
 		return 1;
 	}
 
@@ -421,11 +420,11 @@ int cmd_launch(const char *id) {
 	syn_json_bool(reply, "ok", &ok);
 	if (!ok) {
 		fprintf(stderr, "syn-relay: launch failed: %s\n", reply);
-		syn_bar_notify_tone_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+		syn_bar_notify_meaning("FAIL");
 		return 1;
 	}
 
-	syn_bar_notify_tone(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+	syn_bar_notify_meaning("SUCCESS");
 	printf("Launched\n");
 	return 0;
 }

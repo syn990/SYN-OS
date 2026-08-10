@@ -23,23 +23,21 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-/* Digit 'D' (941/1633Hz) for a failed stream-app launch — syn-bar-core
- * never sees this event at all (it's not a relay-state-file transition,
- * just this one waypipe invocation succeeding or failing), so this asks
- * the bar to play it directly over its socket rather than syn-relay
- * linking any tone-synthesis code itself (see syn_bar_notify.h). No
- * success tone: a stream-app window simply appearing on screen already
- * confirms success, unlike a failure, which can otherwise pass silently
- * if the terminal that ran this isn't being watched. */
-#define STREAM_APP_FAIL_DTMF_LOW 941.0
-#define STREAM_APP_FAIL_DTMF_HIGH 1633.0
-#define STREAM_APP_FAIL_DTMF_SECONDS 0.15
+/* STREAM_FAIL (syn_tone_vocab.h) for a failed stream-app launch —
+ * syn-bar-core never sees this event at all (it's not a relay-state-
+ * file transition, just this one waypipe invocation succeeding or
+ * failing), so this asks the bar to play it directly over its socket
+ * rather than syn-relay linking any tone-synthesis code itself (see
+ * syn_bar_notify.h). No success tone: a stream-app window simply
+ * appearing on screen already confirms success, unlike a failure,
+ * which can otherwise pass silently if the terminal that ran this
+ * isn't being watched. */
 
 int cmd_stream_app(const char *id, const char *ssh_host) {
 	char reply[8192];
 	if (!syn_relay_request(ssh_host, "LIST_APPS", reply, sizeof(reply))) {
 		fprintf(stderr, "syn-relay: %s unreachable on the stats port (:47991)\n", ssh_host);
-		syn_bar_notify_tone_dtmf(STREAM_APP_FAIL_DTMF_LOW, STREAM_APP_FAIL_DTMF_HIGH, STREAM_APP_FAIL_DTMF_SECONDS);
+		syn_bar_notify_meaning("STREAM_FAIL");
 		return 1;
 	}
 
@@ -55,7 +53,7 @@ int cmd_stream_app(const char *id, const char *ssh_host) {
 	}
 	if (!match || !match->exec[0]) {
 		fprintf(stderr, "syn-relay: app \"%s\" not found on %s\n", id, ssh_host);
-		syn_bar_notify_tone_dtmf(STREAM_APP_FAIL_DTMF_LOW, STREAM_APP_FAIL_DTMF_HIGH, STREAM_APP_FAIL_DTMF_SECONDS);
+		syn_bar_notify_meaning("STREAM_FAIL");
 		return 1;
 	}
 
@@ -78,7 +76,7 @@ int cmd_stream_app(const char *id, const char *ssh_host) {
 	waitpid(pid, &status, 0);
 	int rc = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 	if (rc != 0) {
-		syn_bar_notify_tone_dtmf(STREAM_APP_FAIL_DTMF_LOW, STREAM_APP_FAIL_DTMF_HIGH, STREAM_APP_FAIL_DTMF_SECONDS);
+		syn_bar_notify_meaning("STREAM_FAIL");
 	}
 	return rc;
 }

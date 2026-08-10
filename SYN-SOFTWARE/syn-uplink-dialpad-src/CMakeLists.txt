@@ -29,9 +29,11 @@ add_custom_command(OUTPUT ${PROTOCOL_SOURCE}
   COMMAND ${WAYLAND_SCANNER} private-code ${PROTOCOL_XML} ${PROTOCOL_SOURCE}
   DEPENDS ${PROTOCOL_XML})
 
-# syn_bar_tone.c/.h reused as-is from syn-bar-core-src rather than
-# duplicated — same sibling-source reuse syn-connect-src/syn-bar-core-src
-# already make for syn_theme.c/syn_stats.c.
+# syn_bar_notify.c/.h ("ask the bar for a named meaning" + the
+# TONE-RAW passthrough this dialpad's own real-time DTMF dialing needs —
+# see syn_bar_notify.h) reused as-is from syn-bar-core-src. Only
+# syn-bar-core itself links syn_bar_tone.c (the actual paplay
+# synthesis).
 set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
 
 # syn_theme.c/.h are generic SYN_* palette loading, no crypter-specific
@@ -40,7 +42,7 @@ set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
 add_executable(syn-uplink-dialpad
   src/main.c
-  ${BARCORE_SRC}/syn_bar_tone.c
+  ${BARCORE_SRC}/syn_bar_notify.c
   ${CRYPTER_SRC}/syn_theme.c
   ${PROTOCOL_SOURCE}
   ${PROTOCOL_HEADER}
@@ -58,7 +60,6 @@ target_link_libraries(syn-uplink-dialpad PRIVATE
   ${WAYLAND_CLIENT_LIBRARIES}
   ${XKBCOMMON_LIBRARIES}
   ${NCURSES_LIBRARIES}
-  m
   util
 )
 target_compile_options(syn-uplink-dialpad PRIVATE

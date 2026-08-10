@@ -24,8 +24,7 @@
  * ------------------------------------------------------------------------ */
 #include "syn_pulse.h"
 #include "syn_audio_tui.h"
-#include "syn_bar_tone.h"
-#include "syn_tone_vocab.h"
+#include "syn_bar_notify.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -108,9 +107,9 @@ static int run_cli(int argc, char **argv) {
 			: syn_pulse_set_default_source(p, argv[2], err, sizeof(err));
 		if (!ok) {
 			fprintf(stderr, "syn-audio: %s\n", err); rc = 1;
-			syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+			syn_bar_notify_meaning("FAIL");
 		} else {
-			syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+			syn_bar_notify_meaning("SUCCESS");
 		}
 
 	} else if (strcmp(cmd, "--mute-sink") == 0 || strcmp(cmd, "--mute-source") == 0) {
@@ -129,11 +128,11 @@ static int run_cli(int argc, char **argv) {
 		}
 		if (!ok) {
 			fprintf(stderr, "syn-audio: %s\n", err); rc = 1;
-			syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+			syn_bar_notify_meaning("FAIL");
 		} else if (device_is_muted(p, is_sink, argv[2])) {
-			syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_ON_LOW, SYN_TONE_TOGGLE_ON_HIGH, SYN_TONE_TOGGLE_SECONDS);
+			syn_bar_notify_meaning("TOGGLE_ON");
 		} else {
-			syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+			syn_bar_notify_meaning("TOGGLE_OFF");
 		}
 
 	} else if (strcmp(cmd, "--set-sink-volume") == 0 || strcmp(cmd, "--set-source-volume") == 0) {
@@ -209,9 +208,9 @@ static int run_interactive(void) {
 					? syn_pulse_set_default_sink(p, list[selected].name, err, sizeof(err))
 					: syn_pulse_set_default_source(p, list[selected].name, err, sizeof(err));
 				if (ok) {
-					syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS);
+					syn_bar_notify_meaning("SUCCESS");
 				} else {
-					syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+					syn_bar_notify_meaning("FAIL");
 				}
 			}
 			break;
@@ -227,13 +226,13 @@ static int run_interactive(void) {
 					? syn_pulse_toggle_sink_mute(p, list[selected].name, err, sizeof(err))
 					: syn_pulse_toggle_source_mute(p, list[selected].name, err, sizeof(err));
 				if (!ok) {
-					syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+					syn_bar_notify_meaning("FAIL");
 				} else if (!was_muted) {
 					/* now muted */
-					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_ON_LOW, SYN_TONE_TOGGLE_ON_HIGH, SYN_TONE_TOGGLE_SECONDS);
+					syn_bar_notify_meaning("TOGGLE_ON");
 				} else {
 					/* now unmuted */
-					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+					syn_bar_notify_meaning("TOGGLE_OFF");
 				}
 			}
 			break;

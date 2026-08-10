@@ -98,6 +98,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-audio
     /usr/lib/syn-os/syn-bar
     /usr/lib/syn-os/syn-bar-core
+    /usr/lib/syn-os/syn-bar-notify
     /usr/lib/syn-os/syn-crypter
     /usr/lib/syn-os/syn-iso-builder
     /usr/lib/syn-os/syn-relay

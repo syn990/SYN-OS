@@ -173,6 +173,24 @@ alias synos-install="doas /usr/lib/syn-os/syn-stage0.zsh"
 alias synos-config="doas zsh /usr/lib/syn-os/syn-conf-picker.zsh"
 alias synos-connect="/usr/lib/syn-os/syn-connect"
 
+# doas() — shadows the real doas so "doas pacman ..." gets a SUCCESS/FAIL
+# tone cue, the same "ask the bar" pattern every native SYN-OS tool uses
+# (see SYN-SOFTWARE/syn-bar-core-src/src/syn_tone_vocab.h). Only pacman
+# is singled out here — every other doas use (syn-stage0.zsh, etc.) stays
+# silent, unchanged. syn-bar-notify itself is best-effort: no syn-bar-core
+# running (e.g. a bare TTY) just means no sound, doas's own exit status is
+# unaffected either way.
+doas() {
+  if [[ "$1" == "pacman" ]]; then
+    command doas "$@"
+    local rc=$?
+    [[ -x /usr/lib/syn-os/syn-bar-notify ]] && \
+      /usr/lib/syn-os/syn-bar-notify "$([[ $rc -eq 0 ]] && echo SUCCESS || echo FAIL)"
+    return $rc
+  fi
+  command doas "$@"
+}
+
 alias ll='ls -lah'
 alias la='ls -A'
 alias l='ls -CF'

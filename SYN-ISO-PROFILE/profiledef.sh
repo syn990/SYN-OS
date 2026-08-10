@@ -41,6 +41,7 @@ file_permissions=(
   ["/usr/lib/syn-os/syn-wallgen"]="0:0:755"
   ["/usr/lib/syn-os/syn-bar"]="0:0:755"
   ["/usr/lib/syn-os/syn-bar-core"]="0:0:755"
+  ["/usr/lib/syn-os/syn-bar-notify"]="0:0:755"
   ["/usr/lib/syn-os/syn-iso-builder"]="0:0:755"
   ["/usr/lib/syn-os/syn-relay"]="0:0:755"
   ["/usr/lib/syn-os/syn-uplink-dialpad"]="0:0:755"

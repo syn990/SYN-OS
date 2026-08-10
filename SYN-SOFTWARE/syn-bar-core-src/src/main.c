@@ -36,6 +36,7 @@
 
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
 #include "syn_bar_tone.h"
+#include "syn_tone_vocab.h"
 #include "syn_stats.h"
 
 typedef struct {
@@ -1147,24 +1148,49 @@ static void handle_one_client(int listen_fd) {
 	} else if (strncmp(request, "SYSMON-MEM", 10) == 0) {
 		write(client_fd, sysmon_mem_reply, strlen(sysmon_mem_reply));
 		close(client_fd);
-	} else if (strncmp(request, "TONE-DTMF ", 10) == 0) {
-		/* "TONE-DTMF <hz1> <hz2> <seconds>\n" — this is the single place
-		 * in the whole OS that's allowed to call syn_bar_tone_play_dtmf
-		 * (see syn_bar_tone.h's own header comment on why: only
-		 * syn-bar-core talks to PulseAudio, everything else that wants a
-		 * sound asks the bar to make it, the same way everything else
-		 * that wants the bar to react already works). No reply expected
-		 * — fire-and-forget, same as syn_bar_tone_play itself. */
-		double hz1 = 0, hz2 = 0, seconds = 0;
-		if (sscanf(request + 10, "%lf %lf %lf", &hz1, &hz2, &seconds) == 3 && seconds > 0) {
-			syn_bar_tone_play_dtmf(hz1, hz2, seconds);
+	} else if (strncmp(request, "TONE-MEANING ", 13) == 0) {
+		/* "TONE-MEANING <NAME>\n" — this is the single place in the
+		 * whole OS that ever calls syn_bar_tone_play()/_dtmf() (see
+		 * syn_bar_tone.h's own header comment on why: only syn-bar-core
+		 * talks to PulseAudio). Every other tool sends a named meaning
+		 * (see syn_tone_vocab.h) with no idea what Hz it maps to —
+		 * retuning a sound is a one-file edit here, no other binary
+		 * needs rebuilding. No reply expected — fire-and-forget, same
+		 * as every other best-effort notify in this codebase. An
+		 * unrecognized name (stale client, typo) is silently a no-op,
+		 * not an error. */
+		char name[32] = {0};
+		size_t name_len = strcspn(request + 13, "\r\n");
+		if (name_len >= sizeof(name)) {
+			name_len = sizeof(name) - 1;
+		}
+		memcpy(name, request + 13, name_len);
+		name[name_len] = '\0';
+
+		const syn_tone_meaning *meaning = syn_tone_vocab_lookup(name);
+		if (meaning) {
+			if (meaning->hz2 > 0.0) {
+				syn_bar_tone_play_dtmf(meaning->hz1, meaning->hz2, meaning->seconds);
+			} else {
+				syn_bar_tone_play(meaning->hz1, meaning->seconds);
+			}
 		}
 		close(client_fd);
-	} else if (strncmp(request, "TONE ", 5) == 0) {
-		/* "TONE <hz> <seconds>\n" — single-tone counterpart. */
-		double hz = 0, seconds = 0;
-		if (sscanf(request + 5, "%lf %lf", &hz, &seconds) == 2 && seconds > 0) {
-			syn_bar_tone_play(hz, seconds);
+	} else if (strncmp(request, "TONE-RAW ", 9) == 0) {
+		/* "TONE-RAW <hz1> <hz2> <seconds>\n" — the one escape hatch from
+		 * the named-meaning table above (see syn_bar_notify.h's own
+		 * comment on why): syn-uplink-dialpad is the sole caller,
+		 * playing an arbitrary user-dialed DTMF digit or its own
+		 * reference keypad of every other tone in this file, neither of
+		 * which is a fixed "meaning" that belongs in syn_tone_vocab.h.
+		 * hz2<=0 means a single tone. */
+		double hz1 = 0, hz2 = 0, seconds = 0;
+		if (sscanf(request + 9, "%lf %lf %lf", &hz1, &hz2, &seconds) == 3 && seconds > 0) {
+			if (hz2 > 0.0) {
+				syn_bar_tone_play_dtmf(hz1, hz2, seconds);
+			} else {
+				syn_bar_tone_play(hz1, seconds);
+			}
 		}
 		close(client_fd);
 	} else {

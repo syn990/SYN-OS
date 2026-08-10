@@ -8,12 +8,13 @@
 #include <QFileDevice>
 #include <cerrno>
 
-// syn_bar_tone.c is a plain-C sibling source (see CMakeLists.txt) —
+// syn_bar_notify.c is a plain-C sibling source (see CMakeLists.txt) —
 // extern "C" so this TU links against its unmangled symbols rather than
-// looking for a C++-mangled name that doesn't exist.
+// looking for a C++-mangled name that doesn't exist. Only syn-bar-core
+// itself links syn_bar_tone.c (the actual paplay synthesis) — this just
+// asks it for a named meaning, see syn_bar_notify.h.
 extern "C" {
-#include "syn_bar_tone.h"
-#include "syn_tone_vocab.h"
+#include "syn_bar_notify.h"
 }
 
 namespace {
@@ -27,7 +28,7 @@ void showFailures(QWidget *parent, const QString &title, const QStringList &fail
 {
   if (failures.isEmpty())
     return;
-  syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS);
+  syn_bar_notify_meaning("FAIL");
   QMessageBox::warning(parent, title,
     QObject::tr("%1 item(s) could not be completed:\n\n%2")
       .arg(failures.size())

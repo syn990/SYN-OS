@@ -18,6 +18,7 @@ SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-uplink-dialpad
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-crypter
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-core
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-bar-notify
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-audio
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-iso-builder
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-relay

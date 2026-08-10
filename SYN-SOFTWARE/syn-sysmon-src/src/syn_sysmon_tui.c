@@ -9,8 +9,7 @@
 #include "syn_journal.h"
 #include "syn_theme.h"
 #include "syn_bar_client.h"
-#include "syn_bar_tone.h"
-#include "syn_tone_vocab.h"
+#include "syn_bar_notify.h"
 
 #include <ncurses.h>
 #include <string.h>
@@ -376,7 +375,7 @@ static int run_sensors_view(void) {
 		 * the same session re-alerts. */
 		static bool was_hot = false;
 		if (any_hot && !was_hot) {
-			syn_bar_tone_play_dtmf(SYN_TONE_ALERT_LOW, SYN_TONE_ALERT_HIGH, SYN_TONE_ALERT_SECONDS);
+			syn_bar_notify_meaning("ALERT");
 		}
 		was_hot = any_hot;
 

@@ -12,9 +12,10 @@
  *
  *     (no args)          DTMF dialpad — the original mode. Clickable or
  *                        typeable (numpad, top row, A-D); beeps each
- *                        digit immediately via syn_bar_tone (shared with
- *                        syn-bar-core's relay tones) and redials the
- *                        whole sequence back on Enter. Typing any
+ *                        digit immediately by asking syn-bar-core to
+ *                        play it (TONE-RAW, see syn_bar_notify.h — this
+ *                        binary has no PulseAudio access of its own) and
+ *                        redials the whole sequence back on Enter. Typing any
  *                        character outside the DTMF alphabet (e.g. '.'
  *                        or most letters) still appends silently — see
  *                        type_char() — so this doubles as a general
@@ -48,7 +49,7 @@
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
 #include "font5x7.h"
-#include "syn_bar_tone.h"
+#include "syn_bar_notify.h"
 #include "syn_theme.h"
 #include "xdg-shell-client-protocol.h"
 
@@ -76,24 +77,11 @@
 #define DTMF_SECONDS 0.15
 #define READBACK_GAP_MS 90
 
-/* Password/login field feedback: the same dual-tone "bop" character as
- * the dial pad, but ONE fixed pair regardless of which character was
- * typed — a real per-key DTMF tone here would leak the password's
- * length and timing (and, cross-referenced against the visible keypad
- * layout, plausible characters) over audio, same risk landline phones
- * avoid by not tone-dialing while entering a PIN. 1050/1400Hz sits
- * between the real DTMF grid's rows/columns (697-941 low, 1209-1633
- * high — see keys[] above) so it can't be mistaken for any actual
- * digit, while still sounding like this pad's own dial tones rather
- * than an unrelated beep. Same pair for every keystroke, backspace, and
- * field — submit gets its own distinct pair (below) once entry is done
- * and there's nothing left to leak. */
-#define CRED_KEY_CLICK_LOW 1050.0
-#define CRED_KEY_CLICK_HIGH 1400.0
-#define CRED_KEY_CLICK_SECONDS 0.05
-#define CRED_SUBMIT_TONE_LOW 1050.0
-#define CRED_SUBMIT_TONE_HIGH 1633.0
-#define CRED_SUBMIT_TONE_SECONDS 0.12
+/* Password/login field feedback (KEY_CLICK on keystroke/backspace,
+ * SUCCESS on submit) is asked from syn-bar-core by name — see
+ * syn_bar_notify_meaning() calls below and syn_tone_vocab.h's own
+ * comment on KEY_CLICK for why it's one fixed pair regardless of which
+ * character was typed. */
 #define SEQUENCE_MAX 32
 #define GRID_ROWS 4
 #define GRID_COLS 4
@@ -201,14 +189,6 @@ static struct xkb_state *xkb_state;
 
 /* Pointer hit-testing needs the last known cursor position. */
 static double pointer_x, pointer_y;
-
-static void reap_children(int signum) {
-	(void)signum;
-	int saved_errno = errno;
-	while (waitpid(-1, NULL, WNOHANG) > 0) {
-	}
-	errno = saved_errno;
-}
 
 static char normalize(char c) {
 	if (c == '/') return '*';                                /* numpad '/' -> '*' */
@@ -530,7 +510,7 @@ static void press_key(const struct dtmf_key *key) {
 	}
 	highlighted_index = index_of(key);
 	draw();
-	syn_bar_tone_play_dtmf(key->lo, key->hi, DTMF_SECONDS);
+	syn_bar_notify_raw(key->lo, key->hi, DTMF_SECONDS);
 	sleep_ms((long)(DTMF_SECONDS * 1000));
 	highlighted_index = -1;
 	draw();
@@ -539,11 +519,7 @@ static void press_key(const struct dtmf_key *key) {
 static void press_sys_tone(const struct sys_tone *tone) {
 	sys_highlighted_index = (int)(tone - sys_tones);
 	draw();
-	if (tone->hi > 0.0) {
-		syn_bar_tone_play_dtmf(tone->lo, tone->hi, tone->seconds);
-	} else {
-		syn_bar_tone_play(tone->lo, tone->seconds);
-	}
+	syn_bar_notify_raw(tone->lo, tone->hi, tone->seconds);
 	sleep_ms((long)(tone->seconds * 1000));
 	sys_highlighted_index = -1;
 	draw();
@@ -583,7 +559,7 @@ static void cred_type_char(char c) {
 		cred_field[field_focus][cred_len[field_focus]++] = c;
 		cred_field[field_focus][cred_len[field_focus]] = '\0';
 		draw();
-		syn_bar_tone_play_dtmf(CRED_KEY_CLICK_LOW, CRED_KEY_CLICK_HIGH, CRED_KEY_CLICK_SECONDS);
+		syn_bar_notify_meaning("KEY_CLICK");
 	}
 }
 
@@ -591,7 +567,7 @@ static void cred_backspace(void) {
 	if (cred_len[field_focus] > 0) {
 		cred_field[field_focus][--cred_len[field_focus]] = '\0';
 		draw();
-		syn_bar_tone_play_dtmf(CRED_KEY_CLICK_LOW, CRED_KEY_CLICK_HIGH, CRED_KEY_CLICK_SECONDS);
+		syn_bar_notify_meaning("KEY_CLICK");
 	}
 }
 
@@ -623,7 +599,7 @@ static void cred_submit(void) {
 		printf("%s\n", cred_field[0]);
 	}
 	fflush(stdout);
-	syn_bar_tone_play_dtmf(CRED_SUBMIT_TONE_LOW, CRED_SUBMIT_TONE_HIGH, CRED_SUBMIT_TONE_SECONDS);
+	syn_bar_notify_meaning("SUCCESS");
 	if (mode == MODE_EXEC) {
 		submit_pending = 1; /* main()'s loop breaks out to do the forkpty/doas work */
 	}
@@ -640,7 +616,7 @@ static void redial_sequence(void) {
 		if (key) {
 			highlighted_index = index_of(key);
 			draw();
-			syn_bar_tone_play_dtmf(key->lo, key->hi, DTMF_SECONDS);
+			syn_bar_notify_raw(key->lo, key->hi, DTMF_SECONDS);
 			wl_display_flush(display);
 			sleep_ms((long)(DTMF_SECONDS * 1000));
 			highlighted_index = -1;
@@ -943,16 +919,8 @@ static bool parse_args(int argc, char **argv) {
  * piped to stdin) — a real pty is the only thing that satisfies its
  * readpassphrase() call, which is why this can't just be `popen()`. */
 static int run_under_doas_pty(char **argv_to_exec, const char *password) {
-	/* main()'s reap_children() SIGCHLD handler (installed for the DTMF
-	 * screen's fork-and-forget syn_bar_tone_play calls) does a wildcard
-	 * waitpid(-1, ...) — left armed, it races this function's own
-	 * waitpid(pid, ...) below and can reap the doas child first,
-	 * leaving us with ECHILD and no way to learn the real exit status.
-	 * Restore default SIGCHLD disposition for the duration of this
-	 * function so this child is unambiguously ours to reap; nothing
-	 * else in this mode ever calls syn_bar_tone_play (see press_key()'s
-	 * mode guard), so there's no other fork-and-forget in flight here
-	 * that reap_children() would otherwise need to catch. */
+	/* Ensures default SIGCHLD disposition so this function's own
+	 * waitpid(pid, ...) calls below can reap the doas child directly. */
 	struct sigaction old_sa;
 	struct sigaction default_sa = {.sa_handler = SIG_DFL};
 	sigemptyset(&default_sa.sa_mask);
@@ -1097,12 +1065,6 @@ int main(int argc, char **argv) {
 		print_usage(argv[0]);
 		return 1;
 	}
-
-	struct sigaction sa = {0};
-	sa.sa_handler = reap_children;
-	sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-	sigemptyset(&sa.sa_mask);
-	sigaction(SIGCHLD, &sa, NULL);
 
 	syn_theme_load(&palette);
 	if (mode == MODE_DIALPAD) {

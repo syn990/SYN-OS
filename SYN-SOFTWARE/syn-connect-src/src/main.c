@@ -25,8 +25,7 @@
 #include "syn_eth.h"
 #include "syn_vpn.h"
 #include "syn_tui.h"
-#include "syn_bar_tone.h"
-#include "syn_tone_vocab.h"
+#include "syn_bar_notify.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -53,14 +52,16 @@ static void toast(const char *urgency, const char *title, const char *body) {
 	}
 }
 
-/* Same best-effort shape as toast() above: no PulseAudio session (e.g.
- * the live installer TTY) just means silence, nothing to check for.
- * Kept separate from toast()'s urgency string rather than derived from
- * it — "normal" urgency covers both a genuine SUCCESS (connected) and a
+/* Asks syn-bar-core to play the tone — this binary has no idea what any
+ * of these actually sound like (see syn_bar_notify.h). Same best-effort
+ * shape as toast() above: no syn-bar-core running (e.g. the live
+ * installer TTY) just means silence, nothing to check for. Kept
+ * separate from toast()'s urgency string rather than derived from it —
+ * "normal" urgency covers both a genuine SUCCESS (connected) and a
  * plain STOP (disconnected/forgotten), which sound different here. */
-static void tone_success(void) { syn_bar_tone_play(SYN_TONE_SUCCESS_HZ, SYN_TONE_SUCCESS_SECONDS); }
-static void tone_fail(void) { syn_bar_tone_play_dtmf(SYN_TONE_FAIL_LOW, SYN_TONE_FAIL_HIGH, SYN_TONE_FAIL_SECONDS); }
-static void tone_stop(void) { syn_bar_tone_play_dtmf(SYN_TONE_STOP_LOW, SYN_TONE_STOP_HIGH, SYN_TONE_STOP_SECONDS); }
+static void tone_success(void) { syn_bar_notify_meaning("SUCCESS"); }
+static void tone_fail(void) { syn_bar_notify_meaning("FAIL"); }
+static void tone_stop(void) { syn_bar_notify_meaning("STOP"); }
 
 static void wifi_scan_tick(void *userdata) {
 	(void)userdata;
@@ -313,7 +314,7 @@ int main(void) {
 				 * device permanently, a bigger deal than a plain
 				 * disconnect, so it gets a distinct sound. */
 				if (ok) {
-					syn_bar_tone_play_dtmf(SYN_TONE_TOGGLE_OFF_LOW, SYN_TONE_TOGGLE_OFF_HIGH, SYN_TONE_TOGGLE_SECONDS);
+					syn_bar_notify_meaning("TOGGLE_OFF");
 				} else {
 					tone_fail();
 				}
