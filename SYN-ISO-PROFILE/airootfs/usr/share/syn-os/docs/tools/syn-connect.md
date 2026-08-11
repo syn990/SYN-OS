@@ -33,7 +33,7 @@ doesn't need a full desktop running to work.
 ### Bluetooth
 
 Scans for nearby devices and lists them with signal strength. Press
-`Enter` on a new device to pair, trust, and connect in one step — no
+`Enter` on a new device to pair, trust, and connect in one step, no
 separate "pair" and "connect" actions to remember. Already-paired
 devices just connect. `x` forgets a device entirely (unpairs and
 untrusts it).
@@ -49,11 +49,11 @@ refreshes it.
 
 Lists whatever `.ovpn` configs you've got in `~/.ovpn/`. If a config
 needs a username and password it hasn't collected yet, connecting pops
-a separate graphical prompt (the same dialpad-style popup used
-elsewhere in SYN-OS) to collect them once — after that they're saved
-alongside the config and it won't ask again. The actual connect step
-needs root, so you'll see a normal `doas` password prompt in the same
-window.
+a separate graphical prompt, [the same dialpad-style popup used
+elsewhere in SYN-OS](./syn-uplink-dialpad.md), to collect them once,
+after that they're saved alongside the config and it won't ask again.
+The actual connect step needs root, so you'll see a normal `doas`
+password prompt in the same window.
 
 ## Where else you'll see it
 
