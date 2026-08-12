@@ -27,6 +27,23 @@ typedef struct {
 	int volume_pct;         /* average volume across channels, 0-100 (can exceed 100 if boosted) */
 } syn_pulse_device;
 
+#define SYN_PULSE_MAX_PROFILES 16
+
+typedef struct {
+	char name[256];        /* pactl-style profile name, e.g. "output:analog-stereo+input:analog-stereo" */
+	char description[256]; /* human-readable, e.g. "Analog Stereo Duplex" */
+	bool available;         /* false if the hardware for this profile isn't currently present (e.g. "availability unknown"/no) */
+} syn_pulse_profile;
+
+typedef struct {
+	char name[256];        /* pactl-style card name, e.g. "alsa_card.pci-0000_00_1f.3" */
+	char description[256]; /* human-readable, e.g. "Built-in Audio" */
+	uint32_t index;
+	syn_pulse_profile profiles[SYN_PULSE_MAX_PROFILES];
+	int profile_count;
+	int active_profile;     /* index into profiles[], -1 if none matched */
+} syn_pulse_card;
+
 /* Opaque handle wrapping a pa_threaded_mainloop + pa_context, connected and
  * ready by the time syn_pulse_open() returns. */
 typedef struct syn_pulse syn_pulse;
@@ -44,8 +61,20 @@ int syn_pulse_list_sinks(syn_pulse *p, syn_pulse_device *out, int out_cap, char 
 /* Same as syn_pulse_list_sinks() but for sources (recording devices). */
 int syn_pulse_list_sources(syn_pulse *p, syn_pulse_device *out, int out_cap, char *err, size_t err_len);
 
+/* Fills *out with every sound card and its available profiles (e.g. a
+ * laptop's analog codec offering "output only" vs "duplex" — switching
+ * profile is what makes/removes the sink and source PipeWire exposes for
+ * that card). Returns the real count (may exceed out_cap), or -1 on error. */
+int syn_pulse_list_cards(syn_pulse *p, syn_pulse_card *out, int out_cap, char *err, size_t err_len);
+
 bool syn_pulse_set_default_sink(syn_pulse *p, const char *name, char *err, size_t err_len);
 bool syn_pulse_set_default_source(syn_pulse *p, const char *name, char *err, size_t err_len);
+
+/* Switches `card_name` to `profile_name` (as reported by syn_pulse_list_cards).
+ * This is what creates/removes the sink and source objects a card exposes —
+ * e.g. switching a laptop's internal codec from "output only" to "duplex"
+ * is what makes its microphone appear as a source at all. */
+bool syn_pulse_set_card_profile(syn_pulse *p, const char *card_name, const char *profile_name, char *err, size_t err_len);
 
 bool syn_pulse_set_sink_mute(syn_pulse *p, const char *name, bool mute, char *err, size_t err_len);
 bool syn_pulse_set_source_mute(syn_pulse *p, const char *name, bool mute, char *err, size_t err_len);

@@ -17,10 +17,11 @@
 void syn_audio_tui_init(void);
 void syn_audio_tui_end(void);
 
-/* Which of the two device lists has focus. */
+/* Which list has focus. */
 typedef enum {
 	SYN_AUDIO_TAB_OUTPUTS = 0,
 	SYN_AUDIO_TAB_INPUTS = 1,
+	SYN_AUDIO_TAB_PROFILES = 2,
 } syn_audio_tab;
 
 /* Actions the dashboard screen can return for the currently-selected
@@ -41,14 +42,30 @@ typedef struct {
 	int index;           /* selected device's index within that list, -1 if list empty */
 } syn_audio_input_result;
 
-/* Renders both device lists (outputs and inputs) with the given tab
+/* One row in the flattened profile list the Profiles tab shows — every
+ * card's profiles are listed together (most machines have one card, but
+ * this stays correct for multiples) rather than one card per screen. */
+typedef struct {
+	int card_index;    /* index into the `cards` array passed to syn_audio_tui_dashboard */
+	int profile_index; /* index into cards[card_index].profiles[] */
+} syn_audio_profile_row;
+
+/* Flattens every card's profiles into `out` (caller-allocated, out_cap
+ * entries) for use as the Profiles tab's row list / selection target.
+ * Returns the real row count (may exceed out_cap). */
+int syn_audio_flatten_profiles(const syn_pulse_card *cards, int card_count,
+	syn_audio_profile_row *out, int out_cap);
+
+/* Renders all three lists (outputs, inputs, profiles) with the given tab
  * focused/selected row highlighted; blocks for one keypress and returns
  * what the caller should do. The caller owns the actual pulse operation
- * and re-fetches fresh device lists before the next call — this function
- * never touches syn_pulse itself. */
+ * and re-fetches fresh device/card lists before the next call — this
+ * function never touches syn_pulse itself. */
 syn_audio_input_result syn_audio_tui_dashboard(
 	const syn_pulse_device *outputs, int output_count,
 	const syn_pulse_device *inputs, int input_count,
+	const syn_pulse_card *cards, int card_count,
+	const syn_audio_profile_row *profile_rows, int profile_row_count,
 	syn_audio_tab focused_tab, int selected_index);
 
 /* Centered message with "press any key to continue" — used for a fatal

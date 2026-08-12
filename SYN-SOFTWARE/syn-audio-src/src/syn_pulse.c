@@ -264,11 +264,80 @@ int syn_pulse_list_sources(syn_pulse *p, syn_pulse_device *out, int out_cap, cha
 	return lc.count;
 }
 
+/* ---- cards/profiles ----------------------------------------------------- */
+
+typedef struct {
+	op_wait w;
+	syn_pulse_card *out;
+	int cap;
+	int count;
+} card_list_ctx;
+
+static void card_info_cb(pa_context *c, const pa_card_info *i, int eol, void *userdata) {
+	(void)c;
+	card_list_ctx *lc = (card_list_ctx *)userdata;
+	if (eol) {
+		op_wait_finish(&lc->w, 1);
+		return;
+	}
+	if (lc->count < lc->cap) {
+		syn_pulse_card *card = &lc->out[lc->count];
+		snprintf(card->name, sizeof(card->name), "%s", i->name);
+		snprintf(card->description, sizeof(card->description), "%s",
+			pa_proplist_gets(i->proplist, PA_PROP_DEVICE_DESCRIPTION) ?: i->name);
+		card->index = i->index;
+		card->profile_count = 0;
+		card->active_profile = -1;
+
+		int n = i->n_profiles < SYN_PULSE_MAX_PROFILES ? i->n_profiles : SYN_PULSE_MAX_PROFILES;
+		for (int pi = 0; pi < n; pi++) {
+			pa_card_profile_info2 *src = i->profiles2[pi];
+			syn_pulse_profile *dst = &card->profiles[card->profile_count];
+			snprintf(dst->name, sizeof(dst->name), "%s", src->name);
+			snprintf(dst->description, sizeof(dst->description), "%s", src->description ? src->description : src->name);
+			dst->available = src->available != 0;
+			if (i->active_profile2 && strcmp(i->active_profile2->name, src->name) == 0) {
+				card->active_profile = card->profile_count;
+			}
+			card->profile_count++;
+		}
+	}
+	lc->count++;
+}
+
+int syn_pulse_list_cards(syn_pulse *p, syn_pulse_card *out, int out_cap, char *err, size_t err_len) {
+	card_list_ctx lc;
+	op_wait_init(&lc.w);
+	lc.out = out;
+	lc.cap = out_cap;
+	lc.count = 0;
+
+	pa_operation *o = pa_context_get_card_info_list(p->ctx, card_info_cb, &lc);
+	op_wait_block(p->loop, &lc.w, o);
+
+	if (!lc.w.success) {
+		set_err(err, err_len, "failed to list cards: %s", pa_strerror(pa_context_errno(p->ctx)));
+		return -1;
+	}
+	return lc.count;
+}
+
 /* ---- generic success-only ops (set-default, mute, volume) ------------- */
 
 static void success_cb(pa_context *c, int success, void *userdata) {
 	(void)c;
 	op_wait_finish((op_wait *)userdata, success);
+}
+
+bool syn_pulse_set_card_profile(syn_pulse *p, const char *card_name, const char *profile_name, char *err, size_t err_len) {
+	op_wait w;
+	op_wait_init(&w);
+	pa_operation *o = pa_context_set_card_profile_by_name(p->ctx, card_name, profile_name, success_cb, &w);
+	op_wait_block(p->loop, &w, o);
+	if (!w.success) {
+		set_err(err, err_len, "failed to set card profile: %s", pa_strerror(pa_context_errno(p->ctx)));
+	}
+	return w.success != 0;
 }
 
 bool syn_pulse_set_default_sink(syn_pulse *p, const char *name, char *err, size_t err_len) {

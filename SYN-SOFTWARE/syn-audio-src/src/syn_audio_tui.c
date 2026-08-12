@@ -104,33 +104,88 @@ static void draw_device_list(const syn_pulse_device *devices, int count, int sel
 	}
 }
 
+int syn_audio_flatten_profiles(const syn_pulse_card *cards, int card_count,
+		syn_audio_profile_row *out, int out_cap) {
+	int count = 0;
+	for (int ci = 0; ci < card_count; ci++) {
+		for (int pi = 0; pi < cards[ci].profile_count; pi++) {
+			if (count < out_cap) {
+				out[count].card_index = ci;
+				out[count].profile_index = pi;
+			}
+			count++;
+		}
+	}
+	return count;
+}
+
+/* One row per profile, grouped visually by card via the card description
+ * prefix — most machines have one card so this mostly reads as a flat
+ * list, but stays legible if a second card (e.g. a USB DAC) is present. */
+static void draw_profile_list(const syn_pulse_card *cards, int card_count,
+		const syn_audio_profile_row *rows, int row_count, int selected,
+		int row_start, int list_rows, int cols, bool focused) {
+	(void)card_count;
+	for (int row = 0; row < list_rows && row < row_count; row++) {
+		const syn_audio_profile_row *r = &rows[row];
+		const syn_pulse_card *card = &cards[r->card_index];
+		const syn_pulse_profile *prof = &card->profiles[r->profile_index];
+		bool is_sel = focused && (row == selected);
+		bool is_active = (card->active_profile == r->profile_index);
+		int color = is_sel ? P_SELECTED : (prof->available ? P_NORMAL : P_DIM);
+
+		attron(COLOR_PAIR(color));
+		mvprintw(row_start + row, 1, "%-*s", cols - 2, "");
+		mvprintw(row_start + row, 2, "%s %-20.20s %-40.40s%s",
+			is_active ? "●" : " ", card->description, prof->description,
+			prof->available ? "" : " (unavailable)");
+		attroff(COLOR_PAIR(color));
+	}
+	if (row_count == 0) {
+		attron(COLOR_PAIR(P_DIM));
+		mvprintw(row_start, 2, "(no cards found)");
+		attroff(COLOR_PAIR(P_DIM));
+	}
+}
+
 syn_audio_input_result syn_audio_tui_dashboard(
 		const syn_pulse_device *outputs, int output_count,
 		const syn_pulse_device *inputs, int input_count,
+		const syn_pulse_card *cards, int card_count,
+		const syn_audio_profile_row *profile_rows, int profile_row_count,
 		syn_audio_tab focused_tab, int selected_index) {
+	(void)card_count;
 	erase();
 	int rows = getmaxy(stdscr), cols = getmaxx(stdscr);
 	draw_frame("SYN-OS Audio");
 
-	int half = (rows - 4) / 2;
+	int third = (rows - 6) / 3;
 
 	attron(COLOR_PAIR(P_ACCENT) | A_BOLD);
 	mvprintw(1, 2, "OUTPUTS");
 	attroff(COLOR_PAIR(P_ACCENT) | A_BOLD);
 	draw_device_list(outputs, output_count,
 		focused_tab == SYN_AUDIO_TAB_OUTPUTS ? selected_index : -1,
-		0, 2, half, cols, focused_tab == SYN_AUDIO_TAB_OUTPUTS);
+		0, 2, third, cols, focused_tab == SYN_AUDIO_TAB_OUTPUTS);
 
-	int inputs_row = 2 + half + 1;
+	int inputs_row = 2 + third + 1;
 	attron(COLOR_PAIR(P_ACCENT) | A_BOLD);
 	mvprintw(inputs_row - 1, 2, "INPUTS");
 	attroff(COLOR_PAIR(P_ACCENT) | A_BOLD);
 	draw_device_list(inputs, input_count,
 		focused_tab == SYN_AUDIO_TAB_INPUTS ? selected_index : -1,
-		0, inputs_row, rows - 2 - inputs_row, cols, focused_tab == SYN_AUDIO_TAB_INPUTS);
+		0, inputs_row, third, cols, focused_tab == SYN_AUDIO_TAB_INPUTS);
+
+	int profiles_row = inputs_row + third + 1;
+	attron(COLOR_PAIR(P_ACCENT) | A_BOLD);
+	mvprintw(profiles_row - 1, 2, "PROFILES");
+	attroff(COLOR_PAIR(P_ACCENT) | A_BOLD);
+	draw_profile_list(cards, card_count, profile_rows, profile_row_count,
+		focused_tab == SYN_AUDIO_TAB_PROFILES ? selected_index : -1,
+		profiles_row, rows - 2 - profiles_row, cols, focused_tab == SYN_AUDIO_TAB_PROFILES);
 
 	draw_statusbar(rows, cols,
-		"Tab switch   ↑/↓ move   Enter default   m mute   ←/→ volume   Esc/q quit", NULL);
+		"Tab switch   ↑/↓ move   Enter default/switch   m mute   ←/→ volume   Esc/q quit", NULL);
 	refresh();
 
 	syn_audio_input_result result = {0};
@@ -158,13 +213,15 @@ syn_audio_input_result syn_audio_tui_dashboard(
 		result.action = SYN_AUDIO_ACTION_QUIT;
 		break;
 	case KEY_UP: case 'k': {
-		int count = focused_tab == SYN_AUDIO_TAB_OUTPUTS ? output_count : input_count;
+		int count = focused_tab == SYN_AUDIO_TAB_OUTPUTS ? output_count
+			: focused_tab == SYN_AUDIO_TAB_INPUTS ? input_count : profile_row_count;
 		if (count > 0) result.index = (selected_index - 1 + count) % count;
 		result.action = SYN_AUDIO_ACTION_NONE;
 		break;
 	}
 	case KEY_DOWN: case 'j': {
-		int count = focused_tab == SYN_AUDIO_TAB_OUTPUTS ? output_count : input_count;
+		int count = focused_tab == SYN_AUDIO_TAB_OUTPUTS ? output_count
+			: focused_tab == SYN_AUDIO_TAB_INPUTS ? input_count : profile_row_count;
 		if (count > 0) result.index = (selected_index + 1) % count;
 		result.action = SYN_AUDIO_ACTION_NONE;
 		break;
