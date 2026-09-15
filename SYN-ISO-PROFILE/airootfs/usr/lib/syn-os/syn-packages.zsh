@@ -16,6 +16,7 @@
 baseCore=(
   base                # Minimal package set to define a basic Arch Linux installation
   linux               # The Linux kernel and modules
+  kernel-modules-hook # Keeps the running kernel's modules after a kernel upgrade, so modprobe keeps working until you choose to reboot
   linux-firmware      # Firmware files for Linux hardware compatibility
   archlinux-keyring   # Arch Linux PGP keyring for verifying package signatures
   reflector           # Arch Linux mirrorlist generator and ranker (for faster package downloads

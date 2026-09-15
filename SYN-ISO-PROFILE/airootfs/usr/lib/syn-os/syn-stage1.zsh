@@ -282,6 +282,7 @@ syn_ui::step_done "Bootloader installed"
 # Enable baseline services
 systemctl enable dhcpcd.service 2>/dev/null || true
 systemctl enable iwd.service    2>/dev/null || true
+systemctl enable linux-modules-cleanup.service 2>/dev/null || true  # kernel-modules-hook: sweep stale module trees at boot
 
 if [ "${EnableSsh:-no}" = "yes" ]; then
   systemctl enable sshd.service 2>/dev/null || true
