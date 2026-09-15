@@ -19,7 +19,7 @@ bar automatically. More on that below.
 
 ## Download and install
 
-[**Download SYN-OS (~1.1 GB)**](https://drive.google.com/file/d/1cM35ZwfR67CDV1SkpdlipEFGwd2FL3-2/view?usp=sharing)
+**Download SYN-OS (~1.1 GB)** (LINK IS MISSING)
 
 ```bash
 lsblk                          # find your USB, e.g. /dev/sdb
