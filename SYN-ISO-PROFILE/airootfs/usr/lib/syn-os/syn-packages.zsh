@@ -170,3 +170,26 @@ SYNMINIMAL=(
   ttf-dejavu
   ttf-terminus-nerd
 )
+
+# Container profile (cloud-rented GPU boxes, e.g. Vast.ai): same desktop/shell
+# stack as SYNMINIMAL, minus every package that assumes a real disk or a
+# hypervisor guest to talk to — a container has neither. baseCore is filtered
+# rather than reused wholesale since it's the one array mixing real
+# base-system packages (kernel, firmware, keyring) with disk/guest tooling
+# that doesn't apply here.
+baseCoreContainer=(
+  base linux linux-firmware archlinux-keyring reflector opendoas
+  sof-firmware sof-tools fuse zram-generator
+  # dropped vs baseCore: qemu-guest-agent (no hypervisor guest channel in a
+  # container), dosfstools/e2fsprogs/f2fs-tools/btrfs-progs/xfsprogs/lvm2/
+  # cryptsetup (no block device to partition/format/encrypt)
+)
+SYNCONTAINER=(
+  "${baseCoreContainer[@]}"
+  "${netAndServices[@]}"
+  "${shellAndCLI[@]}"
+  "${desktopStack[@]}"
+  terminus-font
+  ttf-dejavu
+  ttf-terminus-nerd
+)
