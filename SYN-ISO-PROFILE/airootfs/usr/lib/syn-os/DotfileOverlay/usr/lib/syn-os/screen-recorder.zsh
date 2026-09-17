@@ -6,9 +6,9 @@
 #   one is running) stops it. $1 selects the mode — "full" records a whole
 #   output, prompting to pick one if more than one monitor is connected;
 #   "region" is an interactive slurp selection of just the picked area.
-#   Both modes prompt for a save directory first. Pass a device name as $2
-#   to record audio, e.g. alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
-#   (no audio by default).
+#   Both modes prompt for a save directory first. Audio follows the default
+#   sink's .monitor source, so whatever you can hear is what lands in the
+#   file; pass a device name as $2 to record a different one instead.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SCREEN-RECORDER (Capture)
@@ -84,8 +84,17 @@ fi
 
 out_file="$OUT_DIR/$(date +%F_%H-%M-%S).mp4"
 
+# Desktop audio by default: wf-recorder's bare -a would take the default
+# *source*, which is the microphone, not what's playing. The default sink's
+# .monitor is the loopback of everything you can hear, so that's what a
+# recording follows unless $2 names something else.
 audio_args=()
-[[ -n "${2:-}" ]] && audio_args=(-a "$2")
+if [[ -n "${2:-}" ]]; then
+  audio_args=(-a "$2")
+else
+  default_sink="$(pactl get-default-sink 2>/dev/null)"
+  [[ -n "$default_sink" ]] && audio_args=(-a "${default_sink}.monitor")
+fi
 
 # preset=fast avoids x264 profile/level limits at high output resolutions.
 wf-recorder \
