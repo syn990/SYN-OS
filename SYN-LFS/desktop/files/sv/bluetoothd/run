@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec 2>&1
 # bluetoothd lives on the system bus, so wait for dbus (runsv retries in a second)
 sv check /var/service/dbus > /dev/null || exit 1

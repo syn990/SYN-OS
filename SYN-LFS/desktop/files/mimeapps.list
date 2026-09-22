@@ -1,18 +1,18 @@
-# What xdg-open (and so Steam, Chrome and syn-filemanager) opens each
+# What xdg-open (and so Steam, surf and syn-filemanager) opens each
 # kind of file and link with, for every user; ~/.config/mimeapps.list
 # overrides it
 [Default Applications]
-x-scheme-handler/http=google-chrome.desktop
-x-scheme-handler/https=google-chrome.desktop
-text/html=google-chrome.desktop
-application/pdf=google-chrome.desktop
-image/svg+xml=google-chrome.desktop
-image/png=google-chrome.desktop
-image/jpeg=google-chrome.desktop
-image/gif=google-chrome.desktop
-image/webp=google-chrome.desktop
-video/mp4=google-chrome.desktop
-video/webm=google-chrome.desktop
+x-scheme-handler/http=surf.desktop
+x-scheme-handler/https=surf.desktop
+text/html=surf.desktop
+application/pdf=surf.desktop
+image/svg+xml=surf.desktop
+image/png=surf.desktop
+image/jpeg=surf.desktop
+image/gif=surf.desktop
+image/webp=surf.desktop
+video/mp4=surf.desktop
+video/webm=surf.desktop
 text/plain=syn-nano.desktop
 text/markdown=syn-nano.desktop
 application/x-shellscript=syn-nano.desktop

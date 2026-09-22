@@ -1,4 +1,4 @@
-# xdg-open and friends: how Steam, Chrome and syn-filemanager hand a link
+# xdg-open and friends: how Steam, the browser and syn-filemanager hand a link
 # or a file to the right program. Just the scripts: their --help text and
 # man pages are made with xmlto and a text browser, so empty help files
 # stand in for those

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env zsh
 # sudo -> doas, for jhalfs only (build.zsh puts this dir first in PATH).
 # Covers the flags jhalfs uses: -V (version check), -E (doas.conf keepenv
 # already keeps the environment), -H (HOME of the target user), -u USER.

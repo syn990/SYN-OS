@@ -1,5 +1,5 @@
 # wf-recorder (Capture > Record) encodes with FFmpeg's x264, syn-relay's
-# screen watching decodes with it. Chrome and Steam carry their own, so
+# screen watching decodes with it. the browser and Steam carry their own, so
 # this has what those two need rather than the book's long codec list
 v=9.0.1
 src=(

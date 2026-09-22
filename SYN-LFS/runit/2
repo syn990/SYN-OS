@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 # runit stage 2: supervise every service linked into /var/service.
 # Enable a service:  ln -s /etc/sv/NAME /var/service/
 PATH=/usr/bin:/usr/sbin

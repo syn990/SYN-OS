@@ -1,0 +1,6 @@
+# TLS for GLib streams, so libsoup speaks https: on GnuTLS, as the book has it
+v=2.80.1
+src=("https://download.gnome.org/sources/glib-networking/${v%.*}/glib-networking-$v.tar.xz md5:405e6c058723217a1307ba8415615f9d")
+build() {
+	meson_build -D libproxy=disabled -D gnutls=enabled -D openssl=disabled
+}

@@ -1,0 +1,8 @@
+# X.509 and CMS library, for GnuPG
+v=1.8.0
+src=("https://www.gnupg.org/ftp/gcrypt/libksba/libksba-$v.tar.bz2 md5:182951961170c12f6569454717a1383a")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

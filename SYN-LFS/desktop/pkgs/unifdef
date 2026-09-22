@@ -1,0 +1,10 @@
+# unifdef, a build-time need of WebKitGTK. constexpr is a keyword from C23,
+# so its variable of that name is renamed, as the BLFS book does
+v=2.12
+src=("https://dotat.at/prog/unifdef/unifdef-$v.tar.gz md5:b225312c110cd2600ca7166bd0419751")
+build() {
+	sed -i 's/constexpr/unifdef_&/g' unifdef.c
+	sed -i 's/ln -s/ln -sf/' Makefile
+	make
+	make prefix=/usr install
+}

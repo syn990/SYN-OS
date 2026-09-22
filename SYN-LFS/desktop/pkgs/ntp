@@ -1,4 +1,4 @@
-# Keeps the clock right (TLS in Chrome and Steam fails on a clock that is
+# Keeps the clock right (TLS in the browser and Steam fails on a clock that is
 # far out): ntpd as a runit service, against pool.ntp.org
 v=4.2.8p18
 src=(

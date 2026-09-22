@@ -13,8 +13,8 @@
 #   bootloader is touched; root is only used for the image, mounts and the
 #   jhalfs chroot (via bin/sudo -> doas).
 #   On top of that base, desktop/ builds the SYN desktop (labwc, waybar,
-#   iwd, PipeWire, Xwayland, Chrome, Steam) from BLFS-pinned sources, see
-#   desktop/syn-pkg.sh.
+#   iwd, PipeWire, Xwayland, surf, Steam) from BLFS-pinned sources, see
+#   desktop/syn-pkg.zsh.
 #
 #   Usage: build.zsh <step>
 #     image      create + partition + mount the disk image (once)
@@ -22,10 +22,14 @@
 #     kernel     generate the kernel .config (defconfig + kernel.syn)
 #     configure  write jhalfs's configuration file
 #     build      run jhalfs (downloads sources, builds LFS + kernel)
-#     runit      replace sysvinit with runit as PID 1 (runit/install.sh, chroot)
+#     zsh        add zsh to the base (runit's stages, the desktop builder and the
+#                SYN scripts are zsh)
+#     runit      replace sysvinit with runit as PID 1 (runit/install.zsh, chroot)
 #     rekernel   rebuild the kernel in the chroot from the current config
 #     fetch      download the desktop's sources (no root needed)
 #     desktop    build the desktop in the chroot (desktop NAME...: just those)
+#                SYN_LFS_PROFILE=full|minimal picks the profile (desktop/order);
+#                fetch honours it too
 #     user NAME  add a login user (wheel, video, audio, input; zsh) and
 #                set their password
 #     esp        copy the built kernel to the EFI partition as BOOTX64.EFI
@@ -53,6 +57,8 @@ LFS_RELEASE=13.1
 KVER=7.1.8
 RUNIT=2.2.0
 RUNIT_SHA256=95ef4d2868b978c7179fe47901e5c578e11cf273d292bd6208bd3a7ccb029290
+ZSH=5.9.2
+ZSH_MD5=5c8305ba85166838ef062c5e7b245820
 # By partition label, so the same kernel boots the image in QEMU and on a
 # real disk or USB stick; rootwait because USB disks show up late. The
 # screen (tty0) comes last so it is /dev/console, where boot messages and
@@ -179,6 +185,15 @@ step_build() {
 		done
 		doas rm -f $dmp
 	fi
+	# The multilib book's download list leaves out some tarballs its chapters
+	# still unpack (udev-lfs, sysklogd): every one the generated scripts name
+	# comes from the source cache if the image lacks it
+	local u
+	for u in $(grep -h '^PACKAGE=' $MNT/jhalfs/lfs-commands/chapter0*/* | sed 's/PACKAGE=//; s/"//g' | sort -u); do
+		[[ -f $MNT/sources/$u ]] && continue
+		[[ -f $SRC/$u ]] || { print "not in the image or the cache: $u"; exit 1 }
+		doas install -m644 $SRC/$u $MNT/sources/ && print "from the cache: $u"
+	done
 	# The book creates the build user itself and stops if it already exists
 	# (left over from an earlier run).
 	getent passwd lfs >/dev/null && doas userdel -r lfs
@@ -209,6 +224,7 @@ in_chroot() {
 
 step_runit() {
 	mountpoint -q $MNT || { print "run: mount"; exit 1 }
+	[[ -x $MNT/usr/bin/zsh ]] || { print "run: zsh (the runit stages are zsh)"; exit 1 }
 	[[ -f $SRC/runit-$RUNIT.tar.gz ]] || \
 		curl -fL -o $SRC/runit-$RUNIT.tar.gz https://smarden.org/runit/runit-$RUNIT.tar.gz
 	print "$RUNIT_SHA256  $SRC/runit-$RUNIT.tar.gz" | sha256sum -c --quiet
@@ -217,7 +233,37 @@ step_runit() {
 	doas cp -r $HERE/runit $SRC/runit-$RUNIT.tar.gz $MNT/tmp/syn-runit/
 	chroot_up
 	local rc=0
-	in_chroot /bin/sh /tmp/syn-runit/runit/install.sh || rc=$?
+	in_chroot /usr/bin/zsh /tmp/syn-runit/runit/install.zsh || rc=$?
+	chroot_down
+	return $rc
+}
+
+# zsh into the base, straight after the LFS build: runit's stages, the
+# desktop builder and every SYN script are zsh. A no-op once it is in.
+step_zsh() {
+	mountpoint -q $MNT || { print "run: mount"; exit 1 }
+	[[ -x $MNT/usr/bin/zsh ]] && { print "zsh is in the image"; return 0 }
+	[[ -f $SRC/zsh-$ZSH.tar.xz ]] || \
+		curl -fL -o $SRC/zsh-$ZSH.tar.xz https://www.zsh.org/pub/zsh-$ZSH.tar.xz
+	print "$ZSH_MD5  $SRC/zsh-$ZSH.tar.xz" | md5sum -c --quiet
+	doas rm -rf $MNT/tmp/syn-zsh
+	doas mkdir -p $MNT/tmp/syn-zsh
+	doas cp $SRC/zsh-$ZSH.tar.xz $HERE/desktop/files/zprofile $MNT/tmp/syn-zsh/
+	chroot_up
+	local rc=0
+	in_chroot /usr/bin/env MAKEFLAGS=-j$(nproc) /bin/bash -e -c '
+		cd /tmp/syn-zsh && tar -xf zsh-*.tar.xz && cd zsh-*/
+		sed -e "s|/etc/z|/etc/zsh/z|g" -i Doc/*.*
+		./configure --prefix=/usr --sysconfdir=/etc/zsh --enable-etcdir=/etc/zsh \
+			--enable-cap --enable-gdbm --enable-pcre --with-tcsetpgrp
+		make
+		make install
+		install -Dm644 /tmp/syn-zsh/zprofile /etc/zsh/zprofile
+		install -d /etc/profile.d
+		for sh in /bin/zsh /usr/bin/zsh; do
+			grep -qx "$sh" /etc/shells || echo "$sh" >> /etc/shells
+		done
+		cd / && rm -rf /tmp/syn-zsh' || rc=$?
 	chroot_down
 	return $rc
 }
@@ -252,21 +298,22 @@ step_rekernel() {
 }
 
 step_fetch() {
-	bash $HERE/desktop/syn-pkg.sh fetch $SRC/desktop
+	SYN_PROFILE=${SYN_LFS_PROFILE:-full} zsh $HERE/desktop/syn-pkg.zsh fetch $SRC/desktop
 }
 
 # The chroot sees the fetched sources at /sources/syn-desktop and this
 # repo, read-only, at /usr/src/SYN-OS (recipes, SYN-SOFTWARE, dotfiles)
 step_desktop() {
 	[[ -d $SRC/desktop ]] || { print "run: fetch"; exit 1 }
+	[[ -x $MNT/usr/bin/zsh ]] || { print "run: zsh"; exit 1 }
 	chroot_up
 	doas mkdir -p $MNT/sources/syn-desktop $MNT/usr/src/SYN-OS
 	doas mount --bind $SRC/desktop $MNT/sources/syn-desktop
 	doas mount --bind $HERE:h $MNT/usr/src/SYN-OS
 	doas mount -o remount,bind,ro $MNT/usr/src/SYN-OS
 	local rc=0
-	in_chroot /bin/bash /usr/src/SYN-OS/SYN-LFS/desktop/syn-pkg.sh \
-		build /sources/syn-desktop "$@" || rc=$?
+	in_chroot /usr/bin/env SYN_PROFILE=${SYN_LFS_PROFILE:-full} \
+		/usr/bin/zsh /usr/src/SYN-OS/SYN-LFS/desktop/syn-pkg.zsh build /sources/syn-desktop "$@" || rc=$?
 	doas umount $MNT/usr/src/SYN-OS $MNT/sources/syn-desktop
 	chroot_down
 	return $rc
@@ -369,7 +416,7 @@ step_iso() {
 	doas mkdir -p $MNT/usr/src/SYN-OS
 	doas mount --bind $HERE:h $MNT/usr/src/SYN-OS
 	doas mount -o remount,bind,ro $MNT/usr/src/SYN-OS
-	in_chroot /bin/bash /usr/src/SYN-OS/SYN-LFS/iso/mkinitramfs.sh || rc=$?
+	in_chroot /usr/bin/zsh /usr/src/SYN-OS/SYN-LFS/iso/mkinitramfs.zsh || rc=$?
 	doas umount $MNT/usr/src/SYN-OS
 	chroot_down
 	(( rc == 0 )) || return $rc
@@ -382,9 +429,9 @@ step_iso() {
 	cp $HERE:h/SYN-ISO-PROFILE/grub/splash.png $iso/boot/grub/splash.png
 
 	# The root image. Only the system accounts go on it: filtered copies
-	# (iso/sanitize-accounts.sh) sit over the image's own while it's read
+	# (iso/sanitize-accounts.zsh) sit over the image's own while it's read
 	doas mkdir -m 700 $acct
-	doas sh $HERE/iso/sanitize-accounts.sh $MNT/etc $acct
+	doas zsh $HERE/iso/sanitize-accounts.zsh $MNT/etc $acct
 	local f bound=()
 	for f in passwd group shadow gshadow; do
 		[[ -e $acct/$f ]] || continue

@@ -8,7 +8,7 @@ build() {
 	make install
 	install -m600 "$SYN_FILES/doas.conf" /etc/doas.conf
 	if [ ! -e /usr/bin/sudo ] || grep -q 'exec doas' /usr/bin/sudo; then
-		printf '#!/bin/sh\nexec doas "$@"\n' > /usr/bin/sudo
+		printf '#!/bin/zsh -f\nexec doas "$@"\n' > /usr/bin/sudo
 		chmod 755 /usr/bin/sudo
 	fi
 }

@@ -1,0 +1,8 @@
+# New GNU portable threads, for GnuPG
+v=1.8
+src=("https://www.gnupg.org/ftp/gcrypt/npth/npth-$v.tar.bz2 md5:cb4fc0402be5ba67544e499cb2c1a74d")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

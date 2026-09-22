@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec 2>&1
 # DHCP on every interface: ethernet as soon as it has carrier, Wi-Fi once
 # iwd has associated

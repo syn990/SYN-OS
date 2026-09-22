@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 # ------------------------------------------------------------------------------
 #                      S Y N - L F S   L I V E   I N I T
 #
@@ -17,7 +17,7 @@ export PATH
 rescue() {
 	echo "SYN-LFS live: $1"
 	echo "Dropping to a shell; exit it to reboot."
-	bash
+	zsh
 	echo b > /proc/sysrq-trigger
 }
 

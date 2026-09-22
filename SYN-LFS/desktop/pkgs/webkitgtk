@@ -1,0 +1,18 @@
+# WebKit for GTK 3: the engine surf renders with. Without its bubblewrap
+# sandbox (bubblewrap, libseccomp and xdg-dbus-proxy would add it), the
+# AVIF/JPEG XL decoders, geolocation, introspection, spellcheck (Enchant) and
+# journald logging (systemd), none of which are built or wanted
+# Six compile jobs, the cores: at ninja's default of eight the kernel ran out
+# of memory and killed one
+v=2.52.5
+src=("https://webkitgtk.org/releases/webkitgtk-$v.tar.xz md5:84bddd5381f3a518c7caac66ad98646e")
+build() {
+	NINJAFLAGS=-j6
+	cmake_build -D PORT=GTK -D LIB_INSTALL_DIR=/usr/lib -D USE_GTK4=OFF \
+		-D USE_LIBBACKTRACE=OFF -D USE_LIBHYPHEN=OFF -D USE_WOFF2=OFF \
+		-D USE_AVIF=OFF -D USE_JPEGXL=OFF -D USE_SYSPROF_CAPTURE=NO \
+		-D ENABLE_GAMEPAD=OFF -D ENABLE_GEOLOCATION=OFF -D ENABLE_INTROSPECTION=OFF \
+		-D ENABLE_MINIBROWSER=ON -D ENABLE_DOCUMENTATION=OFF -D ENABLE_WEBDRIVER=OFF \
+		-D ENABLE_SPEECH_SYNTHESIS=OFF -D ENABLE_BUBBLEWRAP_SANDBOX=OFF \
+		-D ENABLE_SPELLCHECK=OFF -D ENABLE_JOURNALD_LOG=OFF -W no-author
+}

@@ -1,4 +1,4 @@
-# Metric-compatible Arial/Times/Courier, which Chrome expects
+# Metric-compatible Arial/Times/Courier, which the browser expects
 v=2.1.5
 src=("https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-$v.tar.gz sha256:7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0")
 build() {

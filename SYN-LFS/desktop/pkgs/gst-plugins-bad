@@ -1,0 +1,5 @@
+v=1.28.6
+src=("https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-$v.tar.xz md5:cdc3c30609d2d235d9322a676a5d4474")
+build() {
+	meson_build -D gpl=enabled
+}

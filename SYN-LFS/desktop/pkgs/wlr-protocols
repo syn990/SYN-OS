@@ -1,0 +1,7 @@
+# wlroots' own protocol set, foreign-toplevel among them: the XML
+# syn-bar-core generates its client code from. No releases, so a commit
+v=bf4fc79
+src=("https://gitlab.freedesktop.org/wlroots/wlr-protocols/-/archive/bf4fc79abc359eea5a0edec0ac6d4a2b2955f82a/wlr-protocols-bf4fc79abc359eea5a0edec0ac6d4a2b2955f82a.tar.gz sha256:9e0fd2be5ba7c84b81acdd086f84c2da2c2b5e4946a17bda3e9850c62e14057f wlr-protocols-bf4fc79.tar.gz")
+build() {
+	make install
+}

@@ -1,0 +1,8 @@
+# TLS library glib-networking uses; trusts the CA list through p11-kit
+v=3.8.13
+src=("https://www.gnupg.org/ftp/gcrypt/gnutls/v${v%.*}/gnutls-$v.tar.xz md5:a97671c1839340c6b43c23ccb3237180")
+build() {
+	./configure --prefix=/usr --docdir=/usr/share/doc/gnutls-$v --with-default-trust-store-pkcs11="pkcs11:"
+	make
+	make install
+}

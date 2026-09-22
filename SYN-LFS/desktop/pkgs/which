@@ -1,0 +1,8 @@
+# which, a build-time need of WebKitGTK
+v=2.25
+src=("https://ftpmirror.gnu.org/which/which-$v.tar.gz md5:60140cb2637634e4f4e68c2e98c6a07b")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

@@ -1,0 +1,9 @@
+# WebP images, for WebKitGTK
+v=1.6.0
+src=("https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$v.tar.gz md5:cceb6447180f961473b181c9ef38b630")
+build() {
+	./configure --prefix=/usr --enable-libwebpmux --enable-libwebpdemux --enable-libwebpdecoder \
+		--enable-libwebpextras --enable-swap-16bit-csp --disable-static
+	make
+	make install
+}

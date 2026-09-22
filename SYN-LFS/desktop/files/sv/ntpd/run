@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec 2>&1
 # -g lets the first correction be any size (a new machine's clock can be
 # well out), -n keeps ntpd in the foreground for runsv

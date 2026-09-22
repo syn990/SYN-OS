@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env zsh
 # Starts the audio stack from labwc's autostart, where systemd user units
 # would on Arch: PipeWire, then WirePlumber and the PulseAudio-compatible
 # server once PipeWire's socket is up. Returns once the pulse socket

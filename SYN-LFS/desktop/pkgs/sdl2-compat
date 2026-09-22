@@ -4,4 +4,6 @@ src=("https://www.libsdl.org/release/sdl2-compat-$v.tar.gz md5:ba9179f09652a6395
 build() {
 	cmake_build -D SDL2COMPAT_STATIC=OFF -D SDL2COMPAT_TESTS=OFF -W no-author
 	rm -f /usr/lib/libSDL2_test.a
+	# It is SDL2 to anything that asks pkg-config for sdl2
+	ln -sf sdl2-compat.pc /usr/lib/pkgconfig/sdl2.pc
 }

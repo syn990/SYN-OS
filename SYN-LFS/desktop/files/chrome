@@ -1,3 +1,0 @@
-#!/bin/sh
-# Chrome on Wayland when there is a compositor, X11 otherwise
-exec /opt/google/chrome/google-chrome --ozone-platform-hint=auto "$@"

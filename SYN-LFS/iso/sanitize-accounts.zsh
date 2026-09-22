@@ -1,10 +1,10 @@
-#!/bin/sh
-# sanitize-accounts.sh ETC OUT: the system accounts only (uid/gid below
+#!/usr/bin/env zsh
+# sanitize-accounts.zsh ETC OUT: the system accounts only (uid/gid below
 # 1000, and nobody) from ETC's passwd, group, shadow and gshadow, with any
 # other user taken out of group member lists, written to OUT. build.zsh iso
 # puts these on the ISO in place of the build image's own, so a user added
 # with `build.zsh user` stays in the build image and off the ISO.
-set -e
+setopt err_exit
 etc=$1 out=$2
 
 awk -F: '$3 < 1000 || $3 == 65534' "$etc/passwd" > "$out/passwd"

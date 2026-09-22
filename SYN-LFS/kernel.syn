@@ -15,7 +15,7 @@ CONFIG_USB_EHCI_HCD=y
 CONFIG_USB_STORAGE=y
 CONFIG_USB_UAS=y
 
-# --- Desktop basics: user namespaces for Chrome's sandbox, uinput and
+# --- Desktop basics: user namespaces for the browser's sandbox, uinput and
 # FUSE, and zstd firmware (linux-firmware is installed compressed)
 CONFIG_USER_NS=y
 CONFIG_INPUT_EVDEV=y

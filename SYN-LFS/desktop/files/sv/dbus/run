@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec 2>&1
 install -d -m755 /run/dbus
 exec dbus-daemon --system --nofork --nopidfile

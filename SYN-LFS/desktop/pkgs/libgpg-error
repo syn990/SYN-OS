@@ -1,0 +1,8 @@
+# libgcrypt's error codes (lib32-libgpg-error builds the 32-bit copy)
+v=1.61
+src=("https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-$v.tar.bz2 md5:c89a8c6825cb64c527d5c1c0fb36f245")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc
+	make
+	make install
+}

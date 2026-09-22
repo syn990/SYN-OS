@@ -1,0 +1,8 @@
+# HTTP/2, for libsoup
+v=1.70.0
+src=("https://github.com/nghttp2/nghttp2/releases/download/v$v/nghttp2-$v.tar.xz md5:3df2b4b51caa13b76032bfd2d11d4ab2")
+build() {
+	./configure --prefix=/usr --disable-static --enable-lib-only
+	make
+	make install
+}

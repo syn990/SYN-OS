@@ -1,0 +1,6 @@
+# JPEG 2000, for WebKitGTK
+v=2.5.4
+src=("https://github.com/uclouvain/openjpeg/archive/v$v/openjpeg-$v.tar.gz md5:6160de075bb5191e482bc0f024b375e4")
+build() {
+	cmake_build -D BUILD_STATIC_LIBS=OFF
+}

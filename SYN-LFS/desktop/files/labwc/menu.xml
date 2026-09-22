@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SYN-LFS's root menu: SYN-OS's menu.xml (SYN-ISO-PROFILE's
-     DotfileOverlay) with what differs on LFS. Chrome and Steam are listed
+     DotfileOverlay) with what differs on LFS. surf and Steam are listed
      up front. All Applications is built from the installed .desktop files
      by syn-pipe-apps.zsh (Arch uses archlinux-xdg-menu). Services toggles
      runit services. Config files open in nano in a terminal (no
@@ -21,7 +21,7 @@
 
     <item label="Web browser">
       <action name="Execute">
-        <command>chrome</command>
+        <command>surf</command>
       </action>
     </item>
 
@@ -256,9 +256,9 @@
           </action>
         </item>
 
-        <item label="Kill Web Browser (Chrome)">
+        <item label="Kill Web Browser (surf)">
           <action name="Execute">
-            <command>pkill -f /opt/google/chrome/chrome</command>
+            <command>pkill -x surf</command>
           </action>
         </item>
 

@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/zsh -f
 # Installs runit as PID 1 in place of sysvinit. Runs inside the LFS chroot
 # from /tmp/syn-runit (build.zsh runit copies this directory and the runit
 # tarball there). sysvinit stays installed as a fallback: boot with
 # init=/usr/sbin/init.sysv to get the book's SysV boot back.
-set -e
+setopt err_exit
 cd /tmp/syn-runit
 tar xzf runit-2.2.0.tar.gz
 cd admin/runit-2.2.0
@@ -30,10 +30,10 @@ ln -sf runit-init /usr/sbin/init
 for cmd in halt poweroff reboot shutdown; do
 	[ -e /usr/sbin/$cmd ] && [ ! -e /usr/sbin/$cmd.sysv ] && mv /usr/sbin/$cmd /usr/sbin/$cmd.sysv
 done
-printf '#!/bin/sh\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/poweroff
-printf '#!/bin/sh\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/halt
-printf '#!/bin/sh\nexec /usr/sbin/runit-init 6\n' > /usr/sbin/reboot
-printf '#!/bin/sh\n# shutdown [-r] ...: -r reboots, anything else powers off\ncase " $* " in *" -r "*) exec /usr/sbin/runit-init 6 ;; esac\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/shutdown
+printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/poweroff
+printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/halt
+printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 6\n' > /usr/sbin/reboot
+printf '#!/bin/zsh -f\n# shutdown [-r] ...: -r reboots, anything else powers off\ncase " $* " in *" -r "*) exec /usr/sbin/runit-init 6 ;; esac\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/shutdown
 chmod 755 /usr/sbin/poweroff /usr/sbin/halt /usr/sbin/reboot /usr/sbin/shutdown
 
 rm -rf /tmp/syn-runit

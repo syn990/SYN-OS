@@ -1,7 +1,10 @@
 # Capture > Record. Audio through the PulseAudio API (pipewire-pulse),
-# since screen-recorder.zsh names the device the Pulse way
+# since screen-recorder.zsh names the device the Pulse way. The patch reads the
+# codec's formats through avcodec_get_supported_config(): FFmpeg 9 removed
+# the AVCodec fields 0.6.0 uses
 v=0.6.0
 src=("https://github.com/ammen99/wf-recorder/archive/v$v/wf-recorder-$v.tar.gz sha256:52d2c952506d63708f9a8f1aacd4d6ca176287caf3507c8ff2882fa0390cb391")
 build() {
+	patch -Np1 -i "$SYN_FILES/wf-recorder-0.6.0-ffmpeg9.patch"
 	meson_build -D pulse=enabled -D pipewire=enabled -D default_audio_backend=pulse
 }

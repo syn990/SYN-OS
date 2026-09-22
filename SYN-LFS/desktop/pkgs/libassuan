@@ -1,0 +1,8 @@
+# GnuPG's IPC library
+v=3.0.2
+src=("https://www.gnupg.org/ftp/gcrypt/libassuan/libassuan-$v.tar.bz2 md5:c6f1bf4bd2aaa79cd1635dcc070ba51a")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

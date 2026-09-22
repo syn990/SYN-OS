@@ -1,8 +1,17 @@
-# Build order for syn-pkg.sh: one recipe name (pkgs/NAME) per line.
+# Build order for syn-pkg.zsh: one recipe name (pkgs/NAME) per line.
 # Each package comes after everything it needs. Comment a line out to skip
 # a package; `build.zsh desktop NAME` rebuilds one on its own.
+#
+# Categories and profiles. A `# [category]` header puts the recipes under
+# it in that category; a profile is the set of categories it builds, and
+# only filters the sequence below, never reorders it. SYN_LFS_PROFILE picks
+# one for build.zsh fetch and desktop (default full).
+profile full    baseCore netAndServices shellAndCLI desktopStack fontsI18n appsMedia synOS
+profile minimal baseCore netAndServices shellAndCLI desktopStack fontsI18n synOS
+# minimal: a desktop that boots. Leaves out appsMedia — the browser, and Steam
+# with its 32-bit tree. synOS is on every profile.
 
-# Base tools and libraries
+# [baseCore] Base tools and libraries
 libtasn1
 p11-kit
 make-ca
@@ -11,7 +20,6 @@ cmake
 libxml2
 libnl
 lua
-zsh
 opendoas
 dbus
 basu
@@ -19,7 +27,7 @@ libxcrypt-compat
 nano
 dosfstools
 
-# Command-line and system tools (what .zshrc and the SYN scripts call)
+# [shellAndCLI] Command-line and system tools (what .zshrc and the SYN scripts call)
 git
 openssh
 ntp
@@ -36,7 +44,7 @@ bat
 zoxide
 glow
 
-# Images, fonts, text shaping
+# [desktopStack] Images, fonts, text shaping
 libpng
 libjpeg-turbo
 pixman
@@ -44,9 +52,10 @@ freetype
 fontconfig
 fribidi
 glib
+icu
 harfbuzz
 
-# X11 client libraries (no X server; GTK, cairo, Vulkan and Chrome link these)
+# [desktopStack] X11 client libraries (no X server; GTK, cairo, Vulkan and the browser link these)
 util-macros
 xorgproto
 libXau
@@ -55,9 +64,10 @@ xcb-proto
 libxcb
 xorg-libs
 
-# Wayland, DRM, input, seat
+# [desktopStack] Wayland, DRM, input, seat
 wayland
 wayland-protocols
+wlr-protocols
 libdrm
 hwdata
 libdisplay-info
@@ -69,7 +79,7 @@ xkeyboard-config
 libxkbcommon
 seatd
 
-# Mesa and the LLVM it compiles shaders with
+# [desktopStack] Mesa and the LLVM it compiles shaders with
 python-mako
 pyyaml
 llvm
@@ -83,7 +93,7 @@ vulkan-loader
 mesa
 libepoxy
 
-# GTK3 and the C++ bindings waybar is written against
+# [desktopStack] GTK3 and the C++ bindings waybar is written against
 cairo
 pango
 shared-mime-info
@@ -104,7 +114,7 @@ fmt
 spdlog
 jsoncpp
 
-# Audio: PipeWire as the server, libpulse for its clients
+# [desktopStack] Audio: PipeWire as the server, libpulse for its clients
 alsa-lib
 libsndfile
 bluez
@@ -115,41 +125,43 @@ pulseaudio
 cxxopts
 pamixer
 
-# Video: FFmpeg for screen recording and syn-relay, SDL for syn-relay's viewer
+# [netAndServices] Video: FFmpeg for screen recording and syn-relay, SDL for syn-relay's viewer
 nasm
 x264
 ffmpeg
 sdl3
 sdl2-compat
 
-# Network and firmware
+# [netAndServices] Network
 iwd
 dhcpcd
 lzo
 libcap-ng
 openvpn
+# [baseCore] Firmware and microcode
 wireless-regdb
 linux-firmware
 sof-firmware
 cpu-microcode
 
-# Xwayland, so X11 programs run (the Steam client is one)
+# [desktopStack] Xwayland, so X11 programs run (the Steam client is one)
 xcb-utils
 libxcvt
 font-util
 xkbcomp
 xwayland
 
-# Qt 6, for syn-filemanager
+# [desktopStack] Qt 6, for syn-filemanager
 qtbase
 qtwayland
 
-# The desktop: labwc, waybar and the Wayland tools SYN-OS uses
+# [desktopStack] The desktop: labwc, waybar and the Wayland tools SYN-OS uses
 wlroots
 labwc
 tllist
 fcft
 foot
+scdoc
 fuzzel
 swaybg
 swaylock
@@ -166,7 +178,7 @@ brightnessctl
 graphviz
 adwaita-icon-theme
 
-# Fonts
+# [fontsI18n] Fonts
 terminus-font
 font-dejavu
 font-liberation
@@ -174,13 +186,42 @@ font-terminus-nerd
 font-awesome
 font-noto-emoji
 
-# Google Chrome and the libraries its binary links against
+# [appsMedia] nss and nspr: Steam's 32-bit copies are built on these
 nspr
 nss
-cups
-google-chrome
 
-# 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
+# [appsMedia] surf, the browser, and WebKitGTK under it
+which
+unifdef
+libyaml
+ruby
+libwebp
+libxslt
+lcms2
+openjpeg
+libgudev
+libgpg-error
+libgcrypt
+libassuan
+libksba
+npth
+gnupg
+gcr
+libpsl
+nghttp2
+nettle
+libunistring
+gnutls
+glib-networking
+libsoup3
+libsecret
+gstreamer
+gst-plugins-base
+gst-plugins-bad
+webkitgtk
+surf
+
+# [appsMedia] 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
 lib32-xorg-libs
 lib32-libdrm
 lib32-wayland
@@ -197,7 +238,7 @@ lib32-nss
 xrandr
 steam
 
-# SYN-OS's own tools, built from SYN-SOFTWARE in this repo
+# [synOS] SYN-OS's own tools, built from SYN-SOFTWARE in this repo
 syn-bar-core
 syn-bar
 syn-bar-notify
@@ -208,7 +249,7 @@ syn-sysmon
 syn-relay
 syn-filemanager
 
-# SYN-OS config on top (needs everything above)
+# [synOS] SYN-OS config on top (needs everything above)
 syn-desktop
 syn-installer
 syn-crypter

@@ -1,0 +1,11 @@
+# gpg, which gcr's build and its key import call. Without LDAP keyservers
+# (the book builds those on OpenLDAP) and without pinentry, so no
+# interactive passphrase prompts
+v=2.5.21
+src=("https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-$v.tar.bz2 md5:39311d55044c9548b5eb8f53466a86b5")
+build() {
+	mkdir build && cd build
+	../configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --disable-ldap
+	make
+	make install
+}

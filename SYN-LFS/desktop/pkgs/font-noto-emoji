@@ -1,4 +1,4 @@
-# Colour emoji, for Chrome and Steam's chat
+# Colour emoji, for the browser and Steam's chat
 v=2.051
 src=("https://github.com/googlefonts/noto-emoji/raw/v$v/fonts/NotoColorEmoji.ttf sha256:72a635cb3d2f3524c51620cdde406b217204e8a6a06c6a096ff8ed4b5fd6e27b NotoColorEmoji-$v.ttf")
 noextract=1

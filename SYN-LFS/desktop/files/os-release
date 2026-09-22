@@ -1,5 +1,5 @@
 NAME="SYN-OS"
-PRETTY_NAME="SYN-OS (Linux From Scratch)"
+PRETTY_NAME="SYN-OS"
 ID=syn-os
 VARIANT="LFS r13.1, runit"
 VARIANT_ID=lfs

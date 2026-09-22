@@ -1,0 +1,9 @@
+# Unicode library HarfBuzz shapes with; WebKitGTK needs that build of HarfBuzz
+v=78.3
+src=("https://github.com/unicode-org/icu/releases/download/release-$v/icu4c-$v-sources.tgz md5:a7b736b570ef0e180c96a31715a00c78")
+build() {
+	cd source
+	./configure --prefix=/usr
+	make
+	make install
+}

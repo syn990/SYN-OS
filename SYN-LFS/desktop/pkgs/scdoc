@@ -1,0 +1,7 @@
+# scdoc, the man page generator fuzzel's build requires
+v=1.11.3
+src=("https://git.sr.ht/~sircmpwn/scdoc/archive/$v.tar.gz sha256:4c5c6136540384e5455b250f768e7ca11b03fdba1a8efc2341ee0f1111e57612 scdoc-$v.tar.gz")
+build() {
+	make PREFIX=/usr
+	make PREFIX=/usr install
+}

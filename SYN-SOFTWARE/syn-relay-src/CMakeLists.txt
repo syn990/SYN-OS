@@ -16,7 +16,8 @@ pkg_check_modules(AVCODEC        REQUIRED libavcodec)
 pkg_check_modules(AVFORMAT       REQUIRED libavformat)
 pkg_check_modules(AVUTIL         REQUIRED libavutil)
 pkg_check_modules(SWSCALE        REQUIRED libswscale)
-pkg_check_modules(SDL2           REQUIRED sdl2)
+# sdl2 (SDL2 proper), or sdl2-compat, SDL2's API on SDL3 (SYN-LFS)
+pkg_search_module(SDL2          REQUIRED sdl2 sdl2-compat)
 
 # syn_bar_notify.c/.h ("ask the bar for a named tone") reused as-is
 # from syn-bar-core-src — only syn-bar-core itself links syn_bar_tone.c

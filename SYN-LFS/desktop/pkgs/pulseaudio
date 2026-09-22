@@ -1,9 +1,8 @@
 # Client libraries only (libpulse): pipewire-pulse is the server. waybar,
-# pamixer, syn-audio and Chrome all talk to it through libpulse
+# pamixer, syn-audio and the browser all talk to it through libpulse
 v=17.0
 src=("https://www.freedesktop.org/software/pulseaudio/releases/pulseaudio-$v.tar.xz md5:c4a3596a26ff4b9dcd0c394dd1d4f8ee")
 build() {
-	sed '/doxygen/d' -i meson.build
 	meson_build -D daemon=false -D doxygen=false -D man=false -D tests=false \
 		-D database=simple -D bluez5=disabled -D x11=disabled -D gtk=disabled \
 		-D systemd=disabled -D elogind=disabled -D gstreamer=disabled -D jack=disabled \

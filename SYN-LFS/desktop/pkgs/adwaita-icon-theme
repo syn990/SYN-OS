@@ -1,4 +1,4 @@
-# The mouse cursor for labwc, foot, Chrome and GTK (with none installed,
+# The mouse cursor for labwc, foot, the browser and GTK (with none installed,
 # Wayland programs fall back to a bare arrow or nothing), and GTK's icons.
 # The icons are SVG, which GTK draws once librsvg is added
 v=50.0

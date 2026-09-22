@@ -1,0 +1,6 @@
+# Public suffix list, for libsoup
+v=0.23.3
+src=("https://github.com/rockdaboot/libpsl/releases/download/$v/libpsl-$v.tar.gz md5:596df43f3c2a8f1d4a677b032ccbc820")
+build() {
+	meson_build
+}

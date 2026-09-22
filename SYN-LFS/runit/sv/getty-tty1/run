@@ -1,2 +1,2 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec chpst -P /usr/sbin/agetty --noclear tty1 38400 linux

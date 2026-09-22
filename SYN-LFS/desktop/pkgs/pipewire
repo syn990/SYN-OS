@@ -1,4 +1,4 @@
-# No systemd user units: syn-pipewire-session.sh starts the daemons from
+# No systemd user units: syn-pipewire-session.zsh starts the daemons from
 # labwc's autostart. WirePlumber is its own recipe below
 v=1.6.8
 src=("https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/$v/pipewire-$v.tar.bz2 md5:9ae75812a76951c93210a26272c90ef3")

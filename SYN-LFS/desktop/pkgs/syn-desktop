@@ -40,9 +40,9 @@ build() {
 
 	# No systemd user units either: autostart brings PipeWire up before
 	# waybar looks for it
-	install -m755 "$SYN_FILES/syn-pipewire-session.sh" /usr/lib/syn-os/
+	install -m755 "$SYN_FILES/syn-pipewire-session.zsh" /usr/lib/syn-os/
 	grep -q syn-pipewire-session /etc/skel/.config/labwc/autostart ||
-		sed -i 's|^apply_persisted_display_state$|/usr/lib/syn-os/syn-pipewire-session.sh\n&|' \
+		sed -i 's|^apply_persisted_display_state$|/usr/lib/syn-os/syn-pipewire-session.zsh\n&|' \
 			/etc/skel/.config/labwc/autostart
 
 	# What xdg-open opens things with, nano as the text editor, GTK's

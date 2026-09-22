@@ -1,13 +1,14 @@
-#!/bin/sh
+#!/bin/zsh -f
 # runit stage 1: one-time system setup, then hand over to stage 2.
 # The same steps LFS's SysV bootscripts run from rcS (mountvirtfs, modules,
 # udev, checkfs, mountfs, swap, cleanfs, localnet, setclock, console,
-# sysctl), in the same order, as one script.
+# sysctl), in the same order, as one script. zsh -f reads no startup
+# files, so nothing in a home directory can stop the boot.
 PATH=/usr/bin:/usr/sbin
 
 emergency() {
 	echo "stage 1: $1 — dropping to a root shell; exit it to reboot"
-	/usr/sbin/sulogin || /bin/sh
+	/usr/sbin/sulogin || /bin/zsh -f
 	/usr/sbin/runit-init 6
 }
 
@@ -24,7 +25,7 @@ mountpoint -q /sys/fs/cgroup || mount -t cgroup2 -o nosuid,noexec,nodev cgroup2 
 
 # Modules listed one per line in /etc/sysconfig/modules (modules)
 [ -r /etc/sysconfig/modules ] && grep -v '^[[:space:]]*\(#\|$\)' /etc/sysconfig/modules |
-	while read -r mod args; do modprobe "$mod" $args; done
+	while read -r mod args; do modprobe "$mod" ${=args}; done
 
 # Coldplug devices, then stop this udevd — the runit udevd service owns it
 # from stage 2 on (udev)
@@ -53,8 +54,8 @@ install -d -m 1777 /tmp/.X11-unix /tmp/.ICE-unix
 # A runtime dir (XDG_RUNTIME_DIR) for every normal user, which logind
 # would make at login; labwc, PipeWire and the Wayland clients need one
 mkdir -p -m 0755 /run/user
-while IFS=: read -r _ _ uid gid _; do
-	[ "$uid" -ge 1000 ] 2>/dev/null && [ "$uid" -lt 60000 ] || continue
+while IFS=: read -r name pass uid gid rest; do
+	(( uid >= 1000 && uid < 60000 )) || continue
 	install -d -m 0700 -o "$uid" -g "$gid" "/run/user/$uid"
 done < /etc/passwd
 
@@ -70,14 +71,14 @@ hwclock --hctosys --utc
 if [ -r /etc/sysconfig/console ]; then
 	. /etc/sysconfig/console
 	[ -n "$KEYMAP" ] && loadkeys "$KEYMAP" >/dev/null 2>&1
-	[ -n "$FONT" ] && setfont $FONT
+	[ -n "$FONT" ] && setfont ${=FONT}
 fi
 
 # Kernel parameters (sysctl)
 [ -r /etc/sysctl.conf ] && sysctl -q -p /etc/sysctl.conf
 
 # Interfaces with an /etc/sysconfig/ifconfig.<name> marked ONBOOT=yes (network)
-for file in /etc/sysconfig/ifconfig.*; do
+for file in /etc/sysconfig/ifconfig.*(N); do
 	[ -r "$file" ] || continue
 	(. "$file"; [ "$ONBOOT" = yes ]) && /sbin/ifup "${file##*/ifconfig.}"
 done

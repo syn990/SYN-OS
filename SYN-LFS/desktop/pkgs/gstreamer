@@ -1,0 +1,6 @@
+# Media framework WebKitGTK plays audio and video through
+v=1.28.6
+src=("https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-$v.tar.xz md5:3d16d7912727ea85ab90b9e5f3bc6e8a")
+build() {
+	meson_build -D gst_debug=false
+}

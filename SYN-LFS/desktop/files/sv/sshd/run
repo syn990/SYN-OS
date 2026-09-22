@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec 2>&1
 # Host keys are made on the first start, so no two installs share them
 ssh-keygen -A

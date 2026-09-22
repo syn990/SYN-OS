@@ -1,0 +1,9 @@
+# Ruby: WebKitGTK's build scripts are written in it
+v=4.0.6
+src=("https://cache.ruby-lang.org/pub/ruby/${v%.*}/ruby-$v.tar.xz md5:8f4fd877f03cef92dce10c5e16867f2f")
+build() {
+	./configure --prefix=/usr --disable-rpath --enable-shared --without-valgrind \
+		--without-baseruby ac_cv_func_qsort_r=no --docdir=/usr/share/doc/ruby-$v
+	make
+	make install
+}

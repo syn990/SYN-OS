@@ -1,2 +1,2 @@
-#!/bin/sh
+#!/bin/zsh -f
 exec /usr/sbin/udevd

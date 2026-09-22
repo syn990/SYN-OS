@@ -1,7 +1,7 @@
 v=14.3.1
 src=("https://github.com/harfbuzz/harfbuzz/releases/download/$v/harfbuzz-$v.tar.xz md5:4baccda978c92e5f27702ed8b3ceefa7")
 build() {
-	meson_build -D graphite2=disabled -D icu=disabled -D cairo=disabled -D chafa=disabled \
+	meson_build -D icu=enabled -D graphite2=disabled -D cairo=disabled -D chafa=disabled \
 		-D introspection=disabled -D docs=disabled -D tests=disabled -D utilities=disabled \
 		-D gpu=disabled -D gpu_demo=disabled
 }

@@ -1,0 +1,13 @@
+# surf, the browser: suckless, WebKitGTK, X11 (so Xwayland under labwc).
+# 2.1 predates WebKitGTK's 4.1 API, which is the one the GTK 3 build ships;
+# its Makefile calls the compiler c99, a name the base does not have
+v=2.1
+src=("https://dl.suckless.org/surf/surf-$v.tar.gz sha256:72e582920ba25a646203e93c2d2331d87f03037a28894d6c7e99af00ee043257")
+build() {
+	sed -i 's/webkit2gtk-4\.0/webkit2gtk-4.1/g; s/webkit2gtk-web-extension-4\.0/webkit2gtk-web-extension-4.1/g' config.mk
+	# It is an X11 program: GTK must not pick Wayland for its window
+	sed -i 's/^\tgtk_init(NULL, NULL);/\tgdk_set_allowed_backends("x11");\n\tgtk_init(NULL, NULL);/' surf.c
+	make CC=cc
+	make CC=cc PREFIX=/usr install
+	install -Dm644 "$SYN_FILES/surf.desktop" -t /usr/share/applications
+}

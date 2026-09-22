@@ -1,11 +1,14 @@
-# Helpers loaded into every recipe's build() shell (see syn-pkg.sh).
+# Helpers loaded into every recipe's build() shell (see syn-pkg.zsh).
 # The build dir is syn-build rather than build: plenty of tarballs (the
 # *mm C++ bindings, p11-kit) already ship a build/ directory of their own.
+
+# NINJAFLAGS, if a recipe sets it, goes to the ninja build: -j3 for one whose
+# compile jobs need more memory than the machine has cores for
 
 # meson_build [options...]: configure, build and install with meson
 meson_build() {
 	meson setup syn-build --prefix=/usr --buildtype=release --wrap-mode=nofallback "$@"
-	ninja -C syn-build
+	ninja -C syn-build ${=NINJAFLAGS}
 	ninja -C syn-build install
 }
 
@@ -17,7 +20,7 @@ cmake_build() {
 		-D CMAKE_BUILD_TYPE=Release \
 		-D CMAKE_SKIP_INSTALL_RPATH=ON \
 		"$@"
-	ninja -C syn-build
+	ninja -C syn-build ${=NINJAFLAGS}
 	ninja -C syn-build install
 }
 
@@ -68,7 +71,7 @@ configure32() {
 svc() {
 	install -d "/etc/sv/$1/log" /var/service
 	install -m755 "$SYN_FILES/sv/$1/run" "/etc/sv/$1/"
-	printf '#!/bin/sh\ninstall -d -m755 /var/log/sv/%s\nexec svlogd -tt /var/log/sv/%s\n' \
+	printf '#!/bin/zsh -f\ninstall -d -m755 /var/log/sv/%s\nexec svlogd -tt /var/log/sv/%s\n' \
 		"$1" "$1" > "/etc/sv/$1/log/run"
 	chmod 755 "/etc/sv/$1/log/run"
 	[ "$2" = off ] || ln -sfn "/etc/sv/$1" "/var/service/$1"

@@ -1,0 +1,6 @@
+# HTTP client library WebKitGTK fetches with
+v=3.6.6
+src=("https://download.gnome.org/sources/libsoup/${v%.*}/libsoup-$v.tar.xz md5:9e07742595800ecf301eafb52300dd89")
+build() {
+	meson_build -D docs=disabled -D vapi=disabled -D introspection=disabled -D tests=false
+}

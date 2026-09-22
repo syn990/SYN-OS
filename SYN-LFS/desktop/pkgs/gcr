@@ -1,0 +1,7 @@
+# gcr-3: certificate and key handling, which surf links for its TLS dialogs
+v=3.41.2
+src=("https://download.gnome.org/sources/gcr/${v%.*}/gcr-$v.tar.xz md5:40a754ba44d5e95e4d07656d6302900c")
+build() {
+	sed -i 's:"/desktop:"/org:' schema/*.xml
+	meson_build -D gtk_doc=false -D ssh_agent=false -D introspection=false
+}

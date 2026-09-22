@@ -1,11 +1,12 @@
 # libcrypt.so.1, the old ABI that binary-only programs (Steam) link
 # against, built the way the LFS book's libxcrypt page describes. The
-# multilib base already builds its 32-bit libcrypt this way
+# multilib base already builds its 32-bit libcrypt this way. No -Werror: GCC 16's
+# const-correct strchr trips crypt-sm3-yescrypt.c
 v=4.5.2
 src=("https://github.com/besser82/libxcrypt/releases/download/v$v/libxcrypt-$v.tar.xz md5:25e888919ddcd153a07daa95224fa436")
 build() {
 	./configure --prefix=/usr --enable-hashes=strong,glibc --enable-obsolete-api=glibc \
-		--disable-static --disable-failure-tokens
+		--disable-static --disable-failure-tokens --disable-werror
 	make
 	cp -av --remove-destination .libs/libcrypt.so.1* /usr/lib
 }
