@@ -1,0 +1,16 @@
+# wf-recorder (Capture > Record) encodes with FFmpeg's x264, syn-relay's
+# screen watching decodes with it. Chrome and Steam carry their own, so
+# this has what those two need rather than the book's long codec list
+v=9.0.1
+src=(
+	"https://ffmpeg.org/releases/ffmpeg-$v.tar.xz md5:3ed2aab5ce5d18a3c5e0d22d8ca3fadb"
+	"https://www.linuxfromscratch.org/patches/blfs/13.1/ffmpeg-9.0.1-chromium_method-1.patch sha256:ba75bed1121425b15b485c0af10673900ab9df48d86e64a706aff3ef94f2e139"
+)
+build() {
+	patch -Np1 -i ../ffmpeg-9.0.1-chromium_method-1.patch
+	./configure --prefix=/usr --enable-gpl --enable-version3 --disable-static \
+		--enable-shared --disable-debug --disable-doc --enable-libx264 \
+		--enable-libfreetype --enable-openssl --enable-libdrm --enable-libpulse
+	make
+	make install
+}

@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYN-LFS's root menu: SYN-OS's menu.xml (SYN-ISO-PROFILE's
+     DotfileOverlay) with what differs on LFS. Chrome and Steam are listed
+     up front. All Applications is built from the installed .desktop files
+     by syn-pipe-apps.zsh (Arch uses archlinux-xdg-menu). Services toggles
+     runit services. Config files open in nano in a terminal (no
+     FeatherPad here), and reboot and power off go through doas. Not here
+     yet: SYN-SHARE (built on systemd units), BlackArch (pacman) and the
+     ISO builder (archiso). -->
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+
+  <menu id="root-menu" label="SYN-OS">
+
+    <separator label=" APPLICATIONS " />
+
+    <item label="Terminal">
+      <action name="Execute">
+        <command>foot</command>
+      </action>
+    </item>
+
+    <item label="Web browser">
+      <action name="Execute">
+        <command>chrome</command>
+      </action>
+    </item>
+
+    <item label="Steam">
+      <action name="Execute">
+        <command>steam</command>
+      </action>
+    </item>
+
+    <item label="File browser">
+      <action name="Execute">
+        <command>syn-filemanager</command>
+      </action>
+    </item>
+
+    <menu id="dynamic_apps"
+          label="All Applications"
+          execute="/usr/lib/syn-os/syn-pipe-apps.zsh" />
+
+    <!-- Record toggles: the same entry again stops it -->
+    <menu id="capture-menu" label="Capture">
+      <item label="Screenshot - full screen">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screenshot.zsh full</command>
+        </action>
+      </item>
+
+      <item label="Screenshot - select area">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screenshot.zsh region</command>
+        </action>
+      </item>
+
+      <item label="Record - full screen">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screen-recorder.zsh full</command>
+        </action>
+      </item>
+
+      <item label="Record - select area / Stop">
+        <action name="Execute">
+          <command>/usr/lib/syn-os/screen-recorder.zsh region</command>
+        </action>
+      </item>
+    </menu>
+
+    <separator label=" SYN-OS TOOLS " />
+
+    <menu id="synos-tools" label="SYN-OS Tools">
+      <item label="Wi-Fi / Bluetooth">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-connect</command>
+        </action>
+      </item>
+
+      <item label="Volume Mixer">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-audio</command>
+        </action>
+      </item>
+
+      <!-- Logs here are the runit services' svlogd logs and syslogd's
+           files in /var/log, not the systemd journal -->
+      <menu id="syn-sysmon-menu" label="System Monitor">
+        <item label="CPU">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=cpu</command>
+          </action>
+        </item>
+
+        <item label="RAM">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=mem</command>
+          </action>
+        </item>
+
+        <item label="Sensors">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=sensors</command>
+          </action>
+        </item>
+
+        <item label="Logs">
+          <action name="Execute">
+            <command>foot -e /usr/lib/syn-os/syn-sysmon --view=logs</command>
+          </action>
+        </item>
+      </menu>
+
+      <item label="SYN-CRYPTER (AES/Blowfish/RSA/Redshirt file encryption)">
+        <action name="Execute">
+          <command>foot -e /usr/lib/syn-os/syn-crypter</command>
+        </action>
+      </item>
+
+      <!-- Trusted LAN only, no pairing yet (see syn-relay-src's
+           PROTOCOL.md) -->
+      <menu id="syn-relay-menu" label="SYN-RELAY (Remote Session)">
+        <item label="Connect">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --connect || notify-send "SYN-RELAY" "Could not connect — host unreachable?"'</command>
+          </action>
+        </item>
+
+        <item label="Disconnect">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --disconnect</command>
+          </action>
+        </item>
+
+        <item label="Enable Services">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --start || notify-send "SYN-RELAY" "Could not start — already running?"'</command>
+          </action>
+        </item>
+
+        <item label="Disable Services">
+          <action name="Execute">
+            <command>sh -c '/usr/lib/syn-os/syn-relay --stop || notify-send "SYN-RELAY" "Could not stop — not running?"'</command>
+          </action>
+        </item>
+
+        <menu id="syn-relay-apps-menu"
+              label="Remote Apps"
+              execute="/usr/lib/syn-os/syn-relay --list-apps" />
+
+        <!-- One entry per ~/.ssh/config Host; apps come over with waypipe -->
+        <menu id="syn-remote-menu"
+              label="Remote"
+              execute="zsh /usr/lib/syn-os/syn-pipe-remote.zsh" />
+
+        <item label="Watch Remote Node">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --watch</command>
+          </action>
+        </item>
+
+        <item label="Stop Watching">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --stop-watching</command>
+          </action>
+        </item>
+
+        <item label="Allow Remote Watching">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --host-watched</command>
+          </action>
+        </item>
+
+        <item label="Stop Being Watched">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-relay --stop-hosting</command>
+          </action>
+        </item>
+      </menu>
+
+      <!-- Output lands in ~/Pictures/SYN-GRAPHMAP/ -->
+      <menu id="graphmap-menu" label="SYN-GRAPHMAP (graph a directory tree)">
+        <item label="Quick (shallow scan)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-graphmap-quick.zsh</command>
+          </action>
+        </item>
+
+        <item label="Full (deep scan)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-graphmap-full.zsh</command>
+          </action>
+        </item>
+
+        <item label="Custom (enter a depth)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-graphmap-custom.zsh</command>
+          </action>
+        </item>
+      </menu>
+
+      <menu id="docs-pipe"
+            label="Docs"
+            execute="/usr/lib/syn-os/syn-pipe-docs.zsh" />
+    </menu>
+
+    <separator label=" SETTINGS " />
+
+    <menu id="preferences-menu" label="Preferences">
+      <menu id="preferences-desktop-menu" label="Desktop">
+        <menu id="audio-pipe"
+              label="Audio Settings"
+              execute="/usr/lib/syn-os/syn-pipe-audio.zsh" />
+
+        <menu id="displays-pipe"
+              label="Display &amp; Screens"
+              execute="/usr/lib/syn-os/syn-pipe-display.zsh" />
+
+        <menu id="themes-pipe"
+              label="Themes"
+              execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
+
+        <item label="Toggle Bar Position">
+          <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
+        </item>
+      </menu>
+
+      <menu id="preferences-software-menu" label="Software">
+        <!-- Every runit service in /etc/sv (sshd, bluetoothd, ntpd and
+             the rest), on or off -->
+        <item label="Services (enable/disable any runit service)">
+          <action name="Execute">
+            <command>/usr/lib/syn-os/syn-services-toggle.zsh</command>
+          </action>
+        </item>
+      </menu>
+    </menu>
+
+    <separator label=" SYSTEM " />
+
+    <menu id="system-menu" label="System">
+      <item label="Lock Screen">
+        <action name="Execute">
+          <command>swaylock -f -c 1a0000</command>
+        </action>
+      </item>
+
+      <menu id="kill-process" label="Kill Process">
+        <item label="Close Focused Window">
+          <action name="Close" />
+        </item>
+
+        <item label="Kill All Terminals (foot)">
+          <action name="Execute">
+            <command>pkill foot</command>
+          </action>
+        </item>
+
+        <item label="Kill Web Browser (Chrome)">
+          <action name="Execute">
+            <command>pkill -f /opt/google/chrome/chrome</command>
+          </action>
+        </item>
+
+        <item label="Kill Steam">
+          <action name="Execute">
+            <command>steam -shutdown</command>
+          </action>
+        </item>
+
+        <item label="Kill File Browser (syn-filemanager)">
+          <action name="Execute">
+            <command>pkill syn-filemanager</command>
+          </action>
+        </item>
+
+        <item label="Return to Tty1 (Kill LabWC)">
+          <action name="Execute">
+            <command>pkill labwc</command>
+          </action>
+        </item>
+      </menu>
+
+      <menu id="edit-configs" label="Edit Configuration Files">
+        <menu id="waybar-config" label="Waybar Configurations">
+          <item label="Waybar Config">
+            <action name="Execute">
+              <command>foot -e nano ~/.config/waybar/config.jsonc</command>
+            </action>
+          </item>
+          <!-- Themes rewrites this file on every switch -->
+          <item label="Waybar Style (overwritten by Themes switch)">
+            <action name="Execute">
+              <command>foot -e nano ~/.config/waybar/style.css</command>
+            </action>
+          </item>
+        </menu>
+
+        <menu id="labwc-config" label="LabWC Configurations">
+          <item label="Labwc Menu">
+            <action name="Execute">
+              <command>foot -e nano ~/.config/labwc/menu.xml</command>
+            </action>
+          </item>
+
+          <item label="Labwc RC">
+            <action name="Execute">
+              <command>foot -e nano ~/.config/labwc/rc.xml</command>
+            </action>
+          </item>
+
+          <item label="Labwc Autostart">
+            <action name="Execute">
+              <command>foot -e nano ~/.config/labwc/autostart</command>
+            </action>
+          </item>
+        </menu>
+      </menu>
+
+      <menu id="waybar-labwc" label="Waybar &amp; LabWC">
+        <item label="Reload LabWC Configuration">
+          <action name="Reconfigure" />
+        </item>
+
+        <!-- Restarts syn-bar-core with waybar; sh -c because labwc execs
+             the command directly, with no shell -->
+        <item label="Restart Waybar">
+          <action name="Execute">
+            <command>sh -c "pkill waybar; pkill syn-bar-core; /usr/lib/syn-os/syn-bar-core &amp; waybar"</command>
+          </action>
+        </item>
+      </menu>
+    </menu>
+
+    <separator label=" POWER " />
+
+    <menu id="power-menu" label="Power Options">
+      <item label="Reboot">
+        <action name="Execute">
+          <command>doas /usr/sbin/reboot</command>
+        </action>
+      </item>
+
+      <item label="Power Off">
+        <action name="Execute">
+          <command>doas /usr/sbin/poweroff</command>
+        </action>
+      </item>
+    </menu>
+
+  </menu>
+
+</openbox_menu>

@@ -1,0 +1,7 @@
+v=10.5.0
+src=("https://github.com/sharkdp/fd/releases/download/v$v/fd-v$v-x86_64-unknown-linux-musl.tar.gz sha256:761c72dc8e120d85b22292063be8a796e2eeb20eb3e4f38b8fa2343ccf3514a7")
+build() {
+	install -Dm755 fd -t /usr/bin
+	install -Dm644 fd.1 -t /usr/share/man/man1
+	install -Dm644 autocomplete/_fd -t /usr/share/zsh/site-functions
+}

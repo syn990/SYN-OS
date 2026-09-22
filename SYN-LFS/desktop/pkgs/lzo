@@ -1,0 +1,8 @@
+# OpenVPN's older compression, still named in plenty of .ovpn profiles
+v=2.10
+src=("https://www.oberhumer.com/opensource/lzo/download/lzo-$v.tar.gz md5:39d3f3f9c55c87b1e5d6888e1420f4b5")
+build() {
+	./configure --prefix=/usr --enable-shared --disable-static --docdir=/usr/share/doc/lzo-$v
+	make
+	make install
+}

@@ -14,7 +14,7 @@ On an Arch (or SYN-OS) machine with jhalfs checked out in `~/SYN-LFS-build/jhalf
 ./build.zsh configure
 ./build.zsh build        # LFS itself, a few hours
 ./build.zsh runit
-./build.zsh fetch        # the desktop's sources, about 1.4G (half of it firmware)
+./build.zsh fetch        # the desktop's sources, about 1.6G (much of it firmware)
 ./build.zsh desktop      # the desktop, several hours (the two LLVMs are most of it)
 ./build.zsh kernel       # again: now the CPU microcode is in the image to build in
 ./build.zsh rekernel
@@ -60,12 +60,23 @@ Each package is a small recipe in `desktop/pkgs` (version, source URL, checksum,
 Where it differs from the Arch build, because there's no systemd and no logind:
 
 - seatd gives labwc its seat, and users in the `video` group can start a session. runit stage 1 creates `/run/user/<uid>` at boot.
-- D-Bus, seatd, iwd and dhcpcd are runit services. iwd joins networks and dhcpcd gets the address, same split as on Arch.
+- D-Bus, seatd, iwd, dhcpcd and ntpd are runit services, and sshd and bluetoothd are installed but off, as on Arch. iwd joins networks and dhcpcd gets the address, same split as on Arch. Each service logs through svlogd to `/var/log/sv/NAME`.
 - PipeWire, WirePlumber and pipewire-pulse are started from labwc's autostart (`syn-pipewire-session.sh`), since there are no user units to do it.
 - mako and syn-connect talk D-Bus through basu, the standalone sd-bus library.
 - Reboot and power off in the menus run runit's `reboot` and `poweroff` through doas.
 - Steam's controller rules normally give devices to whoever is logged in through logind. Here they go to the `input` group instead, which `user` puts you in.
 - There's no PAM limits file, so runit stage 2 raises the open-files hard limit for every login (Proton's esync wants it).
+
+The dotfiles are the Arch ISO's DotfileOverlay, copied as they are, with these changes made by the `syn-desktop` recipe:
+
+- labwc's menu is `desktop/files/labwc/menu.xml`, the Arch one with Chrome and Steam added at the top, All Applications built from the installed .desktop files (`syn-pipe-apps.zsh`, instead of archlinux-xdg-menu), config files opening in nano, and Preferences > Software > Services toggling runit services (`syn-services-toggle.zsh`). SYN-SHARE, BlackArch and the ISO builder are left out, since they're built on systemd units, pacman and archiso.
+- waybar loses the SYN-SHARE module for the same reason. Everything else on the bar works: the stats and relay modules, network, backlight (brightnessctl, allowed by its udev rule), audio and the power menu.
+- syn-sysmon's Logs view reads the svlogd logs and syslogd's files in `/var/log`, since there's no journal. The same source builds the journal version on Arch.
+- labwc's environment sets the Adwaita cursor and drops qt6ct, which isn't built. GTK defaults to dark Adwaita, which SYN's `gtk.css` recolours.
+- `xdg-open` sends links, PDFs and images to Chrome, text to nano and folders to syn-filemanager (`/etc/xdg/mimeapps.list`).
+- The Docs viewer opens diagrams with `xdg-open` when there's no feh.
+
+The command-line tools `.zshrc` and the scripts use are all there: git, openssh, fzf, zoxide, ripgrep, fd, bat, btop, glow, tree, graphviz, the three zsh plugins, wf-recorder for screen recording and waypipe for SYN-RELAY's remote apps. fzf, zoxide, ripgrep, fd, bat and glow are upstream's static release builds, as they're Go and Rust programs and LFS has neither toolchain.
 
 Chrome is Google's own .deb unpacked into `/opt`, running on Wayland. CUPS and NSS are built only because the Chrome binary links against them.
 
@@ -75,9 +86,11 @@ Firmware isn't held back for being non-free: linux-firmware (Wi-Fi, Bluetooth, G
 
 ## Not there yet
 
-- Bluetooth itself (BlueZ); the firmware is already in.
 - Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and the kernel has no initramfs to unlock anything.
-- syn-filemanager and featherpad (both Qt), syn-relay (ffmpeg and SDL2) and syn-sysmon (reads the systemd journal).
-- An icon theme. Adwaita needs librsvg, which needs Rust.
+- SYN-SHARE (its rsync, Samba, NFS, HTTP, TFTP and netcat services are systemd units), and the BlackArch toggle and ISO builder, which are pacman and archiso.
+- GTK's icons. Adwaita's cursors are in, but its icons are SVG, and drawing those needs librsvg, which needs Rust.
+- qt6ct, so syn-filemanager doesn't follow the SYN theme yet. It needs Qt's translation tools (qttools).
+- The Arch desktop's larger apps: FeatherPad, Falkon, VLC, GIMP, Audacity, OBS and the rest of `syn-packages.zsh`'s app list.
 - zenity, which Steam uses for a few error dialogs. It needs GTK4 and libadwaita.
+- Screen sharing from Chrome, which needs xdg-desktop-portal-wlr.
 - A package manager. Every package is tracked in `/var/lib/syn-lfs/pkgs`, but nothing records which files it installed. jhalfs can build the base with pacman or dpkg underneath, which is the likely route.

@@ -1,0 +1,8 @@
+# Assembler x264 needs for its fast paths
+v=3.02
+src=("https://www.nasm.us/pub/nasm/releasebuilds/$v/nasm-$v.tar.xz md5:31ba022fff8de3065b5bc5ad5559188c")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

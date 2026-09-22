@@ -1,0 +1,7 @@
+# SDL2's API on top of SDL3, which is what syn-relay links against
+v=2.32.70
+src=("https://www.libsdl.org/release/sdl2-compat-$v.tar.gz md5:ba9179f09652a6395b3673e4ce8c473b")
+build() {
+	cmake_build -D SDL2COMPAT_STATIC=OFF -D SDL2COMPAT_TESTS=OFF -W no-author
+	rm -f /usr/lib/libSDL2_test.a
+}

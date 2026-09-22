@@ -1,0 +1,9 @@
+v=3.4.14
+src=(
+	"https://www.libsdl.org/release/SDL3-$v.tar.gz md5:32968d1180d29903e70cd3f7fc38470b"
+	"https://www.linuxfromscratch.org/patches/blfs/13.1/SDL3-3.4.14-upstream_fixes-1.patch sha256:4269bc9e7163dcceba1ae0be9e534548e8c49166c67edfdf130a0673137dbb41"
+)
+build() {
+	patch -Np1 -i ../SDL3-3.4.14-upstream_fixes-1.patch
+	cmake_build -D SDL_TEST_LIBRARY=OFF -D SDL_STATIC=OFF -D SDL_RPATH=OFF -W no-author
+}

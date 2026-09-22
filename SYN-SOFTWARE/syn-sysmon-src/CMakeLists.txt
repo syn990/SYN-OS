@@ -12,7 +12,14 @@ set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSES REQUIRED ncursesw)
-pkg_check_modules(SDJOURNAL REQUIRED libsystemd)
+# The log view reads the systemd journal where there is one (Arch), and
+# plain log files otherwise (SYN-LFS on runit: svlogd and syslogd's files)
+pkg_check_modules(SDJOURNAL libsystemd)
+if(SDJOURNAL_FOUND)
+  set(JOURNAL_SRC src/syn_journal.c)
+else()
+  set(JOURNAL_SRC src/syn_journal_files.c)
+endif()
 
 # syn_theme.c/.h are generic SYN_* palette loading, no crypter-specific
 # code — reused as-is from syn-crypter-src rather than duplicated (same
@@ -27,7 +34,7 @@ set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
 add_executable(syn-sysmon
   src/main.c
   src/syn_stats.c
-  src/syn_journal.c
+  ${JOURNAL_SRC}
   src/syn_sysmon_tui.c
   src/syn_bar_client.c
   ${CRYPTER_SRC}/syn_theme.c

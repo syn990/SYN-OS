@@ -1,0 +1,5 @@
+v=0.36.0
+src=("https://github.com/zsh-users/zsh-completions/archive/$v/zsh-completions-$v.tar.gz sha256:5aa68be2999a7be2eb56de8e4acff8f3bba4a66b9acbb233752536857408fb2e")
+build() {
+	install -Dm644 src/_* -t /usr/share/zsh/site-functions
+}

@@ -62,11 +62,16 @@ configure32() {
 	install_lib32 syn-dest32
 }
 
-# svc NAME: install files/sv/NAME as a runit service and enable it
+# svc NAME [off]: install files/sv/NAME as a runit service with an svlogd
+# logger writing /var/log/sv/NAME (syn-sysmon's Logs view reads these),
+# and enable it, unless "off" is given: then it's there to switch on later
 svc() {
-	install -d "/etc/sv/$1" /var/service
-	install -m755 "$SYN_FILES/sv/$1/"* "/etc/sv/$1/"
-	ln -sfn "/etc/sv/$1" "/var/service/$1"
+	install -d "/etc/sv/$1/log" /var/service
+	install -m755 "$SYN_FILES/sv/$1/run" "/etc/sv/$1/"
+	printf '#!/bin/sh\ninstall -d -m755 /var/log/sv/%s\nexec svlogd -tt /var/log/sv/%s\n' \
+		"$1" "$1" > "/etc/sv/$1/log/run"
+	chmod 755 "/etc/sv/$1/log/run"
+	[ "$2" = off ] || ln -sfn "/etc/sv/$1" "/var/service/$1"
 }
 
 # syn_tool NAME: build one of SYN-OS's own tools from SYN-SOFTWARE/NAME-src

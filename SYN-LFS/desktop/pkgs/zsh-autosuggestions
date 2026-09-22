@@ -1,0 +1,6 @@
+# .zshrc loads these three from where Arch's packages put them
+v=0.7.1
+src=("https://github.com/zsh-users/zsh-autosuggestions/archive/v$v/zsh-autosuggestions-$v.tar.gz sha256:0df7affff21cd87ed298e6a3970ed08a1dd66a6efa676454ee5b091ad503badf")
+build() {
+	install -Dm644 zsh-autosuggestions.zsh -t /usr/share/zsh/plugins/zsh-autosuggestions
+}

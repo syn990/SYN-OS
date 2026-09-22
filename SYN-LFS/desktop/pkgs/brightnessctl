@@ -1,0 +1,8 @@
+# Scrolling on waybar's backlight module. With no logind, its udev rule
+# gives the video group write access to the backlight instead
+v=0.5.1
+src=("https://github.com/Hummer12007/brightnessctl/archive/$v/brightnessctl-$v.tar.gz sha256:a68869e23f56ac4f2e28f1783002810ddbf10f95e1af9b48b2912fb169f46994")
+build() {
+	make
+	make PREFIX=/usr UDEVDIR=/usr/lib/udev/rules.d install
+}

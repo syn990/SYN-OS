@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor (nano)
+Comment=Edit text files with nano in a terminal
+Exec=foot -e nano %F
+Terminal=false
+Icon=accessories-text-editor
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;text/x-log;text/x-csrc;text/x-chdr;text/x-c++src;text/x-python;application/x-shellscript;application/json;application/xml;

@@ -1,0 +1,7 @@
+# Resource monitor, as on Arch
+v=1.4.7
+src=("https://github.com/aristocratos/btop/archive/v$v/btop-$v.tar.gz sha256:933de2e4d1b2211a638be463eb6e8616891bfba73aef5d38060bd8319baeefc6")
+build() {
+	make
+	make PREFIX=/usr install
+}

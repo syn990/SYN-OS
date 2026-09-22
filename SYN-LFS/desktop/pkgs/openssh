@@ -1,0 +1,22 @@
+# ssh for syn-relay and waypipe, and sshd as a runit service that is off
+# until Preferences > Software > Services turns it on, as on Arch. The
+# host keys make install generates are removed: sshd makes each install
+# its own on first start
+v=10.5p1
+src=("https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-$v.tar.gz md5:a95119f402dfa0166c9dd1237239085c")
+build() {
+	install -v -g sys -m700 -d /var/lib/sshd
+	getent group sshd > /dev/null || groupadd -g 50 sshd
+	getent passwd sshd > /dev/null ||
+		useradd -c 'sshd PrivSep' -d /var/lib/sshd -g sshd -s /bin/false -u 50 sshd
+	./configure --prefix=/usr --sysconfdir=/etc/ssh --with-privsep-path=/var/lib/sshd \
+		--with-default-path=/usr/bin --with-superuser-path=/usr/sbin:/usr/bin \
+		--with-pid-dir=/run
+	make
+	make install
+	install -v -m755 contrib/ssh-copy-id /usr/bin
+	rm -f /etc/ssh/ssh_host_*
+	grep -q '^PermitRootLogin no' /etc/ssh/sshd_config ||
+		echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+	svc sshd off
+}

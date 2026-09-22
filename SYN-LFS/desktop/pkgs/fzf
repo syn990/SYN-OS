@@ -1,0 +1,14 @@
+# From here to glow, upstream's static release builds: Go and Rust
+# programs, one file each with no libraries, and LFS has neither
+# toolchain. .zshrc loads fzf's key bindings and completion from
+# /usr/share/fzf
+v=0.74.4
+src=("https://github.com/junegunn/fzf/releases/download/v$v/fzf-$v-linux_amd64.tar.gz sha256:05e6813a337cc722c3ed07e54a764b75cc5d671e2e60459db0ba696ee5fa7504")
+build() {
+	install -Dm755 fzf -t /usr/bin
+	install -d /usr/share/fzf
+	# fzf prints both parts as one script; completion.zsh is kept so the
+	# paths .zshrc looks for both exist
+	/usr/bin/fzf --zsh > /usr/share/fzf/key-bindings.zsh
+	echo '# fzf completion is part of key-bindings.zsh (fzf --zsh)' > /usr/share/fzf/completion.zsh
+}

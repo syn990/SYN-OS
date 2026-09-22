@@ -1,0 +1,6 @@
+# SYN-OS syn-relay: remote sessions: stats, screen watching and apps from another machine
+v=local
+always=1
+build() {
+	syn_tool syn-relay
+}

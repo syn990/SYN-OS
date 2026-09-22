@@ -1,0 +1,5 @@
+v=0.8.0
+src=("https://github.com/zsh-users/zsh-syntax-highlighting/archive/$v/zsh-syntax-highlighting-$v.tar.gz sha256:5981c19ebaab027e356fe1ee5284f7a021b89d4405cc53dc84b476c3aee9cc32")
+build() {
+	make PREFIX=/usr SHARE_DIR=/usr/share/zsh/plugins/zsh-syntax-highlighting install
+}

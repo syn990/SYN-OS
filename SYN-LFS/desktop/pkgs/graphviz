@@ -1,0 +1,12 @@
+# SYN-GRAPHMAP draws its directory maps with dot
+v=15.1.1
+src=("https://gitlab.com/graphviz/graphviz/-/archive/$v/graphviz-$v.tar.bz2 md5:ec7f236467bcaeb57b69601d4913c5b7")
+build() {
+	sed '/ORIGIN/d' -i lib/CMakeLists.txt
+	cmake -B syn-build -D CMAKE_INSTALL_PREFIX=/usr -D CMAKE_BUILD_TYPE=Release
+	sed -i '/GZIP/s/:.*$/=/' syn-build/CMakeCache.txt
+	make -C syn-build
+	make -C syn-build install
+	# Register the plugins (the cairo and pango renderers among them)
+	dot -c
+}

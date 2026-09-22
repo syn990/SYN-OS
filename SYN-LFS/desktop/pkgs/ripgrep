@@ -1,0 +1,7 @@
+v=15.2.0
+src=("https://github.com/BurntSushi/ripgrep/releases/download/$v/ripgrep-$v-x86_64-unknown-linux-musl.tar.gz sha256:33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c")
+build() {
+	install -Dm755 rg -t /usr/bin
+	install -Dm644 doc/rg.1 -t /usr/share/man/man1
+	install -Dm644 complete/_rg -t /usr/share/zsh/site-functions
+}

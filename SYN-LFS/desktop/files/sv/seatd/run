@@ -1,3 +1,4 @@
 #!/bin/sh
+exec 2>&1
 # Hands DRM and input devices to labwc for users in the video group
 exec seatd -g video

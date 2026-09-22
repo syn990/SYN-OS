@@ -1,0 +1,5 @@
+#!/bin/sh
+exec 2>&1
+# -g lets the first correction be any size (a new machine's clock can be
+# well out), -n keeps ntpd in the foreground for runsv
+exec /usr/sbin/ntpd -g -n -u ntp:ntp

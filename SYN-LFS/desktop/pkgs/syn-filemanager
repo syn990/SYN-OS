@@ -1,0 +1,6 @@
+# SYN-OS syn-filemanager: the file browser (Super+E)
+v=local
+always=1
+build() {
+	syn_tool syn-filemanager
+}

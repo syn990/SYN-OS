@@ -1,21 +1,42 @@
 # SYN-OS's desktop layer: the Arch ISO's dotfile overlay (labwc, waybar,
-# foot and mako config, themes, wallpapers, menu scripts) plus what is
-# different here, on runit with no systemd and no logind
+# foot and mako config, themes, wallpapers, menu scripts), its docs and
+# branding and the scripts beside it that the menu and .zshrc call, then
+# what is different here, on runit with no systemd and no logind
 v=local
 always=1
 build() {
-	local ov=$SYN_REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay
+	local iso=$SYN_REPO/SYN-ISO-PROFILE/airootfs
+	local ov=$iso/usr/lib/syn-os/DotfileOverlay
 	cp -r "$ov/etc/skel/." /etc/skel/
 	cp -r "$ov/usr/." /usr/
-	chmod -R +x /usr/lib/syn-os
+	install -m755 "$iso"/usr/lib/syn-os/{syn-graphmap,syn-redshirt,syn-crypter}.zsh /usr/lib/syn-os/
+	install -d /usr/share/syn-os
+	rm -rf /usr/share/syn-os/docs /usr/share/syn-os/branding
+	cp -r "$iso/usr/share/syn-os/docs" "$iso/usr/share/syn-os/branding" /usr/share/syn-os/
+	install -m644 "$iso/etc/nanorc" /etc/nanorc
+	install -Dm644 "$iso/usr/share/nano/synos-conf.nanorc" -t /usr/share/nano
 	install -m644 "$ov/etc/issue" /etc/issue
 	install -m644 "$SYN_FILES/os-release" /etc/os-release
 
-	# No systemctl here: runit's reboot/poweroff instead, which doas lets
-	# the wheel group run without a password
+	# The LFS menu (its header says what differs), its All Applications
+	# generator and the runit services toggle
+	install -m644 "$SYN_FILES/labwc/menu.xml" /etc/skel/.config/labwc/menu.xml
+	install -m755 "$SYN_FILES/syn-pipe-apps.zsh" "$SYN_FILES/syn-services-toggle.zsh" \
+		/usr/lib/syn-os/
+	chmod -R +x /usr/lib/syn-os /usr/local/bin
+
+	# waybar's power button: runit's reboot and poweroff, which doas lets
+	# the wheel group run without a password. No SYN-SHARE module on the
+	# bar (its services are systemd units)
 	sed -i -e 's|systemctl reboot|doas /usr/sbin/reboot|' \
-		-e 's|systemctl poweroff|doas /usr/sbin/poweroff|' \
-		/etc/skel/.config/labwc/menu.xml /usr/lib/syn-os/syn-bar-power.zsh
+		-e 's|systemctl poweroff|doas /usr/sbin/poweroff|' /usr/lib/syn-os/syn-bar-power.zsh
+	sed -i '/"custom\/synshare",/d' /etc/skel/.config/waybar/config.jsonc
+
+	# labwc's environment: the Adwaita cursor, and no qt6ct (not built
+	# here; Qt programs keep Qt's own style)
+	local env=/etc/skel/.config/labwc/environment
+	sed -i '/^QT_QPA_PLATFORMTHEME=/d' $env
+	grep -q '^XCURSOR_THEME=' $env || printf 'XCURSOR_THEME=Adwaita\nXCURSOR_SIZE=24\n' >> $env
 
 	# No systemd user units either: autostart brings PipeWire up before
 	# waybar looks for it
@@ -23,6 +44,12 @@ build() {
 	grep -q syn-pipewire-session /etc/skel/.config/labwc/autostart ||
 		sed -i 's|^apply_persisted_display_state$|/usr/lib/syn-os/syn-pipewire-session.sh\n&|' \
 			/etc/skel/.config/labwc/autostart
+
+	# What xdg-open opens things with, nano as the text editor, GTK's
+	# defaults (dark Adwaita, which SYN's gtk.css recolours)
+	install -Dm644 "$SYN_FILES/mimeapps.list" /etc/xdg/mimeapps.list
+	install -Dm644 "$SYN_FILES/syn-nano.desktop" -t /usr/share/applications
+	install -Dm644 "$SYN_FILES/gtk-settings.ini" /etc/gtk-3.0/settings.ini
 
 	# Login environment (PATH, XDG_RUNTIME_DIR), the console keymap and
 	# font, and the current runit stage scripts and fstab from this repo
@@ -35,5 +62,6 @@ build() {
 	update-mime-database /usr/share/mime
 	gdk-pixbuf-query-loaders --update-cache
 	gtk-update-icon-cache -qtf /usr/share/icons/hicolor
+	gtk-update-icon-cache -qtf /usr/share/icons/Adwaita
 	fc-cache -f
 }

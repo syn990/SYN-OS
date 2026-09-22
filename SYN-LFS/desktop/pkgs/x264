@@ -1,0 +1,7 @@
+v=20250815
+src=("https://anduin.linuxfromscratch.org/BLFS/x264/x264-$v.tar.xz md5:a4adb6f7d2644043765885e54abc3955")
+build() {
+	./configure --prefix=/usr --enable-shared --disable-cli
+	make
+	make install
+}

@@ -1,0 +1,7 @@
+# Qt's Wayland platform plugin, without which a Qt program has nowhere to
+# open its window
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtwayland-everywhere-src-$v.tar.xz md5:198625239c5ea2e55d3c21408cd3c58f")
+build() {
+	cmake_build
+}

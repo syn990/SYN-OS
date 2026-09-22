@@ -1,0 +1,9 @@
+# Runs a program on another machine with its window here, over ssh
+# (SYN-RELAY's Remote menu). The C version; 0.10 on is Rust, and speaks
+# the same protocol
+v=0.9.2
+src=("https://gitlab.freedesktop.org/mstoeckl/waypipe/-/archive/v$v/waypipe-v$v.tar.gz sha256:76d7b34ced11dca56a6db878ec84f78d1eef1f93b33b1ad7336f0794b73955c2")
+build() {
+	meson_build -D werror=false -D man-pages=disabled -D with_systemtap=false \
+		-D with_vaapi=disabled
+}

@@ -1,0 +1,15 @@
+# xdg-open and friends: how Steam, Chrome and syn-filemanager hand a link
+# or a file to the right program. Just the scripts: their --help text and
+# man pages are made with xmlto and a text browser, so empty help files
+# stand in for those
+v=1.2.1
+src=("https://gitlab.freedesktop.org/xdg/xdg-utils/-/archive/v$v/xdg-utils-v$v.tar.gz md5:4c72585a98ba8f775cb9e72b066cc0df")
+build() {
+	./configure --prefix=/usr
+	for x in scripts/desc/*.xml; do
+		x=${x##*/}
+		touch "scripts/${x%.xml}.txt"
+	done
+	make -C scripts scripts
+	make -C scripts install
+}

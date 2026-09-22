@@ -1,0 +1,7 @@
+# SYN-GRAPHMAP walks directories with tree
+v=2.3.2
+src=("https://gitlab.com/OldManProgrammer/unix-tree/-/archive/$v/unix-tree-$v.tar.bz2 md5:1f87820af612c03bfcc0fe7800ce0c71")
+build() {
+	make
+	make PREFIX=/usr MANDIR=/usr/share/man install
+}

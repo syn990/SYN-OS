@@ -1,0 +1,8 @@
+# The Bluetooth audio codec every headset speaks, for PipeWire
+v=2.2
+src=("https://www.kernel.org/pub/linux/bluetooth/sbc-$v.tar.xz md5:f3f1a4e69249241801bc8ddd6050de23")
+build() {
+	./configure --prefix=/usr --disable-static --disable-tester
+	make
+	make install
+}

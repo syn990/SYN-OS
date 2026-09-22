@@ -1,0 +1,12 @@
+# The mouse cursor for labwc, foot, Chrome and GTK (with none installed,
+# Wayland programs fall back to a bare arrow or nothing), and GTK's icons.
+# The icons are SVG, which GTK draws once librsvg is added
+v=50.0
+src=("https://download.gnome.org/sources/adwaita-icon-theme/50/adwaita-icon-theme-$v.tar.xz md5:a03d8d68377a88fcf06e090ba6a6ec2f")
+build() {
+	rm -rf /usr/share/icons/Adwaita/
+	meson_build
+	# The cursor theme every program falls back to
+	install -d /usr/share/icons/default
+	printf '[Icon Theme]\nInherits=Adwaita\n' > /usr/share/icons/default/index.theme
+}

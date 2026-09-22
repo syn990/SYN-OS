@@ -19,6 +19,23 @@ libxcrypt-compat
 nano
 dosfstools
 
+# Command-line and system tools (what .zshrc and the SYN scripts call)
+git
+openssh
+ntp
+tree
+xdg-utils
+btop
+zsh-autosuggestions
+zsh-syntax-highlighting
+zsh-completions
+fzf
+ripgrep
+fd
+bat
+zoxide
+glow
+
 # Images, fonts, text shaping
 libpng
 libjpeg-turbo
@@ -90,15 +107,27 @@ jsoncpp
 # Audio: PipeWire as the server, libpulse for its clients
 alsa-lib
 libsndfile
+bluez
+sbc
 pipewire
 wireplumber
 pulseaudio
 cxxopts
 pamixer
 
+# Video: FFmpeg for screen recording and syn-relay, SDL for syn-relay's viewer
+nasm
+x264
+ffmpeg
+sdl3
+sdl2-compat
+
 # Network and firmware
 iwd
 dhcpcd
+lzo
+libcap-ng
+openvpn
 wireless-regdb
 linux-firmware
 sof-firmware
@@ -110,6 +139,10 @@ libxcvt
 font-util
 xkbcomp
 xwayland
+
+# Qt 6, for syn-filemanager
+qtbase
+qtwayland
 
 # The desktop: labwc, waybar and the Wayland tools SYN-OS uses
 wlroots
@@ -127,6 +160,11 @@ slurp
 wlr-randr
 mako
 waybar
+wf-recorder
+waypipe
+brightnessctl
+graphviz
+adwaita-icon-theme
 
 # Fonts
 terminus-font
@@ -134,6 +172,7 @@ font-dejavu
 font-liberation
 font-terminus-nerd
 font-awesome
+font-noto-emoji
 
 # Google Chrome and the libraries its binary links against
 nspr
@@ -165,6 +204,9 @@ syn-bar-notify
 syn-audio
 syn-connect
 syn-wallgen
+syn-sysmon
+syn-relay
+syn-filemanager
 
 # SYN-OS config on top (needs everything above)
 syn-desktop

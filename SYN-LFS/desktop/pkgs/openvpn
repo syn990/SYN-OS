@@ -1,0 +1,9 @@
+# syn-connect's VPN tab runs openvpn (through doas) on the .ovpn profiles
+# you give it
+v=2.7.7
+src=("https://github.com/OpenVPN/openvpn/releases/download/v$v/openvpn-$v.tar.gz sha256:3ab8f48fd6c26d49ba2333a092433949afdb5c85c0e6a1ff265784fbc04a2463")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --disable-static --disable-plugin-auth-pam
+	make
+	make install
+}

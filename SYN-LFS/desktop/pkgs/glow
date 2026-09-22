@@ -1,0 +1,8 @@
+# The Docs menu renders markdown with glow
+v=3.0.0
+src=("https://github.com/charmbracelet/glow/releases/download/v$v/glow_${v}_Linux_x86_64.tar.gz sha256:13e05e4b2acc18d2aee44291aefe6325b077ec321b631a0cfa780e8e3bc33f78")
+build() {
+	install -Dm755 glow -t /usr/bin
+	install -Dm644 manpages/glow.1.gz -t /usr/share/man/man1
+	install -Dm644 completions/glow.zsh /usr/share/zsh/site-functions/_glow
+}

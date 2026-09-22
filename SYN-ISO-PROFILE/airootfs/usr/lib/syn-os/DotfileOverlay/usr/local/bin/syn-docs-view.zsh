@@ -34,11 +34,14 @@ offset=0
 for ref in "${svgRefs[@]}"; do
   [[ -z "$ref" ]] && continue
   svgPath="${docDir}/${ref}"
-  if [[ -f "$svgPath" ]]; then
+  if [[ -f "$svgPath" ]] && command -v feh >/dev/null; then
     feh --title "SYN-OS Docs: ${svgPath:t:r}" \
         --geometry "+$((80 + offset))+$((80 + offset))" \
         "$svgPath" &
     (( offset += 40 ))
+  elif [[ -f "$svgPath" ]]; then
+    # No feh (SYN-LFS): whatever opens SVGs here, which is the browser
+    xdg-open "$svgPath" >/dev/null 2>&1 &
   fi
 done
 

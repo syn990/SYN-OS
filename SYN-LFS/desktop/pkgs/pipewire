@@ -6,7 +6,7 @@ build() {
 	meson_build -D "session-managers=[]" -D libsystemd=disabled -D logind=disabled \
 		-D systemd-user-service=disabled -D examples=disabled -D tests=disabled \
 		-D alsa=enabled -D pipewire-alsa=enabled -D udev=enabled \
-		-D bluez5=disabled -D gstreamer=disabled -D gstreamer-device-provider=disabled \
+		-D bluez5=enabled -D gstreamer=disabled -D gstreamer-device-provider=disabled \
 		-D libcamera=disabled -D pipewire-jack=disabled -D jack=disabled \
 		-D x11=disabled -D x11-xfixes=disabled -D sdl2=disabled -D avahi=disabled \
 		-D echo-cancel-webrtc=disabled -D libcanberra=disabled -D roc=disabled \

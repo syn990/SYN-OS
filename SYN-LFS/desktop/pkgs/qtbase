@@ -1,0 +1,16 @@
+# Qt 6's core and widgets, for syn-filemanager: the book's Qt version, but
+# just this module and the Wayland one rather than all of qt-everywhere,
+# laid out in /usr as Arch does (tools and plugins in /usr/lib/qt6). No
+# xcb plugin: Qt programs open Wayland windows
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtbase-everywhere-src-$v.tar.xz md5:cb3b718e2e589b61bd781b4596604a5b")
+build() {
+	cmake_build -D INSTALL_BINDIR=lib/qt6/bin -D INSTALL_PUBLICBINDIR=usr/bin \
+		-D INSTALL_LIBEXECDIR=lib/qt6 -D INSTALL_DOCDIR=share/doc/qt6 \
+		-D INSTALL_ARCHDATADIR=lib/qt6 -D INSTALL_DATADIR=share/qt6 \
+		-D INSTALL_INCLUDEDIR=include/qt6 -D INSTALL_MKSPECSDIR=lib/qt6/mkspecs \
+		-D INSTALL_EXAMPLESDIR=share/doc/qt6/examples -D INSTALL_SYSCONFDIR=/etc/xdg \
+		-D QT_BUILD_EXAMPLES=OFF -D QT_BUILD_TESTS=OFF -D QT_GENERATE_SBOM=OFF \
+		-D FEATURE_dbus_linked=ON -D FEATURE_openssl_linked=ON -D FEATURE_system_sqlite=ON \
+		-D FEATURE_journald=OFF -D FEATURE_syslog=ON -D FEATURE_xcb=OFF -D FEATURE_rpath=OFF
+}

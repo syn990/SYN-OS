@@ -1,0 +1,16 @@
+# Bluetooth: syn-connect's Bluetooth tab talks to bluetoothd, and
+# PipeWire plays to Bluetooth headsets through it. A runit service that
+# is off until Preferences > Software > Services turns it on, as on
+# Arch. No OBEX (file transfer), which would need libical
+v=5.87
+src=("https://www.kernel.org/pub/linux/bluetooth/bluez-$v.tar.xz md5:6c6f8445ec3d2fa3cc570a671ccea9fa")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-library \
+		--disable-systemd --disable-obex --disable-manpages --disable-cups
+	make
+	make install
+	ln -svf ../libexec/bluetooth/bluetoothd /usr/sbin
+	install -v -dm555 /etc/bluetooth
+	install -v -m644 src/main.conf /etc/bluetooth/main.conf
+	svc bluetoothd off
+}

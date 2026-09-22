@@ -1,0 +1,9 @@
+# OpenVPN drops its root privileges with this once the tunnel is up
+v=0.9.6
+src=("https://github.com/stevegrubb/libcap-ng/archive/v$v/libcap-ng-$v.tar.gz sha256:399040138e0ca62fa2bcabd63da9af4431a246ef7a654561a0ca3cb00010a539")
+build() {
+	./autogen.sh
+	./configure --prefix=/usr --disable-static --without-python --without-python3
+	make
+	make install
+}

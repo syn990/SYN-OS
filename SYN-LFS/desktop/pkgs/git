@@ -1,0 +1,9 @@
+# Git: the prompt's branch display, and cloning SYN-OS itself
+v=2.55.0
+src=("https://www.kernel.org/pub/software/scm/git/git-$v.tar.xz md5:758c02a1b621cc0868ee0a0d99573e6b")
+build() {
+	./configure --prefix=/usr --with-gitconfig=/etc/gitconfig --with-python=python3 \
+		--with-libpcre2
+	make
+	make perllibdir=/usr/lib/perl5/5.44/site_perl install
+}

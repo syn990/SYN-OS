@@ -1,0 +1,6 @@
+# SYN-OS syn-sysmon: the CPU/RAM/sensors/logs TUI (waybar's cpu, memory and temperature clicks)
+v=local
+always=1
+build() {
+	syn_tool syn-sysmon
+}
