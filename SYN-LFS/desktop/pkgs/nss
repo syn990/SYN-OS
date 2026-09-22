@@ -1,4 +1,4 @@
-v=3.126.1
+v=3.126
 src=(
 	"https://archive.mozilla.org/pub/security/nss/releases/NSS_${v//./_}_RTM/src/nss-$v.tar.gz md5:0ca322cec564a53ac5a59ce130d96f46"
 	"https://www.linuxfromscratch.org/patches/blfs/13.1/nss-standalone-1.patch sha256:87bb1af0b11fd41311b9899187f6e4b3fca9940651123c7bc836ec7497d2da84"
