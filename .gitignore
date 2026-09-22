@@ -26,3 +26,6 @@ SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-sysmon
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-wallgen
 SYN-ISO-PROFILE/airootfs/usr/bin/syn-filemanager
 SYN-ISO-PROFILE/airootfs/usr/share/applications/syn-filemanager.desktop
+SYN-ISO-PROFILE/airootfs/usr/bin/dislocker*
+SYN-ISO-PROFILE/airootfs/usr/lib/libdislocker.so*
+SYN-ISO-PROFILE/airootfs/usr/share/man/man1/dislocker*

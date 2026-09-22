@@ -1,0 +1,2 @@
+#!/bin/sh
+exec chpst -P /usr/sbin/agetty -L -8 ttyS0 115200 vt100

@@ -34,6 +34,9 @@ baseCore=(
   xfsprogs            # XFS filesystem utilities
   lvm2                # Logical Volume Manager 2 utilities
   cryptsetup          # Disk encryption tool (LUKS)
+  ntfs-3g             # NTFS read/write driver (Windows disks)
+  mbedtls3            # Crypto library dislocker links against (dislocker ships prebuilt, see syn-pacstrap.zsh)
+  chntpw              # Offline Windows registry/SAM editor (reset or unlock local accounts)
   zram-generator      # systemd generator for zstd-compressed RAM-backed swap (ZramPercent in synos.conf)
 )
 

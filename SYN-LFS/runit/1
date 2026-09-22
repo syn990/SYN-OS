@@ -1,0 +1,78 @@
+#!/bin/sh
+# runit stage 1: one-time system setup, then hand over to stage 2.
+# The same steps LFS's SysV bootscripts run from rcS (mountvirtfs, modules,
+# udev, checkfs, mountfs, swap, cleanfs, localnet, setclock, console,
+# sysctl), in the same order, as one script.
+PATH=/usr/bin:/usr/sbin
+
+emergency() {
+	echo "stage 1: $1 — dropping to a root shell; exit it to reboot"
+	/usr/sbin/sulogin || /bin/sh
+	/usr/sbin/runit-init 6
+}
+
+# Virtual filesystems (mountvirtfs)
+mountpoint -q /proc || mount -t proc -o nosuid,noexec,nodev proc /proc
+mountpoint -q /sys  || mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
+mountpoint -q /run  || mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+mkdir -p /run/lock && chmod 1777 /run/lock
+mountpoint -q /dev  || mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev
+mkdir -p /dev/pts /dev/shm /sys/fs/cgroup
+mountpoint -q /dev/pts || mount -t devpts -o gid=5,mode=620 devpts /dev/pts
+mountpoint -q /dev/shm || mount -t tmpfs -o nosuid,nodev tmpfs /dev/shm
+mountpoint -q /sys/fs/cgroup || mount -t cgroup2 -o nosuid,noexec,nodev cgroup2 /sys/fs/cgroup
+
+# Modules listed one per line in /etc/sysconfig/modules (modules)
+[ -r /etc/sysconfig/modules ] && grep -v '^[[:space:]]*\(#\|$\)' /etc/sysconfig/modules |
+	while read -r mod args; do modprobe "$mod" $args; done
+
+# Coldplug devices, then stop this udevd — the runit udevd service owns it
+# from stage 2 on (udev)
+/usr/sbin/udevd --daemon
+udevadm trigger --action=add --type=subsystems
+udevadm trigger --action=add --type=devices
+udevadm trigger --action=change --type=devices
+udevadm settle
+udevadm control --exit
+
+# Check filesystems read-only, then mount everything (checkfs, mountfs)
+mount -o remount,ro /
+fsck -a -A -C -T
+rc=$?
+[ $rc -ge 4 ] && emergency "fsck failed (exit $rc)"
+mount -o remount,rw / || emergency "cannot remount / read-write"
+rm -f /fastboot /forcefsck
+mount --all --test-opts no_netdev
+swapon -a
+
+# Fresh /tmp and utmp (cleanfs)
+find /tmp -mindepth 1 -delete 2>/dev/null
+: > /run/utmp && chgrp utmp /run/utmp && chmod 664 /run/utmp
+
+# Loopback and hostname (localnet)
+ip addr add 127.0.0.1/8 label lo dev lo 2>/dev/null
+ip link set lo up
+[ -r /etc/hostname ] && hostname "$(cat /etc/hostname)"
+
+# System clock from the hardware clock, kept in UTC (setclock)
+hwclock --hctosys --utc
+
+# Console keymap and font from /etc/sysconfig/console (console)
+if [ -r /etc/sysconfig/console ]; then
+	. /etc/sysconfig/console
+	[ -n "$KEYMAP" ] && loadkeys "$KEYMAP" >/dev/null 2>&1
+	[ -n "$FONT" ] && setfont $FONT
+fi
+
+# Kernel parameters (sysctl)
+[ -r /etc/sysctl.conf ] && sysctl -q -p /etc/sysctl.conf
+
+# Interfaces with an /etc/sysconfig/ifconfig.<name> marked ONBOOT=yes (network)
+for file in /etc/sysconfig/ifconfig.*; do
+	[ -r "$file" ] || continue
+	(. "$file"; [ "$ONBOOT" = yes ]) && /sbin/ifup "${file##*/ifconfig.}"
+done
+
+# runit-init signals shutdown/reboot by the execute bit on these two files
+touch /etc/runit/stopit /etc/runit/reboot
+chmod 0 /etc/runit/stopit /etc/runit/reboot

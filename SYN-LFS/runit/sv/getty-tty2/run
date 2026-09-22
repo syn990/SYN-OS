@@ -1,0 +1,2 @@
+#!/bin/sh
+exec chpst -P /usr/sbin/agetty tty2 38400 linux

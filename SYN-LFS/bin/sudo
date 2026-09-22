@@ -1,0 +1,22 @@
+#!/bin/sh
+# sudo -> doas, for jhalfs only (build.zsh puts this dir first in PATH).
+# Covers the flags jhalfs uses: -V (version check), -E (doas.conf keepenv
+# already keeps the environment), -H (HOME of the target user), -u USER.
+user=root
+sethome=
+while [ $# -gt 0 ]; do
+	case $1 in
+		-V) echo "Sudo version 1.9.17p2"; exit 0 ;;
+		-E) shift ;;
+		-H) sethome=1; shift ;;
+		-u) user=$2; shift 2 ;;
+		--) shift; break ;;
+		-*) echo "sudo shim: unsupported flag $1" >&2; exit 1 ;;
+		*) break ;;
+	esac
+done
+if [ -n "$sethome" ]; then
+	home=$(getent passwd "$user" | cut -d: -f6)
+	exec doas -u "$user" env HOME="$home" "$@"
+fi
+exec doas -u "$user" "$@"

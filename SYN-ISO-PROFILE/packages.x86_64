@@ -4,7 +4,6 @@ archlinux-keyring
 base
 bat
 bind
-broadcom-wl
 curl
 dhclient
 dhcpcd
@@ -51,3 +50,7 @@ device-mapper
 cryptsetup
 btrfs-progs
 xfsprogs
+ntfs-3g
+fuse2
+mbedtls3
+chntpw

@@ -1,0 +1,18 @@
+#!/bin/sh
+# runit stage 3: stop services, then everything else, then unmount
+# (what LFS's sendsignals, swap, mountfs stop and halt/reboot did).
+PATH=/usr/bin:/usr/sbin
+
+sv -w 10 force-stop /var/service/* 2>/dev/null
+sv exit /var/service/* 2>/dev/null
+
+killall5 -15
+sleep 2
+killall5 -9
+
+hwclock --systohc --utc
+swapoff -a
+sync
+umount --all --detach-loop --read-only --types notmpfs,nosysfs,nodevtmpfs,noproc,nodevpts
+mount -o remount,ro /
+sync

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Ctrl+Alt+Del: reboot cleanly through stage 3.
+echo "Ctrl+Alt+Del: rebooting"
+touch /etc/runit/stopit /etc/runit/reboot
+chmod 100 /etc/runit/stopit /etc/runit/reboot

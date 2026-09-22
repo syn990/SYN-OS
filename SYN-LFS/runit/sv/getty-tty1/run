@@ -1,0 +1,2 @@
+#!/bin/sh
+exec chpst -P /usr/sbin/agetty --noclear tty1 38400 linux

@@ -107,6 +107,16 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-wallgen
     /usr/lib/syn-os/syn-uplink-dialpad
     "/usr/bin/syn-filemanager:/usr/share/applications/syn-filemanager.desktop"
+    # dislocker (BitLocker) — AUR-only upstream, vendored in
+    # SYN-SOFTWARE/dislocker-src and built by the same loop. install
+    # follows symlinks, so /usr/bin/dislocker and the soname land as
+    # plain copies. Runtime deps (fuse, mbedtls3) are in baseCore.
+    /usr/bin/dislocker
+    /usr/bin/dislocker-fuse
+    /usr/bin/dislocker-file
+    /usr/bin/dislocker-metadata
+    /usr/bin/dislocker-bek
+    /usr/lib/libdislocker.so.0.7
   )
   for entry in "${nativeTools[@]}"; do
     local binPath="${entry%%:*}"

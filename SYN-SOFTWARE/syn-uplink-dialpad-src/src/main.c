@@ -41,7 +41,11 @@
  *                        other end (doas refuses piped/non-tty input —
  *                        confirmed empirically — so this is a real
  *                        pseudo-terminal, not a pipe). Exits with the
- *                        child's real exit status.
+ *                        child's real exit status. When doas needs no
+ *                        password (nopass rule, or a live persist
+ *                        timestamp) there's nothing to collect: no
+ *                        screen, the command is exec'd directly on this
+ *                        terminal.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-UPLINK-DIALPAD
@@ -908,6 +912,34 @@ static bool parse_args(int argc, char **argv) {
 	return false;
 }
 
+/* True when doas will run a command without asking for a password at
+ * all — a nopass rule (e.g. "permit nopass :wheel") or a still-valid
+ * persist timestamp. run_under_doas_pty() below would then wait forever
+ * for a prompt that never comes, relaying neither the child's output nor
+ * this terminal's input — a blank, dead screen — so --exec skips the
+ * password screen and hands the real terminal straight to doas instead. */
+static bool doas_needs_no_password(void) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		return false;
+	}
+	if (pid == 0) {
+		int devnull = open("/dev/null", O_RDWR);
+		if (devnull >= 0) {
+			dup2(devnull, STDIN_FILENO);
+			dup2(devnull, STDOUT_FILENO);
+			dup2(devnull, STDERR_FILENO);
+		}
+		execlp("doas", "doas", "-n", "true", (char *)NULL);
+		_exit(127);
+	}
+	int status;
+	if (waitpid(pid, &status, 0) != pid) {
+		return false;
+	}
+	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
 /* Runs `exec_argv` (already doas-prefixed by the caller — e.g.
  * {"doas", "systemctl", ...}) inside a pty, and feeds `password` to it
  * the moment doas's own prompt text appears on the child's output side.
@@ -1064,6 +1096,12 @@ int main(int argc, char **argv) {
 	if (!parse_args(argc, argv)) {
 		print_usage(argv[0]);
 		return 1;
+	}
+
+	if (mode == MODE_EXEC && doas_needs_no_password()) {
+		execvp(exec_argv[0], exec_argv);
+		fprintf(stderr, "syn-uplink-dialpad: failed to exec %s\n", exec_argv[0]);
+		return 127;
 	}
 
 	syn_theme_load(&palette);

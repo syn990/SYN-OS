@@ -1,0 +1,3 @@
+#!/bin/sh
+# clear this tty's utmp entry when the login session ends
+exec utmpset -w tty2
