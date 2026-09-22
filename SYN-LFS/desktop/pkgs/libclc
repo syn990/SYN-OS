@@ -1,0 +1,8 @@
+# OpenCL C library (same tarball as LLVM), for Mesa's Intel shader compiler
+v=22.1.8
+src=("https://github.com/llvm/llvm-project/releases/download/llvmorg-$v/llvm-project-$v.src.tar.xz md5:69065494ebcb1150b2a329c1b3db7584")
+build() {
+	cmake -S libclc -B libclc/syn-build -G Ninja -D CMAKE_INSTALL_PREFIX=/usr -D CMAKE_BUILD_TYPE=Release
+	ninja -C libclc/syn-build
+	ninja -C libclc/syn-build install
+}

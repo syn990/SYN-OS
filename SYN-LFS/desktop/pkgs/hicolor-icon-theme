@@ -1,0 +1,5 @@
+v=0.18
+src=("https://icon-theme.freedesktop.org/releases/hicolor-icon-theme-$v.tar.xz md5:ef14f3af03bcde9ed134aad626bdbaad")
+build() {
+	meson_build
+}

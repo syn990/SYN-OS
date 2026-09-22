@@ -1,0 +1,6 @@
+# SYN-OS syn-bar: the one-shot backend waybar's custom/* modules exec
+v=local
+always=1
+build() {
+	syn_tool syn-bar
+}

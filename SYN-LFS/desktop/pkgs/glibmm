@@ -1,0 +1,5 @@
+v=2.66.10
+src=("https://download.gnome.org/sources/glibmm/${v%.*}/glibmm-$v.tar.xz md5:04fab47987ee9df63f808959577d153b")
+build() {
+	meson_build
+}

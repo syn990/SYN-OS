@@ -1,0 +1,5 @@
+v=1.5.0
+src=("https://github.com/emersion/slurp/releases/download/v$v/slurp-$v.tar.gz sha256:eeb282b2adc8db5614b852596340b69da6f3954cf6cfbdc4392da509c934208a")
+build() {
+	meson_build -D man-pages=disabled
+}

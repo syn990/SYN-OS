@@ -1,0 +1,17 @@
+# Only here because Chrome links libcups; cupsd is installed but never
+# started. No TLS: CUPS 2.4 predates OpenSSL 4, and nothing prints yet
+v=2.4.19
+src=("https://github.com/OpenPrinting/cups/releases/download/v$v/cups-$v-source.tar.gz md5:06b7a3921812988cdb3198ff74ae381d")
+build() {
+	getent group lpadmin > /dev/null || groupadd -g 19 lpadmin
+	getent passwd lp > /dev/null ||
+		useradd -c "Print Service User" -d /var/spool/cups -g lp -s /bin/false -u 9 lp
+	sed -i '/& ipp->prev)/s/prev/& \&\& ipp->prev->next == *attr/' cups/ipp.c
+	./configure --libdir=/usr/lib --with-rcdir=/tmp/cupsinit --with-rundir=/run/cups \
+		--with-system-groups=lpadmin --with-tls=no --with-dnssd=no \
+		--with-docdir=/usr/share/cups/doc-$v
+	make
+	make install
+	rm -rf /tmp/cupsinit
+	echo "ServerName /run/cups/cups.sock" > /etc/cups/client.conf
+}

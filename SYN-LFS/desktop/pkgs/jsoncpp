@@ -1,0 +1,6 @@
+# JSON parser for waybar's config
+v=1.9.8
+src=("https://github.com/open-source-parsers/jsoncpp/archive/$v/jsoncpp-$v.tar.gz sha256:51828cf3574281d2b79ec2a1c56a9e4c20cc1103711321ea96384cffb8d2d904")
+build() {
+	meson_build -D tests=false
+}

@@ -1,0 +1,6 @@
+# Volume from the command line (waybar's scroll and middle-click)
+v=1.6
+src=("https://github.com/cdemoulins/pamixer/archive/$v/pamixer-$v.tar.gz sha256:8b7199e495dc19b190f8f02ace8782f533266a4bd7c7d3cf6f4cf09b2de13e71")
+build() {
+	meson_build
+}

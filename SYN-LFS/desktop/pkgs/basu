@@ -1,0 +1,6 @@
+# sd-bus on its own, without systemd: mako and syn-connect use it
+v=0.2.1
+src=("https://git.sr.ht/~emersion/basu/archive/v$v.tar.gz sha256:43b327073d1ac7bc6cbc0d3dfff729348fc970dfff0551ad40e366332e990204 basu-$v.tar.gz")
+build() {
+	meson_build -D audit=disabled -D libcap=disabled
+}

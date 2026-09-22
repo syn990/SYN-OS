@@ -1,0 +1,14 @@
+# doas, as on the Arch build, plus the same sudo shim
+v=6.8.2
+src=("https://github.com/Duncaen/OpenDoas/releases/download/v$v/opendoas-$v.tar.xz sha256:4e98828056d6266bd8f2c93e6ecf12a63a71dbfd70a5ea99ccd4ab6d0745adf0")
+build() {
+	# 2022 code; GCC 16 defaults to C23
+	CFLAGS="-O2 -std=gnu17" ./configure --prefix=/usr --with-shadow --without-pam --with-timestamp
+	make
+	make install
+	install -m600 "$SYN_FILES/doas.conf" /etc/doas.conf
+	if [ ! -e /usr/bin/sudo ] || grep -q 'exec doas' /usr/bin/sudo; then
+		printf '#!/bin/sh\nexec doas "$@"\n' > /usr/bin/sudo
+		chmod 755 /usr/bin/sudo
+	fi
+}

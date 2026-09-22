@@ -1,0 +1,5 @@
+v=2.28.5
+src=("https://download.gnome.org/sources/atkmm/${v%.*}/atkmm-$v.tar.xz md5:c9bdc196eed368c274177b0c1caf140c")
+build() {
+	meson_build
+}

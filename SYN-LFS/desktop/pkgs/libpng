@@ -1,0 +1,7 @@
+v=1.6.58
+src=("https://downloads.sourceforge.net/libpng/libpng-$v.tar.xz md5:c6c372a9d7754c66e0b77a8d34987a3b")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

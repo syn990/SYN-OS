@@ -1,0 +1,6 @@
+# Header-only option parser, for pamixer
+v=3.3.1
+src=("https://github.com/jarro2783/cxxopts/archive/v$v/cxxopts-$v.tar.gz sha256:3bfc70542c521d4b55a46429d808178916a579b28d048bd8c727ee76c39e2072")
+build() {
+	cmake_build -D CXXOPTS_BUILD_EXAMPLES=OFF -D CXXOPTS_BUILD_TESTS=OFF
+}

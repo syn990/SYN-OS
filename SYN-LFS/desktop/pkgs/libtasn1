@@ -1,0 +1,8 @@
+# ASN.1 library, for p11-kit
+v=4.21.0
+src=("https://ftpmirror.gnu.org/libtasn1/libtasn1-$v.tar.gz md5:2ee1d9f3aa66f1e308c46a283aa9a8c2")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

@@ -1,0 +1,8 @@
+# Netlink library, for waybar's network module
+v=3.12.0
+src=("https://github.com/thom311/libnl/releases/download/libnl${v//./_}/libnl-$v.tar.gz md5:f9112ca215807fe65eecd583d8f180cc")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --disable-static
+	make
+	make install
+}

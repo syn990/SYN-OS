@@ -1,0 +1,7 @@
+# Firmware for real hardware (Wi-Fi, GPUs, ...), zstd-compressed; the
+# kernel config turns on compressed firmware loading
+v=20260916
+src=("https://www.kernel.org/pub/linux/kernel/firmware/linux-firmware-$v.tar.xz sha256:f80dcb757a623deda62200c08e0e1a88c76fb6b54964f31b35fa74da1c90ccc5")
+build() {
+	make FIRMWAREDIR=/usr/lib/firmware install-zst
+}

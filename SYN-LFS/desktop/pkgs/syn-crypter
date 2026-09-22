@@ -1,0 +1,6 @@
+# SYN-OS syn-crypter: the encryption TUI (menu)
+v=local
+always=1
+build() {
+	syn_tool syn-crypter
+}

@@ -1,0 +1,5 @@
+v=2025.1
+src=("https://xorg.freedesktop.org/archive/individual/proto/xorgproto-$v.tar.xz md5:15534fa6fb13a6a70afe7561c1424f3c")
+build() {
+	meson_build
+}

@@ -1,0 +1,6 @@
+v=2.37
+src=("https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_${v/./_}/dejavu-fonts-ttf-$v.tar.bz2 sha256:fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7")
+build() {
+	install -Dm644 ttf/*.ttf -t /usr/share/fonts/dejavu
+	fc-cache -f /usr/share/fonts/dejavu
+}

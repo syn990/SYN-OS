@@ -1,0 +1,9 @@
+# Screen locker (Super+L). No PAM here, so it checks /etc/shadow and has
+# to be setuid root to read it
+v=1.8.6
+src=("https://github.com/swaywm/swaylock/releases/download/v$v/swaylock-$v.tar.gz sha256:a15154348fef852fdb224112d137c393c826478b777f63479beb15e8d3812eaf")
+build() {
+	meson_build -D pam=disabled -D gdk-pixbuf=enabled -D man-pages=disabled \
+		-D zsh-completions=false -D bash-completions=false -D fish-completions=false
+	chmod 4755 /usr/bin/swaylock
+}

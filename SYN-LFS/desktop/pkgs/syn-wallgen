@@ -1,0 +1,6 @@
+# SYN-OS syn-wallgen: renders each user's wallpaper set (build.zsh user runs it)
+v=local
+always=1
+build() {
+	syn_tool syn-wallgen
+}

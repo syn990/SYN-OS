@@ -1,0 +1,7 @@
+v=0.5.15
+src=("https://gitlab.freedesktop.org/pipewire/wireplumber/-/archive/$v/wireplumber-$v.tar.bz2 md5:dba978afa67ba317d99ef03285ad4733")
+build() {
+	meson_build -D system-lua=true -D elogind=disabled -D systemd=disabled \
+		-D systemd-user-service=false -D introspection=disabled -D doc=disabled \
+		-D tests=false -D dbus-tests=false
+}

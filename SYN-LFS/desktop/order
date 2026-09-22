@@ -1,0 +1,143 @@
+# Build order for syn-pkg.sh: one recipe name (pkgs/NAME) per line.
+# Each package comes after everything it needs. Comment a line out to skip
+# a package; `build.zsh desktop NAME` rebuilds one on its own.
+
+# Base tools and libraries
+libtasn1
+p11-kit
+make-ca
+curl
+cmake
+libxml2
+libnl
+lua
+zsh
+opendoas
+dbus
+basu
+
+# Images, fonts, text shaping
+libpng
+libjpeg-turbo
+pixman
+freetype
+fontconfig
+fribidi
+glib
+harfbuzz
+
+# X11 client libraries (no X server; GTK, cairo, Vulkan and Chrome link these)
+util-macros
+xorgproto
+libXau
+libXdmcp
+xcb-proto
+libxcb
+xorg-libs
+
+# Wayland, DRM, input, seat
+wayland
+wayland-protocols
+libdrm
+hwdata
+libdisplay-info
+libliftoff
+libevdev
+mtdev
+libinput
+xkeyboard-config
+libxkbcommon
+seatd
+
+# Mesa and the LLVM it compiles shaders with
+python-mako
+pyyaml
+llvm
+spirv-headers
+spirv-tools
+spirv-llvm-translator
+libclc
+glslang
+vulkan-headers
+vulkan-loader
+mesa
+libepoxy
+
+# GTK3 and the C++ bindings waybar is written against
+cairo
+pango
+shared-mime-info
+gdk-pixbuf
+gsettings-desktop-schemas
+at-spi2-core
+hicolor-icon-theme
+gtk3
+libnotify
+libsigc
+glibmm
+atkmm
+cairomm
+pangomm
+gtkmm3
+gtk-layer-shell
+fmt
+spdlog
+jsoncpp
+
+# Audio: PipeWire as the server, libpulse for its clients
+alsa-lib
+libsndfile
+pipewire
+wireplumber
+pulseaudio
+cxxopts
+pamixer
+
+# Network and firmware
+iwd
+dhcpcd
+wireless-regdb
+linux-firmware
+
+# The desktop: labwc, waybar and the Wayland tools SYN-OS uses
+wlroots
+labwc
+tllist
+fcft
+foot
+fuzzel
+swaybg
+swaylock
+wmenu
+rofi
+grim
+slurp
+wlr-randr
+mako
+waybar
+
+# Fonts
+terminus-font
+font-dejavu
+font-liberation
+font-terminus-nerd
+font-awesome
+
+# Google Chrome and the libraries its binary links against
+nspr
+nss
+cups
+google-chrome
+
+# SYN-OS's own tools, built from SYN-SOFTWARE in this repo
+syn-bar-core
+syn-bar
+syn-bar-notify
+syn-audio
+syn-connect
+syn-wallgen
+
+# SYN-OS config on top (needs everything above)
+syn-desktop
+syn-crypter
+syn-uplink-dialpad

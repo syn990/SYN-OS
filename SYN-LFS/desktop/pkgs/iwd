@@ -1,0 +1,12 @@
+# Wi-Fi, as on the Arch build (iwctl, or syn-connect from the bar). It
+# only associates; dhcpcd below gets the address, same as SYN-OS on Arch
+v=3.12
+src=("https://www.kernel.org/pub/linux/network/wireless/iwd-$v.tar.xz sha256:d89a5e45c7180170e19be828f9e944a768c593758094fc57a358d0e7c4cb1a49")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --libexecdir=/usr/libexec \
+		--disable-systemd-service --disable-manual-pages
+	make
+	make install
+	install -d -m700 /var/lib/iwd
+	svc iwd
+}

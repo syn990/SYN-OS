@@ -1,0 +1,7 @@
+v=1.1.5
+src=("https://www.x.org/pub/individual/lib/libXdmcp-$v.tar.xz md5:ce0af51de211e4c99a111e64ae1df290")
+build() {
+	./configure $XORG_CONFIG --docdir=/usr/share/doc/libXdmcp-$v
+	make
+	make install
+}

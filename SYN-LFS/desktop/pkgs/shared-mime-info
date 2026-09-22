@@ -1,0 +1,5 @@
+v=2.5.1
+src=("https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/$v/shared-mime-info-$v.tar.gz md5:5f8baa7bac254ea9e65782f754a2880b")
+build() {
+	meson_build -D update-mimedb=true -D build-tests=false -D build-spec=false
+}

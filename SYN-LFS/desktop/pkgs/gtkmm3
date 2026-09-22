@@ -1,0 +1,5 @@
+v=3.24.11
+src=("https://download.gnome.org/sources/gtkmm/${v%.*}/gtkmm-$v.tar.xz md5:554154811621e1e411285dde09ca8913")
+build() {
+	meson_build
+}

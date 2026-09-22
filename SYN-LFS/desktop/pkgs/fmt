@@ -1,0 +1,5 @@
+v=12.2.0
+src=("https://github.com/fmtlib/fmt/archive/$v/fmt-$v.tar.gz md5:7be257d8bfad55bc9eabb1288ad895be")
+build() {
+	cmake_build -D BUILD_SHARED_LIBS=ON -D FMT_TEST=OFF
+}

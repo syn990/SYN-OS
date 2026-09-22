@@ -1,0 +1,6 @@
+# JPEG for gdk-pixbuf (a couple of SYN wallpapers are .jpg). No nasm, so no SIMD
+v=3.2.0
+src=("https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$v/libjpeg-turbo-$v.tar.gz md5:a80f9f1c735b57d3cdd66daed1ba6bb4")
+build() {
+	cmake_build -D ENABLE_STATIC=FALSE -D WITH_SIMD=OFF -D CMAKE_INSTALL_DEFAULT_LIBDIR=lib
+}

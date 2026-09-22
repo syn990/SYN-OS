@@ -1,0 +1,6 @@
+v=1.4.357.0
+src=("https://github.com/KhronosGroup/SPIRV-Tools/archive/vulkan-sdk-$v/SPIRV-Tools-vulkan-sdk-$v.tar.gz md5:c357eec1e33bc95e650aa4c8efdd3b13")
+build() {
+	cmake_build -D SPIRV_WERROR=OFF -D BUILD_SHARED_LIBS=ON -D SPIRV_TOOLS_BUILD_STATIC=OFF \
+		-D SPIRV-Headers_SOURCE_DIR=/usr
+}

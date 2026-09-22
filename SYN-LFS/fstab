@@ -1,10 +1,11 @@
-# SYN-LFS — QEMU test image (virtio disk: /dev/vda)
-/dev/vda2      /              ext4     defaults            1     1
-/dev/vda1      /boot/efi      vfat     defaults,noauto     0     2
-proc           /proc          proc     nosuid,noexec,nodev 0     0
-sysfs          /sys           sysfs    nosuid,noexec,nodev 0     0
-devpts         /dev/pts       devpts   gid=5,mode=620      0     0
-tmpfs          /run           tmpfs    defaults            0     0
-devtmpfs       /dev           devtmpfs mode=0755,nosuid    0     0
-tmpfs          /dev/shm       tmpfs    nosuid,nodev        0     0
-cgroup2        /sys/fs/cgroup cgroup2  nosuid,noexec,nodev 0     0
+# SYN-LFS: partitions by GPT label (build.zsh image names them), so the
+# same image boots in QEMU (/dev/vda) and on real disks and USB sticks
+PARTLABEL=synroot  /              ext4     defaults            1     1
+PARTLABEL=SYNEFI   /boot/efi      vfat     defaults,noauto     0     2
+proc               /proc          proc     nosuid,noexec,nodev 0     0
+sysfs              /sys           sysfs    nosuid,noexec,nodev 0     0
+devpts             /dev/pts       devpts   gid=5,mode=620      0     0
+tmpfs              /run           tmpfs    defaults            0     0
+devtmpfs           /dev           devtmpfs mode=0755,nosuid    0     0
+tmpfs              /dev/shm       tmpfs    nosuid,nodev        0     0
+cgroup2            /sys/fs/cgroup cgroup2  nosuid,noexec,nodev 0     0

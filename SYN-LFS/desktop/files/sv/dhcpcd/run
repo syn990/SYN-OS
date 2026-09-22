@@ -1,0 +1,4 @@
+#!/bin/sh
+# DHCP on every interface: ethernet as soon as it has carrier, Wi-Fi once
+# iwd has associated
+exec dhcpcd -B -q

@@ -1,0 +1,5 @@
+v=2.48
+src=("https://www.x.org/pub/individual/data/xkeyboard-config/xkeyboard-config-$v.tar.xz md5:575106aff79b589abe4aff6c4bff4782")
+build() {
+	meson_build
+}

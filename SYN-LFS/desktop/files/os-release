@@ -1,0 +1,7 @@
+NAME="SYN-OS"
+PRETTY_NAME="SYN-OS (Linux From Scratch)"
+ID=syn-os
+VARIANT="LFS r13.1, runit"
+VARIANT_ID=lfs
+ANSI_COLOR="0;31;40"
+HOME_URL="https://github.com/syn990/syn-os"

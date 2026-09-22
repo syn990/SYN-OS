@@ -1,0 +1,11 @@
+# GLib, without gobject-introspection (nothing in this desktop needs it)
+v=2.88.3
+src=(
+	"https://download.gnome.org/sources/glib/${v%.*}/glib-$v.tar.xz md5:b61c04cfbf55b0d24fbe64e4ac9e9d56"
+	"https://www.linuxfromscratch.org/patches/blfs/13.1/glib-skip_warnings-1.patch sha256:8f9ee9f4a6a08c49c9c912241c63d55b969950c49f4d40337c6fd9557b9daa1b"
+)
+build() {
+	patch -Np1 -i ../glib-skip_warnings-1.patch
+	meson_build -D introspection=disabled -D glib_debug=disabled -D man-pages=disabled \
+		-D sysprof=disabled -D tests=false
+}

@@ -1,0 +1,5 @@
+v=1.4.357.0
+src=("https://github.com/KhronosGroup/SPIRV-Headers/archive/vulkan-sdk-$v/SPIRV-Headers-vulkan-sdk-$v.tar.gz md5:085dd07d487c165c0ca7713d726eb6de")
+build() {
+	cmake_build
+}

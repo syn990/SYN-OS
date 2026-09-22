@@ -1,0 +1,6 @@
+v=2.60.6
+src=("https://download.gnome.org/sources/at-spi2-core/${v%.*}/at-spi2-core-$v.tar.xz md5:1082626c9a82694b7900f8283b20dfac")
+build() {
+	meson_build -D default_bus=dbus-daemon -D use_systemd=false -D gtk2_atk_adaptor=false \
+		-D introspection=disabled -D docs=false
+}

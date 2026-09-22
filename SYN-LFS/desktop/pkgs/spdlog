@@ -1,0 +1,7 @@
+# Logging library waybar uses (against the fmt above)
+v=1.17.0
+src=("https://github.com/gabime/spdlog/archive/v$v/spdlog-$v.tar.gz sha256:d8862955c6d74e5846b3f580b1605d2428b11d97a410d86e2fb13e857cd3a744")
+build() {
+	cmake_build -D SPDLOG_FMT_EXTERNAL=ON -D SPDLOG_BUILD_SHARED=ON -D SPDLOG_BUILD_EXAMPLE=OFF \
+		-D SPDLOG_BUILD_TESTS=OFF
+}

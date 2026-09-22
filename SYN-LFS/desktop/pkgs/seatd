@@ -1,0 +1,9 @@
+# seatd hands DRM and input devices to labwc: the no-logind way (runit
+# service, users in the video group get access)
+v=0.9.3
+src=("https://github.com/kennylevinsen/seatd/archive/$v/seatd-$v.tar.gz md5:c1cc200188d31214b88af015b1f19f7b")
+build() {
+	meson_build -D server=enabled -D libseat-seatd=enabled -D libseat-logind=disabled \
+		-D libseat-builtin=disabled -D man-pages=disabled -D examples=disabled
+	svc seatd
+}

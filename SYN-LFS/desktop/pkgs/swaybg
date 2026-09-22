@@ -1,0 +1,5 @@
+v=1.2.2
+src=("https://github.com/swaywm/swaybg/releases/download/v$v/swaybg-$v.tar.gz sha256:a6652a0060a0bea3c3318d9d03b6dddac34f6aeca01b883eef9e58281f5202a1")
+build() {
+	meson_build -D gdk-pixbuf=enabled -D man-pages=disabled
+}

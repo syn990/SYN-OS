@@ -1,0 +1,6 @@
+v=1.20.2
+src=("https://www.x.org/pub/individual/util/util-macros-$v.tar.xz md5:5f683a1966834b0a6ae07b3680bcb863")
+build() {
+	./configure $XORG_CONFIG
+	make install
+}

@@ -1,0 +1,16 @@
+# PKCS#11 trust store; make-ca and NSS read the CA list through it
+v=0.26.5
+src=("https://github.com/p11-glue/p11-kit/releases/download/$v/p11-kit-$v.tar.xz md5:308306e889850bff08fae74ae7897a21")
+build() {
+	sed '20,$ d' -i trust/trust-extract-compat
+	cat >> trust/trust-extract-compat << "EOF"
+# Copy existing anchor modifications to /etc/ssl/local
+/usr/libexec/make-ca/copy-trust-modifications
+
+# Update trust stores
+/usr/sbin/make-ca -r
+EOF
+	meson_build -D trust_paths=/etc/pki/anchors
+	ln -sf /usr/libexec/p11-kit/trust-extract-compat /usr/bin/update-ca-certificates
+	ln -sf ./pkcs11/p11-kit-trust.so /usr/lib/libnssckbi.so
+}

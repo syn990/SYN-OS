@@ -1,0 +1,6 @@
+# Notification daemon, talking D-Bus through basu
+v=1.11.0
+src=("https://github.com/emersion/mako/releases/download/v$v/mako-$v.tar.gz sha256:e97eb5bd0dc6a9159019949f48b3db4e8781b56bd6377bd65827e1cb440a7def")
+build() {
+	meson_build -D sd-bus-provider=basu -D icons=enabled -D man-pages=disabled
+}

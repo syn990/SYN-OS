@@ -1,0 +1,5 @@
+v=0.4.0
+src=("https://gitlab.freedesktop.org/emersion/libdisplay-info/-/releases/$v/downloads/libdisplay-info-$v.tar.xz md5:af9f07493bd5ff560a98b95ea4c5c129")
+build() {
+	meson_build
+}

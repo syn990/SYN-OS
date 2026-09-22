@@ -1,0 +1,9 @@
+v=1.2.2
+src=("https://github.com/libsndfile/libsndfile/releases/download/$v/libsndfile-$v.tar.xz md5:04e2e6f726da7c5dc87f8cf72f250d04")
+build() {
+	sed -i '/typedef enum/,/bool ;/d' src/ALAC/alac_{en,de}coder.c
+	./configure --prefix=/usr --disable-static --disable-external-libs --disable-mpeg \
+		--docdir=/usr/share/doc/libsndfile-$v
+	make
+	make install
+}

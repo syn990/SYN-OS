@@ -1,0 +1,6 @@
+v=2.12.1
+src=("https://download.gnome.org/sources/libsigc++/${v%.*}/libsigc++-$v.tar.xz md5:891f1b2dbaebd8007eda8c639bbe1149")
+build() {
+	sed -i "s/'system',//" meson.build
+	meson_build
+}

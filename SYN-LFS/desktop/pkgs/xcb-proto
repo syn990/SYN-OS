@@ -1,0 +1,6 @@
+v=1.17.0
+src=("https://xorg.freedesktop.org/archive/individual/proto/xcb-proto-$v.tar.xz md5:c415553d2ee1a8cea43c3234a079b53f")
+build() {
+	PYTHON=python3 ./configure $XORG_CONFIG
+	make install
+}

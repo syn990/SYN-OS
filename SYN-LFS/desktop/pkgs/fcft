@@ -1,0 +1,6 @@
+v=3.3.3
+src=("https://codeberg.org/dnkl/fcft/archive/$v.tar.gz sha256:b0c0f4a599f43723736c8565b8b84337c4195077f07f1bb8bb3252bb13a2306a fcft-$v.tar.gz")
+build() {
+	meson_build -D docs=disabled -D grapheme-shaping=enabled -D run-shaping=disabled \
+		-D svg-backend=nanosvg -D examples=false
+}

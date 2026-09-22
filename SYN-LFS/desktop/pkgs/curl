@@ -1,0 +1,9 @@
+# cURL (libcurl too)
+v=8.21.0
+src=("https://curl.se/download/curl-$v.tar.xz md5:230131079987135cbe1eadb77a04af57")
+build() {
+	./configure --prefix=/usr --disable-static --with-openssl --without-libpsl \
+		--with-ca-path=/etc/ssl/certs
+	make
+	make install
+}

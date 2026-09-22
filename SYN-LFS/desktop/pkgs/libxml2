@@ -1,0 +1,8 @@
+# XML library (wayland-scanner, labwc's config parser, xkbregistry)
+v=2.15.3
+src=("https://download.gnome.org/sources/libxml2/${v%.*}/libxml2-$v.tar.xz md5:b7b0123654f86ebf630a5cbedaafdece")
+build() {
+	sed -i "/'git'/,+3d" meson.build
+	meson_build -D history=enabled -D icu=disabled
+	sed "s/--static/--shared/" -i /usr/bin/xml2-config
+}

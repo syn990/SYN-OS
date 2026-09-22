@@ -1,0 +1,9 @@
+v=0.15.0
+src=("https://github.com/Alexays/Waybar/archive/$v/Waybar-$v.tar.gz sha256:21c2bbef88c40473c355003582f9331d2f9b8a01efdcce0935edfc5f6b023a3e")
+build() {
+	meson_build -D libnl=enabled -D pulseaudio=enabled -D libudev=enabled -D libinput=enabled \
+		-D libevdev=enabled -D pipewire=enabled -D wireplumber=enabled -D rfkill=enabled \
+		-D upower_glib=disabled -D mpris=disabled -D systemd=disabled -D dbusmenu-gtk=disabled \
+		-D man-pages=disabled -D mpd=disabled -D sndio=disabled -D tests=disabled \
+		-D jack=disabled -D cava=disabled -D gps=disabled -D logind=disabled
+}

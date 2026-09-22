@@ -1,0 +1,6 @@
+# SYN-OS syn-uplink-dialpad: the uplink dialpad
+v=local
+always=1
+build() {
+	syn_tool syn-uplink-dialpad
+}

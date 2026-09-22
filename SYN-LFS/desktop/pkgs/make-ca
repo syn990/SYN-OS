@@ -1,0 +1,14 @@
+# System CA certificates (/etc/ssl/certs), built from Mozilla's list. The
+# list is fetched on the host with everything else, so the chroot stays
+# offline; rerun this recipe after deleting certdata.txt to refresh it.
+v=1.16.1
+src=(
+	"https://github.com/lfs-book/make-ca/archive/v$v/make-ca-$v.tar.gz md5:bf9cea2d24fc5344d4951b49f275c595"
+	"https://hg-edge.mozilla.org/projects/nss/raw-file/tip/lib/ckfw/builtins/certdata.txt -"
+)
+build() {
+	sed '/mktemp/s/-t //' -i make-ca
+	make install
+	install -d /etc/ssl/local
+	/usr/sbin/make-ca -f -C "$SYN_SRC/certdata.txt"
+}

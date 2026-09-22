@@ -1,0 +1,5 @@
+v=22.1.5
+src=("https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/v$v/SPIRV-LLVM-Translator-$v.tar.gz md5:8bdf03a2f7d90da52e358ac78b3e9959")
+build() {
+	cmake_build -D BUILD_SHARED_LIBS=ON -D LLVM_EXTERNAL_SPIRV_HEADERS_SOURCE_DIR=/usr
+}

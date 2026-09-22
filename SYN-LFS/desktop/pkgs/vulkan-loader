@@ -1,0 +1,5 @@
+v=1.4.357.0
+src=("https://github.com/KhronosGroup/Vulkan-Loader/archive/vulkan-sdk-$v/Vulkan-Loader-vulkan-sdk-$v.tar.gz md5:ce35f16bee47e9faf0a50d682a2db77d")
+build() {
+	cmake_build
+}

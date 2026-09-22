@@ -1,0 +1,7 @@
+v=1.17.0
+src=("https://xorg.freedesktop.org/archive/individual/lib/libxcb-$v.tar.xz md5:96565523e9f9b701fcb35d31f1d4086e")
+build() {
+	./configure $XORG_CONFIG --without-doxygen --docdir='${datadir}'/doc/libxcb-$v
+	LC_ALL=en_US.UTF-8 make
+	make install
+}

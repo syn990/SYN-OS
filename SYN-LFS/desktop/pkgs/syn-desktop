@@ -1,0 +1,39 @@
+# SYN-OS's desktop layer: the Arch ISO's dotfile overlay (labwc, waybar,
+# foot and mako config, themes, wallpapers, menu scripts) plus what is
+# different here, on runit with no systemd and no logind
+v=local
+always=1
+build() {
+	local ov=$SYN_REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay
+	cp -r "$ov/etc/skel/." /etc/skel/
+	cp -r "$ov/usr/." /usr/
+	chmod -R +x /usr/lib/syn-os
+	install -m644 "$ov/etc/issue" /etc/issue
+	install -m644 "$SYN_FILES/os-release" /etc/os-release
+
+	# No systemctl here: runit's reboot/poweroff instead, which doas lets
+	# the wheel group run without a password
+	sed -i -e 's|systemctl reboot|doas /usr/sbin/reboot|' \
+		-e 's|systemctl poweroff|doas /usr/sbin/poweroff|' \
+		/etc/skel/.config/labwc/menu.xml /usr/lib/syn-os/syn-bar-power.zsh
+
+	# No systemd user units either: autostart brings PipeWire up before
+	# waybar looks for it
+	install -m755 "$SYN_FILES/syn-pipewire-session.sh" /usr/lib/syn-os/
+	grep -q syn-pipewire-session /etc/skel/.config/labwc/autostart ||
+		sed -i 's|^apply_persisted_display_state$|/usr/lib/syn-os/syn-pipewire-session.sh\n&|' \
+			/etc/skel/.config/labwc/autostart
+
+	# Login environment (PATH, XDG_RUNTIME_DIR), the console keymap and
+	# font, and the current runit stage scripts and fstab from this repo
+	install -Dm644 "$SYN_FILES/syn-xdg.sh" /etc/profile.d/syn-xdg.sh
+	printf 'KEYMAP="uk"\nFONT="ter-v16n"\n' > /etc/sysconfig/console
+	install -m755 "$SYN_REPO"/SYN-LFS/runit/{1,2,3,ctrlaltdel} /etc/runit/
+	install -m644 "$SYN_REPO/SYN-LFS/fstab" /etc/fstab
+
+	glib-compile-schemas /usr/share/glib-2.0/schemas
+	update-mime-database /usr/share/mime
+	gdk-pixbuf-query-loaders --update-cache
+	gtk-update-icon-cache -qtf /usr/share/icons/hicolor
+	fc-cache -f
+}

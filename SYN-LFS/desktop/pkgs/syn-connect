@@ -1,0 +1,6 @@
+# SYN-OS syn-connect: the Wi-Fi/Bluetooth/VPN TUI (waybar's network click), via basu
+v=local
+always=1
+build() {
+	syn_tool syn-connect
+}

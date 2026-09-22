@@ -1,0 +1,6 @@
+# Lets waybar (GTK3) be a Wayland layer-shell panel
+v=0.10.1
+src=("https://github.com/wmww/gtk-layer-shell/archive/v$v/gtk-layer-shell-$v.tar.gz sha256:88c3a3e0a5300532f3d368d5df64838a87f1fb85273f22d41df0a6b8d0ec59c6")
+build() {
+	meson_build -D introspection=false -D vapi=false
+}

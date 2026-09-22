@@ -1,0 +1,7 @@
+v=1.0.12
+src=("https://www.x.org/pub/individual/lib/libXau-$v.tar.xz md5:4c9f81acf00b62e5de56a912691bd737")
+build() {
+	./configure $XORG_CONFIG
+	make
+	make install
+}

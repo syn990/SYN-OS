@@ -1,0 +1,11 @@
+v=1.2.15.3
+src=(
+	"https://www.alsa-project.org/files/pub/lib/alsa-lib-$v.tar.bz2 md5:c14c9f94f78f76924c13668954997a33"
+	"https://www.alsa-project.org/files/pub/lib/alsa-ucm-conf-$v.tar.bz2 sha256:9f79e813c08fc86cfa46dd75c4fcda1a4a51b482db2607e1fcfaafb92f588a31"
+)
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+	tar -C /usr/share/alsa --strip-components=1 -xf ../alsa-ucm-conf-$v.tar.bz2
+}

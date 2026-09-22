@@ -1,0 +1,6 @@
+# dmenu-style picker (syn-picker-lib.zsh)
+v=0.2.0
+src=("https://codeberg.org/adnano/wmenu/archive/$v.tar.gz sha256:b1b593a80310085a90bd349d458ffbcfacf875d74468ae4428bdf5692a671ef9 wmenu-$v.tar.gz")
+build() {
+	meson_build
+}

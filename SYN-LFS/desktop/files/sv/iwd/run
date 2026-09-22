@@ -1,0 +1,4 @@
+#!/bin/sh
+# iwd lives on the system bus, so wait for dbus (runsv retries in a second)
+sv check /var/service/dbus > /dev/null || exit 1
+exec /usr/libexec/iwd

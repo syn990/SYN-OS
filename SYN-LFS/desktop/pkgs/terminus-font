@@ -1,0 +1,8 @@
+# The console font (ter-v16n) and the bitmap "Terminus" every SYN config names
+v=4.49.1
+src=("https://downloads.sourceforge.net/terminus-font/terminus-font-$v.tar.gz sha256:d961c1b781627bf417f9b340693d64fc219e0113ad3a3af1a3424c7aa373ef79")
+build() {
+	make prefix=/usr psf otb
+	make prefix=/usr install-psf install-otb
+	fc-cache -f /usr/share/fonts/terminus
+}

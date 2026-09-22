@@ -1,0 +1,7 @@
+# notify-send, which the SYN menu and scripts use
+v=0.8.8
+src=("https://download.gnome.org/sources/libnotify/${v%.*}/libnotify-$v.tar.xz md5:35bef24dc1e9a336394556d09345e078")
+build() {
+	meson_build -D tests=false -D introspection=disabled -D man=false -D gtk_doc=false \
+		-D docbook_docs=disabled
+}

@@ -1,0 +1,5 @@
+v=1.13.6
+src=("https://www.freedesktop.org/software/libevdev/libevdev-$v.tar.xz md5:4202ff132e3efe95fe9ca2c4f8f119f7")
+build() {
+	meson_build -D documentation=disabled -D tests=disabled
+}

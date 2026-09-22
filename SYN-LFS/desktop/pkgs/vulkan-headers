@@ -1,0 +1,5 @@
+v=1.4.357.0
+src=("https://github.com/KhronosGroup/Vulkan-Headers/archive/vulkan-sdk-$v/Vulkan-Headers-vulkan-sdk-$v.tar.gz md5:64a23bb12e95a2017004d72569132929")
+build() {
+	cmake_build
+}

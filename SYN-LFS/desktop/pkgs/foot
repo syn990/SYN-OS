@@ -1,0 +1,5 @@
+v=1.28.0
+src=("https://codeberg.org/dnkl/foot/archive/$v.tar.gz sha256:4296be402b5684d049534598e69db92b918f92beac9dab76b585207045f0b037 foot-$v.tar.gz")
+build() {
+	meson_build -D docs=disabled -D grapheme-clustering=disabled -D tests=false -D terminfo=enabled
+}

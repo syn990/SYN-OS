@@ -1,0 +1,12 @@
+# /etc/zsh/zprofile: the login environment (after BLFS's, simplified).
+# sbin is on everyone's PATH because the SYN scripts come from Arch, where
+# bin and sbin are one directory.
+export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+export XDG_DATA_DIRS=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
+export XDG_CONFIG_DIRS=${XDG_CONFIG_DIRS:-/etc/xdg}
+[ $EUID -eq 0 ] && unset HISTFILE
+
+for script in /etc/profile.d/*.sh(N); do
+	[ -r "$script" ] && . "$script"
+done
+unset script

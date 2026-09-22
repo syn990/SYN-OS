@@ -1,0 +1,5 @@
+v=1.14.6
+src=("https://www.cairographics.org/releases/cairomm-$v.tar.xz md5:634242bb797fb6e9d7cfae1a83474d11")
+build() {
+	meson_build -D build-tests=false
+}

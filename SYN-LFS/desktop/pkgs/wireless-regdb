@@ -1,0 +1,6 @@
+# Wi-Fi regulatory database, so the kernel allows your country's channels
+v=2026.09.03
+src=("https://www.kernel.org/pub/software/network/wireless-regdb/wireless-regdb-$v.tar.xz sha256:b22e0901227b820cd1c280abe681a15b773a5103a5e10dc442e94ebb34cbf58d")
+build() {
+	install -Dm644 regulatory.db regulatory.db.p7s -t /usr/lib/firmware
+}

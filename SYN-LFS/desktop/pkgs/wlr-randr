@@ -1,0 +1,6 @@
+# Output control (the Display & Screens menu, autostart's saved layout)
+v=0.5.0
+src=("https://gitlab.freedesktop.org/emersion/wlr-randr/-/releases/v$v/downloads/wlr-randr-$v.tar.gz sha256:a64b6eb296d1c75af098fa2d229f9aaf3ceae45eeff24056930bd4bc613c6a5e")
+build() {
+	meson_build
+}

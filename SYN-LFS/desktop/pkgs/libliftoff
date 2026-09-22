@@ -1,0 +1,5 @@
+v=0.5.0
+src=("https://gitlab.freedesktop.org/emersion/libliftoff/-/archive/v$v/libliftoff-v$v.tar.gz md5:e26483537eea0db5469b71c783189f74")
+build() {
+	meson_build
+}

@@ -1,0 +1,6 @@
+# Screenshots (screenshot.zsh, the Print key)
+v=1.5.0
+src=("https://gitlab.freedesktop.org/emersion/grim/-/releases/v$v/downloads/grim-$v.tar.gz sha256:99708950205d5bfd2e769519fcb6423a9f545175a29c46c7c1cf7965afc4b8eb")
+build() {
+	meson_build -D jpeg=enabled -D man-pages=disabled
+}

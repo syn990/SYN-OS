@@ -7,7 +7,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "syn_bluez.h"
 
-#include <systemd/sd-bus.h>
+#include "syn_sd_bus.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>

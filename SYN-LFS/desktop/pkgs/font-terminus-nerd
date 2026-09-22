@@ -1,0 +1,7 @@
+# Terminus with Nerd Font glyphs (the icons in waybar's network module)
+v=3.5.1
+src=("https://github.com/ryanoasis/nerd-fonts/releases/download/v$v/Terminus.tar.xz sha256:80c6431f5789a72dc7464ecce3ee820cdc0f0123585befada87b13876d2fda90 nerd-fonts-Terminus-$v.tar.xz")
+build() {
+	install -Dm644 *.ttf -t /usr/share/fonts/terminus-nerd
+	fc-cache -f /usr/share/fonts/terminus-nerd
+}

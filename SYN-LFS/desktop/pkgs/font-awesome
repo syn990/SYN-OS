@@ -1,0 +1,7 @@
+# Icon font waybar's style.css asks for first
+v=7.3.1
+src=("https://github.com/FortAwesome/Font-Awesome/releases/download/$v/fontawesome-free-$v-desktop.zip sha256:c61edde261707f33376a28e9a30bb8c70c1a20bf0bd975206b809f3b3b70add5")
+build() {
+	install -Dm644 otfs/*.otf -t /usr/share/fonts/fontawesome
+	fc-cache -f /usr/share/fonts/fontawesome
+}

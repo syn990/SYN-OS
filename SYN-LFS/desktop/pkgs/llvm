@@ -1,0 +1,34 @@
+# LLVM + clang: llvmpipe, radeonsi and Mesa's OpenCL-C shader compiler.
+# The long one (most of an hour); link jobs capped so it fits in RAM.
+v=22.1.8
+src=(
+	"https://github.com/llvm/llvm-project/releases/download/llvmorg-$v/llvm-project-$v.src.tar.xz md5:69065494ebcb1150b2a329c1b3db7584"
+	"https://www.linuxfromscratch.org/patches/blfs/13.1/llvm-$v-upstream_fix-1.patch sha256:4a2084f9714f2f3babc0ed58065c3a6b83cd2828ea19aec1518995a6d2376187"
+)
+build() {
+	patch -Np1 -i ../llvm-$v-upstream_fix-1.patch
+	{ grep -rl '#!.*python$' || true; } | xargs -r sed -i '1s/python$/python3/'
+	sed 's/utility/tool/' -i llvm/utils/FileCheck/CMakeLists.txt
+	mkdir -p /etc/clang
+	for i in clang clang++; do
+		echo -fstack-protector-strong > /etc/clang/$i.cfg
+	done
+	CC=gcc CXX=g++ cmake -S llvm -B llvm/syn-build -G Ninja \
+		-D CMAKE_INSTALL_PREFIX=/usr \
+		-D CMAKE_SKIP_INSTALL_RPATH=ON \
+		-D CMAKE_BUILD_TYPE=Release \
+		-D LLVM_ENABLE_FFI=ON \
+		-D LLVM_BUILD_LLVM_DYLIB=ON \
+		-D LLVM_LINK_LLVM_DYLIB=ON \
+		-D LLVM_ENABLE_RTTI=ON \
+		-D LLVM_TARGETS_TO_BUILD="host;AMDGPU" \
+		-D LLVM_ENABLE_PROJECTS=clang \
+		-D LLVM_BINUTILS_INCDIR=/usr/include \
+		-D LLVM_INCLUDE_BENCHMARKS=OFF \
+		-D LLVM_PARALLEL_LINK_JOBS=2 \
+		-D CLANG_DEFAULT_PIE_ON_LINUX=ON \
+		-D CLANG_CONFIG_FILE_SYSTEM_DIR=/etc/clang \
+		-W no-author
+	ninja -C llvm/syn-build
+	ninja -C llvm/syn-build install
+}

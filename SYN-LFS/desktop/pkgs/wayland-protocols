@@ -1,0 +1,5 @@
+v=1.49
+src=("https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/$v/downloads/wayland-protocols-$v.tar.xz md5:5685f769a227f2d4143d983ad07edaba")
+build() {
+	meson_build
+}

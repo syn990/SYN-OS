@@ -1,0 +1,6 @@
+v=1.58.2
+src=("https://download.gnome.org/sources/pango/${v%.*}/pango-$v.tar.xz md5:7b5640fd9adfa24554a88b2b9a6cd3f3")
+build() {
+	meson_build -D introspection=disabled -D build-testsuite=false -D build-examples=false \
+		-D libthai=disabled
+}

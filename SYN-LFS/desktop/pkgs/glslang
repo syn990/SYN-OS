@@ -1,0 +1,5 @@
+v=16.5.0
+src=("https://github.com/KhronosGroup/glslang/archive/$v/glslang-$v.tar.gz md5:79e949d6d50cc167e7d5307afb04c41a")
+build() {
+	cmake_build -D ALLOW_EXTERNAL_SPIRV_TOOLS=ON -D BUILD_SHARED_LIBS=ON -D GLSLANG_TESTS=OFF
+}

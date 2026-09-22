@@ -1,0 +1,10 @@
+# Image loading for GTK, swaybg and mako. BLFS goes through glycin, which
+# needs Rust; the built-in PNG/JPEG/GIF loaders do the job here
+v=2.44.7
+src=("https://download.gnome.org/sources/gdk-pixbuf/${v%.*}/gdk-pixbuf-$v.tar.xz md5:2a12da2133476b7b36fbfcadd7133315")
+build() {
+	meson_build -D png=enabled -D jpeg=enabled -D gif=enabled -D tiff=disabled \
+		-D glycin=disabled -D thumbnailer=disabled -D man=false -D introspection=disabled \
+		-D tests=false -D installed_tests=false
+	gdk-pixbuf-query-loaders --update-cache
+}

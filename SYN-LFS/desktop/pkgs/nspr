@@ -1,0 +1,10 @@
+v=4.40
+src=("https://archive.mozilla.org/pub/nspr/releases/v$v/src/nspr-$v.tar.gz md5:0c3c871158cc9af694f1f7d2b799ffd8")
+build() {
+	cd nspr
+	sed -i '/^RELEASE/s|^|#|' pr/src/misc/Makefile.in
+	sed -i 's|$(LIBRARY) ||' config/rules.mk
+	./configure --prefix=/usr --with-mozilla --with-pthreads --enable-64bit
+	make
+	make install
+}

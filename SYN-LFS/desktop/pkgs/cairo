@@ -1,0 +1,5 @@
+v=1.18.4
+src=("https://www.cairographics.org/releases/cairo-$v.tar.xz md5:db575fb41bbda127e0147e401f36f8ac")
+build() {
+	meson_build -D spectre=disabled -D symbol-lookup=disabled -D lzo=disabled
+}

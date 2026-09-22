@@ -1,0 +1,5 @@
+v=0.46.4
+src=("https://www.cairographics.org/releases/pixman-$v.tar.gz md5:c08173c8e1d2cc79428d931c13ffda59")
+build() {
+	meson_build
+}

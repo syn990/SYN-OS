@@ -1,0 +1,6 @@
+# SYN-OS syn-bar-core: the daemon behind waybar's custom modules (stats, relay, notices)
+v=local
+always=1
+build() {
+	syn_tool syn-bar-core
+}

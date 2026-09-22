@@ -1,0 +1,9 @@
+v=10.5.2
+src=("https://github.com/NetworkConfiguration/dhcpcd/releases/download/v$v/dhcpcd-$v.tar.xz md5:b7bc4570c8ffd0cc1c6dbd3a847caeee")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --libexecdir=/usr/lib/dhcpcd \
+		--dbdir=/var/lib/dhcpcd --runstatedir=/run --disable-privsep
+	make
+	make install
+	svc dhcpcd
+}

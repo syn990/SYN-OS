@@ -1,0 +1,9 @@
+v=1.13.2
+src=(
+	"https://github.com/lfs-book/libxkbcommon/archive/v$v/libxkbcommon-$v.tar.gz md5:07f838f575d62c267cfc53eaf5ee739b"
+	"https://www.linuxfromscratch.org/patches/blfs/13.1/libxkbcommon-$v-upstream_fix-1.patch sha256:d978cac5875fed73b7223866a1138718afeba58c1390a412affdcf2cd7744a34"
+)
+build() {
+	patch -Np1 -i ../libxkbcommon-$v-upstream_fix-1.patch
+	meson_build -D enable-docs=false
+}

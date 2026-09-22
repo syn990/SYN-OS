@@ -1,0 +1,6 @@
+v=50.1
+src=("https://download.gnome.org/sources/gsettings-desktop-schemas/${v%.*}/gsettings-desktop-schemas-$v.tar.xz md5:b3851a1d2dd684f7ea1a1d032e2a7dfb")
+build() {
+	sed -i -r 's:"(/system):"/org/gnome\1:g' schemas/*.in
+	meson_build -D introspection=false
+}

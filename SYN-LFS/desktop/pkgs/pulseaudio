@@ -1,0 +1,17 @@
+# Client libraries only (libpulse): pipewire-pulse is the server. waybar,
+# pamixer, syn-audio and Chrome all talk to it through libpulse
+v=17.0
+src=("https://www.freedesktop.org/software/pulseaudio/releases/pulseaudio-$v.tar.xz md5:c4a3596a26ff4b9dcd0c394dd1d4f8ee")
+build() {
+	sed '/doxygen/d' -i meson.build
+	meson_build -D daemon=false -D doxygen=false -D man=false -D tests=false \
+		-D database=simple -D bluez5=disabled -D x11=disabled -D gtk=disabled \
+		-D systemd=disabled -D elogind=disabled -D gstreamer=disabled -D jack=disabled \
+		-D lirc=disabled -D orc=disabled -D soxr=disabled -D speex=disabled \
+		-D webrtc-aec=disabled -D fftw=disabled -D avahi=disabled -D consolekit=disabled \
+		-D tcpwrap=disabled -D valgrind=disabled -D asyncns=disabled -D gsettings=disabled \
+		-D openssl=disabled -D udev=disabled -D alsa=disabled -D glib=enabled
+	install -d /etc/pulse
+	grep -qx 'autospawn = no' /etc/pulse/client.conf 2>/dev/null ||
+		echo 'autospawn = no' >> /etc/pulse/client.conf
+}

@@ -1,0 +1,7 @@
+# PCI/USB/monitor ID tables (libdisplay-info reads the monitor names)
+v=0.410
+src=("https://github.com/vcrhonek/hwdata/archive/v$v/hwdata-$v.tar.gz md5:07f1de937ff5b830280f6157221164eb")
+build() {
+	./configure --prefix=/usr --disable-blacklist
+	make install
+}

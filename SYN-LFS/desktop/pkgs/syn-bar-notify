@@ -1,0 +1,6 @@
+# SYN-OS syn-bar-notify: toast helper the scripts call
+v=local
+always=1
+build() {
+	syn_tool syn-bar-notify
+}

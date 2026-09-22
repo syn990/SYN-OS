@@ -1,0 +1,5 @@
+v=1.15.0
+src=("https://codeberg.org/dnkl/fuzzel/archive/$v.tar.gz sha256:95b6c022fc1f1c7ab586d47c1594417cc311bf41ea8f5f8b5641478da7b5cf3b fuzzel-$v.tar.gz")
+build() {
+	meson_build -D enable-cairo=enabled -D png-backend=libpng -D svg-backend=nanosvg
+}

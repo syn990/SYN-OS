@@ -1,0 +1,13 @@
+# D-Bus (the sysv LFS book leaves it out); runit starts the system bus
+v=1.16.2
+src=("https://dbus.freedesktop.org/releases/dbus/dbus-$v.tar.xz md5:97832e6f0a260936d28536e5349c22e5")
+build() {
+	meson_build -D systemd=disabled -D x11_autolaunch=disabled -D doxygen_docs=disabled \
+		-D xml_docs=disabled -D ducktype_docs=disabled -D qt_help=disabled \
+		-D modular_tests=disabled -D selinux=disabled -D apparmor=disabled -D libaudit=disabled
+	chown root:messagebus /usr/libexec/dbus-daemon-launch-helper
+	chmod 4750 /usr/libexec/dbus-daemon-launch-helper
+	dbus-uuidgen --ensure
+	ln -sf /var/lib/dbus/machine-id /etc
+	svc dbus
+}
