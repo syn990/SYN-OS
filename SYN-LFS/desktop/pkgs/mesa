@@ -1,11 +1,13 @@
 # OpenGL/EGL/GBM/Vulkan. Drivers are listed rather than auto, because
 # auto adds NVK, which needs Rust: virgl for QEMU, llvmpipe and lavapipe
-# as the software fallback, then Intel, AMD and NVIDIA (nouveau) hardware
+# as the software fallback, then Intel, AMD and NVIDIA (nouveau) hardware.
+# Its shader compilers get installed too: lib32-mesa reuses them
 v=26.1.7
 src=("https://mesa.freedesktop.org/archive/mesa-$v.tar.xz md5:1a3ea044abc823e2db8c6041e5adcc4f")
 build() {
 	meson_build -D platforms=x11,wayland \
 		-D gallium-drivers=radeonsi,iris,crocus,nouveau,virgl,llvmpipe,zink \
 		-D vulkan-drivers=amd,intel,swrast \
+		-D install-mesa-clc=true -D install-precomp-compiler=true \
 		-D valgrind=disabled -D libunwind=disabled
 }

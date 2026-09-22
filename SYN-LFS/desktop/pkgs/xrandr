@@ -1,0 +1,8 @@
+# Steam asks xrandr about the screens
+v=1.5.4
+src=("https://www.x.org/pub/individual/app/xrandr-$v.tar.xz md5:211abd989eef11708cc0a4978d101014")
+build() {
+	./configure $XORG_CONFIG
+	make
+	make install
+}

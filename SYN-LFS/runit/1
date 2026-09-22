@@ -47,6 +47,7 @@ swapon -a
 
 # Fresh /tmp and utmp (cleanfs)
 find /tmp -mindepth 1 -delete 2>/dev/null
+install -d -m 1777 /tmp/.X11-unix /tmp/.ICE-unix
 : > /run/utmp && chgrp utmp /run/utmp && chmod 664 /run/utmp
 
 # A runtime dir (XDG_RUNTIME_DIR) for every normal user, which logind

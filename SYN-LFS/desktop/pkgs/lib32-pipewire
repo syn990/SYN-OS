@@ -1,0 +1,20 @@
+# libpipewire and PipeWire's ALSA plugin in 32 bits, so 32-bit programs
+# using ALSA end up on the (64-bit) PipeWire server like everything else
+v=1.6.8
+src=("https://gitlab.freedesktop.org/pipewire/pipewire/-/archive/$v/pipewire-$v.tar.bz2 md5:9ae75812a76951c93210a26272c90ef3")
+build() {
+	meson_build32 -D "session-managers=[]" -D libsystemd=disabled -D logind=disabled \
+		-D systemd-user-service=disabled -D examples=disabled -D tests=disabled \
+		-D docs=disabled -D man=disabled -D alsa=enabled -D pipewire-alsa=enabled \
+		-D udev=enabled -D dbus=disabled -D bluez5=disabled -D gstreamer=disabled \
+		-D gstreamer-device-provider=disabled -D libcamera=disabled -D pipewire-jack=disabled \
+		-D jack=disabled -D pipewire-v4l2=disabled -D v4l2=disabled -D x11=disabled \
+		-D x11-xfixes=disabled -D sdl2=disabled -D avahi=disabled -D echo-cancel-webrtc=disabled \
+		-D libcanberra=disabled -D roc=disabled -D libffado=disabled -D snap=disabled \
+		-D selinux=disabled -D opus=disabled -D readline=disabled -D sndfile=disabled \
+		-D pw-cat=disabled -D raop=disabled -D libpulse=disabled -D libusb=disabled \
+		-D lv2=disabled -D libmysofa=disabled -D fftw=disabled -D ebur128=disabled \
+		-D onnxruntime=disabled -D avb=disabled -D compress-offload=disabled \
+		-D flatpak=disabled -D gsettings=disabled -D gsettings-pulse-schema=disabled \
+		-D vulkan=disabled -D rlimits-install=false
+}

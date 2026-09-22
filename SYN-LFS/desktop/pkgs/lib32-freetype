@@ -1,0 +1,7 @@
+v=2.14.3
+src=("https://downloads.sourceforge.net/freetype/freetype-$v.tar.xz md5:5e78e6fdce5a61d3075e4c25e9852f84")
+build() {
+	sed -ri "s:.*(AUX_MODULES.*valid):\1:" modules.cfg
+	sed -r "s:.*(#.*SUBPIXEL_RENDERING) .*:\1:" -i include/freetype/config/ftoption.h
+	meson_build32 -D default_library=shared -D harfbuzz=dynamic -D png=disabled -D brotli=disabled
+}

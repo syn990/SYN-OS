@@ -1,6 +1,6 @@
 v=0.20.2
 src=("https://github.com/labwc/labwc/archive/$v/labwc-$v.tar.gz sha256:fae023b6fe022f7057556707a17cdb2d98e0138c5dffaedaa1dade975699f9e8")
 build() {
-	meson_build -D xwayland=disabled -D svg=disabled -D icon=disabled -D man-pages=disabled \
+	meson_build -D xwayland=enabled -D svg=disabled -D icon=disabled -D man-pages=disabled \
 		-D systemd-session=disabled -D test=disabled
 }

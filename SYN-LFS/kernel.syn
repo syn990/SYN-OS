@@ -20,10 +20,25 @@ CONFIG_USB_UAS=y
 CONFIG_USER_NS=y
 CONFIG_INPUT_EVDEV=y
 CONFIG_INPUT_MISC=y
-CONFIG_INPUT_UINPUT=m
 CONFIG_FUSE_FS=m
 CONFIG_FW_LOADER_COMPRESS=y
 CONFIG_FW_LOADER_COMPRESS_ZSTD=y
+
+# --- Steam: 32-bit programs (the multilib half), ntsync for Proton, and
+# game controllers. uinput is built in so /dev/uinput exists from boot
+# for Steam Input; Steam's udev rules give it to the input group
+CONFIG_IA32_EMULATION=y
+CONFIG_NTSYNC=y
+CONFIG_INPUT_UINPUT=y
+CONFIG_HIDRAW=y
+CONFIG_INPUT_JOYSTICK=y
+CONFIG_INPUT_JOYDEV=m
+CONFIG_JOYSTICK_XPAD=m
+CONFIG_HID_STEAM=m
+CONFIG_HID_PLAYSTATION=m
+CONFIG_HID_SONY=m
+CONFIG_HID_NINTENDO=m
+CONFIG_HID_MICROSOFT=m
 
 # --- Graphics (Mesa's list from BLFS): virtio for QEMU, then Intel, AMD
 # and NVIDIA as modules so their firmware loads after / is mounted

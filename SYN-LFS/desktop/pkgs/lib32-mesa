@@ -1,0 +1,14 @@
+# The same drivers as 64-bit Mesa, for the Steam client and 32-bit games.
+# Intel's shader compilers are the 64-bit build's (installed for this),
+# so there's no 32-bit clang to build
+v=26.1.7
+src=("https://mesa.freedesktop.org/archive/mesa-$v.tar.xz md5:1a3ea044abc823e2db8c6041e5adcc4f")
+build() {
+	meson_build32 --cross-file=llvm32 -D platforms=x11,wayland \
+		-D gallium-drivers=radeonsi,iris,crocus,nouveau,virgl,llvmpipe,zink \
+		-D vulkan-drivers=amd,intel,swrast \
+		-D mesa-clc=system -D precomp-compiler=system \
+		-D valgrind=disabled -D libunwind=disabled
+	# The 32-bit Vulkan driver manifests (*.i686.json) live outside lib32
+	install -m644 syn-dest32/usr/share/vulkan/icd.d/*.json /usr/share/vulkan/icd.d/
+}

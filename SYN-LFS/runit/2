@@ -2,4 +2,10 @@
 # runit stage 2: supervise every service linked into /var/service.
 # Enable a service:  ln -s /etc/sv/NAME /var/service/
 PATH=/usr/bin:/usr/sbin
+
+# Everything started from here (the gettys, so every login) inherits
+# this: a high hard limit on open files, which Proton's esync raises its
+# soft limit to. There's no PAM limits.conf to do it at login.
+ulimit -Hn 524288
+
 exec env - PATH=$PATH runsvdir -P /var/service 'log: ...........................................................................................................'

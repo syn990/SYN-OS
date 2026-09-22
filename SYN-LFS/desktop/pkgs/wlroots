@@ -1,5 +1,5 @@
 v=0.20.2
 src=("https://gitlab.freedesktop.org/wlroots/wlroots/-/archive/$v/wlroots-$v.tar.bz2 md5:03634ea5be3d116490630c955355610c")
 build() {
-	meson_build -D xwayland=disabled -D examples=false
+	meson_build -D xwayland=enabled -D xcb-errors=enabled -D examples=false
 }

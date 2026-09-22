@@ -1,0 +1,6 @@
+v=2.18.3
+src=("https://gitlab.freedesktop.org/api/v4/projects/890/packages/generic/fontconfig/$v/fontconfig-$v.tar.xz md5:ce819e229ca6fb7d1be47a192d6681a3")
+build() {
+	meson_build32 -D doc=disabled -D tools=disabled -D tests=disabled -D cache-build=disabled \
+		-D nls=disabled -D bitmap-conf=noinstall
+}

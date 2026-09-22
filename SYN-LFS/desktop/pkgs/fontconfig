@@ -1,8 +1,10 @@
+# Bitmap fonts allowed: 2.18 hides them by default, and Terminus (every
+# SYN config's font) is a bitmap font
 v=2.18.3
 src=("https://gitlab.freedesktop.org/api/v4/projects/890/packages/generic/fontconfig/$v/fontconfig-$v.tar.xz md5:ce819e229ca6fb7d1be47a192d6681a3")
 build() {
 	./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-docs \
-		--docdir=/usr/share/doc/fontconfig-$v
+		--with-bitmap-conf=yes --docdir=/usr/share/doc/fontconfig-$v
 	make
 	make install
 }

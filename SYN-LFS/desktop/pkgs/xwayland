@@ -1,0 +1,10 @@
+# The X server as a Wayland client; labwc starts it when an X11 program
+# connects
+v=24.1.13
+src=("https://www.x.org/pub/individual/xserver/xwayland-$v.tar.xz md5:f84a91c4d3aee2b18b1864fe2bbe78c3")
+build() {
+	sed -i '/install_man/,$d' meson.build
+	meson_build -D xkb_output_dir=/var/lib/xkb -D xvfb=false -D xdmcp=false -D xdm-auth-1=false \
+		-D secure-rpc=false -D libdecor=false -D xwayland_ei=false \
+		-D docs=false -D devel-docs=false -D docs-pdf=false
+}

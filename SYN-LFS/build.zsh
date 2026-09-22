@@ -4,14 +4,17 @@
 #
 #   Builds a bootable Linux From Scratch system into a disk image and boots
 #   it in QEMU under UEFI. The book's own commands are run by jhalfs, the LFS
-#   project's automation (SysV book r13.1; runit/ then swaps in runit).
+#   project's automation: the SysV multilib book, whose packages are r13.1's
+#   plus i686 libraries next to the x86_64 ones (for Steam); runit/ then
+#   swaps in runit.
 #   The kernel is a single EFI-stub file with its command line built in,
 #   installed as the firmware's default boot path: no bootloader, and the
 #   same file Secure Boot will sign later. Nothing on this host's disks or
 #   bootloader is touched; root is only used for the image, mounts and the
 #   jhalfs chroot (via bin/sudo -> doas).
 #   On top of that base, desktop/ builds the SYN desktop (labwc, waybar,
-#   iwd, PipeWire, Chrome) from BLFS-pinned sources, see desktop/syn-pkg.sh.
+#   iwd, PipeWire, Xwayland, Chrome, Steam) from BLFS-pinned sources, see
+#   desktop/syn-pkg.sh.
 #
 #   Usage: build.zsh <step>
 #     image      create + partition + mount the disk image (once)
@@ -39,7 +42,11 @@ IMG=$W/lfs.img
 MNT=/mnt/lfs
 SRC=$W/sources
 JHALFS=$W/jhalfs
-LFS_VERSION=r13.1
+# The multilib book is a branch that keeps moving, so it's pinned: at this
+# commit (2026-09-14) its package versions are exactly LFS 13.1's, which
+# is also what the LFS source mirror below is looked up by
+LFS_COMMIT=aaa6933c1a018c4cfb8a503e07835b9af3f8b3b2
+LFS_RELEASE=13.1
 KVER=7.1.8
 RUNIT=2.2.0
 RUNIT_SHA256=95ef4d2868b978c7179fe47901e5c578e11cf273d292bd6208bd3a7ccb029290
@@ -101,14 +108,14 @@ step_kernel() {
 
 step_configure() {
 	cd $JHALFS
-	CONFIG_= LFS_VERSION=$LFS_VERSION SRC=$SRC W=$W HERE=$HERE python3 - <<'EOF'
+	CONFIG_= LFS_COMMIT=$LFS_COMMIT SRC=$SRC W=$W HERE=$HERE python3 - <<'EOF'
 import os, sys
 sys.path.insert(0, "menu")
 import kconfiglib
 k = kconfiglib.Kconfig("Config.in")
 want = {
     "BOOK_LFS_ANY": "y", "BOOK_LFS": "y", "BRANCH": "y",
-    "COMMIT": os.environ["LFS_VERSION"], "LFS_MULTILIB_NO": "y",
+    "COMMIT": os.environ["LFS_COMMIT"], "LFS_MULTILIB_I686": "y",
     "BUILD_CHROOT": "y", "BUILDDIR": "/mnt/lfs",
     "GETPKG": "y", "SRC_ARCHIVE": os.environ["SRC"],
     "RUNMAKE": "n", "ALL_CORES": "y", "CONFIG_TESTS": "n", "STRIP": "y",
@@ -147,7 +154,7 @@ step_build() {
 	if [[ -s $dmp ]]; then
 		for f in $(awk '{print $1}' $dmp); do
 			md5=$(awk -v f="/$f" 'index($1, f) { print $2; exit }' $MNT/sources/urls.lst)
-			curl -fsL -o $SRC/$f $LFS_MIRROR/${LFS_VERSION#r}/$f
+			curl -fsL -o $SRC/$f $LFS_MIRROR/$LFS_RELEASE/$f
 			print "$md5  $SRC/$f" | md5sum -c --quiet || { print "bad or missing: $f"; exit 1 }
 			doas install -m644 $SRC/$f $MNT/sources/
 			print "fetched from the LFS mirror: $f"

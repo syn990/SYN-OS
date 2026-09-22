@@ -15,6 +15,7 @@ zsh
 opendoas
 dbus
 basu
+libxcrypt-compat
 
 # Images, fonts, text shaping
 libpng
@@ -99,6 +100,13 @@ dhcpcd
 wireless-regdb
 linux-firmware
 
+# Xwayland, so X11 programs run (the Steam client is one)
+xcb-utils
+libxcvt
+font-util
+xkbcomp
+xwayland
+
 # The desktop: labwc, waybar and the Wayland tools SYN-OS uses
 wlroots
 labwc
@@ -128,6 +136,23 @@ nspr
 nss
 cups
 google-chrome
+
+# 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
+lib32-xorg-libs
+lib32-libdrm
+lib32-wayland
+lib32-llvm
+lib32-vulkan-loader
+lib32-mesa
+lib32-alsa-lib
+lib32-pipewire
+lib32-freetype
+lib32-fontconfig
+lib32-libgpg-error
+lib32-nspr
+lib32-nss
+xrandr
+steam
 
 # SYN-OS's own tools, built from SYN-SOFTWARE in this repo
 syn-bar-core

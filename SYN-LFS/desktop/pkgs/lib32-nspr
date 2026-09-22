@@ -1,0 +1,12 @@
+v=4.40
+src=("https://archive.mozilla.org/pub/nspr/releases/v$v/src/nspr-$v.tar.gz md5:0c3c871158cc9af694f1f7d2b799ffd8")
+build() {
+	cd nspr
+	sed -i '/^RELEASE/s|^|#|' pr/src/misc/Makefile.in
+	sed -i 's|$(LIBRARY) ||' config/rules.mk
+	CC="gcc -m32" CXX="g++ -m32" ./configure --prefix=/usr --libdir=/usr/lib32 \
+		--includedir=/usr/include/nspr --with-mozilla --with-pthreads --disable-64bit
+	make
+	make DESTDIR=$PWD/syn-dest32 install
+	install_lib32 syn-dest32
+}

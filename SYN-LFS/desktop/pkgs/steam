@@ -1,0 +1,22 @@
+# Valve's launcher. The first `steam` run unpacks the client into
+# ~/.local/share/Steam and it updates itself from there; the client and
+# games run on the 32-bit libraries above plus Steam's own runtime
+v=1.0.0.87
+src=("https://repo.steampowered.com/steam/archive/beta/steam_$v.tar.gz sha256:649375d2f9377f8009aaf3e2ff09978041eb9114897d9c5a3886f1d82e27ba1f")
+build() {
+	make PREFIX=/usr install-bin install-docs install-icons install-bootstrap \
+		install-desktop install-appdata
+	# steamdeps installs missing Debian packages with apt: nothing to do here
+	ln -sf true /usr/bin/steamdeps
+	# Controllers. Valve's rules hand the devices to the logged-in user
+	# through logind (TAG+="uaccess"); with no logind the input group gets
+	# them instead, which build.zsh user puts you in
+	for r in 60-steam-input.rules 60-steam-vr.rules; do
+		sed -e 's/TAG+="uaccess", OPTIONS/GROUP="input", MODE="0660", OPTIONS/' \
+			-e 's/TAG+="uaccess"/GROUP="input"/' \
+			subprojects/steam-devices/$r > /usr/lib/udev/rules.d/$r
+	done
+	# Some games map more memory areas than the kernel's default allows
+	grep -q '^vm.max_map_count' /etc/sysctl.conf 2> /dev/null ||
+		echo 'vm.max_map_count = 1048576' >> /etc/sysctl.conf
+}

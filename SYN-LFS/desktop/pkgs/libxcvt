@@ -1,0 +1,5 @@
+v=0.1.3
+src=("https://www.x.org/pub/individual/lib/libxcvt-$v.tar.xz md5:7fb9c51d33a680f724f34da41768b1d0")
+build() {
+	meson_build
+}

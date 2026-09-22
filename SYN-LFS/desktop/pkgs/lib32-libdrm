@@ -1,0 +1,6 @@
+v=2.4.134
+src=("https://dri.freedesktop.org/libdrm/libdrm-$v.tar.xz md5:0e70607bb5c2f7ecbc411e6a2fab8b22")
+build() {
+	sed -i '/not.*system/s/system/cpu_family/' meson.build
+	meson_build32 -D udev=false -D valgrind=disabled -D tests=false -D man-pages=disabled
+}

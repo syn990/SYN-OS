@@ -1,0 +1,8 @@
+# Keymap compiler; Xwayland runs it for every X client's keyboard
+v=1.5.0
+src=("https://www.x.org/pub/individual/app/xkbcomp-$v.tar.xz md5:b8128ff6816897bd385ca437cd2886ee")
+build() {
+	./configure $XORG_CONFIG
+	make
+	make install
+}

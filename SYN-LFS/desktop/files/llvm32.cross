@@ -1,0 +1,6 @@
+# Meson cross file layered over the multilib book's lib32 one for 32-bit
+# Mesa: that file's llvm-config is the 64-bit one; lib32-llvm installs its
+# 32-bit counterpart as llvm-config32. Installed as
+# /usr/share/meson/cross/llvm32.
+[binaries]
+llvm-config = '/usr/bin/llvm-config32'

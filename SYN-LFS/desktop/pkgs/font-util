@@ -1,0 +1,7 @@
+v=1.4.2
+src=("https://www.x.org/pub/individual/font/font-util-$v.tar.xz md5:42ea8cc91549e43e9251ccbd664e7864")
+build() {
+	./configure $XORG_CONFIG
+	make
+	make install
+}

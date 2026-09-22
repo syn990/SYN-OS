@@ -1,0 +1,29 @@
+# xcb-util and the BLFS "XCB Utilities": X11 window handling in wlroots
+# and labwc builds on these
+v=blfs-13.1
+src=(
+	"https://xcb.freedesktop.org/dist/xcb-util-0.4.1.tar.xz md5:34d749eab0fd0ffd519ac64798d79847"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-image-0.4.1.tar.xz md5:a67bfac2eff696170259ef1f5ce1b611"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-keysyms-0.4.1.tar.xz md5:fbdc05f86f72f287ed71b162f1a9725a"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-renderutil-0.3.10.tar.xz md5:193b890e2a89a53c31e2ece3afcbd55f"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-wm-0.4.2.tar.xz md5:581b3a092e3c0c1b4de6416d90b969c3"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-cursor-0.1.6.tar.xz md5:e85bccd1993992be07232f8b80a814c8"
+	"https://xorg.freedesktop.org/archive/individual/lib/xcb-util-errors-1.0.1.tar.xz md5:322cf9df283625223933ffcecb4a1cca"
+)
+noextract=1
+build() {
+	local e f d
+	for e in "${src[@]}"; do
+		f=${e%% *}
+		f=${f##*/}
+		d=${f%.tar.?z*}
+		tar -xf "$f"
+		pushd "$d" > /dev/null
+		./configure $XORG_CONFIG
+		make
+		make install
+		popd > /dev/null
+		rm -rf "$d"
+		ldconfig
+	done
+}
