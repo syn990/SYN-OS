@@ -1,0 +1,8 @@
+# The editor the SYN splash and synos-config open synos.conf in
+v=9.2
+src=("https://www.nano-editor.org/dist/v${v%%.*}/nano-$v.tar.xz md5:9bb0f37945afa964d16bffd9e4da3106")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --enable-utf8 --docdir=/usr/share/doc/nano-$v
+	make
+	make install
+}

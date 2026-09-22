@@ -1,0 +1,15 @@
+# CPU microcode, Intel's and AMD's (AMD's comes out of linux-firmware),
+# for build.zsh kernel to build into the kernel: loading it early takes
+# that or an initramfs, and the installed system has no initramfs
+v=20260812
+src=(
+	"https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files/archive/microcode-$v/Intel-Linux-Processor-Microcode-Data-Files-microcode-$v.tar.gz sha256:7614616d7b2988c278060486f47de716ef44c19317928cb45ac9e288fafd5bd1"
+	"https://www.kernel.org/pub/linux/kernel/firmware/linux-firmware-20260916.tar.xz sha256:f80dcb757a623deda62200c08e0e1a88c76fb6b54964f31b35fa74da1c90ccc5"
+)
+build() {
+	local dest=/usr/lib/syn-lfs/ucode
+	rm -rf $dest
+	install -Dm644 intel-ucode/* -t $dest/intel-ucode
+	tar -xf ../linux-firmware-20260916.tar.xz --wildcards '*/amd-ucode/*.bin'
+	install -Dm644 linux-firmware-20260916/amd-ucode/*.bin -t $dest/amd-ucode
+}

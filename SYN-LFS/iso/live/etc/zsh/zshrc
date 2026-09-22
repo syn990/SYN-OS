@@ -1,0 +1,74 @@
+#!/bin/zsh
+# =============================================================================
+#                          SYN-OS (LFS) live .zshrc
+#       Live ISO Environment Configuration & Installation Splash Screen
+# -----------------------------------------------------------------------------
+#   The SYN-OS Arch ISO's live shell, on the SYN-LFS ISO: same splash, same
+#   box, same palette. Only on the live overlay; installed systems never
+#   get this file. Everything installs from the ISO itself, so there's no
+#   network step: configure, then install.
+#   Author: William Hayward-Holland (synos-install)
+#   License: MIT
+# =============================================================================
+
+if [[ -o interactive && -t 1 ]]; then
+  clear
+fi
+
+if [[ -o interactive && -t 1 ]]; then
+  B=$'\033[1;37m│\033[0m'   # bright-white border, left edge only
+  R=$'\033[1;31m'           # SYN-OS red, for headings/emphasis
+  Z=$'\033[0m'
+
+  printf "${R}\n"
+  printf " ▄▄▄▄▄▄▄▄▄▄▄  ▄         ▄  ▄▄        ▄               ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄\n"
+  printf "▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░▌      ▐░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌\n"
+  printf "▐░█▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌▐░▌░▌     ▐░▌             ▐░█▀▀▀▀▀▀▀█░▌▐░█▀▀▀▀▀▀▀▀▀\n"
+  printf "▐░▌          ▐░▌       ▐░▌▐░▌▐░▌    ▐░▌             ▐░▌       ▐░▌▐░▌\n"
+  printf "▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄█░▌▐░▌ ▐░▌   ▐░▌ ▄▄▄▄▄▄▄▄▄▄▄ ▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄\n"
+  printf "▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌  ▐░▌  ▐░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌\n"
+  printf " ▀▀▀▀▀▀▀▀▀█░▌ ▀▀▀▀█░█▀▀▀▀ ▐░▌   ▐░▌ ▐░▌ ▀▀▀▀▀▀▀▀▀▀▀ ▐░▌       ▐░▌ ▀▀▀▀▀▀▀▀▀█░▌\n"
+  printf "          ▐░▌     ▐░▌     ▐░▌    ▐░▌▐░▌             ▐░▌       ▐░▌          ▐░▌\n"
+  printf " ▄▄▄▄▄▄▄▄▄█░▌     ▐░▌     ▐░▌     ▐░▐░▌             ▐░█▄▄▄▄▄▄▄█░▌ ▄▄▄▄▄▄▄▄▄█░▌\n"
+  printf "▐░░░░░░░░░░░▌     ▐░▌     ▐░▌      ▐░░▌             ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌\n"
+  printf " ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀        ▀▀               ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀\n"
+  printf "${Z}"
+  printf "\n${R}┌─ SYN-OS Live (Linux From Scratch) ────────────────────────${Z}\n"
+  printf "$B Temporary installer shell — not your final system.\n"
+  printf "$B Everything it installs is already on this ISO: no network needed.\n"
+  printf "$B\n"
+
+  printf "$B ${R}[1/2] Configure${Z} — tell the installer what to build before you build it.\n"
+  printf "$B Everything lives in one file, \033[1m/etc/syn-os/synos.conf\033[0m. Edit it with:\n"
+  printf "$B       \033[1;37msynos-config\033[0m\033[2m  (nano on synos.conf)\033[0m\n"
+  printf "$B       or scp your own pre-filled synos.conf over this one.\n"
+  printf "$B At minimum, set \033[1mDisk\033[0m (\033[1;37mlsblk\033[0m lists them) and \033[1mUserAccountPassword\033[0m.\n"
+  printf "$B\n"
+
+  printf "$B ${R}[2/2] Install${Z} — this is the point of no return.\n"
+  printf "$B \033[1mIt ERASES the disk named in synos.conf\033[0m — it'll ask you to confirm before wiping anything. Run:\n"
+  printf "$B       \033[1;37msynos-install\033[0m\n"
+  printf "$B\n"
+  printf "$B \033[2mBefore that, if you like: \033[0m\033[1;37msynos\033[0m\033[2m tries the desktop, \033[0m\033[1;37msynos-connect\033[0m\033[2m or \033[0m\033[1;37miwctl\033[0m\033[2m joins Wi-Fi.\033[0m\n"
+  printf "${R}└─────────────────────────────────────────────────────────────${Z}\n"
+fi
+
+# =============================================================================
+# SYN‑OS Structure
+# =============================================================================
+printf "\n\033[1;31m[SYN‑OS Structure]\033[0m Scripts: /usr/lib/syn-os/  •  Config: /etc/syn-os/\n"
+
+# =============================================================================
+# Environment
+# =============================================================================
+export EDITOR='nano'
+
+: "${XDG_CACHE_HOME:=${HOME}/.cache}"
+: "${XDG_STATE_HOME:=${HOME}/.local/state}"
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias synos-install="doas zsh /usr/lib/syn-os/syn-lfs-install.zsh"
+alias synos-config="doas nano /etc/syn-os/synos.conf"
+alias synos-connect="/usr/lib/syn-os/syn-connect"

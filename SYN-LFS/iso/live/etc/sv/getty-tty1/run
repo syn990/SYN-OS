@@ -1,0 +1,15 @@
+#!/bin/sh
+# SYN-LFS live: log synstigator in on tty1, the live-session account from
+# the SYN-OS Arch ISO: wheel, password synstigator, doas without asking.
+# Made here each boot (only ever on the live overlay), with its home from
+# /etc/skel, so the full SYN desktop is there to try: type synos.
+if ! id -u synstigator > /dev/null 2>&1; then
+	useradd -m -G wheel,video,audio,input -s /bin/zsh synstigator
+	echo synstigator:synstigator | chpasswd
+	grep -qx 'permit nopass synstigator' /etc/doas.conf ||
+		echo 'permit nopass synstigator' >> /etc/doas.conf
+fi
+# runit stage 1 made the runtime dirs before this account existed
+uid=$(id -u synstigator)
+install -d -m 0700 -o synstigator -g synstigator /run/user/$uid
+exec chpst -P /usr/sbin/agetty --autologin synstigator --noclear tty1 38400 linux

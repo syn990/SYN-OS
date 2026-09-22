@@ -16,6 +16,8 @@ opendoas
 dbus
 basu
 libxcrypt-compat
+nano
+dosfstools
 
 # Images, fonts, text shaping
 libpng
@@ -99,6 +101,8 @@ iwd
 dhcpcd
 wireless-regdb
 linux-firmware
+sof-firmware
+cpu-microcode
 
 # Xwayland, so X11 programs run (the Steam client is one)
 xcb-utils
@@ -164,5 +168,6 @@ syn-wallgen
 
 # SYN-OS config on top (needs everything above)
 syn-desktop
+syn-installer
 syn-crypter
 syn-uplink-dialpad

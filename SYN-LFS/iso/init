@@ -1,0 +1,66 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+#                      S Y N - L F S   L I V E   I N I T
+#
+#   /init of the installer ISO's initramfs. Finds the boot medium (the ISO,
+#   burnt or written to a USB stick), mounts its squashfs root read-only
+#   with a tmpfs overlay on top, lays the live-session files over that and
+#   hands over to runit. The squashfs stays mounted at /run/syn/rootfs:
+#   that clean copy of the system is what synos-install puts on disk, so
+#   nothing from the live session ends up in an installed system.
+#   syn.toram on the command line copies the image into RAM first, so the
+#   USB stick can come out.
+# ------------------------------------------------------------------------------
+PATH=/usr/bin:/usr/sbin
+export PATH
+
+rescue() {
+	echo "SYN-LFS live: $1"
+	echo "Dropping to a shell; exit it to reboot."
+	bash
+	echo b > /proc/sysrq-trigger
+}
+
+mount -t proc -o nosuid,noexec,nodev proc /proc
+mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
+mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+mkdir -p /run/syn/medium /run/syn/rootfs /run/syn/rw /newroot
+
+# The medium is the ISO9660 filesystem labelled SYN_LFS that holds the root
+# image. USB sticks and some drives show up a few seconds into boot
+medium=
+for i in {1..30}; do
+	for dev in $(blkid -c /dev/null -o device -t LABEL=SYN_LFS); do
+		if mount -o ro "$dev" /run/syn/medium 2> /dev/null; then
+			[ -f /run/syn/medium/syn-lfs/rootfs.sfs ] && { medium=$dev; break 2; }
+			umount /run/syn/medium
+		fi
+	done
+	sleep 1
+done
+[ -n "$medium" ] || rescue "no SYN_LFS boot medium found"
+
+image=/run/syn/medium/syn-lfs/rootfs.sfs
+if grep -qw syn.toram /proc/cmdline; then
+	echo "SYN-LFS live: copying the system into RAM"
+	cp "$image" /run/syn/rootfs.sfs || rescue "not enough RAM to copy the image"
+	umount /run/syn/medium
+	image=/run/syn/rootfs.sfs
+fi
+mount -o ro,loop "$image" /run/syn/rootfs || rescue "cannot mount $image"
+
+mount -t tmpfs -o mode=0755,size=75% tmpfs /run/syn/rw
+mkdir -p /run/syn/rw/upper /run/syn/rw/work
+mount -t overlay overlay \
+	-o lowerdir=/run/syn/rootfs,upperdir=/run/syn/rw/upper,workdir=/run/syn/rw/work \
+	/newroot || rescue "cannot set up the overlay"
+
+# The live session, on the overlay only: the synstigator autologin and
+# the SYN splash, and an fstab without the installed system's partitions
+cp -a /newroot/usr/share/syn-lfs/live/. /newroot/
+
+umount /proc /sys
+mount --move /dev /newroot/dev
+mount --move /run /newroot/run
+exec switch_root /newroot /sbin/init

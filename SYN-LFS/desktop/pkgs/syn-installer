@@ -1,0 +1,17 @@
+# What the installer ISO needs inside the system (build.zsh iso makes the
+# ISO): syn-ui.zsh, the Arch installer's colours and banners, straight from
+# SYN-ISO-PROFILE; synos-install for LFS and its synos.conf; and the live
+# session (synstigator autologin, the SYN splash) that the ISO's initramfs
+# lays over the system at boot. Inert on an installed system
+v=local
+always=1
+build() {
+	local iso=$SYN_REPO/SYN-LFS/iso
+	install -m755 "$SYN_REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-ui.zsh" /usr/lib/syn-os/
+	install -m755 "$iso/syn-lfs-install.zsh" /usr/lib/syn-os/
+	install -Dm644 "$iso/synos.conf" /etc/syn-os/synos.conf
+	rm -rf /usr/share/syn-lfs/live
+	install -d /usr/share/syn-lfs
+	cp -R "$iso/live" /usr/share/syn-lfs/live
+	chmod 755 /usr/share/syn-lfs/live/etc/sv/getty-tty1/run
+}

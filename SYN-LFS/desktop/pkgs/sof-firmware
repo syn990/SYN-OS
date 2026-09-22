@@ -1,0 +1,9 @@
+# Intel's Sound Open Firmware (the audio DSP firmware and topologies):
+# sound on most Intel laptops from about 2019 on, with the SOF drivers in
+# kernel-sound.syn. Copied in as Arch packages it, minus the debug tools
+v=2026.09
+src=("https://github.com/thesofproject/sof-bin/releases/download/v$v/sof-bin-$v.tar.gz sha256:fa36605af8f0e78c8cf39ede079306815fa6f29d47c2b7026753dcb2b14649d5")
+build() {
+	install -d /usr/lib/firmware/intel
+	cp -dR sof sof-ace-tplg sof-ipc4 sof-ipc4-lib sof-ipc4-tplg sof-tplg /usr/lib/firmware/intel/
+}

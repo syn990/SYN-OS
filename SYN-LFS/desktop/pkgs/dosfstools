@@ -1,0 +1,9 @@
+# mkfs.vfat, for the EFI system partition synos-install creates
+v=4.2
+src=("https://github.com/dosfstools/dosfstools/releases/download/v$v/dosfstools-$v.tar.gz md5:49c8e457327dc61efab5b115a27b087a")
+build() {
+	./configure --prefix=/usr --enable-compat-symlinks --mandir=/usr/share/man \
+		--docdir=/usr/share/doc/dosfstools-$v
+	make
+	make install
+}
