@@ -1,0 +1,9 @@
+# Screen recording and streaming, on the FFmpeg, Qt, PipeWire and
+# PulseAudio already here. No Lua and Python scripting (that wants
+# LuaJIT and SWIG) and no obs-websocket, whose own dependencies aren't
+# in the source release
+v=32.2.2
+src=("https://github.com/obsproject/obs-studio/releases/download/$v/OBS-Studio-$v-Sources.tar.gz sha256:ec81fb66b03e75ddb3076b576f62679c39262e0e9960cef3e17a40dc5d68e6b4")
+build() {
+	cmake_build -D ENABLE_SCRIPTING=OFF -D ENABLE_WEBSOCKET=OFF -D ENABLE_BROWSER=OFF         -D ENABLE_WHIP=OFF -D ENABLE_VST=OFF -D CMAKE_INSTALL_LIBDIR=lib
+}

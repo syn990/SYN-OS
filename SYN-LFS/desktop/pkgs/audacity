@@ -1,0 +1,17 @@
+# Upstream's own build, unpacked out of its AppImage: Audacity 4 expects
+# Conan to fetch a pile of libraries while it builds, which an offline
+# chroot can't do
+v=4.0.0
+src=("https://github.com/audacity/audacity/releases/download/Audacity-$v/audacity-linux-$v-x86_64.AppImage sha256:772663b0b407be44232193b8402cde4da4665c7f6e81edb5b70e3b14e8b9b5b4")
+noextract=1
+build() {
+	chmod +x audacity-linux-$v-x86_64.AppImage
+	./audacity-linux-$v-x86_64.AppImage --appimage-extract > /dev/null
+	rm -rf /opt/audacity
+	mv squashfs-root /opt/audacity
+	chmod -R go-w /opt/audacity
+	ln -sf /opt/audacity/AppRun /usr/bin/audacity
+	install -Dm644 /opt/audacity/audacity.desktop /usr/share/applications/audacity.desktop
+	sed -i 's|^Exec=.*|Exec=/usr/bin/audacity %F|' /usr/share/applications/audacity.desktop
+	install -Dm644 /opt/audacity/audacity.png /usr/share/pixmaps/audacity.png 2> /dev/null || true
+}

@@ -1,0 +1,6 @@
+# Header-only SIMD shims, which OBS builds against
+v=0.8.2
+src=("https://github.com/simd-everywhere/simde/archive/v$v/simde-$v.tar.gz sha256:ed2a3268658f2f2a9b5367628a85ccd4cf9516460ed8604eed369653d49b25fb")
+build() {
+	meson_build -D tests=false
+}

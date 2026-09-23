@@ -243,6 +243,13 @@ gimp
 libgpg-error
 libgcrypt
 vlc
+simde
+uthash
+jansson
+obs-studio
+audacity
+openra
+binwalk
 
 # Google Chrome and the libraries its binary links against
 nspr

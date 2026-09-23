@@ -123,6 +123,12 @@ CONFIG_MT7925E=m
 CONFIG_WLAN_VENDOR_BROADCOM=y
 CONFIG_BRCMFMAC=m
 
+# --- Compressed swap in RAM (runit stage 1 sets it up from synos.conf)
+CONFIG_ZRAM=m
+CONFIG_ZRAM_DEF_COMP_ZSTD=y
+CONFIG_ZSMALLOC=y
+CONFIG_CRYPTO_ZSTD=y
+
 # --- Bluetooth for bluez: USB adapters (how laptops attach theirs, with
 # the Intel, Broadcom, Realtek and MediaTek firmware loaders), and what
 # keyboards, mice and headsets use

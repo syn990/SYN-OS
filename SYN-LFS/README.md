@@ -45,7 +45,9 @@ The desktop is one small recipe per package in `desktop/pkgs`: version, source U
 
 Firmware isn't held back for being non-free: linux-firmware, Intel's SOF audio firmware, and Intel and AMD microcode, built into the kernel since there's no initramfs to carry it.
 
-VLC, GIMP and the rest of the applications from `syn-packages.zsh` are built from the book too, along with the Rust toolchain that librsvg needs, which is what draws SVG icons, thumbnails and the diagrams in the Docs menu.
+The desktop's applications come from the same list the Arch ISO installs, `syn-packages.zsh`: VLC, GIMP, OBS, FeatherPad, xarchiver, feh, the CLI tools, the filesystem and disk tools, OpenVPN, Bluetooth, and so on. Audacity and OpenRA are upstream's own AppImages unpacked into `/opt`, since both expect a package manager to hand them a pile of libraries or a .NET runtime. The Rust toolchain is upstream's build, and it's there for librsvg, which is what draws SVG icons, thumbnails and the diagrams in the Docs menu.
+
+Compressed swap in RAM is set up at boot from `synos.conf`'s `ZramPercent` and `ZramMaxMiB`, which is the job systemd's zram-generator does on Arch.
 
 Chrome is Google's own .deb unpacked into `/opt`. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
 
@@ -67,9 +69,9 @@ The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making t
 
 - Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and there's no initramfs to unlock anything. cryptsetup and LVM are installed, so a second disk can be unlocked by hand.
 - SYN-SHARE: its rsync, Samba, NFS, HTTP, TFTP and netcat services are systemd units.
-- Falkon. It needs QtWebEngine, which is a fork of Chromium plus the KDE frameworks, so it's the better part of a day's compiling for a second browser. Chrome is the browser here.
-- OpenRA, which runs on .NET.
-- chntpw. It's written against OpenSSL's old DES and MD4 calls, which OpenSSL 4 no longer has.
-- OBS and Audacity.
+- Falkon. It needs QtWebEngine, a fork of Chromium, plus the KDE frameworks: the better part of a day's compiling for a second browser, when Chrome is already here.
+- chntpw, which is written against OpenSSL's old DES and MD4 calls. OpenSSL 4 doesn't have them.
+- qt5ct and kvantum-qt5. Nothing here is built against Qt5; the Qt6 versions of both are in.
+- sof-tools, the debugging tools for the SOF audio firmware. The firmware itself is in.
 - Screen sharing out of Chrome, which needs xdg-desktop-portal-wlr.
 - A package manager. Packages are recorded in `/var/lib/syn-lfs/pkgs`, but nothing tracks which files each one installed.

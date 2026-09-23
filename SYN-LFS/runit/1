@@ -45,6 +45,23 @@ rm -f /fastboot /forcefsck
 mount --all --test-opts no_netdev
 swapon -a
 
+# Compressed swap in RAM, sized from /etc/sysconfig/zram (the installer
+# writes it from synos.conf's ZramPercent and ZramMaxMiB). This is the
+# job systemd's zram-generator does elsewhere
+if [ -r /etc/sysconfig/zram ]; then
+	. /etc/sysconfig/zram
+	if [ "${ZramPercent:-0}" -gt 0 ] && modprobe zram num_devices=1 2> /dev/null; then
+		mib=$(awk -v pct="$ZramPercent" '/^MemTotal:/ {printf "%d", $2 * pct / 102400}' /proc/meminfo)
+		[ "${ZramMaxMiB:-0}" -gt 0 ] && [ "$mib" -gt "$ZramMaxMiB" ] && mib=$ZramMaxMiB
+		if [ "$mib" -gt 0 ]; then
+			echo zstd > /sys/block/zram0/comp_algorithm 2> /dev/null
+			echo "${mib}M" > /sys/block/zram0/disksize &&
+				mkswap -U clear /dev/zram0 > /dev/null 2>&1 &&
+				swapon --discard --priority 100 /dev/zram0
+		fi
+	fi
+fi
+
 # Fresh /tmp and utmp (cleanfs)
 find /tmp -mindepth 1 -delete 2>/dev/null
 install -d -m 1777 /tmp/.X11-unix /tmp/.ICE-unix

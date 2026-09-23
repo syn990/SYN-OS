@@ -111,6 +111,8 @@ else
   ln -sf /usr/share/zoneinfo/Europe/London "$Target/etc/localtime"
 fi
 printf 'KEYMAP="%s"\nFONT="%s"\n' "$KeyMap" "$VconsoleFont" > "$Target/etc/sysconfig/console"
+printf 'ZramPercent=%s\nZramMaxMiB=%s\n' "${ZramPercent:-0}" "${ZramMaxMiB:-0}" \
+  > "$Target/etc/sysconfig/zram"
 
 # labwc reads its layout from XKB_DEFAULT_LAYOUT; console keymap and XKB
 # names differ for some layouts (uk -> gb). Set in skel, before the user
