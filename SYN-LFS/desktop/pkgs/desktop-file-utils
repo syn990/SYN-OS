@@ -1,0 +1,8 @@
+# update-desktop-database, which keeps the "All Applications" menu and
+# xdg-open's associations in step
+v=0.28
+src=("https://www.freedesktop.org/software/desktop-file-utils/releases/desktop-file-utils-$v.tar.xz md5:dec5d7265c802db1fde3980356931b7b")
+build() {
+	meson_build
+	update-desktop-database /usr/share/applications
+}

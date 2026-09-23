@@ -1,0 +1,5 @@
+v=0.3.29
+src=("https://github.com/hughsie/libxmlb/releases/download/$v/libxmlb-$v.tar.xz md5:83f87e2ce1fd6b34b25e7f5e1443293c")
+build() {
+	meson_build -D gtkdoc=false
+}

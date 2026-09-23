@@ -1,0 +1,7 @@
+# Builds a Rust crate as a C library, which is how librsvg installs
+# itself. Upstream's static build
+v=0.10.25
+src=("https://github.com/lu-zero/cargo-c/releases/download/v$v/cargo-c-x86_64-unknown-linux-musl.tar.gz sha256:2fbf0d1b56a9a0b52431c2a159d9544b4b0729f2eabaed3904a41cce0e8cd4b0 cargo-c-$v-x86_64-linux-musl.tar.gz")
+build() {
+	install -m755 cargo-capi cargo-cbuild cargo-cinstall cargo-ctest /usr/bin
+}

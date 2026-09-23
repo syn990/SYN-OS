@@ -1,0 +1,6 @@
+# Colour management, for GIMP and poppler
+v=2.19.1
+src=("https://github.com/mm2/Little-CMS/releases/download/lcms2.${v#2.}/lcms2-$v.tar.gz md5:541978f73749499e9e0277bfe5a3c868")
+build() {
+	meson_build
+}

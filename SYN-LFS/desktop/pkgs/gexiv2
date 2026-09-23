@@ -1,0 +1,5 @@
+v=0.16.2
+src=("https://download.gnome.org/sources/gexiv2/${v%.*}/gexiv2-$v.tar.xz md5:ed530cddf2f30e1903e983e5542262f9")
+build() {
+	meson_build
+}

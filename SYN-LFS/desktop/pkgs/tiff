@@ -1,0 +1,6 @@
+v=4.7.2
+src=("https://download.osgeo.org/libtiff/tiff-$v.tar.gz md5:a2a65ea450b8f469c667128848ffebfc")
+build() {
+	cmake_build -W no-author
+	mv -v /usr/share/doc/tiff{,-$v}
+}

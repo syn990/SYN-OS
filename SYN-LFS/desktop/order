@@ -130,6 +130,11 @@ fmt
 spdlog
 jsoncpp
 
+# Rust, for librsvg (SVG icons and thumbnails)
+rust
+cargo-c
+librsvg
+
 # Audio: PipeWire as the server, libpulse for its clients
 alsa-lib
 libsndfile
@@ -212,6 +217,32 @@ font-noto-emoji
 font-noto
 font-noto-cjk
 font-bitstream-vera
+
+# The rest of syn-packages.zsh: VLC, GIMP and what they need
+lcms2
+tiff
+json-glib
+libxslt
+lxml
+itstool
+libfyaml
+libxmlb
+appstream
+nettle
+gnutls
+glib-networking
+poppler
+exiv2
+gexiv2
+babl
+gegl
+libmypaint
+mypaint-brushes
+desktop-file-utils
+gimp
+libgpg-error
+libgcrypt
+vlc
 
 # Google Chrome and the libraries its binary links against
 nspr

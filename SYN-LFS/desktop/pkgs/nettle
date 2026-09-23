@@ -1,0 +1,8 @@
+v=4.0
+src=("https://ftpmirror.gnu.org/nettle/nettle-$v.tar.gz md5:144401453f9f35e53938bcacfc59800e")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+	chmod -v 755 /usr/lib/lib{hogweed,nettle}.so
+}

@@ -1,0 +1,9 @@
+# Plays everything, on the FFmpeg and Qt already built here
+v=3.0.23
+src=("https://download.videolan.org/vlc/$v/vlc-$v.tar.xz md5:ebc3f0d0a94785fd2b2df4087516938e")
+build() {
+	sed -i 's/gstvideopool.h/video.h/' modules/codec/gstreamer/gstvlcvideopool.h
+	BUILDCC=gcc ./configure --prefix=/usr
+	make
+	make docdir=/usr/share/doc/vlc-$v install
+}

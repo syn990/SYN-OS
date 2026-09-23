@@ -1,0 +1,7 @@
+v=2.0.2
+src=("https://github.com/mypaint/mypaint-brushes/releases/download/v$v/mypaint-brushes-$v.tar.xz md5:ce965cd5d75947b7beca5ed3ee4521d2")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

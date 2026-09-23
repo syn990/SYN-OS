@@ -45,6 +45,8 @@ The desktop is one small recipe per package in `desktop/pkgs`: version, source U
 
 Firmware isn't held back for being non-free: linux-firmware, Intel's SOF audio firmware, and Intel and AMD microcode, built into the kernel since there's no initramfs to carry it.
 
+VLC, GIMP and the rest of the applications from `syn-packages.zsh` are built from the book too, along with the Rust toolchain that librsvg needs, which is what draws SVG icons, thumbnails and the diagrams in the Docs menu.
+
 Chrome is Google's own .deb unpacked into `/opt`. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
 
 ## Running without systemd
@@ -59,15 +61,15 @@ runit is PID 1, and there's no logind, so:
 - Steam's controller rules hand devices to the `input` group rather than to whoever logind says is here.
 - runit stage 2 raises the open-files limit for every login, which Proton's esync needs.
 
-The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making the changes this system needs: its own `menu.xml` (Chrome and Steam up front, All Applications generated from the installed .desktop files, config files in nano, the runit services toggle), no SYN-SHARE module on the bar, the Adwaita cursor, dark GTK, and `xdg-open` pointed at Chrome, nano and syn-filemanager. syn-sysmon's Logs view reads the service logs and syslog rather than a journal.
+The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making the changes this system needs: its own `menu.xml` (Chrome and Steam up front, All Applications generated from the installed .desktop files, the runit services toggle), no SYN-SHARE module on the bar, the Adwaita cursor, dark GTK, and `xdg-open` pointed at Chrome, FeatherPad and syn-filemanager. syn-sysmon's Logs view reads the service logs and syslog rather than a journal.
 
 ## Not there yet
 
-- Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and there's no initramfs to unlock anything.
+- Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and there's no initramfs to unlock anything. cryptsetup and LVM are installed, so a second disk can be unlocked by hand.
 - SYN-SHARE: its rsync, Samba, NFS, HTTP, TFTP and netcat services are systemd units.
-- GTK's icons. The Adwaita cursors are in, but the icons are SVG and drawing those needs librsvg, which needs Rust.
-- qt6ct, so syn-filemanager doesn't follow the SYN theme. It needs Qt's translation tools.
-- The bigger apps from the Arch package list: FeatherPad, Falkon, VLC, GIMP, Audacity, OBS.
-- zenity, which Steam uses for a few error dialogs. It needs GTK4 and libadwaita.
+- Falkon. It needs QtWebEngine, which is a fork of Chromium plus the KDE frameworks, so it's the better part of a day's compiling for a second browser. Chrome is the browser here.
+- OpenRA, which runs on .NET.
+- chntpw. It's written against OpenSSL's old DES and MD4 calls, which OpenSSL 4 no longer has.
+- OBS and Audacity.
 - Screen sharing out of Chrome, which needs xdg-desktop-portal-wlr.
 - A package manager. Packages are recorded in `/var/lib/syn-lfs/pkgs`, but nothing tracks which files each one installed.

@@ -199,6 +199,9 @@ chroot_up() {
 	doas mount -t proc proc $MNT/proc
 	doas mount -t sysfs sysfs $MNT/sys
 	doas mount -t tmpfs tmpfs $MNT/run
+	# librsvg's Rust crates are the one thing fetched from inside the
+	# chroot; everything else is downloaded by fetch beforehand
+	doas cp -f /etc/resolv.conf $MNT/etc/resolv.conf
 }
 
 chroot_down() {
