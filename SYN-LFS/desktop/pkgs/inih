@@ -1,0 +1,5 @@
+v=r62
+src=("https://github.com/benhoyt/inih/archive/$v/inih-$v.tar.gz md5:c0c6982525958a0376a3cb5bfbee14a0")
+build() {
+	meson_build
+}

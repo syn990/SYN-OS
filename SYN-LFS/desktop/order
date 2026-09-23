@@ -36,6 +36,32 @@ bat
 zoxide
 glow
 
+# Disks, filesystems and the system tools the installer and SYN-SHARE use
+libaio
+popt
+json-c
+lvm2
+cryptsetup
+inih
+liburcu
+xfsprogs
+btrfs-progs
+f2fs-tools
+ntfs-3g
+fuse3
+fuse2
+sshfs
+parted
+mbedtls
+dnsmasq
+hostapd
+calc
+hexedit
+lshw
+fakeroot
+yt-dlp
+android-tools
+
 # Images, fonts, text shaping
 libpng
 libjpeg-turbo
@@ -143,6 +169,12 @@ xwayland
 # Qt 6, for syn-filemanager
 qtbase
 qtwayland
+qtsvg
+qttools
+hunspell
+qt6ct
+kvantum
+featherpad
 
 # The desktop: labwc, waybar and the Wayland tools SYN-OS uses
 wlroots
@@ -165,6 +197,10 @@ waypipe
 brightnessctl
 graphviz
 adwaita-icon-theme
+giflib
+imlib2
+feh
+xarchiver
 
 # Fonts
 terminus-font
@@ -173,6 +209,9 @@ font-liberation
 font-terminus-nerd
 font-awesome
 font-noto-emoji
+font-noto
+font-noto-cjk
+font-bitstream-vera
 
 # Google Chrome and the libraries its binary links against
 nspr
@@ -207,6 +246,7 @@ syn-wallgen
 syn-sysmon
 syn-relay
 syn-filemanager
+dislocker
 
 # SYN-OS config on top (needs everything above)
 syn-desktop

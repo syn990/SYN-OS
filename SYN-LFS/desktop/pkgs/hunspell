@@ -1,0 +1,9 @@
+# Spell checking, which FeatherPad wants
+v=1.7.3
+src=("https://github.com/hunspell/hunspell/archive/v$v/hunspell-$v.tar.gz sha256:933be3dac6fd55f6e752331a170efb7e33800e40fae1156d8434cc8c85379a1b")
+build() {
+	autoreconf -fiv
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

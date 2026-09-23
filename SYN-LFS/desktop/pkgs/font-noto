@@ -1,0 +1,14 @@
+# Noto Sans and Serif (Latin, Greek, Cyrillic), the hinted TrueType set
+v=2.015
+src=(
+	"https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v$v/NotoSans-v$v.zip sha256:0c34df072a3fa7efbb7cbf34950e1f971a4447cffe365d3a359e2d4089b958f5"
+	"https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSerif-v$v/NotoSerif-v$v.zip sha256:0e9a43c8a4b94ac76f55069ed1d7385bbcaf6b99527a94deb5619e032b7e76c1"
+)
+build() {
+	# The first archive unpacks into NotoSans/, which is where this starts;
+	# the Serif one goes next to it
+	cd ..
+	python3 -m zipfile -e NotoSerif-v$v.zip .
+	install -Dm644 NotoSans/hinted/ttf/*.ttf NotoSerif/hinted/ttf/*.ttf -t /usr/share/fonts/noto
+	fc-cache -f /usr/share/fonts/noto
+}

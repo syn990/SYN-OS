@@ -1,0 +1,10 @@
+# Pretends to be root for build systems that insist on it
+v=1.37.1.1
+src=("https://ftp.debian.org/debian/pool/main/f/fakeroot/fakeroot_$v.orig.tar.gz sha256:86b0b75bf319ca42e525c098675b6ed10a06b76e69ec9ccf20ef5e03883b3a14")
+build() {
+	./configure --prefix=/usr --libdir=/usr/lib/libfakeroot --disable-static
+	make
+	make install
+	echo /usr/lib/libfakeroot > /etc/ld.so.conf.d/fakeroot.conf
+	ldconfig
+}

@@ -1,0 +1,6 @@
+v=1.10
+src=("https://download.gnome.org/sources/ttf-bitstream-vera/$v/ttf-bitstream-vera-$v.tar.bz2 sha256:db5b27df7bbb318036ebdb75acd3e98f1bd6eb6608fb70a67d478cd243d178dc")
+build() {
+	install -Dm644 *.ttf -t /usr/share/fonts/bitstream-vera
+	fc-cache -f /usr/share/fonts/bitstream-vera
+}

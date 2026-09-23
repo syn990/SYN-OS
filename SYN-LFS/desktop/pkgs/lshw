@@ -1,0 +1,7 @@
+# What hardware is in this machine
+v=T.00.07
+src=("https://github.com/lyonel/lshw/archive/$v/lshw-$v.tar.gz sha256:761b7701533dbf92d46ed3a1066473939d50e303e8d454d6de346d2923142cea")
+build() {
+	make
+	make install PREFIX=/usr
+}

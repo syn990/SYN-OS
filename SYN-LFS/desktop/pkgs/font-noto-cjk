@@ -1,0 +1,7 @@
+# Chinese, Japanese and Korean, as one collection file per weight
+v=2.004
+src=("https://github.com/notofonts/noto-cjk/releases/download/Sans$v/03_NotoSansCJK-OTC.zip sha256:528f4e1b25ff3badb0321b38d015d954c4c0de926c7830ef50e4a1948f6a3eed NotoSansCJK-OTC-$v.zip")
+build() {
+	install -Dm644 *.ttc -t /usr/share/fonts/noto-cjk
+	fc-cache -f /usr/share/fonts/noto-cjk
+}

@@ -1,0 +1,8 @@
+# Filesystems in userspace: sshfs mounts, and anything else that asks
+v=3.18.2
+src=("https://github.com/libfuse/libfuse/releases/download/fuse-$v/fuse-$v.tar.gz md5:43c6f6cd2c1368d916f6fb080eb39cbb")
+build() {
+	sed -i '/^udev/,$ s/^/#/' util/meson.build
+	meson_build
+	chmod u+s /usr/bin/fusermount3
+}

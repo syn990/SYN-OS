@@ -1,0 +1,8 @@
+# Asynchronous I/O, which LVM builds against
+v=0.3.113
+src=("https://releases.pagure.org/libaio/libaio-$v.tar.gz md5:7d5be185f20eeaae15e267419950aaf7")
+build() {
+	sed -i '/install.*libaio.a/s/^/#/' src/Makefile
+	make
+	make install
+}

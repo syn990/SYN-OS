@@ -1,0 +1,8 @@
+# Partitioning, next to the sgdisk the installer uses
+v=3.7
+src=("https://ftpmirror.gnu.org/parted/parted-$v.tar.xz md5:b56ec0cf7bc89d61da1585f88fc8ef5e")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}
