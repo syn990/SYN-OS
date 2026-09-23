@@ -1,0 +1,8 @@
+# The CMake modules every KDE framework builds with
+v=6.29.0
+src=("https://download.kde.org/stable/frameworks/${v%.*}/extra-cmake-modules-$v.tar.xz md5:b3795f9b843a58746ca5461713c088d8")
+build() {
+	sed -i '/"lib64"/s/64//' kde-modules/KDEInstallDirsCommon.cmake
+	sed -e '/PACKAGE_INIT/i set(SAVE_PACKAGE_PREFIX_DIR "${PACKAGE_PREFIX_DIR}")'         -e '/^include/a set(PACKAGE_PREFIX_DIR "${SAVE_PACKAGE_PREFIX_DIR}")'         -i ECMConfig.cmake.in
+	cmake_build -D BUILD_WITH_QT6=ON         -D DOC_INSTALL_DIR=/usr/share/doc/extra-cmake-modules-$v
+}

@@ -49,7 +49,7 @@ The desktop's applications come from the same list the Arch ISO installs, `syn-p
 
 Compressed swap in RAM is set up at boot from `synos.conf`'s `ZramPercent` and `ZramMaxMiB`, which is the job systemd's zram-generator does on Arch.
 
-Chrome is Google's own .deb unpacked into `/opt`. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
+Falkon is built, with QtWebEngine under it, which is Chromium as a Qt library: on its own it is hours of compiling and tens of gigabytes of build tree, so it is the last thing the desktop step does. Chrome is Google's own .deb unpacked into `/opt`, and stays as the browser that starts in seconds. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
 
 ## Running without systemd
 
@@ -69,9 +69,8 @@ The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making t
 
 - Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and there's no initramfs to unlock anything. cryptsetup and LVM are installed, so a second disk can be unlocked by hand.
 - SYN-SHARE: its rsync, Samba, NFS, HTTP, TFTP and netcat services are systemd units.
-- Falkon. It needs QtWebEngine, a fork of Chromium, plus the KDE frameworks: the better part of a day's compiling for a second browser, when Chrome is already here.
-- chntpw, which is written against OpenSSL's old DES and MD4 calls. OpenSSL 4 doesn't have them.
 - qt5ct and kvantum-qt5. Nothing here is built against Qt5; the Qt6 versions of both are in.
 - sof-tools, the debugging tools for the SOF audio firmware. The firmware itself is in.
+- OpenRA and Audacity are upstream's AppImages rather than builds from source, for the reasons above.
 - Screen sharing out of Chrome, which needs xdg-desktop-portal-wlr.
 - A package manager. Packages are recorded in `/var/lib/syn-lfs/pkgs`, but nothing tracks which files each one installed.

@@ -1,0 +1,6 @@
+# Qt Quick: Falkon's QuickWidgets, and QtWebEngine's own QML side
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtdeclarative-everywhere-src-$v.tar.xz md5:363c756bb86a824fc79cabc8f9a0c903")
+build() {
+	cmake_build -D QT_BUILD_EXAMPLES=OFF -D QT_BUILD_TESTS=OFF
+}

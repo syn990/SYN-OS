@@ -257,6 +257,24 @@ nss
 cups
 google-chrome
 
+# Falkon, the browser from the Arch package list, and QtWebEngine under it
+nodejs
+html5lib
+pciutils
+rust-bindgen
+qtshadertools
+qtdeclarative
+qtwebchannel
+qtpositioning
+qtwebengine
+extra-cmake-modules
+karchive
+ki18n
+falkon
+
+# Windows recovery tools
+chntpw
+
 # 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
 lib32-xorg-libs
 lib32-libdrm

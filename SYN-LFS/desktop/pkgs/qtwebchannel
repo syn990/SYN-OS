@@ -1,0 +1,5 @@
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtwebchannel-everywhere-src-$v.tar.xz md5:3243b7fe51147fb72d8c85b05e7aa242")
+build() {
+	cmake_build
+}

@@ -1,0 +1,8 @@
+# The browser the Arch ISO installs. Chrome is here too and starts
+# faster, but this one is the SYN-OS default from the package list
+v=26.04.3
+src=("https://download.kde.org/stable/release-service/$v/src/falkon-$v.tar.xz md5:a5e8b39bb071747f12a22b90a1a98fff")
+build() {
+	cmake_build
+	ldconfig
+}

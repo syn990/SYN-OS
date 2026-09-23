@@ -1,0 +1,9 @@
+# Chromium looks up the GPU here; lspci comes with it
+v=3.15.0
+src=("https://mj.ucw.cz/download/linux/pci/pciutils-$v.tar.gz md5:20b8e936cce9784444961088c8801f68")
+build() {
+	sed -r '/INSTALL/{/PCI_IDS|update-pciids /d; s/update-pciids.8//}' -i Makefile
+	make PREFIX=/usr SHAREDIR=/usr/share/hwdata SHARED=yes
+	make PREFIX=/usr SHAREDIR=/usr/share/hwdata SHARED=yes install install-lib
+	chmod -v 755 /usr/lib/libpci.so
+}

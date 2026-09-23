@@ -1,0 +1,9 @@
+# Chromium as a Qt library, which is what Falkon renders pages with. The
+# longest build here by a distance: hours, and tens of gigabytes of
+# build tree. Bundled Chromium copies of ffmpeg and ICU, as the book
+# does, so it doesn't matter what this system's FFmpeg was built with
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtwebengine-everywhere-src-$v.tar.xz md5:a33984478c690295f2b7a3d153c5772d")
+build() {
+	cmake_build -D QT_FEATURE_webengine_proprietary_codecs=ON         -D QT_FEATURE_webengine_webrtc_pipewire=ON         -D QT_BUILD_EXAMPLES_BY_DEFAULT=OFF -D QT_GENERATE_SBOM=OFF
+}
