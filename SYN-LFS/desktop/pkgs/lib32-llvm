@@ -1,7 +1,7 @@
 # 32-bit LLVM for 32-bit Mesa's llvmpipe and radeonsi: just libLLVM and
 # llvm-config (installed as llvm-config32, which the llvm32 meson cross
 # file points Mesa at). Headers come from the 64-bit build of the same
-# release, as on Arch. Same source and patch as llvm
+# release. Same source and patch as llvm
 v=22.1.8
 src=(
 	"https://github.com/llvm/llvm-project/releases/download/llvmorg-$v/llvm-project-$v.src.tar.xz md5:69065494ebcb1150b2a329c1b3db7584"

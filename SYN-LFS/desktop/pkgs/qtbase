@@ -1,6 +1,6 @@
 # Qt 6's core and widgets, for syn-filemanager: the book's Qt version, but
 # just this module and the Wayland one rather than all of qt-everywhere,
-# laid out in /usr as Arch does (tools and plugins in /usr/lib/qt6). No
+# laid out with its tools and plugins in /usr/lib/qt6. No
 # xcb plugin: Qt programs open Wayland windows
 v=6.11.2
 src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtbase-everywhere-src-$v.tar.xz md5:cb3b718e2e589b61bd781b4596604a5b")

@@ -2,11 +2,9 @@
 <!-- SYN-LFS's root menu: SYN-OS's menu.xml (SYN-ISO-PROFILE's
      DotfileOverlay) with what differs on LFS. Chrome and Steam are listed
      up front. All Applications is built from the installed .desktop files
-     by syn-pipe-apps.zsh (Arch uses archlinux-xdg-menu). Services toggles
-     runit services. Config files open in nano in a terminal (no
-     FeatherPad here), and reboot and power off go through doas. Not here
-     yet: SYN-SHARE (built on systemd units), BlackArch (pacman) and the
-     ISO builder (archiso). -->
+     by syn-pipe-apps.zsh. Services toggles runit services. Config files
+     open in nano in a terminal, and reboot and power off go through
+     doas. SYN-SHARE is not here yet: its services are systemd units. -->
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
 
   <menu id="root-menu" label="SYN-OS">
