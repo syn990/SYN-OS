@@ -6,4 +6,8 @@ build() {
 	make
 	make install
 	svc dhcpcd
+	# dhcpcd configures every interface. The book's static ifconfig.eth0
+	# names an interface the kernel renames (enp1s0 and the like), so
+	# stage 1 printed a FAIL for it on every boot
+	rm -f /etc/sysconfig/ifconfig.*
 }

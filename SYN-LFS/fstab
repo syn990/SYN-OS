@@ -1,4 +1,4 @@
-# SYN-LFS: partitions by GPT label (build.zsh image names them), so the
+# SYN-OS: partitions by GPT label (build.zsh image names them), so the
 # same image boots in QEMU (/dev/vda) and on real disks and USB sticks
 PARTLABEL=synroot  /              ext4     defaults            1     1
 PARTLABEL=SYNEFI   /boot/efi      vfat     defaults,noauto     0     2

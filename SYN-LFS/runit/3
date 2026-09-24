@@ -6,11 +6,23 @@ PATH=/usr/bin:/usr/sbin
 sv -w 10 force-stop /var/service/*(N) 2>/dev/null
 sv exit /var/service/*(N) 2>/dev/null
 
+# TERM everything, give it up to 2 s to exit (not a fixed 2 s), then KILL
+# what is left. Kernel threads have an empty cmdline
 killall5 -15
-sleep 2
+for i in {1..20}; do
+	left=0
+	for p in /proc/<2->(N); do
+		[[ ${p:t} == $$ ]] && continue
+		{ [[ -n "$(<$p/cmdline)" ]] } 2>/dev/null && { left=1; break }
+	done
+	(( left )) || break
+	sleep 0.1
+done
 killall5 -9
 
-hwclock --systohc --utc
+# No hwclock --systohc: it waits for a clock tick first, a 10 s timeout
+# in QEMU. The kernel writes the RTC itself while NTP keeps time
+# (RTC_SYSTOHC)
 swapoff -a
 sync
 umount --all --detach-loop --read-only --types notmpfs,nosysfs,nodevtmpfs,noproc,nodevpts

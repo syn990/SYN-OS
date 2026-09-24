@@ -1,4 +1,4 @@
-# SYN-LFS kernel options, merged over defconfig + kvm_guest.config by
+# SYN-OS kernel options, merged over defconfig + kvm_guest.config by
 # `build.zsh kernel` (merge_config.sh format). The step lists any option
 # that did not end up as asked, since names move between kernel versions.
 

@@ -11,4 +11,7 @@ build() {
 	make install
 	install -d /etc/ssl/local
 	/usr/sbin/make-ca -f -C "$SYN_SRC/certdata.txt"
+	# The bundle at Debian's path too: Steam's own libcurl is built to read
+	# /etc/ssl/certs/ca-certificates.crt and finds no CA store without it
+	ln -sfv /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
 }

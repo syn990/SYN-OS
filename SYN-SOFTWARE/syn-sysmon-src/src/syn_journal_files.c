@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------------
  *   Plain log file backend for syn-sysmon's log view, for systems with no
- *   systemd journal (SYN-LFS on runit). Same interface as syn_journal.c;
+ *   systemd journal (SYN-OS on runit). Same interface as syn_journal.c;
  *   CMakeLists.txt builds this one when libsystemd isn't there.
  *
  *   A "unit" is one log file: every runit service's svlogd log

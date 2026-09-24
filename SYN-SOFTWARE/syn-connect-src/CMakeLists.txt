@@ -13,7 +13,7 @@ set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSES REQUIRED ncursesw)
 # sd-bus from systemd (Arch), elogind, or basu, the standalone copy that
-# SYN-LFS uses on runit. Same API; see syn_sd_bus.h for the header.
+# SYN-OS on runit uses. Same API; see syn_sd_bus.h for the header.
 pkg_search_module(SDBUS REQUIRED libsystemd libelogind basu)
 
 # syn_theme.c/.h are generic SYN_* palette loading, no crypter-specific

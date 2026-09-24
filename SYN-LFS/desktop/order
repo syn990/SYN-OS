@@ -4,7 +4,7 @@
 #
 # Categories and profiles. A `# [category]` header puts the recipes under
 # it in that category; a profile is the set of categories it builds, and
-# only filters the sequence below, never reorders it. SYN_LFS_PROFILE picks
+# only filters the sequence below, never reorders it. SYN_OS_PROFILE picks
 # one for build.zsh fetch and desktop (default full).
 profile full    baseCore netAndServices shellAndCLI desktopStack fontsI18n appsMedia synOS
 profile minimal baseCore netAndServices shellAndCLI desktopStack fontsI18n synOS
@@ -217,7 +217,9 @@ libsoup3
 libsecret
 gstreamer
 gst-plugins-base
+gst-plugins-good
 gst-plugins-bad
+gst-libav
 webkitgtk
 surf
 

@@ -13,7 +13,7 @@ set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-s")
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSES REQUIRED ncursesw)
 # The log view reads the systemd journal where there is one (Arch), and
-# plain log files otherwise (SYN-LFS on runit: svlogd and syslogd's files)
+# plain log files otherwise (SYN-OS on runit: svlogd and syslogd's files)
 pkg_check_modules(SDJOURNAL libsystemd)
 if(SDJOURNAL_FOUND)
   set(JOURNAL_SRC src/syn_journal.c)

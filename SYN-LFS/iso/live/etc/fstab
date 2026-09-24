@@ -1,4 +1,4 @@
-# SYN-LFS live: / is the ISO's image under a RAM overlay, set up by the
+# SYN-OS live: / is the ISO's image under a RAM overlay, set up by the
 # initramfs, so there are no disk partitions to mount or check here
 proc           /proc          proc     nosuid,noexec,nodev 0     0
 sysfs          /sys           sysfs    nosuid,noexec,nodev 0     0

@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 # ------------------------------------------------------------------------------
-#                          S Y N - L F S   B U I L D
+#                          S Y N - O S   B U I L D
 #
 #   Builds a bootable Linux From Scratch system into a disk image and boots
 #   it in QEMU under UEFI. The book's own commands are run by jhalfs, the LFS
@@ -28,7 +28,7 @@
 #     rekernel   rebuild the kernel in the chroot from the current config
 #     fetch      download the desktop's sources (no root needed)
 #     desktop    build the desktop in the chroot (desktop NAME...: just those)
-#                SYN_LFS_PROFILE=full|minimal picks the profile (desktop/order);
+#                SYN_OS_PROFILE=full|minimal picks the profile (desktop/order);
 #                fetch honours it too
 #     user NAME  add a login user (wheel, video, audio, input; zsh) and
 #                set their password
@@ -36,7 +36,7 @@
 #     umount     unmount and detach the image
 #     boot       boot the image in QEMU (serial console on this terminal)
 #     gui        boot it with a virtio GPU, input and sound, for the desktop
-#                (SYN_LFS_QEMU adds QEMU arguments, e.g. a USB Wi-Fi stick)
+#                (SYN_OS_QEMU adds QEMU arguments, e.g. a USB Wi-Fi stick)
 #     iso        make the installer ISO from the image (see iso/)
 #     isotest    boot the ISO in QEMU with a blank disk to install onto
 #                (isotest disk: boot that disk afterwards)
@@ -44,9 +44,9 @@
 setopt err_exit pipe_fail
 
 HERE=${0:A:h}
-W=${SYN_LFS_WORK:-$HOME/SYN-LFS-build}
-IMG=$W/lfs.img
-MNT=/mnt/lfs
+W=${SYN_OS_WORK:-$HOME/SYN-OS-build}
+IMG=$W/synos.img
+MNT=/mnt/syn-os
 SRC=$W/sources
 JHALFS=$W/jhalfs
 # The multilib book is a branch that keeps moving, so it's pinned: at this
@@ -85,6 +85,9 @@ step_image() {
 
 step_mount() {
 	local dev=$(loopdev)
+	# A VM booting the image has it open: mounting it too would corrupt it
+	[[ -n $dev ]] || ! doas fuser -s $IMG 2>/dev/null ||
+		{ print "$IMG is open by another process (a VM booting it?): shut that down first"; exit 1 }
 	[[ -n $dev ]] || dev=$(doas losetup -Pf --show $IMG)
 	doas mkdir -p $MNT
 	mountpoint -q $MNT || doas mount ${dev}p2 $MNT
@@ -110,11 +113,11 @@ step_kernel() {
 	# Intel's and AMD's files in the image; once they're there, every file
 	# is named here, and `rekernel` builds them in (the kernel picks the
 	# one for the CPU it boots on)
-	local ucode=$MNT/usr/lib/syn-lfs/ucode fw
+	local ucode=$MNT/usr/lib/syn-os/ucode fw
 	if [[ -d $ucode/intel-ucode ]]; then
 		fw=(${(f)"$(cd $ucode && find intel-ucode -type f && find amd-ucode -name '*.bin')"})
 		scripts/config --set-str EXTRA_FIRMWARE "${fw[*]}" \
-			--set-str EXTRA_FIRMWARE_DIR /usr/lib/syn-lfs/ucode
+			--set-str EXTRA_FIRMWARE_DIR /usr/lib/syn-os/ucode
 		print "microcode: ${#fw} files built in"
 	fi
 	make -s olddefconfig
@@ -140,13 +143,13 @@ k = kconfiglib.Kconfig("Config.in")
 want = {
     "BOOK_LFS_ANY": "y", "BOOK_LFS": "y", "BRANCH": "y",
     "COMMIT": os.environ["LFS_COMMIT"], "LFS_MULTILIB_I686": "y",
-    "BUILD_CHROOT": "y", "BUILDDIR": "/mnt/lfs",
+    "BUILD_CHROOT": "y", "BUILDDIR": "/mnt/syn-os",
     "GETPKG": "y", "SRC_ARCHIVE": os.environ["SRC"],
     "RUNMAKE": "n", "ALL_CORES": "y", "CONFIG_TESTS": "n", "STRIP": "y",
     "HAVE_FSTAB": "y", "FSTAB": os.environ["HERE"] + "/fstab",
     "CONFIG_BUILD_KERNEL": "y", "CONFIG": os.environ["W"] + "/kernel.config",
     "TIMEZONE": "Europe/London", "LANG": "en_GB.UTF-8", "PAGE_A4": "y",
-    "HOSTNAME": "syn-lfs", "NO_PROGRESS_BAR": "y", "REPORT": "y",
+    "HOSTNAME": "syn-os", "NO_PROGRESS_BAR": "y", "REPORT": "y",
 }
 bad = []
 for name, val in want.items():
@@ -238,7 +241,7 @@ step_runit() {
 	return $rc
 }
 
-# zsh into the base, straight after the LFS build: runit's stages, the
+# zsh into the base, straight after the base build: runit's stages, the
 # desktop builder and every SYN script are zsh. A no-op once it is in.
 step_zsh() {
 	mountpoint -q $MNT || { print "run: mount"; exit 1 }
@@ -298,7 +301,7 @@ step_rekernel() {
 }
 
 step_fetch() {
-	SYN_PROFILE=${SYN_LFS_PROFILE:-full} zsh $HERE/desktop/syn-pkg.zsh fetch $SRC/desktop
+	SYN_PROFILE=${SYN_OS_PROFILE:-full} zsh $HERE/desktop/syn-pkg.zsh fetch $SRC/desktop
 }
 
 # The chroot sees the fetched sources at /sources/syn-desktop and this
@@ -312,7 +315,7 @@ step_desktop() {
 	doas mount --bind $HERE:h $MNT/usr/src/SYN-OS
 	doas mount -o remount,bind,ro $MNT/usr/src/SYN-OS
 	local rc=0
-	in_chroot /usr/bin/env SYN_PROFILE=${SYN_LFS_PROFILE:-full} \
+	in_chroot /usr/bin/env SYN_PROFILE=${SYN_OS_PROFILE:-full} \
 		/usr/bin/zsh /usr/src/SYN-OS/SYN-LFS/desktop/syn-pkg.zsh build /sources/syn-desktop "$@" || rc=$?
 	doas umount $MNT/usr/src/SYN-OS $MNT/sources/syn-desktop
 	chroot_down
@@ -372,15 +375,15 @@ step_boot() {
 }
 
 # Display, input and sound for a desktop VM, in $reply. virtio-vga-gl
-# needs QEMU's virgl support (Arch: qemu-desktop); with SYN_LFS_DISPLAY=sdl
+# needs QEMU's virgl support (Arch: qemu-desktop); with SYN_OS_DISPLAY=sdl
 # or gtk (no ,gl=on) Mesa's llvmpipe draws instead
 desktop_args() {
 	local gpu=virtio-vga-gl
-	[[ ${SYN_LFS_DISPLAY:-gtk,gl=on} == *gl=on* ]] || gpu=virtio-vga
-	reply=(-device $gpu -display ${SYN_LFS_DISPLAY:-gtk,gl=on}
+	[[ ${SYN_OS_DISPLAY:-gtk,gl=on} == *gl=on* ]] || gpu=virtio-vga
+	reply=(-device $gpu -display ${SYN_OS_DISPLAY:-gtk,gl=on}
 		-device virtio-keyboard-pci -device virtio-tablet-pci
 		-audiodev pipewire,id=snd0 -device ich9-intel-hda -device hda-duplex,audiodev=snd0
-		${=SYN_LFS_QEMU})
+		${=SYN_OS_QEMU})
 }
 
 step_gui() {
@@ -402,13 +405,13 @@ step_iso() {
 		}
 	done
 	mountpoint -q $MNT || { print "run: mount"; exit 1 }
-	[[ -f $MNT/usr/lib/syn-os/syn-lfs-install.zsh ]] || { print "no installer in the image yet; run: desktop"; exit 1 }
+	[[ -f $MNT/usr/lib/syn-os/synos-install.zsh ]] || { print "no installer in the image yet; run: desktop"; exit 1 }
 	grep -q '^CONFIG_OVERLAY_FS=y' $MNT/boot/config-$KVER 2>/dev/null ||
 		{ print "the image's kernel can't boot live yet; run: kernel, rekernel"; exit 1 }
 
-	local iso=$W/iso out=$W/syn-lfs-$(date +%Y.%m.%d).iso acct=$W/iso-accounts rc=0
+	local iso=$W/iso out=$W/syn-os-$(date +%Y.%m.%d).iso acct=$W/iso-accounts rc=0
 	doas rm -rf $iso $acct
-	mkdir -p $iso/boot/grub $iso/syn-lfs
+	mkdir -p $iso/boot/grub $iso/syn-os
 
 	# initramfs: put together from the system's own programs in the
 	# chroot, packed out here
@@ -438,21 +441,21 @@ step_iso() {
 		doas mount --bind $acct/$f $MNT/etc/$f
 		bound+=($MNT/etc/$f)
 	done
-	doas mksquashfs $MNT $iso/syn-lfs/rootfs.sfs -noappend -comp zstd -Xcompression-level 19 -b 1M \
-		-wildcards -e sources jhalfs 'tmp/*' 'var/tmp/*' var/log/syn-lfs usr/src/SYN-OS \
+	doas mksquashfs $MNT $iso/syn-os/rootfs.sfs -noappend -comp zstd -Xcompression-level 19 -b 1M \
+		-wildcards -e sources jhalfs 'tmp/*' 'var/tmp/*' var/log/syn-os usr/src/SYN-OS \
 		'home/*' 'root/*' 'root/.*' lost+found 'boot/efi/*' || rc=$?
 	for f in $bound; do doas umount $f; done
 	doas rm -rf $acct
 	(( rc == 0 )) || return $rc
 
-	grub-mkrescue -o $out $iso -- -V SYN_LFS -iso-level 3
+	grub-mkrescue -o $out $iso -- -V SYN_OS -iso-level 3
 	print "ISO ready: $out ($(du -h $out | cut -f1)). Try it with: isotest"
 }
 
 # Boots the newest ISO in QEMU with a blank 40G disk to install onto
 # ($W/install-test.img); `isotest disk` then boots that disk on its own
 step_isotest() {
-	local isos=($W/syn-lfs-*.iso(Nom)) disk=$W/install-test.img vars=$W/OVMF_VARS.isotest.fd media=()
+	local isos=($W/syn-os-*.iso(Nom)) disk=$W/install-test.img vars=$W/OVMF_VARS.isotest.fd media=()
 	if [[ $1 == disk ]]; then
 		[[ -f $disk ]] || { print "no $disk yet: run isotest and install first"; exit 1 }
 	else

@@ -1,13 +1,13 @@
 #!/usr/bin/env zsh
 # ------------------------------------------------------------------------------
-#                        S Y N - L F S   D E S K T O P
+#                        S Y N - O S   D E S K T O P
 #
-#   Builds the SYN desktop on top of the LFS base, one recipe per package
+#   Builds the SYN desktop on top of the base, one recipe per package
 #   in pkgs/, in the order listed in `order`. build.zsh calls both halves:
 #
 #     syn-pkg.zsh fetch DIR           on the build host: download every
 #                                     source into DIR, check its checksum
-#     syn-pkg.zsh build DIR [PKG...]  inside the LFS chroot, DIR holding the
+#     syn-pkg.zsh build DIR [PKG...]  inside the image's chroot, DIR holding the
 #                                     fetched sources: build every package
 #                                     not built yet, or only PKG... (always)
 #     syn-pkg.zsh list                the recipes SYN_PROFILE builds, in order
@@ -23,13 +23,13 @@
 #   unquoted variables word-split, as the book's commands expect.
 #   Checksums are md5:... (straight from the BLFS book), sha256:... or -
 #   for the few files with no fixed release (the Mozilla CA list).
-#   Built versions go to /var/lib/syn-lfs/pkgs, logs to /var/log/syn-lfs.
+#   Built versions go to /var/lib/syn-os/pkgs, logs to /var/log/syn-os.
 # ------------------------------------------------------------------------------
 setopt pipe_fail
 
 HERE=${0:A:h}
-STATE=/var/lib/syn-lfs/pkgs
-LOGS=/var/log/syn-lfs
+STATE=/var/lib/syn-os/pkgs
+LOGS=/var/log/syn-os
 
 # Recipe names in build order, filtered to the categories of $SYN_PROFILE
 # (default full). `order` declares each profile as `profile NAME cat...`
@@ -45,7 +45,7 @@ recipes() {
 }
 
 load() {
-	unset v src noextract always
+	unset v src noextract always keep
 	unfunction build 2>/dev/null
 	src=()
 	. "$HERE/pkgs/$1"
@@ -91,7 +91,7 @@ build_one() {
 	local p=$1 work=/tmp/syn-build/$1 log=$LOGS/$1.log start=$SECONDS e dir dirs
 	load "$p"
 	printf '%-26s %-16s ' "$p" "$v"
-	rm -rf "$work"
+	[ -z "$keep" ] && rm -rf "$work"
 	mkdir -p "$work"
 	cd "$work" || return 1
 	for e in "${src[@]}"; do

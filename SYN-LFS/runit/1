@@ -1,9 +1,11 @@
 #!/bin/zsh -f
 # runit stage 1: one-time system setup, then hand over to stage 2.
 # The same steps LFS's SysV bootscripts run from rcS (mountvirtfs, modules,
-# udev, checkfs, mountfs, swap, cleanfs, localnet, setclock, console,
-# sysctl), in the same order, as one script. zsh -f reads no startup
-# files, so nothing in a home directory can stop the boot.
+# udev, checkfs, mountfs, swap, cleanfs, localnet, console, sysctl), in
+# the same order, as one script. zsh -f reads no startup files, so
+# nothing in a home directory can stop the boot. There is no setclock:
+# the kernel already read the wall clock at boot (the CMOS clock, or the
+# host's under KVM).
 PATH=/usr/bin:/usr/sbin
 
 emergency() {
@@ -18,6 +20,13 @@ mountpoint -q /sys  || mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
 mountpoint -q /run  || mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
 mkdir -p /run/lock && chmod 1777 /run/lock
 mountpoint -q /dev  || mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev
+# The /proc-backed device links devtmpfs does not make (the udev bootscript
+# does): bash process substitution and anything opening /dev/stdin need them
+ln -sfn /proc/self/fd /dev/fd
+ln -sf /proc/self/fd/0 /dev/stdin
+ln -sf /proc/self/fd/1 /dev/stdout
+ln -sf /proc/self/fd/2 /dev/stderr
+[ -e /proc/kcore ] && ln -sf /proc/kcore /dev/core
 mkdir -p /dev/pts /dev/shm /sys/fs/cgroup
 mountpoint -q /dev/pts || mount -t devpts -o gid=5,mode=620 devpts /dev/pts
 mountpoint -q /dev/shm || mount -t tmpfs -o nosuid,nodev tmpfs /dev/shm
@@ -63,9 +72,6 @@ done < /etc/passwd
 ip addr add 127.0.0.1/8 label lo dev lo 2>/dev/null
 ip link set lo up
 [ -r /etc/hostname ] && hostname "$(cat /etc/hostname)"
-
-# System clock from the hardware clock, kept in UTC (setclock)
-hwclock --hctosys --utc
 
 # Console keymap and font from /etc/sysconfig/console (console)
 if [ -r /etc/sysconfig/console ]; then

@@ -1,5 +1,5 @@
 # CMake, for the CMake-built packages. Uses the system curl above; its
-# bundled copy may not build against LFS's OpenSSL 4
+# bundled copy may not build against the base's OpenSSL 4
 v=4.4.2
 src=("https://cmake.org/files/v${v%.*}/cmake-$v.tar.gz md5:6911f0379d901db23619413f092b99ef")
 build() {

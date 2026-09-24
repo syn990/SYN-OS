@@ -2,5 +2,6 @@
 v=1.26.0
 src=("https://gitlab.freedesktop.org/wayland/wayland/-/releases/$v/downloads/wayland-$v.tar.xz md5:64c593ccf6820635765a952ec5f34fbb")
 build() {
-	meson_build32 -D scanner=false -D documentation=false -D tests=false
+	# No DTD validation: it wants a 32-bit libxml2, which nothing else needs
+	meson_build32 -D scanner=false -D documentation=false -D tests=false -D dtd_validation=false
 }

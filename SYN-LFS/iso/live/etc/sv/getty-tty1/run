@@ -1,5 +1,5 @@
 #!/bin/zsh -f
-# SYN-LFS live: log synstigator in on tty1, the live-session account from
+# SYN-OS live: log synstigator in on tty1, the live-session account from
 # the SYN-OS Arch ISO: wheel, password synstigator, doas without asking.
 # Made here each boot (only ever on the live overlay), with its home from
 # /etc/skel, so the full SYN desktop is there to try: type synos.

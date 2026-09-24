@@ -1,5 +1,5 @@
 #!/bin/zsh -f
-# Installs runit as PID 1 in place of sysvinit. Runs inside the LFS chroot
+# Installs runit as PID 1 in place of sysvinit. Runs inside the build chroot
 # from /tmp/syn-runit (build.zsh runit copies this directory and the runit
 # tarball there). sysvinit stays installed as a fallback: boot with
 # init=/usr/sbin/init.sysv to get the book's SysV boot back.
@@ -23,6 +23,12 @@ for dir in sv/*; do
 	[ -f "$dir/finish" ] && install -m755 "$dir/finish" "/etc/sv/$name/finish"
 	ln -sfn "/etc/sv/$name" "/var/service/$name"
 done
+
+# The book's udev rule runs its setclock script when the RTC appears.
+# That is hwclock, which waits for a clock tick before reading and sat
+# out a 10 s timeout on every boot in QEMU; the kernel has already set
+# the clock, for the SysV fallback too.
+sed -i '/setclock/d' /etc/udev/rules.d/55-lfs.rules
 
 # Swap init; halt/poweroff/reboot/shutdown become runit-init front ends.
 [ -e /usr/sbin/init.sysv ] || mv /usr/sbin/init /usr/sbin/init.sysv

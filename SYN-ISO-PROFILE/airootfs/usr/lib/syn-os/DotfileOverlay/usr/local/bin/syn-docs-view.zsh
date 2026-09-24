@@ -40,7 +40,7 @@ for ref in "${svgRefs[@]}"; do
         "$svgPath" &
     (( offset += 40 ))
   elif [[ -f "$svgPath" ]]; then
-    # No feh (SYN-LFS): whatever opens SVGs here, which is the browser
+    # No feh (SYN-OS on runit): whatever opens SVGs here, which is the browser
     xdg-open "$svgPath" >/dev/null 2>&1 &
   fi
 done

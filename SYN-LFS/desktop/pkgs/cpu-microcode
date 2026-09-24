@@ -7,7 +7,7 @@ src=(
 	"https://www.kernel.org/pub/linux/kernel/firmware/linux-firmware-20260916.tar.xz sha256:f80dcb757a623deda62200c08e0e1a88c76fb6b54964f31b35fa74da1c90ccc5"
 )
 build() {
-	local dest=/usr/lib/syn-lfs/ucode
+	local dest=/usr/lib/syn-os/ucode
 	rm -rf $dest
 	install -Dm644 intel-ucode/* -t $dest/intel-ucode
 	tar -xf ../linux-firmware-20260916.tar.xz --wildcards '*/amd-ucode/*.bin'

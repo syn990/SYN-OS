@@ -18,7 +18,7 @@ build() {
 	install -m644 "$ov/etc/issue" /etc/issue
 	install -m644 "$SYN_FILES/os-release" /etc/os-release
 
-	# The LFS menu (its header says what differs), its All Applications
+	# The menu (its header says what differs), its All Applications
 	# generator and the runit services toggle
 	install -m644 "$SYN_FILES/labwc/menu.xml" /etc/skel/.config/labwc/menu.xml
 	install -m755 "$SYN_FILES/syn-pipe-apps.zsh" "$SYN_FILES/syn-services-toggle.zsh" \
@@ -54,6 +54,7 @@ build() {
 	# Login environment (PATH, XDG_RUNTIME_DIR), the console keymap and
 	# font, and the current runit stage scripts and fstab from this repo
 	install -Dm644 "$SYN_FILES/syn-xdg.sh" /etc/profile.d/syn-xdg.sh
+	install -Dm644 "$SYN_FILES/syn-cursor.sh" /etc/profile.d/syn-cursor.sh
 	printf 'KEYMAP="uk"\nFONT="ter-v16n"\n' > /etc/sysconfig/console
 	install -m755 "$SYN_REPO"/SYN-LFS/runit/{1,2,3,ctrlaltdel} /etc/runit/
 	install -m644 "$SYN_REPO/SYN-LFS/fstab" /etc/fstab

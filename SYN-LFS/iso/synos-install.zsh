@@ -1,28 +1,55 @@
 #!/usr/bin/env zsh
 # ------------------------------------------------------------------------------
-#                       S Y N - L F S   I N S T A L L
+#                       S Y N O S - I N S T A L L
 #
-#   synos-install on the SYN-LFS live ISO. The whole system is already on
+#   synos-install on the SYN-OS live ISO. The whole system is already on
 #   the ISO, built, so nothing is downloaded: partition the disk named in
 #   synos.conf (EFI system partition + ext4 root, with the GPT labels the
 #   kernel boots by), copy the clean root image onto it, put the kernel
 #   where UEFI firmware looks for a boot file, then set up the user,
 #   hostname, time zone, keyboard and locale from synos.conf.
-#   Looks and logs like the Arch installer: same syn-ui.zsh, same
+#
+#   Where the answers come from, in this order:
+#     synos-install FILE      a synos.conf given on the command line
+#     a punchset              a medium labelled SYNPUNCH with synos.conf at
+#                             its root: plug it in, the install reads it
+#     /etc/syn-os/synos.conf  the ISO's own copy
+#   Whatever the file leaves at CHANGE_ME (Disk, the password) is asked
+#   for on the terminal; with a full punchset and RequireWipeConfirm=no
+#   nothing is asked at all.
+#   Looks and logs like SYN-OS-X's installer: same syn-ui.zsh, same
 #   synos.conf, same script(1) log.
 #
 #   SYN-OS     : The Syntax Operating System
-#   Component  : SYN-LFS-INSTALL (Installer)
+#   Component  : SYNOS-INSTALL (Installer)
 #   Author     : William Hayward-Holland (Syntax990)
 #   License    : MIT License
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-Conf=/etc/syn-os/synos.conf
 Source=/run/syn/rootfs      # the ISO's root image, mounted by the live init
 Target=/mnt/syn-target
+Punch=/run/syn/punch        # where a punchset is mounted, read-only
 
 source /usr/lib/syn-os/syn-ui.zsh
+fail() { syn_ui::error "$1"; exit 1; }
+
+# --- The answers: a file on the command line, a punchset, or the ISO's own ----
+PunchDev=
+if [ -n "${1:-}" ]; then
+  Conf=$1
+  [ -f "$Conf" ] || fail "No such file: $Conf"
+else
+  PunchDev=$(blkid -c /dev/null -o device -t LABEL=SYNPUNCH 2>/dev/null | head -n1 || true)
+  if [ -n "$PunchDev" ]; then
+    mkdir -p "$Punch"
+    mountpoint -q "$Punch" || mount -o ro "$PunchDev" "$Punch" || fail "Cannot mount the punchset on $PunchDev"
+    [ -f "$Punch/synos.conf" ] || fail "$PunchDev is labelled SYNPUNCH but has no synos.conf at its root"
+    Conf=$Punch/synos.conf
+  else
+    Conf=/etc/syn-os/synos.conf
+  fi
+fi
 source "$Conf"
 
 # The whole run goes to a log via script(1), as syn-stage0.zsh does it
@@ -32,26 +59,54 @@ if [ -z "${SYN_INSTALL_UNDER_SCRIPT:-}" ]; then
   exec script -qefc "$0 $*" "$InstallLog"
 fi
 syn_ui::info "Logging full install output to ${InstallLog}"
-
-fail() { syn_ui::error "$1"; exit 1; }
+if [ -n "$PunchDev" ]; then
+  syn_ui::info "Answers from the punchset on ${PunchDev}"
+else
+  syn_ui::info "Answers from ${Conf}"
+fi
 
 cleanup() {
+  mountpoint -q "$Punch" 2>/dev/null && umount "$Punch" 2>/dev/null || true
   [ -n "${SynInstallComplete:-}" ] && return
   umount -R "$Target" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
+# --- Whatever the answers leave at CHANGE_ME is asked for here ----------------
+ask() {
+  local answer
+  printf "%s%s%s " "$C_VALUE" "$1" "$RESET"
+  read -r answer </dev/tty
+  print -r -- "$answer"
+}
+if [ "${Disk:-CHANGE_ME}" = CHANGE_ME ]; then
+  printf "\n"
+  lsblk -d -o NAME,SIZE,MODEL,TRAN 2>/dev/null | sed 's/^/  /'
+  Disk=$(ask "Install to which disk (a name from the list, or /dev/...)?")
+  [[ $Disk == /dev/* ]] || Disk=/dev/$Disk
+fi
+if [ "${UserAccountPassword:-CHANGE_ME}" = CHANGE_ME ]; then
+  while :; do
+    printf "%sPassword for %s:%s " "$C_VALUE" "${UserAccountName:-the user}" "$RESET"
+    read -rs UserAccountPassword </dev/tty; printf "\n"
+    printf "%sAgain:%s " "$C_VALUE" "$RESET"
+    read -rs Again </dev/tty; printf "\n"
+    [ -n "$UserAccountPassword" ] && [ "$UserAccountPassword" = "$Again" ] && break
+    syn_ui::error "Empty, or the two did not match. Once more."
+  done
+  unset Again
+fi
+
 # --- Checks, before anything touches a disk -----------------------------------
 [ -d /sys/firmware/efi ] ||
-  fail "Booted in BIOS mode. SYN-LFS installs for UEFI only: boot the ISO in UEFI mode."
+  fail "Booted in BIOS mode. SYN-OS installs for UEFI only: boot the ISO in UEFI mode."
 [ -d "$Source/usr" ] ||
-  fail "No root image at $Source. synos-install runs from the SYN-LFS ISO."
-[ "${Disk:-CHANGE_ME}" != CHANGE_ME ] || fail "Set Disk in $Conf (lsblk lists the disks)."
+  fail "No root image at $Source. synos-install runs from the SYN-OS ISO."
 [ -b "$Disk" ] || fail "Disk=$Disk is not a block device."
 [ -n "${UserAccountName:-}" ] || fail "Set UserAccountName in $Conf."
-[ "${UserAccountPassword:-CHANGE_ME}" != CHANGE_ME ] || fail "Set UserAccountPassword in $Conf."
 Medium=$(findmnt -no SOURCE /run/syn/medium 2>/dev/null || true)
 [[ -n $Medium && $Medium == ${Disk}* ]] && fail "$Disk is the disk this ISO is running from."
+[[ -n $PunchDev && $PunchDev == ${Disk}* ]] && fail "$Disk holds the punchset."
 
 if [ "${RequireWipeConfirm:-yes}" = "yes" ]; then
   syn_ui::confirm_wipe "$Disk" || fail "Aborted — disk not confirmed."
@@ -91,7 +146,7 @@ mount "$EspPart" "$Target/boot/efi"
 syn_ui::step_done "FAT32 EFI system partition on ${EspPart}, ext4 root on ${RootPart}"
 
 # --- System -------------------------------------------------------------------
-syn_ui::step "Copying SYN-LFS onto ${RootPart} (several GB, give it a few minutes)"
+syn_ui::step "Copying SYN-OS onto ${RootPart} (several GB, give it a few minutes)"
 cp -a "$Source/." "$Target/"
 syn_ui::step_done "System copied"
 
@@ -157,9 +212,9 @@ if [ -x /usr/lib/syn-os/syn-wallgen ] && [ -d "$UserHome/.config/syn-os/themes" 
 fi
 syn_ui::step_done "${UserAccountName} (groups wheel, video, audio, input)"
 
-# synos.conf only needed the password to get this far: the installed copy
-# goes without it
-sed '/^UserAccountPassword=/d' "$Conf" > "$Target/etc/syn-os/synos.conf"
+# The answers go with the install, minus the password, and with the disk
+# it went on
+sed -e '/^UserAccountPassword=/d' -e "s|^Disk=.*|Disk=\"$Disk\"|" "$Conf" > "$Target/etc/syn-os/synos.conf"
 
 # --- Done -----------------------------------------------------------------------
 cp -f "$InstallLog" "$Target/var/log/" 2>/dev/null || true

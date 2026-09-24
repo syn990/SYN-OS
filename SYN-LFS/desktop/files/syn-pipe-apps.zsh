@@ -4,7 +4,7 @@
 #
 #   Labwc pipe menu for "All Applications": every installed program's
 #   .desktop file (the user's own first, then $XDG_DATA_DIRS), sorted into
-#   the freedesktop main categories. SYN-LFS's stand-in for Arch's
+#   the freedesktop main categories. SYN-OS's stand-in for SYN-OS-X's
 #   archlinux-xdg-menu, so it lists whatever is installed right now.
 #   Terminal programs open in foot.
 #

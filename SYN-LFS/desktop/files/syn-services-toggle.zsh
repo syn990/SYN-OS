@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 #                   S Y N - S E R V I C E S - T O G G L E
 #
-#   SYN-LFS's runit take on the Arch syn-services-toggle.zsh (which drives
+#   SYN-OS's runit take on SYN-OS-X's syn-services-toggle.zsh (which drives
 #   systemctl): every service in /etc/sv, shown as enabled when it's
 #   linked into /var/service. Enabling links it in (runsvdir starts it
 #   within a few seconds); disabling stops it and removes the link. The

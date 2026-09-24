@@ -1,9 +1,9 @@
 #!/bin/zsh
 # =============================================================================
-#                          SYN-OS (LFS) live .zshrc
+#                          SYN-OS live .zshrc
 #       Live ISO Environment Configuration & Installation Splash Screen
 # -----------------------------------------------------------------------------
-#   The SYN-OS Arch ISO's live shell, on the SYN-LFS ISO: same splash, same
+#   SYN-OS-X's live shell (the Arch ISO), on the SYN-OS ISO: same splash, same
 #   box, same palette. Only on the live overlay; installed systems never
 #   get this file. Everything installs from the ISO itself, so there's no
 #   network step: configure, then install.
@@ -69,6 +69,16 @@ export EDITOR='nano'
 # =============================================================================
 # Aliases
 # =============================================================================
-alias synos-install="doas zsh /usr/lib/syn-os/syn-lfs-install.zsh"
+alias synos-install="doas zsh /usr/lib/syn-os/synos-install.zsh"
+
+# A punchset (a medium labelled SYNPUNCH carrying synos.conf) is what
+# synos-install reads first. Booted with syn.punch on the kernel line, the
+# install starts here by itself
+if [[ -o interactive ]] && PunchDev=$(doas blkid -c /dev/null -o device -t LABEL=SYNPUNCH 2>/dev/null | head -n1) && [[ -n $PunchDev ]]; then
+  printf "\n\033[1;31m[Punchset]\033[0m %s carries a synos.conf: synos-install takes its answers from it.\n" "$PunchDev"
+  if grep -qw syn.punch /proc/cmdline; then
+    doas zsh /usr/lib/syn-os/synos-install.zsh
+  fi
+fi
 alias synos-config="doas nano /etc/syn-os/synos.conf"
 alias synos-connect="/usr/lib/syn-os/syn-connect"

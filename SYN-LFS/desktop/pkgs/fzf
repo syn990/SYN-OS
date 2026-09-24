@@ -1,5 +1,5 @@
 # From here to glow, upstream's static release builds: Go and Rust
-# programs, one file each with no libraries, and LFS has neither
+# programs, one file each with no libraries, and the base has neither
 # toolchain. .zshrc loads fzf's key bindings and completion from
 # /usr/share/fzf
 v=0.74.4

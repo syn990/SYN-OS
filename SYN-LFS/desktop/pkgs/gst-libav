@@ -1,0 +1,8 @@
+# GStreamer's FFmpeg decoders (avdec_h264, avdec_vp9, avdec_aac,
+# avdec_opus and the rest). WebKitGTK decodes every video and most audio
+# through them: without this surf plays nothing on YouTube
+v=1.28.6
+src=("https://gstreamer.freedesktop.org/src/gst-libav/gst-libav-$v.tar.xz md5:5ea14e3269531001da500239203b6e94")
+build() {
+	meson_build -D doc=disabled -D tests=disabled
+}

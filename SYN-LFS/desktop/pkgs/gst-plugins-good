@@ -1,0 +1,11 @@
+# autoaudiosink and pulsesink, which WebKitGTK plays sound through.
+# Without them surf's web process crashed on pages that set up audio
+# ("GStreamer element autoaudiosink not found"). Both plugins are
+# required so a missing libpulse stops the build; Qt's QML sinks are off
+v=1.28.6
+src=("https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-$v.tar.xz md5:d84c17388909e98e7f7d81bb2717327c")
+build() {
+	meson_build -D autodetect=enabled -D pulse=enabled \
+		-D qt5=disabled -D qt6=disabled \
+		-D examples=disabled -D tests=disabled -D doc=disabled
+}
