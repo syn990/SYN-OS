@@ -1,0 +1,13 @@
+# Resets or unlocks a local Windows account from its SAM hive, which is
+# what the BitLocker and Windows recovery side of SYN-OS is for. Built
+# 64-bit (its makefile hardcodes -m32) against libgcrypt, since the
+# OpenSSL calls it was written for are long gone: see files/chntpw-ssl-shim.h
+v=140201
+src=("https://pogostick.net/~pnh/ntpasswd/chntpw-source-$v.zip sha256:96e20905443e24cba2f21e51162df71dd993a1c02bfa12b1be2d0801a4ee2ccc")
+build() {
+	sed -i '/#include <openssl\//d' chntpw.c chntpw-presplit.c
+	make CC="gcc -include $SYN_FILES/chntpw-ssl-shim.h" \
+		CFLAGS="-O2 -I. -Wno-deprecated-declarations" LIBS="-lgcrypt" \
+		chntpw cpnt reged samusrgrp sampasswd
+	install -m755 chntpw cpnt reged samusrgrp sampasswd /usr/bin
+}

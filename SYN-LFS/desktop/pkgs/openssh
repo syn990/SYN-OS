@@ -1,5 +1,5 @@
 # ssh for syn-relay and waypipe, and sshd as a runit service that is off
-# until Preferences > Software > Services turns it on, as on Arch. The
+# until Preferences > Software > Services turns it on. The
 # host keys make install generates are removed: sshd makes each install
 # its own on first start
 v=10.5p1

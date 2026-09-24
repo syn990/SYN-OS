@@ -1,0 +1,9 @@
+# The flash filesystem, for SD cards and eMMC
+v=1.16.0
+src=("https://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs-tools.git/snapshot/f2fs-tools-$v.tar.gz sha256:208c7a07e95383fbd7b466b5681590789dcb41f41bf197369c41a95383b57c5e")
+build() {
+	./autogen.sh
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

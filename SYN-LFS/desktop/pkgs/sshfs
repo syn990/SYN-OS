@@ -1,0 +1,6 @@
+# Mount another machine's files over ssh
+v=3.7.6
+src=("https://github.com/libfuse/sshfs/releases/download/sshfs-$v/sshfs-$v.tar.xz md5:bf45c6ade1bef1f7e1bb2c2f344a0b33")
+build() {
+	meson_build
+}

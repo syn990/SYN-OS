@@ -1,0 +1,5 @@
+v=0.19
+src=("https://s3.amazonaws.com/json-c_releases/releases/json-c-$v.tar.gz md5:5678f1373ba51e0041b574c0411c696b")
+build() {
+	cmake_build -D BUILD_STATIC_LIBS=OFF
+}

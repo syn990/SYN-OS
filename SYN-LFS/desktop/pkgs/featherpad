@@ -1,0 +1,6 @@
+# The text editor the System > Edit Configuration Files entries open
+v=1.6.4
+src=("https://github.com/tsujan/FeatherPad/archive/V$v/FeatherPad-$v.tar.gz sha256:1442f14aefdb0de26822562d69c446b0e2b4e607597925a2e0c2c7b063e1654e")
+build() {
+	cmake_build
+}

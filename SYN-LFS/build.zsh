@@ -17,6 +17,9 @@
 #   desktop/syn-pkg.zsh.
 #
 #   Usage: build.zsh <step>
+#     host       install what the build needs on an Arch host, and jhalfs
+#     all        every step below in order, disk image to installer ISO.
+#                Resumes at the step that failed; log in the work directory
 #     image      create + partition + mount the disk image (once)
 #     mount      re-attach and mount an existing image
 #     kernel     generate the kernel .config (defconfig + kernel.syn)
@@ -214,6 +217,9 @@ chroot_up() {
 	doas mount -t proc proc $MNT/proc
 	doas mount -t sysfs sysfs $MNT/sys
 	doas mount -t tmpfs tmpfs $MNT/run
+	# librsvg's Rust crates are the one thing fetched from inside the
+	# chroot; everything else is downloaded by fetch beforehand
+	doas cp -f /etc/resolv.conf $MNT/etc/resolv.conf
 }
 
 chroot_down() {
@@ -470,6 +476,49 @@ step_isotest() {
 		-drive if=pflash,format=raw,file=$vars \
 		-drive file=$disk,format=raw,if=virtio $media \
 		-nic user,model=virtio-net-pci -serial mon:stdio $reply
+}
+
+# The build host: the LFS book's host requirements, the tools these steps
+# use, QEMU to boot the result, and jhalfs itself
+step_host() {
+	local su=sudo
+	(( $+commands[doas] )) && su=doas
+	$su pacman -Syu --needed --noconfirm base-devel git python wget texinfo bc zsh \
+		opendoas libxslt docbook-xml docbook-xsl gptfdisk dosfstools e2fsprogs \
+		squashfs-tools grub libisoburn mtools libarchive zstd qemu-base edk2-ovmf
+	if [[ ! -e /etc/doas.conf ]]; then
+		print 'permit persist :wheel' | $su tee /etc/doas.conf > /dev/null
+		$su chmod 600 /etc/doas.conf
+	fi
+	[[ -d $JHALFS ]] || git clone -q https://git.linuxfromscratch.org/jhalfs.git $JHALFS
+	print "host ready: $(nproc) CPUs, $(free -g | awk '/Mem:/ {print $2}')G RAM, jhalfs in $JHALFS"
+}
+
+# Everything, in order, unattended: expect the best part of a day. Each
+# finished step is recorded in build.state, so running this again carries
+# on from the one that failed rather than starting over. The kernel is
+# built twice; the second pass picks up the CPU microcode the desktop
+# installed, which is built into it
+step_all() {
+	local state=$W/build.state log=$W/build.log s cmd start
+	mkdir -p $W
+	touch $state
+	for s in image kernel configure build zsh runit fetch desktop kernel2 rekernel esp iso; do
+		grep -qx $s $state && continue
+		cmd=${s%2}
+		[[ $cmd == image && -e $IMG ]] && cmd=mount
+		[[ $cmd != (image|fetch) && -e $IMG ]] && step_mount > /dev/null
+		print "== $s: started $(date +%T)"
+		start=$SECONDS
+		if step_$cmd 2>&1 | tee -a $log; then
+			print $s >> $state
+			print "== $s: done in $(( (SECONDS - start) / 60 ))m"
+		else
+			print "== $s: FAILED after $(( (SECONDS - start) / 60 ))m, log in $log"
+			return 1
+		fi
+	done
+	print "== finished. Boot the ISO with: $0 isotest"
 }
 
 (( $+functions[step_$1] )) || { sed -n '/^#   Usage/,/^# ---/p' $0; exit 1 }

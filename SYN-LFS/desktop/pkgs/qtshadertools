@@ -1,0 +1,6 @@
+# Qt Quick's shader pipeline, which qtdeclarative needs
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtshadertools-everywhere-src-$v.tar.xz md5:779a2e97d08d9978e10c61e4d6f1f9a8")
+build() {
+	cmake_build
+}

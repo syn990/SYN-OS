@@ -114,6 +114,11 @@ fmt
 spdlog
 jsoncpp
 
+# [desktopStack] Rust, for librsvg (SVG icons and thumbnails)
+rust
+cargo-c
+librsvg
+
 # [desktopStack] Audio: PipeWire as the server, libpulse for its clients
 alsa-lib
 libsndfile
@@ -138,11 +143,38 @@ dhcpcd
 lzo
 libcap-ng
 openvpn
+
 # [baseCore] Firmware and microcode
 wireless-regdb
 linux-firmware
 sof-firmware
 cpu-microcode
+
+# [shellAndCLI] Disks, filesystems and the system tools the installer and SYN-SHARE use
+libaio
+popt
+json-c
+lvm2
+cryptsetup
+inih
+liburcu
+xfsprogs
+btrfs-progs
+f2fs-tools
+ntfs-3g
+fuse3
+fuse2
+sshfs
+parted
+mbedtls
+dnsmasq
+hostapd
+calc
+hexedit
+lshw
+fakeroot
+yt-dlp
+android-tools
 
 # [desktopStack] Xwayland, so X11 programs run (the Steam client is one)
 xcb-utils
@@ -154,6 +186,12 @@ xwayland
 # [desktopStack] Qt 6, for syn-filemanager
 qtbase
 qtwayland
+qtsvg
+qttools
+hunspell
+qt6ct
+kvantum
+featherpad
 
 # [desktopStack] The desktop: labwc, waybar and the Wayland tools SYN-OS uses
 wlroots
@@ -177,6 +215,10 @@ waypipe
 brightnessctl
 graphviz
 adwaita-icon-theme
+giflib
+imlib2
+feh
+xarchiver
 
 # [fontsI18n] Fonts
 terminus-font
@@ -185,6 +227,9 @@ font-liberation
 font-terminus-nerd
 font-awesome
 font-noto-emoji
+font-noto
+font-noto-cjk
+font-bitstream-vera
 
 # [appsMedia] nss and nspr: Steam's 32-bit copies are built on these
 nspr
@@ -223,6 +268,50 @@ gst-libav
 webkitgtk
 surf
 
+# [appsMedia] The rest of syn-packages.zsh: VLC, GIMP and what they need
+tiff
+json-glib
+lxml
+itstool
+libfyaml
+libxmlb
+appstream
+poppler
+exiv2
+gexiv2
+babl
+gegl
+libmypaint
+mypaint-brushes
+desktop-file-utils
+gimp
+vlc
+simde
+uthash
+jansson
+obs-studio
+audacity
+openra
+binwalk
+
+# [appsMedia] Falkon, the browser from the Arch package list, and QtWebEngine under it
+nodejs
+html5lib
+pciutils
+rust-bindgen
+qtshadertools
+qtdeclarative
+qtwebchannel
+qtpositioning
+qtwebengine
+extra-cmake-modules
+karchive
+ki18n
+falkon
+
+# [appsMedia] Windows recovery tools
+chntpw
+
 # [appsMedia] 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
 lib32-xorg-libs
 lib32-libdrm
@@ -250,6 +339,7 @@ syn-wallgen
 syn-sysmon
 syn-relay
 syn-filemanager
+dislocker
 
 # [synOS] SYN-OS config on top (needs everything above)
 syn-desktop

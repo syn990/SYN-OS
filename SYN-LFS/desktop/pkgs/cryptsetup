@@ -1,0 +1,9 @@
+# LUKS. The installer can't unlock an encrypted root yet (no initramfs),
+# but the tools are here for disks you mount by hand
+v=2.8.7
+src=("https://www.kernel.org/pub/linux/utils/cryptsetup/v${v%.*}/cryptsetup-$v.tar.xz md5:a9a19068e4db32f77c0ab95c378ab290")
+build() {
+	./configure --prefix=/usr --disable-ssh-token --disable-asciidoc
+	make
+	make install
+}

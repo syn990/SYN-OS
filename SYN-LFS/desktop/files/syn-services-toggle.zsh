@@ -2,15 +2,13 @@
 # ------------------------------------------------------------------------------
 #                   S Y N - S E R V I C E S - T O G G L E
 #
-#   SYN-OS's runit take on SYN-OS-X's syn-services-toggle.zsh (which drives
-#   systemctl): every service in /etc/sv, shown as enabled when it's
-#   linked into /var/service. Enabling links it in (runsvdir starts it
+#   Every runit service in /etc/sv, shown as enabled when it's linked
+#   into /var/service. Enabling links it in (runsvdir starts it
 #   within a few seconds); disabling stops it and removes the link. The
 #   gettys and udevd aren't offered, as switching those off from a menu
 #   leaves a machine you can't log in to or that finds no devices.
 #
-#   Same rofi pickers and popup as the Arch version; the doas step runs
-#   inside syn_popup::run.
+#   The doas step runs inside syn_popup::run, like the other tools.
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-SERVICES-TOGGLE (Desktop)

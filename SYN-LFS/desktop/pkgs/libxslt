@@ -1,5 +1,5 @@
-# XSLT, which WebKitGTK requires. Without the DocBook stylesheets the
-# book adds for its documentation
+# XSLT, which WebKitGTK requires and AppStream uses. Without the DocBook
+# stylesheets the book adds for its documentation
 v=1.1.45
 src=("https://download.gnome.org/sources/libxslt/${v%.*}/libxslt-$v.tar.xz md5:84bb3f6ba7f5ee98af5dcd72e828c73e")
 build() {

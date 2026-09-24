@@ -1,0 +1,7 @@
+v=0.9.6
+src=("https://github.com/pantoniou/libfyaml/releases/download/v$v/libfyaml-$v.tar.gz md5:f6d3756a80cb1ff99714e510cf4ce13d")
+build() {
+	./configure --prefix=/usr --disable-static --without-libclang
+	make
+	make install
+}

@@ -1,0 +1,9 @@
+# Hex editor
+v=1.6
+src=("https://github.com/pixel/hexedit/archive/$v/hexedit-$v.tar.gz sha256:598906131934f88003a6a937fab10542686ce5f661134bc336053e978c4baae3")
+build() {
+	./autogen.sh
+	./configure --prefix=/usr
+	make
+	make install
+}

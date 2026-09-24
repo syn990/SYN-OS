@@ -1,0 +1,12 @@
+# Reading and writing Windows disks
+v=2026.7.7
+src=("https://github.com/tuxera/ntfs-3g/archive/$v/ntfs-3g-$v.tar.gz md5:254f0eae638ae2f1f0e24f0b76dd1dfc")
+build() {
+	./autogen.sh
+	./configure --prefix=/usr --disable-static --with-fuse=internal \
+		--docdir=/usr/share/doc/ntfs-3g-$v
+	make
+	make install
+	ln -svf ../bin/ntfs-3g /usr/sbin/mount.ntfs
+	ln -svf ntfs-3g.8 /usr/share/man/man8/mount.ntfs.8
+}

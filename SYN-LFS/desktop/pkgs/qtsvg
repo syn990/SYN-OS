@@ -1,0 +1,6 @@
+# SVG rendering for Qt: FeatherPad's icons and Kvantum's themes
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtsvg-everywhere-src-$v.tar.xz md5:fb1c8366fe3de6ed3ca248bf4ae88c37")
+build() {
+	cmake_build
+}

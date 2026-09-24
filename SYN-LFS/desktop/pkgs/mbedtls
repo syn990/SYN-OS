@@ -1,0 +1,8 @@
+# The crypto library dislocker reads BitLocker volumes with. Version 3,
+# which is the API its SYN-OS patches target
+v=3.6.4
+src=("https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$v/mbedtls-$v.tar.bz2 sha256:ec35b18a6c593cf98c3e30db8b98ff93e8940a8c4e690e66b41dfc011d678110")
+build() {
+	cmake_build -D USE_SHARED_MBEDTLS_LIBRARY=ON -D USE_STATIC_MBEDTLS_LIBRARY=OFF \
+		-D ENABLE_TESTING=OFF -D ENABLE_PROGRAMS=OFF
+}

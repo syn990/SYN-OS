@@ -1,4 +1,4 @@
-# Crypto library gcr and libsecret use
+# Crypto library gcr, libsecret and VLC use
 v=1.12.2
 src=("https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-$v.tar.bz2 md5:4e98430cfc16d842a7231026c32418da")
 build() {

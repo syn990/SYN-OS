@@ -32,10 +32,9 @@ build() {
 		-e 's|systemctl poweroff|doas /usr/sbin/poweroff|' /usr/lib/syn-os/syn-bar-power.zsh
 	sed -i '/"custom\/synshare",/d' /etc/skel/.config/waybar/config.jsonc
 
-	# labwc's environment: the Adwaita cursor, and no qt6ct (not built
-	# here; Qt programs keep Qt's own style)
+	# labwc's environment: add the Adwaita cursor (qt6ct is built here,
+	# so QT_QPA_PLATFORMTHEME stays as it is)
 	local env=/etc/skel/.config/labwc/environment
-	sed -i '/^QT_QPA_PLATFORMTHEME=/d' $env
 	grep -q '^XCURSOR_THEME=' $env || printf 'XCURSOR_THEME=Adwaita\nXCURSOR_SIZE=24\n' >> $env
 
 	# No systemd user units either: autostart brings PipeWire up before

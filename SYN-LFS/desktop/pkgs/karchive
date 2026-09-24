@@ -1,0 +1,6 @@
+# Falkon reads its themes and extensions out of archives with it
+v=6.29.0
+src=("https://download.kde.org/stable/frameworks/${v%.*}/karchive-$v.tar.xz sha256:3d66cd9d71fbbebc3cea68757111002666b366898b01178b6fa7203715574287")
+build() {
+	cmake_build -D BUILD_TESTING=OFF
+}

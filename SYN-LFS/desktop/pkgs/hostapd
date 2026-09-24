@@ -1,0 +1,10 @@
+# Turns the Wi-Fi card into an access point
+v=2.11
+src=("https://w1.fi/releases/hostapd-$v.tar.gz sha256:2b3facb632fd4f65e32f4bf82a76b4b72c501f995a4f62e330219fe7aed1747a")
+build() {
+	cd hostapd
+	cp defconfig .config
+	make
+	install -m755 hostapd hostapd_cli /usr/sbin
+	install -Dm644 hostapd.conf -t /usr/share/doc/hostapd-$v
+}

@@ -1,0 +1,9 @@
+# JSON for OBS
+v=2.15.1
+src=("https://github.com/akheron/jansson/archive/v$v/jansson-$v.tar.gz sha256:dbf95cb0af903f4fb8b61507d96b45b67db7d1479688ede352e1d571394d06f7")
+build() {
+	autoreconf -fiv
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

@@ -1,0 +1,7 @@
+# Qt's colours, font and icon theme from a config file, which is how
+# syn-theme-apply themes syn-filemanager and FeatherPad
+v=0.9
+src=("https://github.com/trialuser02/qt6ct/archive/$v/qt6ct-$v.tar.gz sha256:aa49c4fb51a82dd6947cd9c8dee9b3a1fdd4fbbc9f3c8c5c2d33fa1de9e8826e")
+build() {
+	cmake_build
+}

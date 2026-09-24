@@ -1,0 +1,8 @@
+# Pulls translatable text out of XML, which AppStream's build wants
+v=2.0.7
+src=("https://github.com/itstool/itstool/archive/$v/itstool-$v.tar.gz md5:e759b258617a912acce630de3fa43957")
+build() {
+	PYTHON=/usr/bin/python3 ./autogen.sh --prefix=/usr
+	make
+	make install
+}

@@ -1,0 +1,6 @@
+# Falkon's translations
+v=6.29.0
+src=("https://download.kde.org/stable/frameworks/${v%.*}/ki18n-$v.tar.xz sha256:9037f3caa67768869f00ee257dbb35b81febe6ad600ed0bd3ffdf293c36252ba")
+build() {
+	cmake_build -D BUILD_TESTING=OFF
+}

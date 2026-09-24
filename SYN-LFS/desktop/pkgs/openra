@@ -1,0 +1,27 @@
+# Red Alert, Tiberian Dawn and Dune 2000, from upstream's AppImages.
+# OpenRA runs on .NET, which isn't built here, and each AppImage carries
+# its own runtime
+v=20250330
+src=(
+	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Red-Alert-x86_64.AppImage sha256:3cb71c7428188c8526dd8916993fc16fa17ba5f28a35968a8267f3db9f2186fe"
+	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Tiberian-Dawn-x86_64.AppImage sha256:b3d202d1bf701be5989c41c256d19bd2b1788694df01e343ade865cf1190706b"
+	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Dune-2000-x86_64.AppImage sha256:7585986bf0cd488debaec3fadf853c1901003eff945dbad5de95b0b6bd781a67"
+)
+noextract=1
+build() {
+	local mod name
+	install -d /opt/openra
+	for mod in Red-Alert Tiberian-Dawn Dune-2000; do
+		name=${mod//-/ }
+		install -m755 OpenRA-$mod-x86_64.AppImage /opt/openra/
+		ln -sf /opt/openra/OpenRA-$mod-x86_64.AppImage /usr/bin/openra-${mod:l}
+		cat > /usr/share/applications/openra-${mod:l}.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=OpenRA: $name
+Exec=/usr/bin/openra-${mod:l}
+Terminal=false
+Categories=Game;StrategyGame;
+EOF
+	done
+}

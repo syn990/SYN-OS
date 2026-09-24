@@ -1,0 +1,7 @@
+# Python XML, for itstool
+v=6.1.1
+src=("https://files.pythonhosted.org/packages/source/l/lxml/lxml-$v.tar.gz md5:6bbd3674ecba1340b08c9180afef1829")
+build() {
+	pip3 wheel -w dist --no-build-isolation --no-deps --no-cache-dir $PWD
+	pip3 install --no-index --find-links dist --no-user lxml
+}

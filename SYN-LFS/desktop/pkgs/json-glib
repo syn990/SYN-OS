@@ -1,0 +1,5 @@
+v=1.10.8
+src=("https://download.gnome.org/sources/json-glib/${v%.*}/json-glib-$v.tar.xz md5:95c3d5dd56d4ada808480739889b75bc")
+build() {
+	meson_build
+}

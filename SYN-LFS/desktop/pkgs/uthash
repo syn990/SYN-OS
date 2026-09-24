@@ -1,0 +1,6 @@
+# Header-only hash tables, same
+v=2.3.0
+src=("https://github.com/troydhanson/uthash/archive/v$v/uthash-$v.tar.gz sha256:e10382ab75518bad8319eb922ad04f907cb20cccb451a3aa980c9d005e661acc")
+build() {
+	install -Dm644 src/*.h -t /usr/include
+}

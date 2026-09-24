@@ -1,0 +1,8 @@
+# Finds files hidden inside firmware images. Rust, so cargo fetches its
+# crates while it builds, same as librsvg
+v=3.1.0
+src=("https://github.com/ReFirmLabs/binwalk/archive/v$v/binwalk-$v.tar.gz sha256:06f595719417b70a592580258ed980237892eadc198e02363201abe6ca59e49a")
+build() {
+	export CARGO_HOME=/var/cache/cargo
+	cargo install --path . --root /usr --locked
+}

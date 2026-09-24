@@ -1,0 +1,7 @@
+v=1.12.6
+src=("https://downloads.sourceforge.net/enlightenment/imlib2-$v.tar.xz md5:8c66b4dabc52225562324be5a994accf")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

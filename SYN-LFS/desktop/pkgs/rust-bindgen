@@ -1,0 +1,9 @@
+# Generates Rust bindings from C headers, which Chromium's build needs.
+# cargo fetches it and its crates, same as librsvg
+v=0.72.1
+src=()
+always=1
+build() {
+	export CARGO_HOME=/var/cache/cargo
+	cargo install bindgen-cli --version $v --locked --root /usr
+}

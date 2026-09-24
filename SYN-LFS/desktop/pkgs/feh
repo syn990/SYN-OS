@@ -1,0 +1,8 @@
+# Image viewer. The Docs menu opens diagrams with it
+v=3.12.4
+src=("https://feh.finalrewind.org/feh-$v.tar.bz2 md5:c19274935dd8b4d194fce0ddf6d4f812")
+build() {
+	sed -i "s:doc/feh:&-$v:" config.mk
+	make PREFIX=/usr
+	make PREFIX=/usr install
+}

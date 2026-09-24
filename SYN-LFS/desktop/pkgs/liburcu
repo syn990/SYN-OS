@@ -1,0 +1,7 @@
+v=0.15.6
+src=("https://lttng.org/files/urcu/userspace-rcu-$v.tar.bz2 md5:08ad35d135f3797d572bc2aa9129abf5")
+build() {
+	./configure --prefix=/usr --disable-static --docdir=/usr/share/doc/liburcu-$v
+	make
+	make install
+}

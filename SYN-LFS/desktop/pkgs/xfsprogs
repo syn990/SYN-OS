@@ -1,0 +1,9 @@
+v=7.1.1
+src=("https://www.kernel.org/pub/linux/utils/fs/xfs/xfsprogs/xfsprogs-$v.tar.xz md5:befa97b62b635a1817db666806d40411")
+build() {
+	make DEBUG=-DNDEBUG INSTALL_USER=root INSTALL_GROUP=root \
+		LOCAL_CONFIGURE_OPTIONS="--localstatedir=/var"
+	make PKG_DOC_DIR=/usr/share/doc/xfsprogs-$v install
+	make PKG_DOC_DIR=/usr/share/doc/xfsprogs-$v install-dev
+	rm -rfv /usr/lib/libhandle.{a,la}
+}

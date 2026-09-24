@@ -1,0 +1,8 @@
+# Chromium's build system runs on Node. Upstream's own build, since this
+# is a build tool rather than part of the system
+v=24.19.0
+src=("https://nodejs.org/dist/v$v/node-v$v-linux-x64.tar.xz sha256:14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647")
+build() {
+	cp -R bin include lib share /usr/
+	chmod -R go-w /usr/lib/node_modules
+}

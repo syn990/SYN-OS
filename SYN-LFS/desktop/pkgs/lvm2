@@ -1,0 +1,10 @@
+# Logical volumes, and the device-mapper cryptsetup sits on
+v=2.03.42
+src=("https://sourceware.org/ftp/lvm2/LVM2.$v.tgz md5:1cfc17fcbdc5103492b4504c5ddaa274")
+build() {
+	PATH+=:/usr/sbin ./configure --prefix=/usr --enable-cmdlib --enable-pkgconfig \
+		--enable-udev_sync
+	make
+	make install
+	rm -fv /usr/lib/udev/rules.d/69-dm-lvm.rules
+}

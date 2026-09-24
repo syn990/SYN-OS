@@ -1,0 +1,6 @@
+# GIMP's image processing
+v=0.4.70
+src=("https://download.gimp.org/pub/gegl/${v%.*}/gegl-$v.tar.xz md5:2442d5f0cb97bcc1b50d2082e29c9375")
+build() {
+	meson_build
+}

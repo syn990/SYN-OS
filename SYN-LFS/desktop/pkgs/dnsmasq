@@ -1,0 +1,7 @@
+# Small DNS and DHCP server, for sharing a connection
+v=2.91
+src=("https://thekelleys.org.uk/dnsmasq/dnsmasq-$v.tar.xz sha256:f622682848b33677adb2b6ad08264618a2ae0a01da486a93fd8cd91186b3d153")
+build() {
+	make PREFIX=/usr
+	make PREFIX=/usr install
+}

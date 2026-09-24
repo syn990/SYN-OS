@@ -1,0 +1,8 @@
+# Reads BitLocker-encrypted Windows disks (SYN-SOFTWARE/dislocker-src,
+# patched for mbedtls 3). dislocker-fuse mounts one, the rest work on
+# image files
+v=local
+always=1
+build() {
+	syn_tool dislocker
+}

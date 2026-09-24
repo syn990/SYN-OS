@@ -1,0 +1,5 @@
+v=3.2.4
+src=("https://download.gimp.org/gimp/v${v%.*}/gimp-$v.tar.xz md5:4a5a233cf24e599bbf73084a3583e29f")
+build() {
+	meson_build -D headless-tests=disabled
+}

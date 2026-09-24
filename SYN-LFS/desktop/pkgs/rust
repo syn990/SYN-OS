@@ -1,0 +1,8 @@
+# Upstream's own toolchain build, the same version the book uses.
+# Building rustc from source needs another rustc to start from and takes
+# hours; nothing here is written in Rust except librsvg below
+v=1.97.1
+src=("https://static.rust-lang.org/dist/rust-$v-x86_64-unknown-linux-gnu.tar.xz sha256:88f28fa9af20594179f85d6df67078dfd6fa93e2f6da5e1e9b0ac4997988ca4f")
+build() {
+	./install.sh --prefix=/usr --disable-ldconfig         --components=rustc,cargo,rust-std-x86_64-unknown-linux-gnu
+}

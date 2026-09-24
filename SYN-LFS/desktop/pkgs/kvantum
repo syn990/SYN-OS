@@ -1,0 +1,7 @@
+# SVG theme engine for Qt. Built without the KDE frameworks
+v=1.1.8
+src=("https://github.com/tsujan/Kvantum/archive/V$v/Kvantum-$v.tar.gz sha256:170c0ad369b7f5cc083969f61241498e11721f3da346c750730c2d0c6f3771f5")
+build() {
+	cd Kvantum
+	cmake_build -D ENABLE_QT5=OFF -D WITHOUT_KF=ON
+}
