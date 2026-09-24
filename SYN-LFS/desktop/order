@@ -295,6 +295,7 @@ openra
 binwalk
 
 # [appsMedia] Falkon, the browser from the Arch package list, and QtWebEngine under it
+cups
 nodejs
 html5lib
 pciutils
