@@ -1,7 +1,9 @@
-# What hardware is in this machine
-v=T.00.07
-src=("https://github.com/lyonel/lshw/archive/$v/lshw-$v.tar.gz sha256:761b7701533dbf92d46ed3a1066473939d50e303e8d454d6de346d2923142cea")
+# What hardware is in this machine. B.02.20 is the current release (the
+# GitHub tags named T.* are 2003 pre-releases that only sort higher).
+# NO_VERSION_CHECK stops lshw looking up the latest version online each run
+v=B.02.20
+src=("https://ezix.org/software/files/lshw-$v.tar.gz sha256:06d9cf122422220e5dc94e8ea5b01816a69bb6b59368f63d7f21fff31fc6922a")
 build() {
-	make
-	make install PREFIX=/usr
+	make -C src NO_VERSION_CHECK=1
+	make -C src NO_VERSION_CHECK=1 PREFIX=/usr install
 }

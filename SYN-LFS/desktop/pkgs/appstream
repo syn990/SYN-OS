@@ -1,8 +1,11 @@
 # The metadata format desktop programs describe themselves with, which
-# GIMP needs to build. Without systemd, so no elogind
+# GIMP needs to build. Without systemd, so no elogind; no man pages (they
+# need the DocBook XSL stylesheets, which nothing else here uses)
 v=1.1.6
 src=("https://www.freedesktop.org/software/appstream/releases/AppStream-$v.tar.xz md5:cc07d222289ec963be208c3757bde6a9")
 build() {
-	meson_build -D apidocs=false -D bash-completion=false -D stemming=false         -D systemd=false
-	mv -v /usr/share/doc/appstream{,-$v}
+	meson_build -D apidocs=false -D bash-completion=false -D stemming=false \
+		-D systemd=false -D man=false
+	[[ -d /usr/share/doc/appstream ]] && mv /usr/share/doc/appstream /usr/share/doc/appstream-$v
+	return 0
 }

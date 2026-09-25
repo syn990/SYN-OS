@@ -2,6 +2,9 @@
 v=2.11
 src=("https://w1.fi/releases/hostapd-$v.tar.gz sha256:2b3facb632fd4f65e32f4bf82a76b4b72c501f995a4f62e330219fe7aed1747a")
 build() {
+	# 2.11 reaches into ASN1_STRING, which OpenSSL 4 made opaque; upstream
+	# fixed it after the release, and the patch carries those commits
+	patch -Np1 -i "$SYN_FILES/hostapd-2.11-openssl4.patch"
 	cd hostapd
 	cp defconfig .config
 	make

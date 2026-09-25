@@ -2,7 +2,7 @@
 
 SYN-OS built from source: Linux From Scratch as the base, runit as PID 1 and zsh in the base, then the SYN desktop (labwc, waybar, foot, the SYN tools), Wi-Fi, sound, surf, Falkon and Steam on top. The result is a disk image and an installer ISO.
 
-Everything lands in a 20G disk image under `~/SYN-OS-build` (`SYN_OS_WORK` moves it). Nothing on the build machine's disks or bootloader is touched.
+Everything lands in a sparse 100G disk image (`SYN_OS_IMGSIZE` changes it; `grow` enlarges an existing one) under `~/SYN-OS-build` (`SYN_OS_WORK` moves it). Nothing on the build machine's disks or bootloader is touched.
 
 ## Build it
 
@@ -43,7 +43,7 @@ The kernel is a single EFI-stub file with its command line built in, installed w
 
 Firmware isn't held back for being non-free: linux-firmware, Intel's SOF audio firmware, and Intel and AMD microcode, built into the kernel since there's no initramfs to carry it.
 
-The desktop's applications come from the same list the Arch ISO installs, `syn-packages.zsh`: VLC, GIMP, OBS, FeatherPad, xarchiver, feh, the CLI tools, the filesystem and disk tools, OpenVPN, Bluetooth, and so on. Audacity and OpenRA are upstream's AppImages unpacked into `/opt`, since both expect a package manager to hand them a pile of libraries or a .NET runtime. The Rust toolchain is upstream's build, there for librsvg, which draws SVG icons, thumbnails and the diagrams in the Docs menu. fzf, zoxide, ripgrep, fd, bat and glow are upstream's prebuilt release binaries.
+The desktop's applications come from the same list the Arch ISO installs, `syn-packages.zsh`: VLC, GIMP, OBS, FeatherPad, lxqt-archiver, feh, the CLI tools, the filesystem and disk tools, OpenVPN, Bluetooth, and so on. Audacity 4 is built from source with its muse_deps libraries taken from the system, and OpenRA is built from source on .NET 10 (Microsoft's SDK, as Rust is upstream's build), its NuGet packages fetched with the other sources. The Rust toolchain is upstream's build, there for librsvg, which draws SVG icons, thumbnails and the diagrams in the Docs menu. fzf, zoxide, ripgrep, fd, bat and glow are upstream's prebuilt release binaries.
 
 surf is the browser that starts in seconds: suckless surf on WebKitGTK, with GStreamer (plugins base, good and bad, and gst-libav for FFmpeg's decoders) for sound and video. Falkon is built too, with QtWebEngine under it, which is Chromium as a Qt library: hours of compiling and tens of gigabytes of build tree, so it comes late in the desktop step. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
 
@@ -56,7 +56,7 @@ profile full    baseCore netAndServices shellAndCLI desktopStack fontsI18n appsM
 profile minimal baseCore netAndServices shellAndCLI desktopStack fontsI18n synOS
 ```
 
-A profile filters the sequence and never reorders it. `minimal` (200 recipes) is a desktop that boots: everything but `appsMedia`. `full` (286) adds `appsMedia`: the browsers, VLC, GIMP, OBS and the rest, and Steam with its 32-bit tree. `SYN_OS_PROFILE=full|minimal` picks one for `fetch` and `desktop` (default `full`); `full` after a `minimal` build builds only the difference. `zsh desktop/syn-pkg.zsh list` prints a profile's recipes.
+A profile filters the sequence and never reorders it. `minimal` (209 recipes) is a desktop that boots: everything but `appsMedia`. `full` (309) adds `appsMedia`: the browsers, VLC, GIMP, OBS and the rest, and Steam with its 32-bit tree. `SYN_OS_PROFILE=full|minimal` picks one for `fetch` and `desktop` (default `full`); `full` after a `minimal` build builds only the difference. `zsh desktop/syn-pkg.zsh list` prints a profile's recipes.
 
 ## Recipes
 
@@ -95,8 +95,6 @@ The initramfs finds the medium labelled `SYN_OS`, mounts the squashfs read-only 
 - Installing next to another OS, or onto an encrypted or LVM root. The installer takes the whole disk, and there's no initramfs to unlock anything. cryptsetup and LVM are installed, so a second disk can be unlocked by hand.
 - SYN-SHARE: its rsync, Samba, NFS, HTTP, TFTP and netcat services are systemd units.
 - qt5ct and kvantum-qt5. Nothing here is built against Qt5; the Qt6 versions of both are in.
-- sof-tools, the debugging tools for the SOF audio firmware. The firmware itself is in.
-- OpenRA and Audacity are upstream's AppImages rather than builds from source, for the reasons above.
 - zenity, which Steam uses for some dialogs (GTK4 and libadwaita).
 - Screen sharing out of a browser, which needs xdg-desktop-portal-wlr.
 - A package manager. Packages are recorded in `/var/lib/syn-os/pkgs`, but nothing tracks which files each one installed.

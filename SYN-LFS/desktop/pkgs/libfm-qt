@@ -1,0 +1,9 @@
+# The Qt file-management library from PCManFM-Qt, which lxqt-archiver's
+# file dialogs and icons come from
+v=2.4.0
+src=("https://github.com/lxqt/libfm-qt/releases/download/$v/libfm-qt-$v.tar.xz md5:d836e9732df22a1fc8a5b3d3919f4549")
+build() {
+	cmake_build
+	# It installs its own MIME types
+	update-mime-database /usr/share/mime
+}

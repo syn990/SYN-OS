@@ -1,7 +1,9 @@
 # Qt's colours, font and icon theme from a config file, which is how
-# syn-theme-apply themes syn-filemanager and FeatherPad
-v=0.9
-src=("https://github.com/trialuser02/qt6ct/archive/$v/qt6ct-$v.tar.gz sha256:aa49c4fb51a82dd6947cd9c8dee9b3a1fdd4fbbc9f3c8c5c2d33fa1de9e8826e")
+# syn-theme-apply themes syn-filemanager and FeatherPad. Upstream moved from
+# GitHub (abandoned at 0.9) to opencode.net; 0.11 builds against Qt 6.10+,
+# where the private Gui headers it uses are a separate CMake package
+v=0.11
+src=("https://www.opencode.net/trialuser/qt6ct/-/archive/$v/qt6ct-$v.tar.gz sha256:32cd06cb4e801362676194ec6c3378498c81eb9484c57870fee3f7d5952ebe1f")
 build() {
 	cmake_build
 }

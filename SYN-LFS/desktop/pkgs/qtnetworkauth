@@ -1,0 +1,6 @@
+# Qt's OAuth module: Audacity 4 requires it at configure time
+v=6.11.2
+src=("https://download.qt.io/archive/qt/${v%.*}/$v/submodules/qtnetworkauth-everywhere-src-$v.tar.xz sha256:0c83c23077ab7824393fa15bb0015c3c5acaf5678544aa789e3fcbb4d41fa05b")
+build() {
+	cmake_build -D QT_BUILD_EXAMPLES=OFF -D QT_BUILD_TESTS=OFF
+}

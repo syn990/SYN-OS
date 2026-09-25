@@ -1,9 +1,21 @@
 # Screen recording and streaming, on the FFmpeg, Qt, PipeWire and
-# PulseAudio already here. No Lua and Python scripting (that wants
-# LuaJIT and SWIG) and no obs-websocket, whose own dependencies aren't
-# in the source release
+# PulseAudio already here. Off, for libraries not built here: Lua/Python
+# scripting (LuaJIT, SWIG), obs-websocket, the embedded browser and its
+# panels (CEF), WebRTC (libdatachannel), the new MPEG-TS output (librist,
+# libsrt), AJA cards (libajantv2), Intel Quick Sync (oneVPL; the VA-API
+# encoder covers Intel GPUs), SpeexDSP noise suppression (RNNoise, which
+# OBS bundles, still does it) and V4L2 capture (v4l-utils). Off because they
+# are NVIDIA-only (the drivers here are the open ones) or fetch from OBS's
+# servers: NVENC, the NVIDIA effects, update checks and "what's new"
+# Mesa here is built without libglvnd, so CMake takes its libGL/libEGL
+# (the LEGACY layout) instead of looking for libOpenGL
 v=32.2.2
 src=("https://github.com/obsproject/obs-studio/releases/download/$v/OBS-Studio-$v-Sources.tar.gz sha256:ec81fb66b03e75ddb3076b576f62679c39262e0e9960cef3e17a40dc5d68e6b4")
 build() {
-	cmake_build -D ENABLE_SCRIPTING=OFF -D ENABLE_WEBSOCKET=OFF -D ENABLE_BROWSER=OFF         -D ENABLE_WHIP=OFF -D ENABLE_VST=OFF -D CMAKE_INSTALL_LIBDIR=lib
+	cmake_build -D CMAKE_INSTALL_LIBDIR=lib -D OpenGL_GL_PREFERENCE=LEGACY \
+		-D ENABLE_SCRIPTING=OFF -D ENABLE_WEBSOCKET=OFF -D ENABLE_BROWSER=OFF \
+		-D ENABLE_BROWSER_PANELS=OFF -D ENABLE_WEBRTC=OFF -D ENABLE_NEW_MPEGTS_OUTPUT=OFF \
+		-D ENABLE_AJA=OFF -D ENABLE_QSV11=OFF -D ENABLE_SPEEXDSP=OFF -D ENABLE_V4L2=OFF -D ENABLE_VST=OFF \
+		-D ENABLE_NVENC=OFF -D ENABLE_NVAFX=OFF -D ENABLE_NVVFX=OFF \
+		-D ENABLE_SERVICE_UPDATES=OFF -D ENABLE_WHATSNEW=OFF -D ENABLE_COMPAT_UPDATES=OFF
 }

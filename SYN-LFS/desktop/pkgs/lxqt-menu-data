@@ -1,0 +1,6 @@
+# LXQt's menu layout files (/etc/xdg/menus), which libfm-qt requires
+v=2.4.0
+src=("https://github.com/lxqt/lxqt-menu-data/releases/download/$v/lxqt-menu-data-$v.tar.xz md5:bfb146f255c3c670f2b2c56c2515ce3c")
+build() {
+	cmake_build
+}

@@ -1,0 +1,8 @@
+# Source documentation generator. libxml2 2.15 builds its Python bindings
+# from the API description doxygen extracts, and itstool needs those. The
+# command-line tool only: no doxywizard (Qt GUI)
+v=1.18.0
+src=("https://github.com/doxygen/doxygen/releases/download/Release_${v//./_}/doxygen-$v.src.tar.gz sha256:a1deed70a6785bbec95a2b2a9e419dc7f7b223a9d74a8644ae611c8e2dcdd354")
+build() {
+	cmake_build -D build_wizard=OFF -D build_doc=OFF -W no-dev
+}

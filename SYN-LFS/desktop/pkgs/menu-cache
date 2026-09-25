@@ -1,0 +1,15 @@
+# Reads and caches the freedesktop.org application menus for libfm-qt.
+# The tarball is a git snapshot with no configure. The book runs
+# autogen.sh, which insists on gtkdocize; without GTK-Doc the API docs'
+# Makefiles are dropped from configure.ac and autoreconf is run directly
+# (configure.ac already treats GTK-Doc as optional)
+v=1.1.1
+src=("https://github.com/lxde/menu-cache/archive/$v/menu-cache-$v.tar.gz md5:a15e0de38188622a6b9e63433a6d616f")
+build() {
+	sed -i '/^docs\//d' configure.ac
+	mkdir -p m4
+	autoreconf -fi
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

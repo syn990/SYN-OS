@@ -1,0 +1,6 @@
+# CMake modules the LXQt packages below are built with (LXQt 2.4)
+v=2.4.0
+src=("https://github.com/lxqt/lxqt-build-tools/releases/download/$v/lxqt-build-tools-$v.tar.xz md5:a480ab7ffadf032340d7b0a705585101")
+build() {
+	cmake_build
+}

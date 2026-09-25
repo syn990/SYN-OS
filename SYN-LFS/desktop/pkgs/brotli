@@ -1,0 +1,7 @@
+# Google's compression format: exiv2 decompresses JPEG XL metadata boxes
+# with it (it's also what web fonts and HTTP use)
+v=1.2.0
+src=("https://github.com/google/brotli/archive/v$v/brotli-$v.tar.gz sha256:816c96e8e8f193b40151dad7e8ff37b1221d019dbcb9c35cd3fadbfe6477dfec")
+build() {
+	cmake_build -D BROTLI_BUILD_TESTS=OFF
+}

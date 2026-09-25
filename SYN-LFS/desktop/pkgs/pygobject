@@ -1,0 +1,8 @@
+# Python bindings for GLib and every library with introspection data (GTK,
+# GEGL, GExiv2...). GIMP 3's Python plug-ins are written against it, and
+# its build requires it
+v=3.58.0
+src=("https://download.gnome.org/sources/pygobject/${v%.*}/pygobject-$v.tar.gz sha256:45068697de3ffe46840ca369705f23118b34db4f7deb63f6eff079a6734ddcca")
+build() {
+	meson_build -D tests=false -D pycairo=enabled
+}

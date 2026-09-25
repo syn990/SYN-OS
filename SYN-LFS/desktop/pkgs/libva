@@ -1,0 +1,7 @@
+# VA-API, the video acceleration interface. OBS's FFmpeg plugin links it on
+# Linux (its VA-API encoder), with DRM, X11 and Wayland backends
+v=2.24.1
+src=("https://github.com/intel/libva/releases/download/$v/libva-$v.tar.bz2 sha256:eec6050b52876f229bd35e9df17cd31a06785e18e6f7990c445b584628483d67")
+build() {
+	meson_build
+}

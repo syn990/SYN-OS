@@ -2,6 +2,9 @@
 v=2.9.9
 src=("https://github.com/libfuse/libfuse/releases/download/fuse-$v/fuse-$v.tar.gz sha256:d0e69d5d608cc22ff4843791ad097f554dd32540ddc9bed7638cc6fea7c1b4b5")
 build() {
+	# glibc now declares closefrom() itself, with another signature, so
+	# ulockmgr's private copy of it is renamed (as Arch's fuse2 does)
+	sed -i 's/\bclosefrom\b/ulockmgr_closefrom/g' util/ulockmgr_server.c
 	./configure --prefix=/usr --disable-static UDEV_RULES_PATH=/usr/lib/udev/rules.d \
 		MOUNT_FUSE_PATH=/usr/sbin INIT_D_PATH=/tmp/fuse-initd
 	make

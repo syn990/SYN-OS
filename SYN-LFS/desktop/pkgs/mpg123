@@ -1,0 +1,8 @@
+# The MP3 decoder Audacity imports MP3 with
+v=1.33.7
+src=("https://downloads.sourceforge.net/mpg123/mpg123-$v.tar.bz2 md5:46ceab9bfb0f04e739f010b88de5943d")
+build() {
+	./configure --prefix=/usr
+	make
+	make install
+}

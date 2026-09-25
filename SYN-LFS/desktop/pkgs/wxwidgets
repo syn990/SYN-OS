@@ -1,0 +1,14 @@
+# wxWidgets, which Audacity 4 still links for the base (non-GUI) library
+# under its Audacity 3 code: string, file and config classes. Built
+# base-only, as Audacity's own dependency recipe does on Linux, so no GTK
+# port: Audacity 4's interface is Qt. zlib and expat from the system,
+# wx's own copy of PCRE2 for wxRegEx
+v=3.2.11
+src=("https://github.com/wxWidgets/wxWidgets/releases/download/v$v/wxWidgets-$v.tar.bz2 sha256:6a129015bce2e914e4bf61ec4411854ad962801d47e92f2eb8340adb6a90af08")
+build() {
+	cmake_build -D wxBUILD_SHARED=ON -D wxUSE_GUI=OFF \
+		-D wxBUILD_SAMPLES=OFF -D wxBUILD_TESTS=OFF -D wxBUILD_DEMOS=OFF \
+		-D wxBUILD_COMPATIBILITY=3.0 -D wxBUILD_PRECOMP=OFF \
+		-D wxUSE_ZLIB=sys -D wxUSE_EXPAT=sys -D wxUSE_REGEX=builtin \
+		-D wxUSE_LIBLZMA=OFF -D wxUSE_WEBREQUEST=OFF -D wxUSE_SECRETSTORE=OFF
+}

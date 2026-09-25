@@ -1,0 +1,9 @@
+# WavPack, for Audacity's import and export. The library only, no
+# command-line tools
+v=5.9.0
+src=("https://github.com/dbry/WavPack/releases/download/$v/wavpack-$v.tar.xz sha256:b5291bc4e6d69ebbd3da3800c5bf4a70f19bb92679b23e09b3b612c1e648d1ff")
+build() {
+	./configure --prefix=/usr --disable-static --disable-apps
+	make
+	make install
+}

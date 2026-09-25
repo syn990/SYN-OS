@@ -1,0 +1,9 @@
+# FLAC, for Audacity's import and export
+v=1.5.0
+src=("https://github.com/xiph/flac/releases/download/$v/flac-$v.tar.xz md5:0bb45bcf74338b00efeec121fff27367")
+build() {
+	./configure --prefix=/usr --disable-static --disable-thorough-tests \
+		--docdir=/usr/share/doc/flac-$v
+	make
+	make install
+}

@@ -2,5 +2,6 @@
 v=0.28.8
 src=("https://github.com/Exiv2/exiv2/archive/v$v/exiv2-$v.tar.gz md5:3f3b2d9c3e73880ea8e6bd78c67ea56a")
 build() {
-	cmake_build -D EXIV2_ENABLE_VIDEO=yes -D EXIV2_ENABLE_WEBREADY=yes         -D EXIV2_ENABLE_CURL=yes -D EXIV2_BUILD_SAMPLES=no
+	cmake_build -D EXIV2_ENABLE_VIDEO=yes -D EXIV2_ENABLE_WEBREADY=yes \
+		-D EXIV2_ENABLE_CURL=yes -D EXIV2_BUILD_SAMPLES=no
 }

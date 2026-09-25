@@ -1,0 +1,15 @@
+# The Sound Open Firmware debug tools Arch ships as sof-tools: sof-logger
+# (reads the DSP's trace), sof-ctl (sets and dumps component parameters
+# through ALSA controls), sof-probes (extracts audio from probe points) and
+# mtrace-reader.py. Arch copies prebuilt binaries out of sof-bin; here they
+# are built from the SOF source release whose firmware sof-firmware
+# installs (sof-bin 2026.09 is SOF v2.15), with the tools/ CMake project
+# upstream's own build-tools.sh uses. Its topology part needs alsatplg
+# from a separate alsa-utils checkout and skips itself without one. No
+# release tarball is published; the sha256 is of GitHub's tag archive
+v=2.15
+src=("https://github.com/thesofproject/sof/archive/v$v/sof-$v.tar.gz sha256:ab05e701a322fb7840ae11a06c874dc3f9e01a124abadbcfc26d9c5bb3d8af69")
+build() {
+	cmake_build -S tools
+	install -m755 tools/mtrace/mtrace-reader.py /usr/bin/
+}

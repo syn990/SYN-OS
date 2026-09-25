@@ -3,7 +3,9 @@ v=1.16.0
 src=("https://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs-tools.git/snapshot/f2fs-tools-$v.tar.gz sha256:208c7a07e95383fbd7b466b5681590789dcb41f41bf197369c41a95383b57c5e")
 build() {
 	./autogen.sh
-	./configure --prefix=/usr --disable-static
+	# GCC 16 defaults to C23, where bool is a keyword; f2fs_fs.h typedefs
+	# its own bool, so this builds as C17 (the same fix as runit's)
+	CFLAGS="${CFLAGS:--O2} -std=gnu17" ./configure --prefix=/usr --disable-static
 	make
 	make install
 }

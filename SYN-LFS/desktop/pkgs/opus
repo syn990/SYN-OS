@@ -1,0 +1,6 @@
+# The Opus codec, for Audacity's import and export
+v=1.6.1
+src=("https://downloads.xiph.org/releases/opus/opus-$v.tar.gz md5:67cafc438c430aa74eeb605eef670886")
+build() {
+	meson_build -D docs=disabled -D tests=disabled -D extra-programs=disabled
+}

@@ -1,0 +1,11 @@
+# The translation-file tool libfm-extra's configure runs (the LXQt archiver's
+# stack). Older LFS books built it in chapter 8; the sed is the book's, for
+# a Perl regex warning
+v=0.51.0
+src=("https://launchpad.net/intltool/trunk/$v/+download/intltool-$v.tar.gz md5:12e517cac2b57a0121cda351570f1e63")
+build() {
+	sed -i 's:\\\${:\\\$\\{:' intltool-update.in
+	./configure --prefix=/usr
+	make
+	make install
+}

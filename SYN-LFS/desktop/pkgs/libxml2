@@ -1,8 +1,9 @@
-# XML library (wayland-scanner, labwc's config parser, xkbregistry)
+# XML library (wayland-scanner, labwc's config parser, xkbregistry), with
+# its Python bindings, which itstool (AppStream and GIMP's docs) imports
 v=2.15.3
 src=("https://download.gnome.org/sources/libxml2/${v%.*}/libxml2-$v.tar.xz md5:b7b0123654f86ebf630a5cbedaafdece")
 build() {
 	sed -i "/'git'/,+3d" meson.build
-	meson_build -D history=enabled -D icu=disabled
+	meson_build -D history=enabled -D icu=disabled -D python=enabled
 	sed "s/--static/--shared/" -i /usr/bin/xml2-config
 }

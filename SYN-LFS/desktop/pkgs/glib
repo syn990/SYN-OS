@@ -1,11 +1,21 @@
-# GLib, without gobject-introspection (nothing in this desktop needs it)
+# GLib and gobject-introspection, the way the BLFS book's GLib page builds
+# them: GLib, then gobject-introspection on it, then GLib again so it
+# installs its own .gir files. GIMP 3 requires introspection (libgimp's
+# bindings take in GLib's, GEGL's and babl's)
 v=2.88.3
+gi=1.86.0
 src=(
 	"https://download.gnome.org/sources/glib/${v%.*}/glib-$v.tar.xz md5:b61c04cfbf55b0d24fbe64e4ac9e9d56"
 	"https://www.linuxfromscratch.org/patches/blfs/13.1/glib-skip_warnings-1.patch sha256:8f9ee9f4a6a08c49c9c912241c63d55b969950c49f4d40337c6fd9557b9daa1b"
+	"https://download.gnome.org/sources/gobject-introspection/${gi%.*}/gobject-introspection-$gi.tar.xz sha256:920d1a3fcedeadc32acff95c2e203b319039dd4b4a08dd1a2dfd283d19c0b9ae"
 )
 build() {
 	patch -Np1 -i ../glib-skip_warnings-1.patch
 	meson_build -D introspection=disabled -D glib_debug=disabled -D man-pages=disabled \
 		-D sysprof=disabled -D tests=false
+	tar -xf ../gobject-introspection-$gi.tar.xz
+	(cd gobject-introspection-$gi && meson_build)
+	meson configure syn-build -D introspection=enabled
+	ninja -C syn-build
+	ninja -C syn-build install
 }

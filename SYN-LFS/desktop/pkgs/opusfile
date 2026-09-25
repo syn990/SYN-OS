@@ -1,0 +1,9 @@
+# Opus file decoding, which Audacity imports .opus files with. No HTTP
+# streaming (that would pull in OpenSSL for nothing Audacity uses)
+v=0.12
+src=("https://downloads.xiph.org/releases/opus/opusfile-$v.tar.gz sha256:118d8601c12dd6a44f52423e68ca9083cc9f2bfe72da7a8c1acb22a80ae3550b")
+build() {
+	./configure --prefix=/usr --disable-static --disable-http --disable-examples --disable-doc
+	make
+	make install
+}

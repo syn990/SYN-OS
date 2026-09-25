@@ -1,0 +1,9 @@
+# The MP3 encoder Audacity exports MP3 with
+v=3.100
+src=("https://downloads.sourceforge.net/lame/lame-$v.tar.gz md5:83e260acbe4389b54fe08e0bdbf7cddb")
+build() {
+	sed -i -e 's/^\(\s*hardcode_libdir_flag_spec\s*=\).*/\1/' configure
+	./configure --prefix=/usr --enable-mp3rtp --disable-static
+	make
+	make pkghtmldir=/usr/share/doc/lame-$v install
+}

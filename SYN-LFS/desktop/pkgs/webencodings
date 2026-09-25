@@ -1,0 +1,8 @@
+# Character encodings as the WHATWG defines them; html5lib requires it.
+# Built with flit-core, which the LFS base has
+v=0.6.1
+src=("https://files.pythonhosted.org/packages/source/w/webencodings/webencodings-$v.tar.gz sha256:565f9ad031c702dae404e27a099e3e09186a3ab1b9520f06d215502b651fd910")
+build() {
+	pip3 wheel -w dist --no-build-isolation --no-deps --no-cache-dir $PWD
+	pip3 install --no-index --find-links dist --no-user webencodings
+}

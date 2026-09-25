@@ -1,0 +1,6 @@
+# Header-only C++ JSON library; OBS's frontend (its plugin manager) needs it
+v=3.12.0
+src=("https://github.com/nlohmann/json/releases/download/v$v/json.tar.xz sha256:42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa nlohmann-json-$v.tar.xz")
+build() {
+	cmake_build -D JSON_BuildTests=OFF
+}

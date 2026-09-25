@@ -1,0 +1,26 @@
+# The .NET SDK and runtime, as Microsoft builds them, for OpenRA.
+# Building .NET from source needs a previous .NET and takes hours, the
+# same reason rust is upstream's build. 10.0 is the current LTS; the
+# checksum is the sha256 of the file whose sha512 Microsoft's
+# releases.json lists.
+# The runtime finds OpenSSL by soname and only knows libssl.so.3 and
+# older; the base has OpenSSL 4 (libssl.so.4). DOTNET_OPENSSL_VERSION_OVERRIDE
+# is .NET's own switch for that, and with it set to 4 hashing and TLS
+# (HttpClient) work against OpenSSL 4.0.1. profile.d sets it for logins
+v=10.0.401
+src=("https://builds.dotnet.microsoft.com/dotnet/Sdk/$v/dotnet-sdk-$v-linux-x64.tar.gz sha256:137268c8ad939c064ff1ee2a6fdf0899d8725377114ea012fbd1ad5fa2550418")
+noextract=1
+build() {
+	rm -rf /usr/lib/dotnet
+	install -d /usr/lib/dotnet
+	tar -xf dotnet-sdk-$v-linux-x64.tar.gz -C /usr/lib/dotnet --no-same-owner
+	ln -sf ../lib/dotnet/dotnet /usr/bin/dotnet
+	# Where apphost executables look for the runtime
+	install -d /etc/dotnet
+	echo /usr/lib/dotnet > /etc/dotnet/install_location
+	cat > /etc/profile.d/dotnet.sh << "EOF2"
+export DOTNET_ROOT=/usr/lib/dotnet
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_OPENSSL_VERSION_OVERRIDE=4
+EOF2
+}

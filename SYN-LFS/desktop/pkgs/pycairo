@@ -1,0 +1,7 @@
+# Python bindings for cairo. GIMP 3's Python plug-ins draw with it, and its
+# build refuses to go on without a Python that can import cairo
+v=1.29.1
+src=("https://github.com/pygobject/pycairo/releases/download/v$v/pycairo-$v.tar.gz sha256:4fbd26b4af24c9787d84cf5448e34eb8dca064b732479aaecd03109520eebd5f")
+build() {
+	meson_build -D tests=false
+}

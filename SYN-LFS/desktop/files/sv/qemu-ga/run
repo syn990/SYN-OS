@@ -1,0 +1,13 @@
+#!/bin/zsh -f
+exec 2>&1
+# The QEMU guest agent, on the virtio serial port QEMU or libvirt adds for
+# it. Without that port (real hardware, or a VM with no agent channel)
+# there is nothing to talk to, so the service marks itself down instead of
+# being restarted every second: one log line per boot. `sv up qemu-ga`
+# tries again, for a channel added while running
+port=/dev/virtio-ports/org.qemu.guest_agent.0
+if [ ! -e $port ]; then
+	print "no $port, staying down"
+	exec sv down $PWD
+fi
+exec /usr/bin/qemu-ga -m virtio-serial -p $port

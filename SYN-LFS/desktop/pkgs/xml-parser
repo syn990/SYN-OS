@@ -1,0 +1,9 @@
+# Perl's XML::Parser, on expat: intltool needs it. Older LFS books built it
+# in chapter 8; 13.1 no longer does. Version and md5 are the book's
+v=2.47
+src=("https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-$v.tar.gz md5:89a8e82cfd2ad948b349c0a69c494463")
+build() {
+	perl Makefile.PL
+	make
+	make install
+}

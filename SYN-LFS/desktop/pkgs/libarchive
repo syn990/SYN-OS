@@ -1,0 +1,10 @@
+# Archive library GIMP requires (it reads brushes and other resources
+# packed in archives); it also installs bsdtar and bsdcpio, which can
+# unpack zip and 7z too
+v=3.8.9
+src=("https://github.com/libarchive/libarchive/releases/download/v$v/libarchive-$v.tar.xz sha256:888c934f9d95648ecb9163dc8e23ab80a476ecb81a8f1154704a227b5b676dde")
+build() {
+	./configure --prefix=/usr --disable-static
+	make
+	make install
+}

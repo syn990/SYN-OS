@@ -1,6 +1,10 @@
-# GIMP's image processing
+# GIMP's image processing. libnsgif and poly2tri-c come from the copies GEGL
+# ships in subprojects/, as the book builds it: nothing else uses them, so
+# meson's fallback stays on here (the other recipes turn it off)
 v=0.4.70
 src=("https://download.gimp.org/pub/gegl/${v%.*}/gegl-$v.tar.xz md5:2442d5f0cb97bcc1b50d2082e29c9375")
 build() {
-	meson_build
+	meson setup syn-build --prefix=/usr --buildtype=release --wrap-mode=default
+	ninja -C syn-build ${=NINJAFLAGS}
+	ninja -C syn-build install
 }

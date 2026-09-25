@@ -1,5 +1,13 @@
-v=0.16.2
-src=("https://download.gnome.org/sources/gexiv2/${v%.*}/gexiv2-$v.tar.xz md5:ed530cddf2f30e1903e983e5542262f9")
+# GObject wrapper for exiv2. GIMP 3.2 requires the 0.14 series (0.16 renamed
+# the library and changed its API, and GIMP's build rejects it); 0.14.7 is
+# also what Arch ships. No Vala bindings (Vala isn't built here)
+v=0.14.7
+src=("https://download.gnome.org/sources/gexiv2/${v%.*}/gexiv2-$v.tar.xz sha256:373b67b24f1a7b5c0606aaf0ea00b352f9511751e21deba0bac650bd5159c93d")
 build() {
-	meson_build
+	# What the 0.16 recipe installed: PyGObject would pick its GExiv2 over
+	# this one's, and nothing else links it
+	rm -rf /usr/lib/libgexiv2-0.16.so* /usr/lib/pkgconfig/gexiv2-0.16.pc \
+		/usr/include/gexiv2-0.16 /usr/lib/girepository-1.0/GExiv2-0.16.typelib \
+		/usr/share/gir-1.0/GExiv2-0.16.gir
+	meson_build -D vapi=false
 }

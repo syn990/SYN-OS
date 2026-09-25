@@ -1,0 +1,11 @@
+# OpenAL, the 3D audio API OpenRA plays its sound through. The backends
+# are required rather than detected, so a missing PipeWire, PulseAudio or
+# ALSA fails the build instead of quietly leaving one out. No example
+# programs or utilities. Upstream publishes no checksum for the tarball;
+# the sha256 is of the file as downloaded
+v=1.25.2
+src=("https://openal-soft.org/openal-releases/openal-soft-$v.tar.bz2 sha256:1dbaac44e7579d5bc8847ca8db4b2e8b9fd3961041f35ee20def4958301e1089")
+build() {
+	cmake_build -D ALSOFT_EXAMPLES=OFF -D ALSOFT_UTILS=OFF \
+		-D ALSOFT_REQUIRE_PIPEWIRE=ON -D ALSOFT_REQUIRE_PULSEAUDIO=ON -D ALSOFT_REQUIRE_ALSA=ON
+}

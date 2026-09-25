@@ -1,0 +1,8 @@
+# EXIF tag reading, for libfm-qt's image thumbnails and file properties
+v=0.6.26
+src=("https://github.com/libexif/libexif/releases/download/v$v/libexif-$v.tar.bz2 md5:d659a750d1be6330105de54eb3bf627a")
+build() {
+	./configure --prefix=/usr --disable-static --with-doc-dir=/usr/share/doc/libexif-$v
+	make
+	make install
+}

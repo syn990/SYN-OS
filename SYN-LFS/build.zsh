@@ -22,6 +22,8 @@
 #                Resumes at the step that failed; log in the work directory
 #     image      create + partition + mount the disk image (once)
 #     mount      re-attach and mount an existing image
+#     grow SIZE  enlarge an existing image and its root filesystem (default
+#                $IMGSIZE); the image must not be mounted or in use
 #     kernel     generate the kernel .config (defconfig + kernel.syn)
 #     configure  write jhalfs's configuration file
 #     build      run jhalfs (downloads sources, builds LFS + kernel)
@@ -49,6 +51,9 @@ setopt err_exit pipe_fail
 HERE=${0:A:h}
 W=${SYN_OS_WORK:-$HOME/SYN-OS-build}
 IMG=$W/synos.img
+# The image is a sparse file: it takes only what is written. The full
+# profile needs about 60G while building (QtWebEngine is most of it)
+IMGSIZE=${SYN_OS_IMGSIZE:-100G}
 MNT=/mnt/syn-os
 SRC=$W/sources
 JHALFS=$W/jhalfs
@@ -76,7 +81,7 @@ loopdev() { losetup -j $IMG | cut -d: -f1 | head -1 }
 step_image() {
 	[[ -e $IMG ]] && { print "exists: $IMG (use: mount)"; exit 1 }
 	mkdir -p $W $SRC
-	truncate -s 20G $IMG
+	truncate -s $IMGSIZE $IMG
 	sgdisk -o -n 1:0:+256M -t 1:ef00 -c 1:SYNEFI -n 2:0:0 -t 2:8300 -c 2:synroot $IMG
 	local dev=$(doas losetup -Pf --show $IMG)
 	doas mkfs.vfat -F 32 -n SYNEFI ${dev}p1
@@ -84,6 +89,25 @@ step_image() {
 	doas mkdir -p $MNT
 	doas mount ${dev}p2 $MNT
 	print "image ready: $dev mounted at $MNT"
+}
+
+step_grow() {
+	local size=${1:-$IMGSIZE} want have start guid dev
+	[[ -n $(loopdev) ]] && { print "the image is attached: run umount first"; exit 1 }
+	doas fuser -s $IMG 2>/dev/null && { print "$IMG is open (a VM booting it?): shut that down first"; exit 1 }
+	want=$(numfmt --from=iec $size) have=$(stat -c %s $IMG)
+	(( want > have )) || { print "$IMG is already $(numfmt --to=iec $have)"; return 0 }
+	# The root keeps its first sector, its label and its unique GUID; only
+	# its end moves, then ext4 grows into it
+	start=$(sgdisk -i 2 $IMG | awk '/^First sector/ {print $3}')
+	guid=$(sgdisk -i 2 $IMG | awk '/^Partition unique GUID/ {print $4}')
+	doas truncate -s $size $IMG
+	doas sgdisk -e -d 2 -n 2:$start:0 -t 2:8300 -c 2:synroot -u 2:$guid $IMG
+	dev=$(doas losetup -Pf --show $IMG)
+	doas e2fsck -f -y ${dev}p2 || (( $? < 4 )) || { doas losetup -d $dev; exit 1 }
+	doas resize2fs ${dev}p2
+	doas losetup -d $dev
+	print "$IMG is now $size"
 }
 
 step_mount() {

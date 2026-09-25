@@ -1,0 +1,33 @@
+# Lua 5.1, the version OpenRA's map scripts are written for (its Eluant
+# binding loads liblua5.1.so.5.1). Lives beside the lua recipe's 5.4:
+# library liblua5.1.so, headers in /usr/include/lua5.1, commands lua5.1
+# and luac5.1, so /usr/bin/lua, liblua.so and /usr/include stay 5.4's.
+# Lua's makefile only builds a static library; the shared one is linked
+# from the same objects, built with -fPIC
+v=5.1.5
+src=("https://www.lua.org/ftp/lua-$v.tar.gz sha256:2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333")
+build() {
+	sed -i 's|/usr/local/|/usr/|' src/luaconf.h
+	cd src
+	make all MYCFLAGS="-DLUA_USE_LINUX -fPIC" MYLIBS="-Wl,-E -ldl -lreadline"
+	gcc -shared -Wl,-soname,liblua5.1.so.5.1 -o liblua5.1.so.$v $(ar t liblua.a) -lm -ldl
+	install -m755 liblua5.1.so.$v /usr/lib/
+	ln -sf liblua5.1.so.$v /usr/lib/liblua5.1.so.5.1
+	ln -sf liblua5.1.so.5.1 /usr/lib/liblua5.1.so
+	install -m755 lua /usr/bin/lua5.1
+	install -m755 luac /usr/bin/luac5.1
+	install -Dm644 -t /usr/include/lua5.1 lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
+	install -Dm644 ../doc/lua.1 /usr/share/man/man1/lua5.1.1
+	install -Dm644 ../doc/luac.1 /usr/share/man/man1/luac5.1.1
+	cat > /usr/lib/pkgconfig/lua5.1.pc << EOF2
+prefix=/usr
+libdir=\${prefix}/lib
+includedir=\${prefix}/include/lua5.1
+
+Name: Lua
+Description: An Extensible Extension Language
+Version: $v
+Libs: -L\${libdir} -llua5.1 -lm
+Cflags: -I\${includedir}
+EOF2
+}

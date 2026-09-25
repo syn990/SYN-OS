@@ -1,0 +1,8 @@
+# Archive manager, the one Arch's package list installs. It has no archive
+# code of its own: it runs tar, gzip, xz, zstd, 7z, unzip and the rest as
+# commands, offering whichever of them are installed
+v=1.4.0
+src=("https://github.com/lxqt/lxqt-archiver/releases/download/$v/lxqt-archiver-$v.tar.xz md5:8be174a519f9fe5512a4809671b040ce")
+build() {
+	cmake_build
+}

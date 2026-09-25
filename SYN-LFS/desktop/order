@@ -17,6 +17,7 @@ p11-kit
 make-ca
 curl
 cmake
+doxygen
 libxml2
 libnl
 lua
@@ -26,6 +27,10 @@ basu
 libxcrypt-compat
 nano
 dosfstools
+xml-parser
+intltool
+libarchive
+brotli
 
 # [shellAndCLI] Command-line and system tools (what .zshrc and the SYN scripts call)
 git
@@ -69,6 +74,7 @@ wayland
 wayland-protocols
 wlr-protocols
 libdrm
+libva
 hwdata
 libdisplay-info
 libliftoff
@@ -95,6 +101,8 @@ libepoxy
 
 # [desktopStack] GTK3 and the C++ bindings waybar is written against
 cairo
+pycairo
+pygobject
 pango
 shared-mime-info
 gdk-pixbuf
@@ -148,6 +156,8 @@ openvpn
 wireless-regdb
 linux-firmware
 sof-firmware
+qemu-guest-agent
+sof-tools
 cpu-microcode
 
 # [shellAndCLI] Disks, filesystems and the system tools the installer and SYN-SHARE use
@@ -218,7 +228,14 @@ adwaita-icon-theme
 giflib
 imlib2
 feh
-xarchiver
+json-glib
+libexif
+libfm-extra
+menu-cache
+lxqt-build-tools
+lxqt-menu-data
+libfm-qt
+lxqt-archiver
 
 # [fontsI18n] Fonts
 terminus-font
@@ -270,7 +287,6 @@ surf
 
 # [appsMedia] The rest of syn-packages.zsh: VLC, GIMP and what they need
 tiff
-json-glib
 lxml
 itstool
 libfyaml
@@ -289,25 +305,45 @@ vlc
 simde
 uthash
 jansson
+pciutils
+nlohmann-json
+extra-cmake-modules
 obs-studio
-audacity
+lua51
+openal-soft
+dotnet-sdk
 openra
 binwalk
 
 # [appsMedia] Falkon, the browser from the Arch package list, and QtWebEngine under it
 nodejs
+six
+webencodings
 html5lib
-pciutils
 rust-bindgen
 qtshadertools
 qtdeclarative
 qtwebchannel
 qtpositioning
 qtwebengine
-extra-cmake-modules
 karchive
 ki18n
 falkon
+
+# [appsMedia] Audacity, built from source, and the audio libraries and Qt modules it needs
+libogg
+libvorbis
+flac
+opus
+opusfile
+lame
+mpg123
+wavpack
+portaudio
+wxwidgets
+qt5compat
+qtnetworkauth
+audacity
 
 # [appsMedia] Windows recovery tools
 chntpw

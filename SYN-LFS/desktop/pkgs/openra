@@ -1,27 +1,118 @@
-# Red Alert, Tiberian Dawn and Dune 2000, from upstream's AppImages.
-# OpenRA runs on .NET, which isn't built here, and each AppImage carries
-# its own runtime
+# OpenRA: Red Alert, Tiberian Dawn and Dune 2000 on a rebuilt engine,
+# compiled from source with dotnet-sdk. The game data isn't included;
+# the game downloads it or copies it from the original discs on first run.
+#
+# The projects target net6.0. The SDK builds them against the net6.0
+# reference packs from NuGet, and RollForward=Major lets the result run
+# on the installed .NET 10 runtime. The chroot has no network, so every
+# NuGet package the solution restores (found by restoring OpenRA.sln on
+# a networked host with an empty package cache, test projects included)
+# is a source below; build() puts them in a local feed and a NuGet.Config
+# in the source tree clears every other package source.
+#
+# The engine links the system's SDL2 (sdl2-compat), OpenAL (openal-soft),
+# Lua 5.1 (lua51) and FreeType: configure-system-libraries.sh, run by
+# make, symlinks them into bin/. HttpClient (server list, map downloads)
+# needs dotnet-sdk's DOTNET_OPENSSL_VERSION_OVERRIDE for OpenSSL 4.
+#
+# The Makefile's own install target publishes self-contained for
+# TARGETPLATFORM as a runtime identifier, and unix-generic isn't one, so
+# the assemblies are copied from bin/ here and the rest (data, launchers,
+# desktop files, icons, appdata, man page) uses upstream's install
+# functions and targets. The IP2Location country database is left out:
+# it is a monthly download with no fixed release, and the server shows
+# no country flags without it
 v=20250330
 src=(
-	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Red-Alert-x86_64.AppImage sha256:3cb71c7428188c8526dd8916993fc16fa17ba5f28a35968a8267f3db9f2186fe"
-	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Tiberian-Dawn-x86_64.AppImage sha256:b3d202d1bf701be5989c41c256d19bd2b1788694df01e343ade865cf1190706b"
-	"https://github.com/OpenRA/OpenRA/releases/download/release-$v/OpenRA-Dune-2000-x86_64.AppImage sha256:7585986bf0cd488debaec3fadf853c1901003eff945dbad5de95b0b6bd781a67"
+	"https://github.com/OpenRA/OpenRA/archive/refs/tags/release-$v.tar.gz sha256:e29fac3018bf1676fe300ce6e2e2232115cf5cf2ccdb4cf2bebc83e00c3556a4 openra-$v.tar.gz"
+	"https://api.nuget.org/v3-flatcontainer/discordrichpresence/1.2.1.24/discordrichpresence.1.2.1.24.nupkg sha256:a1136b945d7fc8ad10beb5b6fb8f11b264a0f61f7fa4321f039ebf6e9a075c55"
+	"https://api.nuget.org/v3-flatcontainer/linguini.bundle/0.8.1/linguini.bundle.0.8.1.nupkg sha256:4a2ac1eb95e38710644be3844593f57beea5db1665f4314bcf6493e64db1f6dc"
+	"https://api.nuget.org/v3-flatcontainer/linguini.shared/0.8.0/linguini.shared.0.8.0.nupkg sha256:0670a0abad732f2e8c306ea036766220e8c9372fd2a350cf52c751f379b90023"
+	"https://api.nuget.org/v3-flatcontainer/linguini.syntax/0.8.0/linguini.syntax.0.8.0.nupkg sha256:c793c87582550af209c6c0d13f4199d4f51b00f265e8ae22f8afcb369344d43d"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.ref/6.0.36/microsoft.aspnetcore.app.ref.6.0.36.nupkg sha256:f630e459b8f0fe777ccaa7735536a00aeaabea8c09fc350c8b80655194f88565"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencymodel/6.0.2/microsoft.extensions.dependencymodel.6.0.2.nupkg sha256:59533f82c84689ed49f6ae65dd8591ceb3d662556f5fa21223e4a254ca0fa79a"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.host.linux-x64/6.0.36/microsoft.netcore.app.host.linux-x64.6.0.36.nupkg sha256:545443cf1ecb26ebc8e72cca7469b0ff7d4d6156f01d63ca42fb9e42de71735d"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.ref/6.0.36/microsoft.netcore.app.ref.6.0.36.nupkg sha256:f4b66056820517ca8dc94bbc91d26b6062eeb4c17f70bd8af361cddb2c30971f"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg sha256:15e338d24b5c39b4099389cc612841eb51ff13c07bb4829f97d39b27420e7023"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.netcore.platforms/5.0.0/microsoft.netcore.platforms.5.0.0.nupkg sha256:2c8720d52b437102cf380069e0945722cf37eddef3d226bafbefb7485de39757"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.netcore.targets/1.1.0/microsoft.netcore.targets.1.1.0.nupkg sha256:d00a90da0312f22365624ac3f81c6d220edc5cc9ebf71647b4a02e3786e37da4"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/4.5.0/microsoft.win32.registry.4.5.0.nupkg sha256:58c057b086f40e03c53da164355c58f5bf6f70cc4faad8058228ca60c25f57fd"
+	"https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/5.0.0/microsoft.win32.registry.5.0.0.nupkg sha256:f64ca53c67ca65ce7cc85a8d29aefbb2da2672836731e1115e8cd62730dc5080"
+	"https://api.nuget.org/v3-flatcontainer/mono.nat/3.0.4/mono.nat.3.0.4.nupkg sha256:35d3aab94d8d68ab42bf4a75f9e63a6b08ce070c337fdd82c002780e0cf6fb83"
+	"https://api.nuget.org/v3-flatcontainer/mp3sharp/1.0.5/mp3sharp.1.0.5.nupkg sha256:dba30dc1fcf35aa65a4973a272fbb980ea64793c7c3772062bb2bc239a010592"
+	"https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg sha256:2b6b52556e27e1b7913f33eedeb95568110c746bd64afff74357f1683878323a"
+	"https://api.nuget.org/v3-flatcontainer/nuget.commandline/4.4.1/nuget.commandline.4.4.1.nupkg sha256:4ba9247f4f10200013e361f35df1e17217af7f2d69b6434e998109c1172cf3eb"
+	"https://api.nuget.org/v3-flatcontainer/nuget.commandline/6.12.1/nuget.commandline.6.12.1.nupkg sha256:9e36e118f6e2dd2c0134f74867a65c6f93a878d47388dfd415b570bceee39ef3"
+	"https://api.nuget.org/v3-flatcontainer/nvorbis/0.10.5/nvorbis.0.10.5.nupkg sha256:d432921dc2be29c062a95cae247e12955c9b709fd347823d01dfd68a16c5387a"
+	"https://api.nuget.org/v3-flatcontainer/openra-eluant/1.0.22/openra-eluant.1.0.22.nupkg sha256:57901e966bb2acfccb556c743e0b8552f2a58c1332d17ed627b1ccb34fc98a8c"
+	"https://api.nuget.org/v3-flatcontainer/openra-freetype6/1.0.11/openra-freetype6.1.0.11.nupkg sha256:2147eea480653f4829dcefb342a5f34d1dba6868cc28e61d31510a39d9ad61bd"
+	"https://api.nuget.org/v3-flatcontainer/openra-fuzzylogiclibrary/1.0.1/openra-fuzzylogiclibrary.1.0.1.nupkg sha256:356e5ee72c14f1752d55ecc1e251d03dce2600ad736f7c27a52beb90085ac04e"
+	"https://api.nuget.org/v3-flatcontainer/openra-openal-cs/1.0.22/openra-openal-cs.1.0.22.nupkg sha256:2de0495fc226a590a024c017cf5e2a8e0725eb975153ec8aa244075d55c37d15"
+	"https://api.nuget.org/v3-flatcontainer/openra-sdl2-cs/1.0.42/openra-sdl2-cs.1.0.42.nupkg sha256:f4ef8183b116fb30ef82779b0b3d6aa68c978e7463c2b2839289e43a2b5ecf41"
+	"https://api.nuget.org/v3-flatcontainer/pfim/0.11.3/pfim.0.11.3.nupkg sha256:48d9e022c9684e3472998eb8006c3e6a05de1b8537908804f8f93c36ac4c04ef"
+	"https://api.nuget.org/v3-flatcontainer/rix0rrr.beaconlib/1.0.2/rix0rrr.beaconlib.1.0.2.nupkg sha256:a49c7c050f4a4d1f1ca174ae6d4be8b6630cd1869cccb321dcd26c74e1891e38"
+	"https://api.nuget.org/v3-flatcontainer/roslynator.analyzers/4.2.0/roslynator.analyzers.4.2.0.nupkg sha256:5763c8c9320ceea6fcb8914185f676476fa46eaf0297d72b06ffe6f8504515d9"
+	"https://api.nuget.org/v3-flatcontainer/roslynator.formatting.analyzers/4.2.0/roslynator.formatting.analyzers.4.2.0.nupkg sha256:7cb63d5a659bde625b99ec223da5ea539c229b720c7b0e40d6de993e530f11ab"
+	"https://api.nuget.org/v3-flatcontainer/sharpziplib/1.4.2/sharpziplib.1.4.2.nupkg sha256:fe0895aa2930a2b1b65caa9f37db8bca35125ebdf9cc1b99d855f6afc5ff5946"
+	"https://api.nuget.org/v3-flatcontainer/stylecop.analyzers/1.2.0-beta.435/stylecop.analyzers.1.2.0-beta.435.nupkg sha256:5ee7c958d7e30d0bf0dcb26121fea71c524e7c095adf07cf14ba11b115f83936"
+	"https://api.nuget.org/v3-flatcontainer/stylecop.analyzers.unstable/1.2.0.435/stylecop.analyzers.unstable.1.2.0.435.nupkg sha256:b0a6fb230293f986f52ff321f1917218c53add6ec2f920ac102931e1898264cb"
+	"https://api.nuget.org/v3-flatcontainer/system.buffers/4.5.1/system.buffers.4.5.1.nupkg sha256:c30b3dd2c7e2f4cee4b823d692fd42118309b42ab1f5007f923d329a5b0d6b12"
+	"https://api.nuget.org/v3-flatcontainer/system.io/4.3.0/system.io.4.3.0.nupkg sha256:aeeca74077a414fe703eb0e257284d891217799fc8f4da632b9a54f873c38916"
+	"https://api.nuget.org/v3-flatcontainer/system.memory/4.5.3/system.memory.4.5.3.nupkg sha256:0af97b45b45b46ef6a2b37910568dabd492c793da3859054595d523e2a545859"
+	"https://api.nuget.org/v3-flatcontainer/system.memory/4.5.4/system.memory.4.5.4.nupkg sha256:dec0847f33b8823e4260672d97d657411461c00ada3107ec7bbcb32a845eeb91"
+	"https://api.nuget.org/v3-flatcontainer/system.reflection/4.3.0/system.reflection.4.3.0.nupkg sha256:35049946964bbed3d60e5be6308746c5c56ec949f0f76654468d215ec12c8576"
+	"https://api.nuget.org/v3-flatcontainer/system.reflection.primitives/4.3.0/system.reflection.primitives.4.3.0.nupkg sha256:e68830581e2f9504e5de38e4d718e7886da8cdb1488d94cbf6e834bac650b813"
+	"https://api.nuget.org/v3-flatcontainer/system.runtime/4.3.0/system.runtime.4.3.0.nupkg sha256:e75f35dd65e9048b2e03a7d4b44e57691423716750dbf966128909b7deeed118"
+	"https://api.nuget.org/v3-flatcontainer/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg sha256:6c41b53e70e9eee298cff3a02ce5acdd15b04125589be0273f0566026720a762"
+	"https://api.nuget.org/v3-flatcontainer/system.runtime.loader/4.3.0/system.runtime.loader.4.3.0.nupkg sha256:b321b519316361bc17d78e810ff2fbb79e63f8366aa470dceb3dbc91d48dcf1d"
+	"https://api.nuget.org/v3-flatcontainer/system.security.accesscontrol/5.0.0/system.security.accesscontrol.5.0.0.nupkg sha256:b9e486f989fcd9ebf1c86067138f4de03fa780e0c35e0a2b9e506d4373a6c39e"
+	"https://api.nuget.org/v3-flatcontainer/system.security.principal.windows/5.0.0/system.security.principal.windows.5.0.0.nupkg sha256:081390c25f6f78592b28ada853c24514488a221fe9f9a24efaaf5373643ff3d6"
+	"https://api.nuget.org/v3-flatcontainer/system.text.encoding/4.3.0/system.text.encoding.4.3.0.nupkg sha256:19cb475462d901afebaa404d86c0469ec89674acafe950ee6d8a4692e3a404b8"
+	"https://api.nuget.org/v3-flatcontainer/system.text.encodings.web/6.0.1/system.text.encodings.web.6.0.1.nupkg sha256:977a0ac194ad8dec3f0a54ab0da54bc870c0131a0fe88c26eaea8949d23d609a"
+	"https://api.nuget.org/v3-flatcontainer/system.text.json/6.0.11/system.text.json.6.0.11.nupkg sha256:2ac80e53746f48dfca73e9b2e392b47ae6b8a3040f65aafcd4b545d8aceea5fd"
+	"https://api.nuget.org/v3-flatcontainer/system.threading.channels/6.0.0/system.threading.channels.6.0.0.nupkg sha256:9251989eccab8ef5da19eaa07e731ffdd4c030db5c1d8fb33385e1eafd897ee1"
+	"https://api.nuget.org/v3-flatcontainer/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg sha256:679ad77c9d445e9dc6df620a646899ea4a0c8d1bb49fc0b5346af0a5d21e9f8c"
+	"https://api.nuget.org/v3-flatcontainer/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg sha256:9e21fa9767d4e76bc0cee065c1d40cc34384a114bfec4d70e6c981168a926802"
+	"https://api.nuget.org/v3-flatcontainer/taglibsharp/2.3.0/taglibsharp.2.3.0.nupkg sha256:3c3f5b55988f69e0bc84dc760feb8351fef4d5c09a322d88462e683d334dfbfc"
 )
-noextract=1
 build() {
-	local mod name
-	install -d /opt/openra
-	for mod in Red-Alert Tiberian-Dawn Dune-2000; do
-		name=${mod//-/ }
-		install -m755 OpenRA-$mod-x86_64.AppImage /opt/openra/
-		ln -sf /opt/openra/OpenRA-$mod-x86_64.AppImage /usr/bin/openra-${mod:l}
-		cat > /usr/share/applications/openra-${mod:l}.desktop << EOF
-[Desktop Entry]
-Type=Application
-Name=OpenRA: $name
-Exec=/usr/bin/openra-${mod:l}
-Terminal=false
-Categories=Game;StrategyGame;
-EOF
-	done
+	# Kept inside the build tree: the CLI's first-run files and the
+	# package cache the restore unpacks into
+	export HOME=$PWD/syn-home DOTNET_CLI_HOME=$PWD/syn-home NUGET_PACKAGES=$PWD/syn-nuget
+	export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+	# The build runs dotnet too, outside a login shell, so not from profile.d:
+	# without it .NET finds no libssl.so.3 and aborts
+	export DOTNET_OPENSSL_VERSION_OVERRIDE=4
+	install -d syn-home syn-feed
+	cp ../*.nupkg syn-feed/
+	cat > NuGet.Config << EOF2
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="syn-feed" value="$PWD/syn-feed" />
+  </packageSources>
+</configuration>
+EOF2
+	# Passed to every dotnet build in the tree, the Makefile's included.
+	# NuGetAudit would look up vulnerability data online
+	printf '%s\n' -p:RollForward=Major -p:NuGetAudit=false > Directory.Build.rsp
+	# A fresh file stops fetch-geoip.sh downloading; removed after install
+	touch IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP
+	make TARGETPLATFORM=unix-generic
+
+	rm -rf /usr/lib/openra
+	install -d /usr/lib/openra
+	cp -P bin/*.dll bin/*.dll.config bin/*.json bin/*.so /usr/lib/openra/
+	cp -R bin/runtimes /usr/lib/openra/
+	sh -c '. ./packaging/functions.sh; install_data "$1" /usr/lib/openra cnc d2k ra' sh "$PWD"
+	rm /usr/lib/openra/IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP
+	# openra-ra, openra-cnc, openra-d2k (and -server) run `dotnet OpenRA.dll`
+	make TARGETPLATFORM=unix-generic prefix=/usr \
+		install-linux-shortcuts install-linux-appdata install-man
+
+	# What the AppImage version of this recipe installed
+	rm -rf /opt/openra
+	rm -f /usr/bin/openra-{red-alert,tiberian-dawn,dune-2000} \
+		/usr/share/applications/openra-{red-alert,tiberian-dawn,dune-2000}.desktop
 }

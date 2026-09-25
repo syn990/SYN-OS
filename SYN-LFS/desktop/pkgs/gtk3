@@ -2,7 +2,7 @@ v=3.24.52
 src=("https://download.gnome.org/sources/gtk/${v%.*}/gtk-$v.tar.xz md5:4dfad1e56bf8ad25dfab58add17e7146")
 build() {
 	meson_build -D x11_backend=true -D wayland_backend=true -D broadway_backend=false \
-		-D introspection=false -D demos=false -D examples=false -D tests=false -D man=false \
+		-D introspection=true -D demos=false -D examples=false -D tests=false -D man=false \
 		-D colord=no
 	gtk-query-immodules-3.0 --update-cache
 	glib-compile-schemas /usr/share/glib-2.0/schemas

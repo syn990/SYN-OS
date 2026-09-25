@@ -2,5 +2,5 @@
 v=0.1.128
 src=("https://download.gimp.org/pub/babl/${v%.*}/babl-$v.tar.xz md5:47bc0674961d219710a96e03d9e839ad")
 build() {
-	meson_build
+	meson_build -D enable-vapi=false
 }

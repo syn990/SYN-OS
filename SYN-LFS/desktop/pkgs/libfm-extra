@@ -1,0 +1,9 @@
+# The small non-GTK part of libfm that menu-cache links against, built from
+# the libfm tarball with --with-extra-only (the BLFS LXQt chapter's way)
+v=1.3.2
+src=("https://downloads.sourceforge.net/pcmanfm/libfm-$v.tar.xz md5:c87a0ff41ae77825079b2f785ec0741e")
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --with-extra-only --with-gtk=no --disable-static
+	make
+	make install
+}

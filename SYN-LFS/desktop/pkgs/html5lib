@@ -1,7 +1,10 @@
-# QtWebEngine's build scripts import it
+# QtWebEngine's build scripts import it. The patch carries the setup.py parts
+# of Arch's fixes: setuptools no longer ships pkg_resources, and Python 3.14
+# removed ast.Str, both of which 1.1's setup.py used
 v=1.1
 src=("https://files.pythonhosted.org/packages/source/h/html5lib/html5lib-$v.tar.gz md5:6748742e2ec4cb99287a6bc82bcfe2b0")
 build() {
+	patch -Np1 -i "$SYN_FILES/html5lib-1.1-setup.patch"
 	pip3 wheel -w dist --no-build-isolation --no-deps --no-cache-dir $PWD
 	pip3 install --no-index --find-links dist --no-user html5lib
 }

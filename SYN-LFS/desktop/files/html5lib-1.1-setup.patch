@@ -1,0 +1,33 @@
+html5lib 1.1's setup.py on current setuptools and Python 3.14: the setup.py parts
+of Arch's python-html5lib patches (pkg_resources is gone from setuptools 81;
+ast.Str was removed in Python 3.14).
+
+--- a/setup.py
++++ b/setup.py
+@@ -6,9 +6,12 @@
+ 
+ from os.path import join, dirname
+ from setuptools import setup, find_packages, __version__ as setuptools_version
+-from pkg_resources import parse_version
+ 
+-import pkg_resources
++try:
++    import pkg_resources
++    from pkg_resources import parse_version
++except ImportError:
++    pkg_resources = None
+ 
+ try:
+     import _markerlib.markers
+@@ -90,8 +93,9 @@
+         if (len(a.targets) == 1 and
+                 isinstance(a.targets[0], ast.Name) and
+                 a.targets[0].id == "__version__" and
+-                isinstance(a.value, ast.Str)):
+-            version = a.value.s
++                ((sys.version_info >= (3, 8) and isinstance(a.value, ast.Constant)) or
++                    isinstance(a.value, ast.Str))):
++            version = a.value.value if sys.version_info >= (3, 8) else a.value.s
+ 
+ setup(name='html5lib',
+       version=version,
