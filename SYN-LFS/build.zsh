@@ -61,6 +61,7 @@ JHALFS=$W/jhalfs
 # commit (2026-09-14) its package versions are exactly LFS 13.1's, which
 # is also what the LFS source mirror below is looked up by
 LFS_COMMIT=aaa6933c1a018c4cfb8a503e07835b9af3f8b3b2
+JHALFS_COMMIT=a13fd9828b8c28d02dfde824a441cd7dd3a1643d
 LFS_RELEASE=13.1
 KVER=7.1.8
 RUNIT=2.2.0
@@ -514,7 +515,11 @@ step_host() {
 		print 'permit persist :wheel' | $su tee /etc/doas.conf > /dev/null
 		$su chmod 600 /etc/doas.conf
 	fi
+	# jhalfs pinned too, not just the book: its scripts move, and a build
+	# months from now should run the ones this system was built with
 	[[ -d $JHALFS ]] || git clone -q https://git.linuxfromscratch.org/jhalfs.git $JHALFS
+	git -C $JHALFS fetch -q origin
+	git -C $JHALFS checkout -q $JHALFS_COMMIT
 	print "host ready: $(nproc) CPUs, $(free -g | awk '/Mem:/ {print $2}')G RAM, jhalfs in $JHALFS"
 }
 
