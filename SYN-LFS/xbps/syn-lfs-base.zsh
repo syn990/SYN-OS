@@ -37,6 +37,9 @@ for p in "$@"; do $Q -x $p --fulldeptree; done | sed -E 's/-[^-]+_[0-9]+$//' | s
 
 : > $W/provides
 while read d; do
+	# Never claim a package that is being asked for: xbps would install the
+	# real one and let it replace syn-lfs-base, taking every claim with it
+	(( ${@[(Ie)$d]} )) && continue
 	have=0
 	shl=(${(f)"$($Q -p shlib-provides $d 2>/dev/null)"})
 	if (( ${#shl} )); then
@@ -53,8 +56,9 @@ while read d; do
 	# with the virtual names it provides (libglvnd is libEGL, libGL...)
 	(( have )) && { $Q -p pkgver $d; $Q -p provides $d 2>/dev/null | grep -v '^cmd:\|^pc:' || true } >> $W/provides
 done < $W/deps
-# glibc and the base files are always the base's
-for b in glibc base-files; do $Q -p pkgver $b >> $W/provides; done
+# glibc, the base files and the interpreters LFS builds are always the
+# base's (perl's library sits outside /usr/lib, so the check above misses it)
+for b in glibc base-files perl python3 bash; do $Q -p pkgver $b >> $W/provides; done
 sort -u -o $W/provides $W/provides
 print "$(wc -l < $W/deps) packages in the chains; the base provides $(wc -l < $W/provides)"
 

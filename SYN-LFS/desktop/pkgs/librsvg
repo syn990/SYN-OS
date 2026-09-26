@@ -1,11 +1,14 @@
 # Draws SVG: GTK's icons (Adwaita is all SVG), image thumbnails, and the
 # diagrams in the Docs menu. The one package that downloads anything
 # while it builds, since its Rust crates aren't in the tarball; the
-# chroot has the host's resolv.conf for that
+# chroot has the host's resolv.conf for that. The gdk-pixbuf SVG loader is off by
+# default since 2.62 and has to be asked for: without it GTK draws no SVG
+# icon, and GIMP 3 (SVG icons) aborts
 v=2.62.3
 src=("https://download.gnome.org/sources/librsvg/${v%.*}/librsvg-$v.tar.xz md5:bf6d56ffe4cfa5426cf1a67bcabdf5ce")
 build() {
 	export CARGO_HOME=/var/cache/cargo
-	meson_build -D docs=disabled -D vala=disabled -D introspection=disabled
+	meson_build -D docs=disabled -D vala=disabled -D introspection=disabled \
+		-D pixbuf-loader=enabled
 	gdk-pixbuf-query-loaders --update-cache
 }
