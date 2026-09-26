@@ -32,14 +32,19 @@ find $ROOT/usr/lib $ROOT/usr/lib/qt6 -maxdepth 1 \( -name '*.so.*' -o -name '*.s
 qtv=$(ls $ROOT/usr/lib/libQt6Core.so.6.* 2>/dev/null | sed -n 's/.*libQt6Core\.so\.//p' | head -1)
 [[ -n $qtv ]] && print "libQt_6_PRIVATE_API.$qtv" >> $W/sonames
 
-# The PKGs' dependency chains, as names
-for p in "$@"; do $Q -x $p --fulldeptree; done | sed -E 's/-[^-]+_[0-9]+$//' | sort -u > $W/deps
+# The dependency chains of the PKGs and of every Void package already
+# installed (their needs must stay claimed, or they break the next install)
+inst=(${(f)"$($XBPS/xbps-query.static -r $ROOT -l 2>/dev/null | awk '{print $2}' | sed -E 's/-[^-]+_[0-9]+$//' | grep -vx syn-lfs-base || true)"})
+for p in "$@" $inst; do $Q -x $p --fulldeptree; done | sed -E 's/-[^-]+_[0-9]+$//' | sort -u > $W/deps
+# ...but not the installed packages themselves: they're real now
+print -l $inst > $W/installed
 
 : > $W/provides
 while read d; do
 	# Never claim a package that is being asked for: xbps would install the
 	# real one and let it replace syn-lfs-base, taking every claim with it
 	(( ${@[(Ie)$d]} )) && continue
+	grep -qxF -- $d $W/installed && continue
 	have=0
 	shl=(${(f)"$($Q -p shlib-provides $d 2>/dev/null)"})
 	if (( ${#shl} )); then
@@ -49,7 +54,7 @@ while read d; do
 		n=0; for s in $shl; do grep -qxF $s $W/sonames && n=$((n + 1)); done
 		(( n * 2 >= ${#shl} )) && [[ $d != libjpeg-turbo ]] && have=1
 	else
-		files=(${(f)"$($Q -f $d 2>/dev/null | sed 's/ -> .*//' | grep -E '^/usr/(bin|lib|share|libexec)/')"})
+		files=(${(f)"$($Q -f $d 2>/dev/null | sed 's/ -> .*//' | grep -E '^/usr/(bin|lib|share|libexec)/' || true)"})
 		n=0; for f in $files; do [[ -e $ROOT$f ]] && n=$((n + 1)); done
 		(( ${#files} == 0 || n * 2 >= ${#files} )) && have=1
 	fi
