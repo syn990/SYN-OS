@@ -96,6 +96,7 @@ libclc
 glslang
 vulkan-headers
 vulkan-loader
+libglvnd
 mesa
 libepoxy
 
@@ -355,6 +356,7 @@ lib32-libdrm
 lib32-wayland
 lib32-llvm
 lib32-vulkan-loader
+lib32-libglvnd
 lib32-mesa
 lib32-alsa-lib
 lib32-pipewire

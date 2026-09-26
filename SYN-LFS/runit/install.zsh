@@ -36,6 +36,10 @@ ln -sf runit-init /usr/sbin/init
 for cmd in halt poweroff reboot shutdown; do
 	[ -e /usr/sbin/$cmd ] && [ ! -e /usr/sbin/$cmd.sysv ] && mv /usr/sbin/$cmd /usr/sbin/$cmd.sysv
 done
+# sysvinit's poweroff and reboot are symlinks to halt. Once halt is moved
+# they dangle (so -e skips them above), and writing through them would put
+# all three scripts into one file, the last (reboot) winning: remove first
+rm -f /usr/sbin/poweroff /usr/sbin/halt /usr/sbin/reboot /usr/sbin/shutdown
 printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/poweroff
 printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/halt
 printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 6\n' > /usr/sbin/reboot

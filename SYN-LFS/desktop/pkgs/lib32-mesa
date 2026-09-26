@@ -8,7 +8,7 @@ build() {
 		-D gallium-drivers=radeonsi,iris,crocus,nouveau,virgl,llvmpipe,zink \
 		-D vulkan-drivers=amd,intel,swrast \
 		-D mesa-clc=system -D precomp-compiler=system \
-		-D valgrind=disabled -D libunwind=disabled
+		-D valgrind=disabled -D libunwind=disabled -D glvnd=enabled
 	# The 32-bit Vulkan driver manifests (*.i686.json) live outside lib32
 	install -m644 syn-dest32/usr/share/vulkan/icd.d/*.json /usr/share/vulkan/icd.d/
 }

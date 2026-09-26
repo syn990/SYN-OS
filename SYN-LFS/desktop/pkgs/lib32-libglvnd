@@ -1,0 +1,7 @@
+# 32-bit libglvnd for Steam and 32-bit games, under lib32-mesa (headers come
+# from the 64-bit build). Options as Arch's lib32-libglvnd
+v=1.7.0
+src=("https://gitlab.freedesktop.org/glvnd/libglvnd/-/archive/v$v/libglvnd-v$v.tar.gz sha256:2b6e15b06aafb4c0b6e2348124808cbd9b291c647299eaaba2e3202f51ff2f3d")
+build() {
+	meson_build32 -D headers=false -D gles1=false
+}

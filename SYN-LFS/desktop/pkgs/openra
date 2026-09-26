@@ -99,6 +99,9 @@ EOF2
 	printf '%s\n' -p:RollForward=Major -p:NuGetAudit=false > Directory.Build.rsp
 	# A fresh file stops fetch-geoip.sh downloading; removed after install
 	touch IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP
+	# A release tarball has no git history to read the version from: stamp it,
+	# or the main menu shows {DEV_VERSION}
+	make version VERSION=release-$v
 	make TARGETPLATFORM=unix-generic
 
 	rm -rf /usr/lib/openra

@@ -1,0 +1,9 @@
+# The GL vendor-neutral dispatch library: libGL, libEGL, libGLX and libGLES
+# as Arch and Void ship them, with Mesa as the vendor behind them. Binary
+# packages from those distributions link libGLX.so.0 and expect this layout.
+# Options as Arch's (no GLES1)
+v=1.7.0
+src=("https://gitlab.freedesktop.org/glvnd/libglvnd/-/archive/v$v/libglvnd-v$v.tar.gz sha256:2b6e15b06aafb4c0b6e2348124808cbd9b291c647299eaaba2e3202f51ff2f3d")
+build() {
+	meson_build -D gles1=false
+}
