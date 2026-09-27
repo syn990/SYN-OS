@@ -1,0 +1,3 @@
+#!/bin/zsh -f
+# halt: the same as poweroff here
+exec /usr/sbin/poweroff "$@"

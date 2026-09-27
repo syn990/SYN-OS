@@ -147,7 +147,13 @@ syn_ui::step_done "FAT32 EFI system partition on ${EspPart}, ext4 root on ${Root
 
 # --- System -------------------------------------------------------------------
 syn_ui::step "Copying SYN-OS onto ${RootPart} (several GB, give it a few minutes)"
-cp -a "$Source/." "$Target/"
+# rsync shows how far the copy has got (a multi-GB copy is otherwise a silent
+# few minutes); cp if it is missing
+if (( $+commands[rsync] )); then
+  rsync -aHAX --info=progress2 --no-inc-recursive "$Source/" "$Target/"
+else
+  cp -a "$Source/." "$Target/"
+fi
 syn_ui::step_done "System copied"
 
 syn_ui::step "Installing the kernel as the firmware's boot file"
@@ -219,6 +225,16 @@ syn_ui::step_done "${UserAccountName} (groups wheel, video, audio, input)"
 sed -e '/^UserAccountPassword=/d' -e "s|^Disk=.*|Disk=\"$Disk\"|" "$Conf" > "$Target/etc/syn-os/synos.conf"
 
 # --- Done -----------------------------------------------------------------------
+# --- Summary ------------------------------------------------------------------
+syn_ui::step "Summary"
+printf "  EFI system  %s  FAT32  mounted at %s\n" "$EspPart" "$Target/boot/efi"
+printf "  Root        %s  ext4   mounted at %s\n" "$RootPart" "$Target"
+printf "  Kernel      EFI/BOOT/BOOTX64.EFI, root found by PARTLABEL=synroot\n"
+printf "  Host        %s, user %s, %s, %s\n\n" "$Hostname" "$UserAccountName" "$TimeZone" "$Locale"
+lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTLABEL,MOUNTPOINTS "$Disk" | sed 's/^/  /'
+df -h "$Target" | sed 's/^/  /'
+syn_ui::step_done "Installed"
+
 cp -f "$InstallLog" "$Target/var/log/" 2>/dev/null || true
 sync
 umount -R "$Target"

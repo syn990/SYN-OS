@@ -40,11 +40,7 @@ done
 # they dangle (so -e skips them above), and writing through them would put
 # all three scripts into one file, the last (reboot) winning: remove first
 rm -f /usr/sbin/poweroff /usr/sbin/halt /usr/sbin/reboot /usr/sbin/shutdown
-printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/poweroff
-printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/halt
-printf '#!/bin/zsh -f\nexec /usr/sbin/runit-init 6\n' > /usr/sbin/reboot
-printf '#!/bin/zsh -f\n# shutdown [-r] ...: -r reboots, anything else powers off\ncase " $* " in *" -r "*) exec /usr/sbin/runit-init 6 ;; esac\nexec /usr/sbin/runit-init 0\n' > /usr/sbin/shutdown
-chmod 755 /usr/sbin/poweroff /usr/sbin/halt /usr/sbin/reboot /usr/sbin/shutdown
+install -m755 sbin/poweroff sbin/reboot sbin/halt sbin/shutdown /usr/sbin/
 
 rm -rf /tmp/syn-runit
 echo "runit installed as PID 1 ($(ls /var/service | tr '\n' ' '))"

@@ -1,0 +1,5 @@
+#!/bin/zsh -f
+# poweroff: runit stops everything (stage 3) and powers off. A user runs it
+# through doas, which lets the wheel group do this without a password
+(( EUID == 0 )) || exec doas /usr/sbin/poweroff "$@"
+exec /usr/sbin/runit-init 0

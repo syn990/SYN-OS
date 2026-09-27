@@ -1,0 +1,5 @@
+#!/bin/zsh -f
+# reboot: runit stops everything (stage 3) and restarts. A user runs it
+# through doas, which lets the wheel group do this without a password
+(( EUID == 0 )) || exec doas /usr/sbin/reboot "$@"
+exec /usr/sbin/runit-init 6

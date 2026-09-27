@@ -1,0 +1,5 @@
+#!/bin/zsh -f
+# shutdown [-r] ...: -r reboots, anything else powers off (the time and
+# message arguments of the SysV shutdown are accepted and ignored)
+case " $* " in *" -r "*) exec /usr/sbin/reboot ;; esac
+exec /usr/sbin/poweroff

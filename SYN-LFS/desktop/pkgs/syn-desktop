@@ -56,6 +56,10 @@ build() {
 	install -Dm644 "$SYN_FILES/syn-cursor.sh" /etc/profile.d/syn-cursor.sh
 	printf 'KEYMAP="uk"\nFONT="ter-v16n"\n' > /etc/sysconfig/console
 	install -m755 "$SYN_REPO"/SYN-LFS/runit/{1,2,3,ctrlaltdel} /etc/runit/
+	# poweroff, reboot, halt, shutdown: runit front ends a user can run (they
+	# go through doas). Removed first: sysvinit left some as symlinks to halt
+	rm -f /usr/sbin/{poweroff,reboot,halt,shutdown}
+	install -m755 "$SYN_REPO"/SYN-LFS/runit/sbin/{poweroff,reboot,halt,shutdown} /usr/sbin/
 	install -m644 "$SYN_REPO/SYN-LFS/fstab" /etc/fstab
 
 	glib-compile-schemas /usr/share/glib-2.0/schemas
