@@ -316,39 +316,11 @@ dotnet-sdk
 openra
 binwalk
 
-# [appsMedia] Falkon, the browser from the Arch package list, and QtWebEngine under it
-cups
-nodejs
-six
-webencodings
-html5lib
-rust-bindgen
+# [appsMedia] Qt modules that Void's Qt apps (Falkon, QtWebEngine) run on
 qtshadertools
 qtdeclarative
 qtwebchannel
 qtpositioning
-qtwebengine
-karchive
-ki18n
-falkon
-
-# [appsMedia] Audacity, built from source, and the audio libraries and Qt modules it needs
-libogg
-libvorbis
-flac
-opus
-opusfile
-lame
-mpg123
-wavpack
-portaudio
-wxwidgets
-qt5compat
-qtnetworkauth
-audacity
-
-# [appsMedia] Windows recovery tools
-chntpw
 
 # [appsMedia] 32-bit libraries for Steam (the multilib base supplies glibc, libstdc++, zlib and the like)
 lib32-xorg-libs
@@ -378,7 +350,6 @@ syn-wallgen
 syn-sysmon
 syn-relay
 syn-filemanager
-dislocker
 
 # [synOS] SYN-OS config on top (needs everything above)
 syn-desktop

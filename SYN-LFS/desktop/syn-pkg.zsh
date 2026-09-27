@@ -30,6 +30,11 @@ setopt pipe_fail
 HERE=${0:A:h}
 STATE=/var/lib/syn-os/pkgs
 LOGS=/var/log/syn-os
+# What each package installed (one path per line), and the built packages
+# themselves: NAME-VERSION-RECIPEHASH.tar.zst, reused instead of compiling
+# when the recipe is unchanged. build.zsh keeps CACHE outside the image
+FILES=/var/lib/syn-os/files
+CACHE=${SYN_CACHE:-/var/cache/syn-os/pkgs}
 
 # Recipe names in build order, filtered to the categories of $SYN_PROFILE
 # (default full). `order` declares each profile as `profile NAME cat...`
@@ -87,10 +92,44 @@ do_fetch() {
 	return $bad
 }
 
+# The cache file for the loaded recipe $1: its version and a hash of the
+# recipe itself, so a changed option or patch never reuses an old build
+cache_file() {
+	print "$CACHE/$1-$v-$(sha256sum "$HERE/pkgs/$1" | cut -c1-12).tar.zst"
+}
+
+# Everything created or changed since $2 (a stamp file): package $1's files.
+# Generated caches (ldconfig's, MIME, icons, schemas, fonts) are left out:
+# they're rebuilt for the whole system, never owned by one package
+record() {
+	find / -xdev \( -path /proc -o -path /sys -o -path /dev -o -path /run \
+		-o -path /tmp -o -path /sources -o -path /usr/src -o -path /var/log \
+		-o -path /var/lib/syn-os -o -path /var/cache -o -path /root -o -path /home \
+		-o -path /mnt \) -prune -o \( -type f -o -type l \) -cnewer "$2" -print |
+		awk '/^\/etc\/ld\.so\.cache$|\/(icon-theme|loaders|giomodule)\.cache$|\/gschemas\.compiled$/ { next }
+			/^\/usr\/share\/mime\// && !/^\/usr\/share\/mime\/packages\// { next } { print }' |
+		sort > "$FILES/$1"
+}
+
+# Unpack a cached build of $1 instead of compiling it
+from_cache() {
+	local c=$(cache_file "$1")
+	[ -f "$c" ] || return 1
+	tar -C / --zstd -xpf "$c" || return 1
+	tar --zstd -tf "$c" | sed 's|^|/|' | grep -v '/$' | sort > "$FILES/$1"
+	ldconfig
+	print -r -- "$v" > "$STATE/$1"
+	print "cached"
+}
+
 build_one() {
 	local p=$1 work=/tmp/syn-build/$1 log=$LOGS/$1.log start=$SECONDS e dir dirs
 	load "$p"
 	printf '%-26s %-16s ' "$p" "$v"
+	mkdir -p "$FILES" "$CACHE"
+	# Named on the command line (desktop NAME): always compile
+	[ -z "$always$NOCACHE" ] && from_cache "$p" && return 0
+	local stamp=$(mktemp)
 	[ -z "$keep" ] && rm -rf "$work"
 	mkdir -p "$work"
 	cd "$work" || return 1
@@ -112,8 +151,14 @@ build_one() {
 	if zsh -c 'setopt err_exit pipe_fail sh_word_split; . "$1"; . "$2"; cd "$3"; build' syn \
 		"$HERE/lib.zsh" "$HERE/pkgs/$p" "$dir" >"$log" 2>&1; then
 		ldconfig
+		record "$p" "$stamp"
+		# The built package, for every later build of this same recipe
+		if [ -z "$always" ]; then
+			sed 's|^/||' "$FILES/$p" | tar -C / --zstd -cf "$(cache_file "$p")" --no-recursion -T - ||
+				print -n "(not cached) "
+		fi
 		print -r -- "$v" > "$STATE/$p"
-		cd / && rm -rf "$work"
+		cd / && rm -rf "$work" "$stamp"
 		printf 'ok   %dm%02ds\n' $(((SECONDS - start) / 60)) $(((SECONDS - start) % 60))
 	else
 		print "FAILED"
@@ -137,7 +182,7 @@ do_build() {
 	if (( $# > 0 )); then
 		for p in "$@"; do
 			[ -f "$HERE/pkgs/$p" ] || { print "no recipe: $p"; return 1 }
-			build_one "$p" || return 1
+			NOCACHE=1 build_one "$p" || return 1
 		done
 		return 0
 	fi

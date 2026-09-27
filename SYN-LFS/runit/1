@@ -10,7 +10,9 @@ PATH=/usr/bin:/usr/sbin
 
 emergency() {
 	echo "stage 1: $1 — dropping to a root shell; exit it to reboot"
-	/usr/sbin/sulogin || /bin/zsh -f
+	# --force: a root shell even when root has no usable password (the live
+	# ISO's), where plain sulogin would only loop on "crypt failed"
+	/usr/sbin/sulogin --force || /bin/zsh -f
 	/usr/sbin/runit-init 6
 }
 
@@ -45,12 +47,16 @@ udevadm trigger --action=change --type=devices
 udevadm settle
 udevadm control --exit
 
-# Check filesystems read-only, then mount everything (checkfs, mountfs)
-mount -o remount,ro /
-fsck -a -A -C -T
-rc=$?
-[ $rc -ge 4 ] && emergency "fsck failed (exit $rc)"
-mount -o remount,rw / || emergency "cannot remount / read-write"
+# Check filesystems read-only, then mount everything (checkfs, mountfs).
+# The live ISO's / is an overlay: nothing to check, and overlayfs refuses
+# to be remounted, so the check and both remounts are for disk roots only
+if [ "$(awk '$2 == "/" { t = $3 } END { print t }' /proc/mounts)" != overlay ]; then
+	mount -o remount,ro /
+	fsck -a -A -C -T
+	rc=$?
+	[ $rc -ge 4 ] && emergency "fsck failed (exit $rc)"
+	mount -o remount,rw / || emergency "cannot remount / read-write"
+fi
 rm -f /fastboot /forcefsck
 mount --all --test-opts no_netdev
 swapon -a

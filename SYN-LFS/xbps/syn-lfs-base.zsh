@@ -14,12 +14,12 @@
 #   are met. Every shared library in ROOT is declared too.
 #
 #   Runs on the build host, as root, with the image mounted at ROOT. Needs
-#   Void's static xbps in $XBPS (default ~/.cache/xbps-probe/usr/bin).
+#   Void's static xbps in $XBPS; build.zsh void sets both up.
 # ------------------------------------------------------------------------------
 setopt err_exit pipe_fail
 ROOT=${1:?usage: syn-lfs-base.zsh ROOT PKG...}; shift
 (( $# )) || { print "usage: syn-lfs-base.zsh ROOT PKG..."; exit 1 }
-XBPS=${XBPS:-/home/syntax990/.cache/xbps-probe/usr/bin}
+XBPS=${XBPS:?set XBPS to the static xbps bin directory (build.zsh void does)}
 REPO=https://repo-default.voidlinux.org/current
 LOCAL=$ROOT/var/lib/syn-os/xbps-local
 W=$(mktemp -d); trap 'rm -rf -- "$W"' EXIT

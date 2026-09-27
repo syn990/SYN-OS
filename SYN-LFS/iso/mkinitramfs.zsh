@@ -14,9 +14,9 @@ ln -s usr/lib $out/lib
 ln -s bin $out/usr/sbin
 
 for prog in zsh mount umount switch_root blkid mkdir cp sed grep sleep cat ls; do
-	path=$(command -v $prog)
-	install -m755 "$path" $out/usr/bin/
-	for lib in $(ldd "$path" | grep -o '/[^ ]*'); do
+	bin=$(command -v $prog)  # not "path": zsh ties that name to PATH
+	install -m755 "$bin" $out/usr/bin/
+	for lib in $(ldd "$bin" | grep -o '/[^ ]*'); do
 		[ -e "$out$lib" ] || install -Dm755 "$lib" "$out$lib"
 	done
 done

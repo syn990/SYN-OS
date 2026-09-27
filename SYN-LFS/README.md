@@ -1,6 +1,6 @@
 # SYN-OS on runit
 
-SYN-OS built from source: Linux From Scratch as the base, runit as PID 1 and zsh in the base, then the SYN desktop (labwc, waybar, foot, the SYN tools), Wi-Fi, sound, surf, Falkon and Steam on top. The result is a disk image and an installer ISO.
+SYN-OS built from source, with apps from Void: Linux From Scratch as the base, runit as PID 1 and zsh in the base, then the SYN desktop (labwc, waybar, foot, the SYN tools), Wi-Fi, sound, surf and Steam, all compiled here. The big applications (Falkon, LibreOffice, mpv, Chromium, Kdenlive, Wine and the rest) are Void Linux's binary packages installed on top with xbps. The result is a disk image and an installer ISO.
 
 Everything lands in a sparse 100G disk image (`SYN_OS_IMGSIZE` changes it; `grow` enlarges an existing one) under `~/SYN-OS-build` (`SYN_OS_WORK` moves it). Nothing on the build machine's disks or bootloader is touched.
 
@@ -15,7 +15,7 @@ cd SYN-OS/SYN-LFS
 ./build.zsh all      # the lot: LFS, the desktop, the ISO
 ```
 
-`all` takes the best part of a day, most of it in LLVM, Qt, QtWebEngine and WebKitGTK. It records each finished step in `~/SYN-OS-build/build.state` and logs to `build.log`, so if a step fails you fix it and run `all` again: it carries on from there. `desktop` does the same per package, and `desktop NAME` rebuilds one.
+`all` takes the best part of a day, most of it in LLVM, Qt and WebKitGTK. It records each finished step in `~/SYN-OS-build/build.state` and logs to `build.log`, so if a step fails you fix it and run `all` again: it carries on from there. `desktop` does the same per package, and `desktop NAME` rebuilds one. Every package it compiles is also kept in `~/SYN-OS-build/pkgcache`, so a later build with the same recipe unpacks it instead of compiling again.
 
 Then boot it:
 
@@ -43,9 +43,9 @@ The kernel is a single EFI-stub file with its command line built in, installed w
 
 Firmware isn't held back for being non-free: linux-firmware, Intel's SOF audio firmware, and Intel and AMD microcode, built into the kernel since there's no initramfs to carry it.
 
-The desktop's applications come from the same list the Arch ISO installs, `syn-packages.zsh`: VLC, GIMP, OBS, FeatherPad, lxqt-archiver, feh, the CLI tools, the filesystem and disk tools, OpenVPN, Bluetooth, and so on. Audacity 4 is built from source with its muse_deps libraries taken from the system, and OpenRA is built from source on .NET 10 (Microsoft's SDK, as Rust is upstream's build), its NuGet packages fetched with the other sources. The Rust toolchain is upstream's build, there for librsvg, which draws SVG icons, thumbnails and the diagrams in the Docs menu. fzf, zoxide, ripgrep, fd, bat and glow are upstream's prebuilt release binaries.
+The desktop's applications come from the same list the Arch ISO installs, `syn-packages.zsh`, and from what the author's own machine runs. What is compiled here: VLC, GIMP, OBS, FeatherPad, lxqt-archiver, feh, the CLI tools, the filesystem and disk tools, OpenVPN, Bluetooth, and OpenRA (on .NET 10, Microsoft's SDK, as Rust is upstream's build). The Rust toolchain is upstream's build, there for librsvg, which draws SVG icons, thumbnails and the diagrams in the Docs menu. fzf, zoxide, ripgrep, fd, bat and glow are upstream's prebuilt release binaries. Everything in `xbps/packages.txt` comes from Void instead: see [Void's packages](#voids-packages).
 
-surf is the browser that starts in seconds: suckless surf on WebKitGTK, with GStreamer (plugins base, good and bad, and gst-libav for FFmpeg's decoders) for sound and video. Falkon is built too, with QtWebEngine under it, which is Chromium as a Qt library: hours of compiling and tens of gigabytes of build tree, so it comes late in the desktop step. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
+surf is the browser that starts in seconds: suckless surf on WebKitGTK, with GStreamer (plugins base, good and bad, and gst-libav for FFmpeg's decoders) for sound and video. Falkon and Chromium come from Void. Steam is Valve's launcher; the `lib32-*` recipes give it and 32-bit games Mesa (with a 32-bit LLVM), the X11 and Vulkan libraries and ALSA through PipeWire. Steam still downloads its own runtime, as it does everywhere.
 
 ## Profiles
 
@@ -56,7 +56,7 @@ profile full    baseCore netAndServices shellAndCLI desktopStack fontsI18n appsM
 profile minimal baseCore netAndServices shellAndCLI desktopStack fontsI18n synOS
 ```
 
-A profile filters the sequence and never reorders it. `minimal` (209 recipes) is a desktop that boots: everything but `appsMedia`. `full` (309) adds `appsMedia`: the browsers, VLC, GIMP, OBS and the rest, and Steam with its 32-bit tree. `SYN_OS_PROFILE=full|minimal` picks one for `fetch` and `desktop` (default `full`); `full` after a `minimal` build builds only the difference. `zsh desktop/syn-pkg.zsh list` prints a profile's recipes.
+A profile filters the sequence and never reorders it. `minimal` (217 recipes) is a desktop that boots: everything but `appsMedia`. `full` (298) adds `appsMedia`: surf, VLC, GIMP, OBS and the rest, and Steam with its 32-bit tree. `SYN_OS_PROFILE=full|minimal` picks one for `fetch` and `desktop` (default `full`); `full` after a `minimal` build builds only the difference. `zsh desktop/syn-pkg.zsh list` prints a profile's recipes.
 
 ## Recipes
 
@@ -64,7 +64,15 @@ A recipe in `desktop/pkgs/NAME` sets `v` (the version), `src` (one `"url checksu
 
 `lib.zsh` gives recipes `meson_build` and `cmake_build`; `configure32`, `meson_build32` and `cmake_build32` for the 32-bit builds; `svc NAME [off]`, a runit service with an svlogd log, enabled unless `off`; and `syn_tool NAME`, a SYN-SOFTWARE tool built with CMake.
 
-Sources are downloaded on the host into `~/SYN-OS-build/sources/desktop` and the chroot builds offline: it sees them at `/sources/syn-desktop`, and this repo read-only at `/usr/src/SYN-OS`. A package that fails leaves its build tree in `/tmp/syn-build` and its log in `/var/log/syn-os` inside the image. Built versions are recorded in `/var/lib/syn-os/pkgs`.
+Sources are downloaded on the host into `~/SYN-OS-build/sources/desktop` and the chroot builds offline: it sees them at `/sources/syn-desktop`, and this repo read-only at `/usr/src/SYN-OS`. A package that fails leaves its build tree in `/tmp/syn-build` and its log in `/var/log/syn-os` inside the image. Built versions are recorded in `/var/lib/syn-os/pkgs`, and the files each package installed in `/var/lib/syn-os/files`.
+
+## Void's packages
+
+`build.zsh void` (after `desktop`) installs `xbps/packages.txt` from Void Linux's repository onto the base, with their dependencies. Void is a runit distribution, so its packages expect what this system has, and their runit services land in `/etc/sv` like the base's own (off until enabled).
+
+xbps only knows what it installed, so `xbps/syn-lfs-base.zsh` writes `syn-lfs-base`, an empty package that tells it what the LFS base already provides: every Void package in the chains whose libraries are mostly present, at Void's own version, and every shared library on the system. xbps then installs only what's missing and never replaces the base. The step stops before installing anything whose alternatives would replace a base file (Void's busybox would take over `sh` and `awk`). The base matches what Void's binaries expect: Mesa on libglvnd, `/usr/lib64` linking to `lib`, and QtWebEngine's helper where the base's Qt looks for it.
+
+xbps is in the running system too, so `xbps-install` and `xbps-install -Su` work there. After changing the LFS side, run `build.zsh void` again so `syn-lfs-base` is written anew.
 
 ## Running without systemd
 
@@ -97,4 +105,4 @@ The initramfs finds the medium labelled `SYN_OS`, mounts the squashfs read-only 
 - qt5ct and kvantum-qt5. Nothing here is built against Qt5; the Qt6 versions of both are in.
 - zenity, which Steam uses for some dialogs (GTK4 and libadwaita).
 - Screen sharing out of a browser, which needs xdg-desktop-portal-wlr.
-- A package manager. Packages are recorded in `/var/lib/syn-os/pkgs`, but nothing tracks which files each one installed.
+- A package manager for the compiled half. Each package's files are recorded (`/var/lib/syn-os/files`), but there is no remove or update command for them yet; Void's packages have xbps.

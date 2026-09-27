@@ -42,6 +42,8 @@
 #     boot       boot the image in QEMU (serial console on this terminal)
 #     gui        boot it with a virtio GPU, input and sound, for the desktop
 #                (SYN_OS_QEMU adds QEMU arguments, e.g. a USB Wi-Fi stick)
+#     void       install xbps/packages.txt from Void's repo onto the base (after
+#                desktop): apps come ready-built, see xbps/syn-lfs-base.zsh
 #     iso        make the installer ISO from the image (see iso/)
 #     isotest    boot the ISO in QEMU with a blank disk to install onto
 #                (isotest disk: boot that disk afterwards)
@@ -341,14 +343,17 @@ step_desktop() {
 	[[ -d $SRC/desktop ]] || { print "run: fetch"; exit 1 }
 	[[ -x $MNT/usr/bin/zsh ]] || { print "run: zsh"; exit 1 }
 	chroot_up
-	doas mkdir -p $MNT/sources/syn-desktop $MNT/usr/src/SYN-OS
+	# Built packages live outside the image (desktop/syn-pkg.zsh reuses them)
+	mkdir -p $W/pkgcache
+	doas mkdir -p $MNT/sources/syn-desktop $MNT/usr/src/SYN-OS $MNT/var/cache/syn-os/pkgs
+	doas mount --bind $W/pkgcache $MNT/var/cache/syn-os/pkgs
 	doas mount --bind $SRC/desktop $MNT/sources/syn-desktop
 	doas mount --bind $HERE:h $MNT/usr/src/SYN-OS
 	doas mount -o remount,bind,ro $MNT/usr/src/SYN-OS
 	local rc=0
 	in_chroot /usr/bin/env SYN_PROFILE=${SYN_OS_PROFILE:-full} \
 		/usr/bin/zsh /usr/src/SYN-OS/SYN-LFS/desktop/syn-pkg.zsh build /sources/syn-desktop "$@" || rc=$?
-	doas umount $MNT/usr/src/SYN-OS $MNT/sources/syn-desktop
+	doas umount $MNT/usr/src/SYN-OS $MNT/sources/syn-desktop $MNT/var/cache/syn-os/pkgs
 	chroot_down
 	return $rc
 }
@@ -381,6 +386,52 @@ step_esp() {
 	doas install -Dm644 $kernel[1] $W/esp/EFI/BOOT/BOOTX64.EFI
 	doas umount $W/esp
 	print "installed ${kernel[1]:t} as EFI/BOOT/BOOTX64.EFI"
+}
+
+# Void's binary packages on the LFS base: xbps/packages.txt, with their
+# dependencies. xbps goes into the image too, so the running system can
+# update and add packages itself. syn-lfs-base (xbps/syn-lfs-base.zsh)
+# tells xbps what the base already provides, so it installs only what's
+# missing. A package whose alternatives would replace a base file (Void's
+# busybox takes over sh and awk) stops the step before anything installs
+VOID_REPO=https://repo-default.voidlinux.org/current
+XBPS_STATIC=xbps-static-static-0.60.4_1.x86_64-musl.tar.xz
+XBPS_SHA256=603b3c55e9cabd5af79b461b929b14e1556a443c97b5714d188681c2172d9e28
+# Whether xbps owns PATH in the image: listed in a package's files, or a
+# symlink (an alternatives link) to a file a package owns
+xbps_owned() {
+	local f=$1 t
+	doas grep -qsF "<string>$f</string>" $MNT/var/db/xbps/.*-files.plist && return 0
+	[[ -L $MNT$f ]] || return 1
+	t=$(readlink $MNT$f); [[ $t == /* ]] || t=${f:h}/$t
+	doas grep -qsF "<string>$t</string>" $MNT/var/db/xbps/.*-files.plist
+}
+step_void() {
+	[[ -d $MNT/usr/lib ]] || { print "run: mount"; exit 1 }
+	local x=$W/xbps pkgs=(${(f)"$(grep -v '^#' $HERE/xbps/packages.txt)"}) p l bad=()
+	[[ -f $SRC/$XBPS_STATIC ]] || curl -fL -o $SRC/$XBPS_STATIC https://repo-default.voidlinux.org/static/$XBPS_STATIC
+	[[ $(sha256sum < $SRC/$XBPS_STATIC | cut -d' ' -f1) == $XBPS_SHA256 ]] || { print "$XBPS_STATIC: bad checksum"; exit 1 }
+	mkdir -p $x && tar -xJf $SRC/$XBPS_STATIC -C $x
+	doas install -m755 $x/usr/bin/xbps-*.static -t $MNT/usr/bin/
+	for p in $x/usr/bin/xbps-*.static; do doas ln -sf ${p:t} $MNT/usr/bin/${${p:t}%.static}; done
+	doas install -d $MNT/var/db/xbps/keys
+	doas install -m644 $x/var/db/xbps/keys/* $MNT/var/db/xbps/keys/
+	local X=(doas $x/usr/bin/xbps-install.static -r $MNT --repository=$MNT/var/lib/syn-os/xbps-local --repository=$VOID_REPO)
+	local Q=(doas $x/usr/bin/xbps-query.static -r $MNT --repository=$VOID_REPO)
+	doas $x/usr/bin/xbps-install.static -S -r $MNT --repository=$VOID_REPO > /dev/null
+	doas env XBPS=$x/usr/bin zsh $HERE/xbps/syn-lfs-base.zsh $MNT $pkgs
+	$X -y -u syn-lfs-base
+	# Alternatives of anything the transaction would install, against files
+	# the base already has that no xbps package owns
+	for p in ${(f)"$($X -n $pkgs | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"}; do
+		for l in ${(f)"$($Q -R -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
+			[[ $l == /* ]] || l=/usr/bin/$l
+			[[ -e $MNT$l || -L $MNT$l ]] && ! xbps_owned $l && bad+=("$p: $l")
+		done
+	done
+	(( ${#bad} )) && { print "these would replace base files:"; print -l $bad; exit 1 }
+	local new=(); for p in $pkgs; do $Q -p pkgver $p > /dev/null 2>&1 || new+=$p; done
+	(( ${#new} )) && $X -y $new || print "all of xbps/packages.txt is installed"
 }
 
 step_umount() {
@@ -462,7 +513,8 @@ step_iso() {
 	cp $HERE/iso/grub.cfg $iso/boot/grub/grub.cfg
 	cp $HERE:h/SYN-ISO-PROFILE/grub/splash.png $iso/boot/grub/splash.png
 
-	# The root image. Only the system accounts go on it: filtered copies
+	# The root image, without xbps's download cache (those packages are
+	# installed already). Only the system accounts go on it: filtered copies
 	# (iso/sanitize-accounts.zsh) sit over the image's own while it's read
 	doas mkdir -m 700 $acct
 	doas zsh $HERE/iso/sanitize-accounts.zsh $MNT/etc $acct
@@ -474,12 +526,12 @@ step_iso() {
 	done
 	doas mksquashfs $MNT $iso/syn-os/rootfs.sfs -noappend -comp zstd -Xcompression-level 19 -b 1M \
 		-wildcards -e sources jhalfs 'tmp/*' 'var/tmp/*' var/log/syn-os usr/src/SYN-OS \
-		'home/*' 'root/*' 'root/.*' lost+found 'boot/efi/*' || rc=$?
+		'home/*' 'root/*' 'root/.*' lost+found 'boot/efi/*' 'var/cache/xbps/*' || rc=$?
 	for f in $bound; do doas umount $f; done
 	doas rm -rf $acct
 	(( rc == 0 )) || return $rc
 
-	grub-mkrescue -o $out $iso -- -V SYN_OS -iso-level 3
+	grub-mkrescue --xorriso=$HERE/iso/xorriso.zsh -o $out $iso
 	print "ISO ready: $out ($(du -h $out | cut -f1)). Try it with: isotest"
 }
 
@@ -532,7 +584,7 @@ step_all() {
 	local state=$W/build.state log=$W/build.log s cmd start
 	mkdir -p $W
 	touch $state
-	for s in image kernel configure build zsh runit fetch desktop kernel2 rekernel esp iso; do
+	for s in image kernel configure build zsh runit fetch desktop void kernel2 rekernel esp iso; do
 		grep -qx $s $state && continue
 		cmd=${s%2}
 		[[ $cmd == image && -e $IMG ]] && cmd=mount
