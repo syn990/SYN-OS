@@ -45,8 +45,9 @@
 #     void       install xbps/packages.txt from Void's repo onto the base (after
 #                desktop): apps come ready-built, see xbps/syn-lfs-base.zsh
 #     iso        make the installer ISO from the image (see iso/)
-#     isotest    boot the ISO in QEMU with a blank disk to install onto
-#                (isotest disk: boot that disk afterwards)
+#     isotest    boot the ISO in QEMU with a blank disk to install onto; the
+#                disk is deleted when QEMU exits (isotest keep: keep it,
+#                then isotest disk boots it)
 # ------------------------------------------------------------------------------
 setopt err_exit pipe_fail
 
@@ -160,6 +161,7 @@ step_kernel() {
 		[[ $got == $want ]] || print "kernel.syn: ${line%%=*} wanted $want, got ${got:-unset}"
 	done
 	cp .config $W/kernel.config
+	cd $W && rm -rf $W/kcfg
 	print "kernel config: $W/kernel.config"
 }
 
@@ -574,7 +576,10 @@ step_iso() {
 
 	# a VM that used the previous ISO leaves it owned by libvirt: replace, not truncate
 	rm -f $out
-	grub-mkrescue --xorriso=$HERE/iso/xorriso.zsh -o $out $iso
+	grub-mkrescue --xorriso=$HERE/iso/xorriso.zsh -o $out $iso || return 1
+	# Only the ISO stays: the staging tree goes, and so do older ISOs
+	doas rm -rf $iso
+	local old; for old in $W/syn-os-*.iso(N); do [[ $old == $out ]] || rm -f $old; done
 	print "ISO ready: $out ($(du -h $out | cut -f1)). Try it with: isotest"
 }
 
@@ -596,6 +601,7 @@ step_isotest() {
 		-drive if=pflash,format=raw,file=$vars \
 		-drive file=$disk,format=raw,if=virtio $media \
 		-nic user,model=virtio-net-pci -serial mon:stdio $reply
+	[[ $1 == keep ]] || [[ $1 == disk ]] || { rm -f $disk; print "test disk removed (isotest keep: keep it for isotest disk)"; }
 }
 
 # The build host: the LFS book's host requirements, the tools these steps
@@ -626,6 +632,8 @@ step_host() {
 step_all() {
 	local state=$W/build.state log=$W/build.log s cmd start
 	mkdir -p $W
+	local free=$(df --output=avail -BG $W | tail -1 | tr -dc 0-9)
+	(( free >= ${SYN_OS_MINFREE:-60} )) || { print "${free}G free in $W; a full build needs ${SYN_OS_MINFREE:-60}G (SYN_OS_MINFREE changes it)"; exit 1 }
 	touch $state
 	for s in image kernel configure build zsh runit fetch desktop void kernel2 rekernel esp iso; do
 		grep -qx $s $state && continue
