@@ -119,7 +119,7 @@ fi
 # here (reserved for future support) but errors clearly later, once
 # syn-stage1.zsh actually reaches the point of installing a bootloader.
 case "${PartitionStrat:-}" in
-  uefi-bootctl|uefi-refind|uefi-clover|mbr-syslinux|mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) : ;;
+  uefi-bootctl|uefi-stub|uefi-refind|uefi-clover|mbr-syslinux|mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) : ;;
   *) echo "ERROR: Unknown PartitionStrat '${PartitionStrat:-}'" >&2; exit 1 ;;
 esac
 
@@ -158,6 +158,17 @@ if [ "$PartitionStrat" = "mbr-syslinux" ] && [ "$Encryption" = "yes" ]; then
 fi
 
 # Mount layout
+# uefi-stub (SYN-OS on runit) boots the kernel with no initramfs: nothing
+# can unlock LUKS or activate LVM before the root mounts
+if [ "$PartitionStrat" = "uefi-stub" ] && [ ! -d /etc/runit ]; then
+  echo "ERROR: PartitionStrat=uefi-stub is SYN-OS on runit's (its kernel carries its own command line). Use uefi-bootctl." >&2
+  exit 1
+fi
+if [ "$PartitionStrat" = "uefi-stub" ] && [ "$VolumeStrat" != "plain" ]; then
+  echo "ERROR: PartitionStrat=uefi-stub needs Encryption=no and UseLvm=no (it has no initramfs). Use uefi-bootctl for LUKS or LVM." >&2
+  exit 1
+fi
+
 : "${RootMountLocation:?RootMountLocation not set}"
 : "${BootMountLocation:?BootMountLocation not set}"
 case "${BootMountLocation}" in

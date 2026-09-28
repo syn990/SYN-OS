@@ -1,14 +1,21 @@
 # What the installer ISO needs inside the system (build.zsh iso makes the
-# ISO): syn-ui.zsh, the Arch installer's colours and banners, straight from
-# SYN-ISO-PROFILE; synos-install and its synos.conf; and the live
-# session (synstigator autologin, the SYN splash) that the ISO's initramfs
-# lays over the system at boot. Inert on an installed system
+# ISO): the Arch edition's installer as it is (syn-config, syn-disk,
+# syn-stage0, syn-stage1, syn-ui, syn-packages: the firmware autodetect,
+# uefi-bootctl / mbr-grub / mbr-syslinux, LUKS, LVM, the four
+# filesystems), plus what this edition does differently: syn-pacstrap.zsh
+# copies the ISO's root image in place of pacstrap, arch-chroot is a shim,
+# mkinitcpio gets a preset for the kernel, and synos-install settles the
+# answers before Stage 0. The live session (synstigator autologin, the
+# SYN splash) is what the ISO's initramfs lays over the system at boot.
+# Inert on an installed system
 v=local
 always=1
 build() {
-	local iso=$SYN_REPO/SYN-LFS/iso
-	install -m755 "$SYN_REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-ui.zsh" /usr/lib/syn-os/
-	install -m755 "$iso/synos-install.zsh" /usr/lib/syn-os/
+	local iso=$SYN_REPO/SYN-LFS/iso arch=$SYN_REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os
+	install -m755 "$arch"/syn-{config,disk,stage0,stage1,ui,packages}.zsh /usr/lib/syn-os/
+	install -m755 "$iso/syn-pacstrap.zsh" "$iso/synos-install.zsh" /usr/lib/syn-os/
+	install -m755 "$iso/arch-chroot" /usr/bin/arch-chroot
+	install -Dm644 "$iso/linux.preset" /etc/mkinitcpio.d/linux.preset
 	install -Dm644 "$iso/synos.conf" /etc/syn-os/synos.conf
 	rm -rf /usr/share/syn-os/live
 	install -d /usr/share/syn-os

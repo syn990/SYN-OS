@@ -25,9 +25,14 @@ LOCAL=$ROOT/var/lib/syn-os/xbps-local
 W=$(mktemp -d); trap 'rm -rf -- "$W"' EXIT
 Q=($XBPS/xbps-query.static -R --repository=$REPO -r $ROOT)
 
-# Every shared library the base has, by file name (what xbps matches on)
-find $ROOT/usr/lib $ROOT/usr/lib/qt6 -maxdepth 1 \( -name '*.so.*' -o -name '*.so' \) |
-	sed 's|.*/||' | sort -u > $W/sonames
+# Every shared library the base has: by file name, and by the SONAME inside
+# it (xbps matches on either; lvm2's dmeventd plugins are installed as
+# NAME.so with the SONAME NAME.so.2.03 inside, in /usr/lib/device-mapper)
+{
+	find $ROOT/usr/lib $ROOT/usr/lib/qt6 -maxdepth 1 \( -name '*.so.*' -o -name '*.so' \) | sed 's|.*/||'
+	find $ROOT/usr/lib -maxdepth 2 -type f -name '*.so*' ! -path '*/python*' -exec readelf -d {} + 2>/dev/null |
+		sed -n 's/.*Library soname: \[\(.*\)\]/\1/p' || true
+} | sort -u > $W/sonames
 # Qt's private-API tag, which Void's Qt modules require by exact version
 qtv=$(ls $ROOT/usr/lib/libQt6Core.so.6.* 2>/dev/null | sed -n 's/.*libQt6Core\.so\.//p' | head -1)
 [[ -n $qtv ]] && print "libQt_6_PRIVATE_API.$qtv" >> $W/sonames

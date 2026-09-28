@@ -157,6 +157,9 @@ partitionMain() {
   # the /boot filesystem differs, handled below in volumeMain.
   case "${PartitionStrat}" in
     uefi-bootctl|uefi-refind|uefi-clover) partitionStrat_uefi_bootctl ;;
+    uefi-stub) partitionStrat_uefi_bootctl
+               # the kernel's built-in command line finds the root by this name
+               parted --script "${Disk}" name 2 synroot ;;
     mbr-syslinux)                         partitionStrat_mbr_syslinux ;;
     mbr-grub|mbr-grub-btrfs|mbr-grub-xfs) partitionStrat_mbr_grub ;;
     *) syn_ui::error "Unknown PartitionStrat '${PartitionStrat}'"; exit 1 ;;
@@ -281,7 +284,7 @@ volumeMain() {
   if [ -n "${BootPart:-}" ] && [ "${BootPart}" != "${RootPart}" ]; then
     [ -b "${BootPart}" ] || { syn_ui::error "BootPart not a block device"; exit 1; }
     case "${PartitionStrat}" in
-      uefi-bootctl|uefi-refind|uefi-clover)
+      uefi-bootctl|uefi-stub|uefi-refind|uefi-clover)
         syn_ui::step "Formatting ESP on ${BootPart}"
         mkfs.vfat -F32 -n ESP "${BootPart}"
         syn_ui::step_done "ESP formatted"

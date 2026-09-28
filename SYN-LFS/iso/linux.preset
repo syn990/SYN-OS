@@ -1,0 +1,6 @@
+# mkinitcpio preset for SYN-OS's kernel. synos-install copies the kernel to
+# /boot/vmlinuz-linux, the name the boot entries use; Stage 1 builds the
+# initramfs from it with the hooks the disk layout needs (encrypt, lvm2)
+ALL_kver="/boot/vmlinuz-linux"
+PRESETS=('default')
+default_image="/boot/initramfs-linux.img"

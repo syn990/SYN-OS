@@ -171,3 +171,19 @@ CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE=y
 CONFIG_X509_CERTIFICATE_PARSER=y
 CONFIG_PKCS7_MESSAGE_PARSER=y
 CONFIG_PKCS8_PRIVATE_KEY_PARSER=y
+
+# The installer's disk layouts: LUKS2 (dm-crypt with AES-XTS), LVM
+# (snapshots and thin pools too), and the root filesystems it offers.
+# Built in: with no initramfs (uefi-stub) the root filesystem's driver has
+# to be in the kernel
+CONFIG_DM_CRYPT=y
+CONFIG_DM_SNAPSHOT=y
+CONFIG_DM_THIN_PROVISIONING=y
+CONFIG_DM_INTEGRITY=y
+CONFIG_CRYPTO_XTS=y
+CONFIG_CRYPTO_AES_NI_INTEL=y
+CONFIG_F2FS_FS=y
+CONFIG_BTRFS_FS=y
+CONFIG_XFS_FS=y
+# efivarfs, for bootctl and efibootmgr to write boot entries
+CONFIG_EFIVAR_FS=y

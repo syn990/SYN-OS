@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+# arch-chroot NEWROOT [COMMAND...]: chroot with the kernel filesystems bound
+# inside, what Arch's arch-chroot does. syn-stage0.zsh runs Stage 1 with it;
+# this system has no arch-install-scripts. The environment passes through,
+# which Stage 1 relies on (the answers Stage 0 exported).
+setopt err_exit
+root=${1:?usage: arch-chroot NEWROOT [command...]}; shift
+[ -d "$root/usr" ] || { print "arch-chroot: $root is not a root filesystem" >&2; exit 1 }
+
+# efivarfs, so bootctl and efibootmgr can write the firmware's boot entries
+if [ -d /sys/firmware/efi ]; then
+	mountpoint -q /sys/firmware/efi/efivars ||
+		mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null || true
+fi
+mount -t proc proc "$root/proc"
+mount --rbind /sys "$root/sys"; mount --make-rslave "$root/sys"
+mount --rbind /dev "$root/dev"; mount --make-rslave "$root/dev"
+mount --bind /run "$root/run"
+[ -e /etc/resolv.conf ] && cp -f /etc/resolv.conf "$root/etc/resolv.conf"
+
+unsetopt err_exit
+chroot "$root" "${@:-/bin/zsh}"; rc=$?
+umount -R "$root/run" "$root/dev" "$root/sys" "$root/proc" 2>/dev/null
+exit $rc

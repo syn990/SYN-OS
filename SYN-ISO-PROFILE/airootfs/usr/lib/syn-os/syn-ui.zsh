@@ -190,7 +190,7 @@ syn_ui::end_summary() {
   local root_part="$1" root_mnt="$2" boot_part="$3" boot_mnt="$4" root_fs="$5" partition_strat="$6"
   local boot_fs=""
   case "$partition_strat" in
-    uefi-bootctl|uefi-refind|uefi-clover) boot_fs="fat32" ;;
+    uefi-bootctl|uefi-stub|uefi-refind|uefi-clover) boot_fs="fat32" ;;
     mbr-grub)       boot_fs="ext4"  ;;
     mbr-grub-btrfs) boot_fs="btrfs" ;;
     mbr-grub-xfs)   boot_fs="xfs"   ;;

@@ -54,6 +54,8 @@ build() {
 	# font, and the current runit stage scripts and fstab from this repo
 	install -Dm644 "$SYN_FILES/syn-xdg.sh" /etc/profile.d/syn-xdg.sh
 	install -Dm644 "$SYN_FILES/syn-cursor.sh" /etc/profile.d/syn-cursor.sh
+	install -Dm644 "$SYN_FILES/syn-locale.sh" /etc/profile.d/syn-locale.sh
+	[ -f /etc/locale.conf ] || printf 'LANG=en_GB.UTF-8\n' > /etc/locale.conf
 	printf 'KEYMAP="uk"\nFONT="ter-v16n"\n' > /etc/sysconfig/console
 	install -m755 "$SYN_REPO"/SYN-LFS/runit/{1,2,3,ctrlaltdel} /etc/runit/
 	# poweroff, reboot, halt, shutdown: runit front ends a user can run (they

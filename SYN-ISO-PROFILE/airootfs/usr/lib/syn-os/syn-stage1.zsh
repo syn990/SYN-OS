@@ -35,7 +35,14 @@ syn_ui::info "SWAP: ${SwapDev:-none}"
 syn_ui::info "LUKS: ${LuksUuid:+yes}${LuksUuid:-no}"
 
 echo "$LocaleGen" > /etc/locale.gen
-locale-gen
+if [ -d /etc/runit ]; then
+  # SYN-OS on runit has no locale-gen: localedef compiles each locale.gen line
+  while read -r name charmap; do
+    [ -n "$name" ] && localedef -i "${name%%.*}" -f "$charmap" "$name"
+  done < /etc/locale.gen
+else
+  locale-gen
+fi
 echo "LANG=$Locale" > /etc/locale.conf
 echo "$Hostname" > /etc/hostname
 
@@ -46,6 +53,10 @@ else
 fi
 
 printf "KEYMAP=%s\nFONT=%s\n" "$KeyMap" "$VconsoleFont" > /etc/vconsole.conf
+if [ -d /etc/runit ]; then
+  # the same two, where runit's stage 1 reads them (mkinitcpio reads vconsole.conf)
+  printf 'KEYMAP="%s"\nFONT="%s"\n' "$KeyMap" "$VconsoleFont" > /etc/sysconfig/console
+fi
 hwclock --systohc
 syn_ui::step_done "Locale, hostname, time, console configured"
 
@@ -65,8 +76,9 @@ if [ -f "$LabwcEnv" ]; then
   syn_ui::step_done "labwc keyboard layout set to ${XkbLayout} (from KeyMap=${KeyMap})"
 fi
 
-# doas + sudo shim setup
-if command -v doas >/dev/null 2>&1; then
+# doas + sudo shim setup (on runit both are in the image already, with the
+# power commands doas lets wheel run without a password: left as they are)
+if command -v doas >/dev/null 2>&1 && [ ! -d /etc/runit ]; then
   echo "permit persist :wheel" > /etc/doas.conf
   chmod 600 /etc/doas.conf
   printf '#!/bin/sh\nexec doas "$@"\n' > /usr/bin/sudo
@@ -81,8 +93,10 @@ if [ "$UserAccountPassword" = "CHANGE_ME" ]; then
   syn_ui::error "UserAccountPassword is still 'CHANGE_ME' in synos.conf — set a real password before installing."
   exit 1
 fi
+Groups=wheel
+[ -d /etc/runit ] && Groups=wheel,video,audio,input   # no logind there to grant devices
 if ! id -u "$UserAccountName" >/dev/null 2>&1; then
-  useradd -m -G wheel -s "$UserShell" "$UserAccountName"
+  useradd -m -G "$Groups" -s "$UserShell" "$UserAccountName"
 fi
 echo "${UserAccountName}:${UserAccountPassword}" | chpasswd
 syn_ui::step_done "Password set for ${UserAccountName}"
@@ -134,10 +148,14 @@ configure_mkinitcpio() {
 # Rebuilds with the hooks configure_mkinitcpio just set — critical for
 # LUKS, where the initramfs needs the encrypt hook to prompt for a
 # passphrase at boot.
-syn_ui::step "Building initramfs"
-configure_mkinitcpio
-mkinitcpio -P
-syn_ui::step_done "Initramfs built"
+if [ "$PartitionStrat" = "uefi-stub" ]; then
+  syn_ui::info "uefi-stub boots the kernel directly: no initramfs"
+else
+  syn_ui::step "Building initramfs"
+  configure_mkinitcpio
+  mkinitcpio -P
+  syn_ui::step_done "Initramfs built"
+fi
 
 # Bootloader configuration
 RootCmdline=""
@@ -190,8 +208,23 @@ EOF
     refind-install
   fi
   ;;
+uefi-stub)
+  # The kernel is the boot file the firmware falls back to; its built-in
+  # command line finds the root partition by the name syn-disk.zsh gave it
+  install -Dm644 /boot/vmlinuz-linux /boot/EFI/BOOT/BOOTX64.EFI
+  ;;
 mbr-syslinux)
-  syslinux-install_update -i -a -m || true
+  if [ -d /etc/runit ]; then
+    # syslinux-install_update is an Arch script; what its -i -a -m do, by hand
+    install -d /boot/syslinux
+    cp /usr/lib/syslinux/*.c32 /boot/syslinux/
+    extlinux --install /boot/syslinux
+    dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/mbr.bin of="${Disk}"
+    parted --script "${Disk}" set 1 boot on
+    printf 'DEFAULT syn\nPROMPT 0\nTIMEOUT 0\n\nLABEL syn\n  LINUX ../vmlinuz-linux\n  INITRD ../initramfs-linux.img\n  APPEND root=\n' > /boot/syslinux/syslinux.cfg
+  else
+    syslinux-install_update -i -a -m || true
+  fi
   if [ -f /boot/syslinux/syslinux.cfg ]; then
     sed -i "s|APPEND .*|APPEND ${RootCmdline} ${ResumeOpt} vconsole.keymap=${KeyMap} ${KernelOpts}|" /boot/syslinux/syslinux.cfg
     # Branded graphical menu, same asset/mechanism as the live ISO's own
@@ -279,13 +312,20 @@ uefi-clover)
 esac
 syn_ui::step_done "Bootloader installed"
 
-# Enable baseline services
-systemctl enable dhcpcd.service 2>/dev/null || true
-systemctl enable iwd.service    2>/dev/null || true
-systemctl enable linux-modules-cleanup.service 2>/dev/null || true  # kernel-modules-hook: sweep stale module trees at boot
+# Enable baseline services (runit: dhcpcd and iwd are linked into
+# /var/service in the image already)
+if [ ! -d /etc/runit ]; then
+  systemctl enable dhcpcd.service 2>/dev/null || true
+  systemctl enable iwd.service    2>/dev/null || true
+  systemctl enable linux-modules-cleanup.service 2>/dev/null || true  # kernel-modules-hook: sweep stale module trees at boot
+fi
 
 if [ "${EnableSsh:-no}" = "yes" ]; then
-  systemctl enable sshd.service 2>/dev/null || true
+  if [ -d /etc/runit ]; then
+    ln -sfn /etc/sv/sshd /var/service/sshd
+  else
+    systemctl enable sshd.service 2>/dev/null || true
+  fi
   syn_ui::step_done "sshd enabled (EnableSsh=yes in synos.conf)"
 fi
 
@@ -299,7 +339,10 @@ syn_ui::step_done "Bluetooth HID fixed for DS4/DualSense controllers"
 # it the zram module isn't guaranteed to be loaded before zram-generator's
 # systemd units run, which leaves them waiting forever on a zram0 device
 # that never appears.
-if [ "${ZramPercent:-0}" != "0" ]; then
+if [ "${ZramPercent:-0}" != "0" ] && [ -d /etc/runit ]; then
+  printf 'ZramPercent=%s\nZramMaxMiB=%s\n' "$ZramPercent" "$ZramMaxMiB" > /etc/sysconfig/zram
+  syn_ui::step_done "zram swap configured (${ZramPercent}% of RAM, capped at ${ZramMaxMiB}MiB)"
+elif [ "${ZramPercent:-0}" != "0" ]; then
   cat > /etc/systemd/zram-generator.conf <<EOF
 [zram0]
 zram-size = min(ram * ${ZramPercent} / 100, ${ZramMaxMiB})
@@ -313,7 +356,9 @@ fi
 # real hardware it would just idle forever with no virtio-serial channel
 # to talk to, which is exactly the unnecessary-boot-noise pattern this
 # project avoids elsewhere (see Philosophy).
-if [ "$(systemd-detect-virt 2>/dev/null)" = "kvm" ] || [ "$(systemd-detect-virt 2>/dev/null)" = "qemu" ]; then
+# (runit: the qemu-ga service is linked in the image and stays down by itself
+# without the channel)
+if [ ! -d /etc/runit ] && { [ "$(systemd-detect-virt 2>/dev/null)" = "kvm" ] || [ "$(systemd-detect-virt 2>/dev/null)" = "qemu" ]; }; then
   systemctl enable qemu-guest-agent.service 2>/dev/null || true
   syn_ui::step_done "qemu-guest-agent enabled (running under QEMU/KVM)"
 fi

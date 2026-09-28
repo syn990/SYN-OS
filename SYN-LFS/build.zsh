@@ -253,8 +253,12 @@ chroot_down() {
 	doas umount $MNT/run $MNT/sys $MNT/proc $MNT/dev/shm $MNT/dev/pts $MNT/dev
 }
 
+# Everything run in the chroot gets at most SYN_OS_CPU percent of the
+# machine (default 80) and is the first thing the kernel kills if memory
+# runs out, so a big compile can't take the desktop down with it
 in_chroot() {
-	doas chroot $MNT /usr/bin/env -i HOME=/root TERM=linux \
+	doas systemd-run --scope --quiet -p CPUQuota=$(( $(nproc) * ${SYN_OS_CPU:-80} ))% \
+		/usr/bin/choom -n 1000 -- chroot $MNT /usr/bin/env -i HOME=/root TERM=linux \
 		PATH=/usr/bin:/usr/sbin LANG=en_GB.UTF-8 "$@"
 }
 
@@ -342,6 +346,26 @@ step_fetch() {
 step_desktop() {
 	[[ -d $SRC/desktop ]] || { print "run: fetch"; exit 1 }
 	[[ -x $MNT/usr/bin/zsh ]] || { print "run: zsh"; exit 1 }
+	# /lib64 as Arch and Void have it, a link to usr/lib. The book makes a
+	# directory holding a link to the loader; mkinitcpio then never copies
+	# the loader into an initramfs, and nothing dynamic in it can start
+	[[ -L $MNT/lib64 ]] || { doas rm -rf $MNT/lib64; doas ln -s usr/lib $MNT/lib64; }
+	# /usr/sbin likewise a link to bin, as Arch and Void have it. The book
+	# installs into a real sbin; Void's programs, udev rules and mkinitcpio
+	# name /usr/bin paths, and an initramfs merges the two, where a file
+	# linked from one into the other becomes a loop. Files move to bin once
+	# (bin's copy wins a clash), links back into bin are dropped
+	if [[ ! -L $MNT/usr/sbin ]]; then
+		local f n
+		for f in $MNT/usr/sbin/*(N); do
+			n=${f:t}
+			if [[ -L $f && $(readlink $f) == ../bin/* ]]; then doas rm $f
+			elif [[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]]; then doas rm -r $f
+			else doas mv $f $MNT/usr/bin/$n
+			fi
+		done
+		doas rmdir $MNT/usr/sbin && doas ln -s bin $MNT/usr/sbin
+	fi
 	chroot_up
 	# Built packages live outside the image (desktop/syn-pkg.zsh reuses them)
 	mkdir -p $W/pkgcache
@@ -379,7 +403,7 @@ step_user() {
 }
 
 step_esp() {
-	local dev=$(loopdev) kernel=($MNT/boot/vmlinuz-*(N))
+	local dev=$(loopdev) kernel=($MNT/boot/vmlinuz-*-syn(N) $MNT/boot/vmlinuz-*(N))
 	(( $#kernel )) || { print "no kernel in $MNT/boot yet"; exit 1 }
 	mkdir -p $W/esp
 	doas mount ${dev}p1 $W/esp
@@ -417,21 +441,22 @@ step_void() {
 	doas install -d $MNT/var/db/xbps/keys
 	doas install -m644 $x/var/db/xbps/keys/* $MNT/var/db/xbps/keys/
 	local X=(doas $x/usr/bin/xbps-install.static -r $MNT --repository=$MNT/var/lib/syn-os/xbps-local --repository=$VOID_REPO)
-	local Q=(doas $x/usr/bin/xbps-query.static -r $MNT --repository=$VOID_REPO)
+	local Q=(doas $x/usr/bin/xbps-query.static -r $MNT)
 	doas $x/usr/bin/xbps-install.static -S -r $MNT --repository=$VOID_REPO > /dev/null
 	doas env XBPS=$x/usr/bin zsh $HERE/xbps/syn-lfs-base.zsh $MNT $pkgs
 	$X -y -u syn-lfs-base
+	local new=(); for p in $pkgs; do $Q -p pkgver $p > /dev/null 2>&1 || new+=$p; done
+	(( ${#new} )) || { print "all of xbps/packages.txt is installed"; return }
 	# Alternatives of anything the transaction would install, against files
 	# the base already has that no xbps package owns
-	for p in ${(f)"$($X -n $pkgs | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"}; do
-		for l in ${(f)"$($Q -R -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
+	for p in ${(f)"$($X -n $new | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"}; do
+		for l in ${(f)"$($Q -R --repository=$VOID_REPO -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
 			[[ $l == /* ]] || l=/usr/bin/$l
 			[[ -e $MNT$l || -L $MNT$l ]] && ! xbps_owned $l && bad+=("$p: $l")
 		done
 	done
 	(( ${#bad} )) && { print "these would replace base files:"; print -l $bad; exit 1 }
-	local new=(); for p in $pkgs; do $Q -p pkgver $p > /dev/null 2>&1 || new+=$p; done
-	(( ${#new} )) && $X -y $new || print "all of xbps/packages.txt is installed"
+	$X -y $new
 }
 
 step_umount() {
@@ -508,7 +533,7 @@ step_iso() {
 	(cd $MNT/tmp/syn-initramfs && doas bsdtar --format newc -cf - .) | zstd -19 -T0 -q > $iso/boot/initramfs.img
 	doas rm -rf $MNT/tmp/syn-initramfs
 
-	local kernel=($MNT/boot/vmlinuz-*(N))
+	local kernel=($MNT/boot/vmlinuz-*-syn(N) $MNT/boot/vmlinuz-*(N))
 	cp $kernel[1] $iso/boot/vmlinuz
 	cp $HERE/iso/grub.cfg $iso/boot/grub/grub.cfg
 	cp $HERE:h/SYN-ISO-PROFILE/grub/splash.png $iso/boot/grub/splash.png
@@ -520,7 +545,7 @@ step_iso() {
 	doas zsh $HERE/iso/sanitize-accounts.zsh $MNT/etc $acct
 	local f bound=()
 	for f in passwd group shadow gshadow; do
-		[[ -e $acct/$f ]] || continue
+		doas test -e $acct/$f || continue
 		doas mount --bind $acct/$f $MNT/etc/$f
 		bound+=($MNT/etc/$f)
 	done
@@ -531,6 +556,8 @@ step_iso() {
 	doas rm -rf $acct
 	(( rc == 0 )) || return $rc
 
+	# a VM that used the previous ISO leaves it owned by libvirt: replace, not truncate
+	rm -f $out
 	grub-mkrescue --xorriso=$HERE/iso/xorriso.zsh -o $out $iso
 	print "ISO ready: $out ($(du -h $out | cut -f1)). Try it with: isotest"
 }

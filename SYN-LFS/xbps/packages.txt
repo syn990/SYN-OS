@@ -20,7 +20,6 @@ dconf
 dislocker
 dmg2img
 dnsmasq
-efibootmgr
 evtest
 falkon
 fontforge
@@ -45,6 +44,9 @@ lynis
 lynx
 miniupnpc
 mixxx
+mkinitcpio
+mkinitcpio-encrypt
+mkinitcpio-lvm2
 mono
 mpv
 mtools
@@ -76,7 +78,11 @@ squashfs-tools
 sshpass
 strace
 swig
+syslinux
+refind
+systemd-boot
 tesseract-ocr
+thin-provisioning-tools
 tigervnc
 unpaper
 uv
