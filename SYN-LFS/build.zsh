@@ -205,7 +205,8 @@ step_build() {
 	# those and nothing else (an endless `yes` would also feed make). Its
 	# Makefile refuses a terminal under 80x24 (stty size): a pty of our own
 	# size makes the build independent of the window it was started from
-	printf 'yes\nyes\nyes\n' | script -qec "stty cols 120 rows 40; PATH=$HERE/bin:\$PATH ./jhalfs run" /dev/null
+	[[ -f $MNT/jhalfs/Makefile ]] ||
+		printf 'yes\nyes\nyes\n' | script -qec "stty cols 120 rows 40; PATH=$HERE/bin:\$PATH ./jhalfs run" /dev/null
 	# Upstream URLs rot (ncurses snapshots vanish); the LFS project mirrors
 	# every source of a release, so fall back to it, checked against the
 	# book's MD5.
@@ -221,10 +222,12 @@ step_build() {
 		doas rm -f $dmp
 	fi
 	# The multilib book's download list leaves out some tarballs its chapters
-	# still unpack (udev-lfs, sysklogd): every one the generated scripts name
-	# comes from the source cache if the image lacks it
+	# still unpack (sysklogd as PACKAGE=, udev-lfs by a relative path inside
+	# the systemd script): every one the generated scripts name comes from
+	# the source cache if the image lacks it
 	local u
-	for u in $(grep -h '^PACKAGE=' $MNT/jhalfs/lfs-commands/chapter0*/* | sed 's/PACKAGE=//; s/"//g' | sort -u); do
+	for u in $({ grep -h '^PACKAGE=' $MNT/jhalfs/lfs-commands/chapter0*/* | sed 's/PACKAGE=//; s/"//g'
+			grep -ohE '\.\./\.\./[A-Za-z0-9._+-]+\.tar\.[a-z0-9]+' $MNT/jhalfs/lfs-commands/chapter0*/* | sed 's|\.\./\.\./||'; } | sort -u); do
 		[[ -f $MNT/sources/$u ]] && continue
 		[[ -f $SRC/$u ]] || { print "not in the image or the cache: $u"; exit 1 }
 		doas install -m644 $SRC/$u $MNT/sources/ && print "from the cache: $u"
@@ -232,8 +235,7 @@ step_build() {
 	# The book creates the build user itself and stops if it already exists
 	# (left over from an earlier run).
 	getent passwd lfs >/dev/null && doas userdel -r lfs
-	# jhalfs's Makefile refuses to run without a terminal of at least 80x24.
-	PATH=$HERE/bin:$PATH make -C $MNT/jhalfs </dev/tty
+	script -qec "stty cols 120 rows 40; PATH=$HERE/bin:\$PATH make -C $MNT/jhalfs" /dev/null
 }
 
 # The kernel filesystems a chroot into the image needs (as in the book's
