@@ -202,8 +202,10 @@ step_build() {
 	[[ -f configuration ]] || { print "run: configure"; exit 1 }
 	mountpoint -q $MNT || { print "run: mount"; exit 1 }
 	# jhalfs asks up to three yes/no questions before building; answer
-	# those and nothing else (an endless `yes` would also feed make).
-	printf 'yes\nyes\nyes\n' | PATH=$HERE/bin:$PATH ./jhalfs run
+	# those and nothing else (an endless `yes` would also feed make). Its
+	# Makefile refuses a terminal under 80x24 (stty size): a pty of our own
+	# size makes the build independent of the window it was started from
+	printf 'yes\nyes\nyes\n' | script -qec "stty cols 120 rows 40; PATH=$HERE/bin:\$PATH ./jhalfs run" /dev/null
 	# Upstream URLs rot (ncurses snapshots vanish); the LFS project mirrors
 	# every source of a release, so fall back to it, checked against the
 	# book's MD5.
