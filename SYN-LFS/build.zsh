@@ -363,7 +363,13 @@ step_desktop() {
 		local f n
 		for f in $MNT/usr/sbin/*(N); do
 			n=${f:t}
-			if [[ -L $f && $(readlink $f) == ../bin/* ]]; then doas rm $f
+			if [[ -L $f && $(readlink $f) == ../bin/$n ]]; then doas rm $f
+			elif [[ -L $f && $(readlink $f) == ../bin/* ]]; then
+				# udevd -> ../bin/udevadm, modprobe -> ../bin/kmod: the name moves, as
+				# a link beside its target
+				[[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]] ||
+					doas ln -s ${$(readlink $f)#../bin/} $MNT/usr/bin/$n
+				doas rm $f
 			elif [[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]]; then doas rm -r $f
 			else doas mv $f $MNT/usr/bin/$n
 			fi
