@@ -41,26 +41,27 @@ chmod 600 "$Conf"
 source "$Conf"
 
 # --- Whatever they leave at CHANGE_ME is asked for here -------------------------
+# The prompts go to the terminal: the answers are captured by $(...)
 ask() {
   local answer
-  printf "%s%s%s " "$C_VALUE" "$1" "$RESET"
+  printf "%s%s%s " "$C_VALUE" "$1" "$RESET" > /dev/tty
   read -r answer </dev/tty
   print -r -- "$answer"
 }
 askTwice() {
   local one two
   while :; do
-    printf "%s%s:%s " "$C_VALUE" "$1" "$RESET"; read -rs one </dev/tty; printf "\n"
-    printf "%sAgain:%s " "$C_VALUE" "$RESET"; read -rs two </dev/tty; printf "\n"
+    printf "%s%s:%s " "$C_VALUE" "$1" "$RESET" > /dev/tty; read -rs one </dev/tty; printf "\n" > /dev/tty
+    printf "%sAgain:%s " "$C_VALUE" "$RESET" > /dev/tty; read -rs two </dev/tty; printf "\n" > /dev/tty
     [ -n "$one" ] && [ "$one" = "$two" ] && { print -r -- "$one"; return; }
-    syn_ui::error "Empty, or the two did not match. Once more."
+    syn_ui::error "Empty, or the two did not match. Once more." > /dev/tty
   done
 }
 setAnswer() { print -r -- "$1=\"$2\"" >> "$Conf"; }   # the last setting wins
 
 if [ "${Disk:-CHANGE_ME}" = CHANGE_ME ]; then
-  printf "\n"
-  lsblk -d -o NAME,SIZE,MODEL,TRAN 2>/dev/null | sed 's/^/  /'
+  printf "\n" > /dev/tty
+  lsblk -d -o NAME,SIZE,MODEL,TRAN 2>/dev/null | sed 's/^/  /' > /dev/tty
   Disk=$(ask "Install to which disk (a name from the list, or /dev/...)?")
   [[ $Disk == /dev/* ]] || Disk=/dev/$Disk
   setAnswer Disk "$Disk"
