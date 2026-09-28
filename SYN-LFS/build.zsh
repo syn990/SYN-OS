@@ -429,10 +429,10 @@ XBPS_SHA256=603b3c55e9cabd5af79b461b929b14e1556a443c97b5714d188681c2172d9e28
 # symlink (an alternatives link) to a file a package owns
 xbps_owned() {
 	local f=$1 t
-	doas grep -qsF "<string>$f</string>" $MNT/var/db/xbps/.*-files.plist && return 0
+	doas grep -qsF "<string>$f</string>" $MNT/var/db/xbps/.*-files.plist(N) && return 0
 	[[ -L $MNT$f ]] || return 1
 	t=$(readlink $MNT$f); [[ $t == /* ]] || t=${f:h}/$t
-	doas grep -qsF "<string>$t</string>" $MNT/var/db/xbps/.*-files.plist
+	doas grep -qsF "<string>$t</string>" $MNT/var/db/xbps/.*-files.plist(N)
 }
 step_void() {
 	[[ -d $MNT/usr/lib ]] || { print "run: mount"; exit 1 }
@@ -456,6 +456,9 @@ step_void() {
 	for p in ${(f)"$($X -n $new | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"}; do
 		for l in ${(f)"$($Q -R --repository=$VOID_REPO -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
 			[[ $l == /* ]] || l=/usr/bin/$l
+			# lua and luac become links to Void's versioned interpreters (lua5.4
+			# is the same Lua the base builds); what the guard is for is sh and awk
+			[[ $l == /usr/bin/lua(|c) ]] && continue
 			[[ -e $MNT$l || -L $MNT$l ]] && ! xbps_owned $l && bad+=("$p: $l")
 		done
 	done
