@@ -255,6 +255,9 @@ chroot_up() {
 
 chroot_down() {
 	doas umount $MNT/run $MNT/sys $MNT/proc $MNT/dev/shm $MNT/dev/pts $MNT/dev
+	# Blocks freed inside the image (deleted build trees) go back to the
+	# host; without this the sparse image file only ever grows
+	doas fstrim $MNT 2>/dev/null || true
 }
 
 # Everything run in the chroot gets at most SYN_OS_CPU percent of the
