@@ -108,3 +108,11 @@ From there it is the Arch edition's installer, the same files from `SYN-ISO-PROF
 - zenity, which Steam uses for some dialogs (GTK4 and libadwaita).
 - Screen sharing out of a browser, which needs xdg-desktop-portal-wlr.
 - A package manager for the compiled half. Each package's files are recorded (`/var/lib/syn-os/files`), but there is no remove or update command for them yet; Void's packages have xbps.
+
+## Next
+
+Decided 2026-09-28, in this order:
+
+1. `build.zsh all` from an empty machine produces a working installer ISO. A run is in progress; every stop is a bug in this tree, fixed here.
+2. The desktop stack comes from Void, not from recipes. Built from source stays: the LFS base, the kernel, runit and zsh, and SYN's own tools (`syn-*`). Everything else (Mesa, wlroots, labwc, waybar, GTK, Qt, WebKitGTK, PipeWire, fonts, the applications) moves from `desktop/order` to `xbps/packages.txt`. A build then takes LFS's hours plus minutes of xbps, and 300 recipes stop needing upkeep. The known risk is a Void package overlapping what the base provides (device-mapper did); `syn-lfs-base.zsh` is where that is handled.
+3. Untested layouts of the installer: mbr-syslinux and mbr-grub (need a BIOS VM), f2fs/btrfs/xfs roots, rEFInd.
