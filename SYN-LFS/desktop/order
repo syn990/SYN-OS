@@ -172,6 +172,8 @@ liburcu
 xfsprogs
 btrfs-progs
 f2fs-tools
+libgpg-error
+libgcrypt
 ntfs-3g
 fuse3
 fuse2
@@ -263,8 +265,6 @@ libxslt
 lcms2
 openjpeg
 libgudev
-libgpg-error
-libgcrypt
 libassuan
 libksba
 npth
