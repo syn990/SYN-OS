@@ -1,0 +1,95 @@
+digraph SYN_OS_BUILD {
+    graph [rankdir=LR, bgcolor="#0b0b0b", fontname="Helvetica", fontsize=12, fontcolor="#ff3030",
+           nodesep=0.35, ranksep=0.6, label="SYN-OS build and install pipeline", labelloc=t];
+    node  [fontname="Helvetica", fontsize=10, shape=box, style="rounded,filled",
+           fillcolor="#161616", color="#8a1414", fontcolor="#d8d8d8", penwidth=1.2];
+    edge  [fontname="Helvetica", fontsize=9, color="#8a1414", fontcolor="#b0b0b0", arrowsize=0.7];
+
+    subgraph cluster_net {
+        label="External sources"; style="dashed,rounded"; color="#5a1010"; fontcolor="#c02020";
+        arch_repo   [label="Arch Linux repositories\nbinary packages"];
+        jhalfs_git  [label="jhalfs + LFS book\ngit.linuxfromscratch.org\npinned commits"];
+        lfs_src     [label="LFS source tarballs\nupstream, LFS mirror fallback\nverified by MD5"];
+        kernel_org  [label="kernel.org\nlinux-7.1.8.tar.xz"];
+        recipe_src  [label="Desktop source tarballs\nURL + md5/sha256 per recipe"];
+        void_repo   [label="Void Linux repository\nxbps-static 0.60.4 (sha256)\nbinary packages"];
+    }
+
+    subgraph cluster_shared {
+        label="Shared repository content"; style="filled,rounded"; fillcolor="#120606"; color="#8a1414"; fontcolor="#ff3030";
+        synsoft   [label="SYN-SOFTWARE/\nsyn-bar, syn-bar-core, syn-connect,\nsyn-filemanager, syn-wallgen, syn-relay,\nsyn-audio, syn-sysmon, syn-crypter"];
+        profile   [label="SYN-ISO-PROFILE/airootfs\nDotfileOverlay: labwc, waybar, foot,\nmako, themes, menus, scripts"];
+        installer [label="SYN-ISO-PROFILE/…/usr/lib/syn-os/\nsyn-config.zsh  syn-disk.zsh\nsyn-stage0.zsh  syn-stage1.zsh\nsyn-ui.zsh  syn-packages.zsh"];
+        conf      [label="/etc/syn-os/synos.conf\ninstall answers: disk, user, locale,\nPartitionStrat, Encryption, UseLvm,\nFilesystemStrat", shape=note, fillcolor="#2a0808", color="#ff3030", fontcolor="#ffffff"];
+    }
+
+    subgraph cluster_arch {
+        label="Arch edition"; style="filled,rounded"; fillcolor="#0f0f14"; color="#3a6ad0"; fontcolor="#5a8af0";
+        build_archiso [label="BUILD-ARCHISO.zsh / BUILD-ARCHISO1.zsh\nruns as root\n--build=<name>  --commit=<sha>  --profile=<path>\nwork dir: .syncache/"];
+        c_builder     [label="syn-iso-builder\nSYN-SOFTWARE/syn-iso-builder-src\nC / ncurses front end\ngit history browser, build log"];
+        cmake_tools   [label="cmake build of each\nSYN-SOFTWARE tool"];
+        mkarchiso     [label="mkarchiso\npacstrap packages.x86_64\n+ airootfs + squashfs + GRUB/syslinux"];
+        arch_iso      [label="SYN-OS Arch ISO", shape=cylinder, fillcolor="#2a0808", color="#e0a020", fontcolor="#e0a020"];
+    }
+
+    subgraph cluster_lfs {
+        label="LFS edition: SYN-LFS/build.zsh   (build.zsh host, then build.zsh all; work dir ~/SYN-OS-build)";
+        style="filled,rounded"; fillcolor="#140707"; color="#ff3030"; fontcolor="#ff3030";
+        s_image   [label="1  image\nsynos.img, sparse 100G\nGPT: SYNEFI (FAT32) + synroot (ext4)\nloop-mounted at /mnt/syn-os"];
+        s_kernel  [label="2  kernel\n.config = defconfig + kvm_guest\n+ kernel.syn + kernel-sound.syn\nbuilt-in cmdline root=PARTLABEL=synroot"];
+        s_build   [label="3  configure + build\njhalfs builds LFS 13.1 multilib\ntoolchain, glibc, gcc, coreutils, udev"];
+        s_zsh     [label="4  zsh + runit\nzsh 5.9.2 in the base\nrunit replaces sysvinit as PID 1"];
+        s_desktop [label="5  fetch + desktop\ndesktop/syn-pkg.zsh builds desktop/order\n300 recipes in a chroot\nMesa, Qt 6, GTK, WebKitGTK, PipeWire,\nlabwc, waybar, syn-* tools\nfinished packages cached in pkgcache/"];
+        s_void    [label="6  void\nsyn-lfs-base.zsh writes an empty package\nthat provides what the base already has\nxbps-install xbps/packages.txt (94 apps)"];
+        s_rekern  [label="7  rekernel + esp\nkernel built in the chroot\ncopied to EFI/BOOT/BOOTX64.EFI"];
+        s_iso     [label="8  iso\nmksquashfs rootfs.sfs\n(excludes /sources, /home, /root, build accounts)\ninitramfs from iso/init + mkinitramfs.zsh\ngrub-mkrescue"];
+        lfs_iso   [label="syn-os-YYYY.MM.DD.iso", shape=cylinder, fillcolor="#2a0808", color="#e0a020", fontcolor="#e0a020"];
+        recipes   [label="desktop/order\ndesktop/pkgs/NAME: v=, src=(url sum), build()\ndesktop/files/: sv/*/run, configs\ndesktop/lib.zsh: meson_build, cmake_build, svc", shape=note, fillcolor="#1e0a0a", color="#8a1414"];
+        pkgs_txt  [label="xbps/packages.txt\nxbps/syn-lfs-base.zsh", shape=note, fillcolor="#1e0a0a", color="#8a1414"];
+        runit_dir [label="runit/1  runit/2  runit/3\nrunit/sbin/: poweroff, reboot, halt, shutdown", shape=note, fillcolor="#1e0a0a", color="#8a1414"];
+        iso_dir   [label="iso/: init, mkinitramfs.zsh, xorriso.zsh,\nlive/ (synstigator session), synos-install.zsh,\nsyn-pacstrap.zsh, arch-chroot, linux.preset,\nsanitize-accounts.zsh, synos.conf", shape=note, fillcolor="#1e0a0a", color="#8a1414"];
+        s_image -> s_kernel -> s_build -> s_zsh -> s_desktop -> s_void -> s_rekern -> s_iso -> lfs_iso [color="#ff3030", penwidth=2];
+    }
+
+    subgraph cluster_install {
+        label="Installation (either ISO)"; style="filled,rounded"; fillcolor="#0e0a0e"; color="#b040c0"; fontcolor="#c060d0";
+        live      [label="Live session\nautologin synstigator\nsynos-config, synos-install", color="#b040c0", fontcolor="#e0c0e8"];
+        stage0    [label="Stage 0: syn-stage0.zsh\nfirmware detect, partition,\nLUKS2, LVM, mkfs, mount\nArch: pacstrap   LFS: rsync of rootfs.sfs", color="#3a6ad0", fontcolor="#c0d0f0"];
+        stage1    [label="Stage 1: syn-stage1.zsh (chroot)\nlocale, hostname, user, mkinitcpio\nsystemd-boot | rEFInd | GRUB | syslinux | EFI stub\nArch: systemctl enable   LFS: /var/service links", color="#ff3030", fontcolor="#ffd0d0"];
+        installed [label="Installed system", shape=cylinder, fillcolor="#2a0808", color="#e0a020", fontcolor="#e0a020"];
+        live -> stage0 [color="#b040c0"];
+        stage0 -> stage1 [color="#3a6ad0"];
+        stage1 -> installed [color="#ff3030"];
+    }
+
+    build_archiso -> cmake_tools [color="#3a6ad0"];
+    c_builder -> cmake_tools [style=dashed, color="#3a6ad0", label="same sequence"];
+    synsoft  -> cmake_tools;
+    cmake_tools -> mkarchiso [color="#3a6ad0"];
+    build_archiso -> mkarchiso [color="#3a6ad0"];
+    c_builder -> mkarchiso [style=dashed, color="#3a6ad0"];
+    arch_repo -> mkarchiso [label="pacstrap"];
+    profile  -> mkarchiso;
+    installer -> mkarchiso;
+    mkarchiso -> arch_iso [color="#e0a020"];
+
+    jhalfs_git -> s_build;
+    lfs_src    -> s_build;
+    kernel_org -> s_kernel;
+    kernel_org -> s_rekern;
+    recipe_src -> s_desktop;
+    recipes    -> s_desktop;
+    synsoft    -> s_desktop [label="syn-* recipes"];
+    profile    -> s_desktop [label="syn-desktop recipe"];
+    installer  -> s_desktop [label="syn-installer recipe"];
+    void_repo  -> s_void;
+    pkgs_txt   -> s_void;
+    runit_dir  -> s_zsh;
+    iso_dir    -> s_iso;
+
+    arch_iso -> live [style=dashed, color="#e0a020"];
+    lfs_iso  -> live [style=dashed, color="#e0a020"];
+    conf     -> live   [color="#ff3030"];
+    conf     -> stage0 [color="#ff3030"];
+    conf     -> stage1 [color="#ff3030"];
+}
