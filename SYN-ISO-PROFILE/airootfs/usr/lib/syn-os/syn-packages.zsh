@@ -108,6 +108,7 @@ desktopStack=(
                       # source, but the shared libraries themselves are still needed here.
                       # Its other library, libarchive, comes with pacman; it's also why
                       # there's no archive manager here: SYN-SHELL opens archives itself
+  libvterm            # The terminal emulator library SYN-SHELL's shell area draws with
   featherpad          # Lightweight text editor for the LXQt desktop environment
 )
 

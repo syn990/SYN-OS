@@ -1,0 +1,9 @@
+# The terminal emulator library (Neovim's) that SYN-SHELL's shell area
+# draws from. Plain make with libtool; perl generates its charset tables
+v=0.3.3
+src=("https://launchpad.net/libvterm/trunk/v${v%.*}/+download/libvterm-$v.tar.gz sha256:09156f43dd2128bd347cbeebe50d9a571d32c64e0cf18d211197946aff7226e0")
+build() {
+	make PREFIX=/usr
+	make PREFIX=/usr install
+	rm -f /usr/lib/libvterm.a
+}

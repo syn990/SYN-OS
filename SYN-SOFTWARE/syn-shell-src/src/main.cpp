@@ -14,10 +14,22 @@
 #include <QDir>
 #include <QSettings>
 
+#include <cstdlib>
+
 #include "MainWindow.h"
+#include "PtySession.h"
 
 int main(int argc, char *argv[])
 {
+  // The binary's two other jobs (see PtySession.h), before any GUI:
+  //   --pty-hold SOCKET CWD ROWS COLS   hold a shell for the terminal area
+  //   --attach SOCKET                   take that shell over, inside foot
+  if (argc == 6 && QByteArray(argv[1]) == "--pty-hold")
+    return PtySession::runHolder(QString::fromLocal8Bit(argv[2]), QString::fromLocal8Bit(argv[3]),
+                                 atoi(argv[4]), atoi(argv[5]));
+  if (argc == 3 && QByteArray(argv[1]) == "--attach")
+    return PtySession::runAttach(QString::fromLocal8Bit(argv[2]));
+
   QApplication app(argc, argv);
   app.setApplicationName("syn-shell");
   app.setOrganizationName("SYN-OS");

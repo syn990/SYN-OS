@@ -283,6 +283,7 @@ void MainWindow::enterArchiveDir(const QString &inner, bool recordHistory, bool 
   rebuildCrumbs();
   updateDisk();
   updateHistoryButtons();
+  syncShell(); // the shell waits in the folder holding the archive
   setWindowTitle(QStringLiteral("syn-shell: ") + QFileInfo(m_session->file()).fileName()
                  + (inner.isEmpty() ? QString() : QLatin1Char('/') + inner));
 

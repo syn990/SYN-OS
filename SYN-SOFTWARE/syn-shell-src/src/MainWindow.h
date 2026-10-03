@@ -16,6 +16,10 @@
 //   apart, as in ranger: moving never touches the marks, and an action
 //   applies to the marks if there are any, otherwise to the cursor.
 //
+//   A terminal area along the bottom (TermView, MainWindowShell.cpp) runs
+//   the user's shell, linked both ways to the browser, and can hand it to
+//   foot without restarting it.
+//
 //   Archives open like folders (MainWindowArchive.cpp): the same columns
 //   walk an ArchiveModel instead of the disk, read-only, with extract,
 //   copy-out and compress done by libarchive on a worker thread.
@@ -54,6 +58,7 @@ class QTimer;
 class QToolButton;
 class FileSortProxy;
 class Preview;
+class TermView;
 
 class MainWindow : public QMainWindow
 {
@@ -153,9 +158,23 @@ private:
                 std::function<void()> done);
   void cancelPreview();
 
+  // Shell area (MainWindowShell.cpp)
+  void buildShell();
+  void toggleShellPane();
+  void toggleShellFocus();
+  void showShell(bool focus);
+  void hideShell();
+  void detachShell();
+  void syncShell();
+  void onShellCwd(const QString &dir);
+  void onShellFinished(bool detached);
+
   QFileSystemModel *m_model;
   FileSortProxy *m_proxy;   // what every view shows: sorted, dirs first
   QSplitter *m_split;
+  QSplitter *m_vsplit;   // the columns above, the shell area below
+  TermView *m_term;
+  QToolButton *m_shellBtn;
   QListView *m_parentView;
   QListView *m_view;
   Preview *m_preview;
@@ -190,6 +209,7 @@ private:
   QAction *m_actBack, *m_actForward, *m_actUp, *m_actHome, *m_actRoot;
   QAction *m_actHidden, *m_actRefresh, *m_actHelp;
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
+  QAction *m_actShell, *m_actDetachShell;
 
   QString m_currentDir;
   QStringList m_back;

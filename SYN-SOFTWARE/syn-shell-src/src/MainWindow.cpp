@@ -5,6 +5,7 @@
 #include "FileSortProxy.h"
 #include "Preview.h"
 #include "RowDelegate.h"
+#include "TermView.h"
 
 #include <QAction>
 #include <QApplication>
@@ -92,6 +93,7 @@ QLabel#detail { color: palette(text); padding: 3px 8px; }
 QLabel#detail[flash="info"] { color: #ffffff; }
 QLabel#detail[flash="error"] { background: palette(highlight); color: #ffffff; }
 QLabel#mime { color: palette(highlight); padding: 3px 8px; }
+QSplitter#vsplit::handle { background: palette(highlight); }
 QLabel#promptLabel { color: palette(highlight); font-weight: bold; padding: 3px 0 3px 8px; }
 QLineEdit#prompt { background: palette(base); color: palette(text); border: none; padding: 3px 2px; }
 
@@ -144,10 +146,17 @@ const char kHelp[] = R"(  MOVE
   :extract [DEST]          extract to DEST
   Esc             cancel a running extract / compress
 
+  SHELL  (your shell, in the area along the bottom)
+  `               show / hide it          Ctrl+`        swap focus, files <-> shell
+  Ctrl+Shift+D    send the running shell to a foot window (same shell, nothing restarts)
+  Ctrl+Shift+C/V  copy / paste            Shift+PgUp/Dn scroll back
+  cd in the shell moves the browser; moving here cds the shell when it's
+  idle at a prompt (zsh), keeping whatever you've typed on the line
+
   COMMANDS  (:)
   :cd PATH   :mkdir NAME   :touch NAME   :rename NAME
   :delete    :term         :!COMMAND (runs in a terminal)
-  :hidden    :help         :q
+  :hidden    :help         :q       :shell   :detach
 )";
 
 QString expandPath(const QString &input, const QString &base)
@@ -245,7 +254,8 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
   layout->addWidget(buildHeader());
-  layout->addWidget(m_split, 1);
+  buildShell();
+  layout->addWidget(m_vsplit, 1);
   layout->addWidget(buildFooter());
   setCentralWidget(central);
 
@@ -412,6 +422,8 @@ void MainWindow::buildActions()
     openPrompt(Prompt::Command, QStringLiteral("compress ") + stem + QStringLiteral(".tar.zst"));
   });
   m_actOpenExternal = act(tr("Open in default app"), "r", [this] { openExternal(); });
+  m_actShell     = act(tr("Shell"), "`", [this] { toggleShellPane(); });
+  m_actDetachShell = act(tr("Shell to foot"), "Ctrl+Shift+D", [this] { detachShell(); });
 
   m_bindings = {
     {"j", [this] { moveCursor(1); }},
@@ -447,6 +459,7 @@ void MainWindow::buildActions()
     {"?", [this] { showHelp(); }},
     {"X", [this] { extractHere(); }},
     {"r", [this] { openExternal(); }},
+    {"`", [this] { toggleShellPane(); }},
   };
 }
 
@@ -518,13 +531,20 @@ QWidget *MainWindow::buildHeader()
   m_actHidden->setChecked(m_hiddenBtn->isChecked());
   connect(m_hiddenBtn, &QToolButton::clicked, this, &MainWindow::setShowHidden);
 
+  m_shellBtn = new QToolButton(header);
+  m_shellBtn->setText(QStringLiteral(">_"));
+  m_shellBtn->setToolTip(tr("Shell (` toggles, Ctrl+` swaps focus)"));
+  m_shellBtn->setCheckable(true);
+  connect(m_shellBtn, &QToolButton::clicked, this, &MainWindow::toggleShellPane);
+
   auto *helpBtn = new QToolButton(header);
   helpBtn->setText(QStringLiteral("?"));
   helpBtn->setToolTip(tr("Keys (?)"));
   connect(helpBtn, &QToolButton::clicked, this, &MainWindow::showHelp);
 
   for (QWidget *w : {static_cast<QWidget *>(m_backBtn), static_cast<QWidget *>(m_fwdBtn),
-                     static_cast<QWidget *>(m_hiddenBtn), static_cast<QWidget *>(helpBtn)})
+                     static_cast<QWidget *>(m_hiddenBtn), static_cast<QWidget *>(helpBtn),
+                     static_cast<QWidget *>(m_shellBtn)})
     w->setFocusPolicy(Qt::NoFocus);
 
   h->addWidget(m_backBtn);
@@ -535,6 +555,7 @@ QWidget *MainWindow::buildHeader()
   h->addWidget(m_markSeg);
   h->addWidget(m_jobSeg);
   h->addWidget(m_fsSeg);
+  h->addWidget(m_shellBtn);
   h->addWidget(m_hiddenBtn);
   h->addWidget(helpBtn);
   return header;
@@ -638,6 +659,7 @@ bool MainWindow::navigateTo(const QString &path, bool recordHistory)
     rebuildCrumbs();
     updateDisk();
     updateHistoryButtons();
+    syncShell();
 
     QString title = p;
     if (title.startsWith(QDir::homePath()))
@@ -1233,8 +1255,12 @@ void MainWindow::runCommand(const QString &input)
     compress(arg);
   } else if (cmd == QLatin1String("delete") || cmd == QLatin1String("rm")) {
     deleteTargets();
-  } else if (cmd == QLatin1String("term") || cmd == QLatin1String("shell")) {
+  } else if (cmd == QLatin1String("term")) {
     openTerminal(m_currentDir);
+  } else if (cmd == QLatin1String("shell")) {
+    showShell(true);
+  } else if (cmd == QLatin1String("detach")) {
+    detachShell();
   } else if (cmd == QLatin1String("hidden")) {
     m_actHidden->trigger();
   } else if (cmd == QLatin1String("help")) {
@@ -1269,6 +1295,12 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     case Qt::Key_H: m_actHidden->trigger(); break;
     case Qt::Key_L: beginPathEdit(); break;
     case Qt::Key_R: m_actRefresh->trigger(); break;
+    case Qt::Key_QuoteLeft: toggleShellFocus(); break;
+    case Qt::Key_D:
+      if (!(mods & Qt::ShiftModifier))
+        return false;
+      detachShell();
+      break;
     case Qt::Key_A: {
       const QModelIndex root = m_view->rootIndex();
       const int n = m_view->model()->rowCount(root);
@@ -1491,6 +1523,9 @@ void MainWindow::showContextMenu(const QPoint &pos)
   }
 
   head(tr("VIEW"));
+  menu.addAction(m_actShell);
+  if (m_term->isRunning())
+    menu.addAction(m_actDetachShell);
   menu.addAction(m_actHidden);
   menu.addAction(m_actRefresh);
   menu.addAction(m_actHelp);
@@ -1632,8 +1667,10 @@ void MainWindow::flash(const QString &message, bool error)
 
 void MainWindow::changeEvent(QEvent *event)
 {
-  if (event->type() == QEvent::ApplicationPaletteChange)
+  if (event->type() == QEvent::ApplicationPaletteChange) {
     applyStyle();
+    m_term->reloadColours(); // the theme rewrote foot.ini too
+  }
   QMainWindow::changeEvent(event);
 }
 
@@ -1646,6 +1683,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
   QSettings settings;
   settings.setValue("geometry", saveGeometry());
   settings.setValue("split", m_split->saveState());
+  settings.setValue("vsplit", m_vsplit->saveState());
   settings.setValue("showHidden", bool(m_model->filter() & QDir::Hidden));
   QMainWindow::closeEvent(event);
 }

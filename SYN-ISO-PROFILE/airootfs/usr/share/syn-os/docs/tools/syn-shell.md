@@ -1,8 +1,8 @@
 # SYN-SHELL
 
 SYN-SHELL is SYN-OS's own window onto the system: your files, the
-archives among them, all in one place, laid out the way ranger lays out
-a terminal. Three columns: the folder you came from, the folder you're
+archives among them and a shell, all in one place, laid out the way
+ranger lays out a terminal. Three columns: the folder you came from, the folder you're
 in, and a preview of whatever the cursor is on.
 
 ![SYN-SHELL main window](../screenshots/syn-shell-main-window.png)
@@ -79,8 +79,37 @@ Files inside preview too.
 Password-protected archives ask for the password. Nothing in an archive
 can write outside the folder you extract it into.
 
+## The shell
+
+Press `` ` `` and your shell opens along the bottom of the window, in the
+folder you're looking at, in the same colours and font as foot. Press it
+again to tuck it away; it keeps running, and comes back exactly as you
+left it.
+
+The two halves follow each other. `cd` somewhere in the shell and the
+files above go there too. Move around in the files and the shell
+follows, but only while it's sitting at a prompt: if something is
+running, it's left alone, and anything you'd half-typed stays on the
+line.
+
+| Key | Does |
+|---|---|
+| `` ` `` | Show or hide the shell |
+| `` Ctrl+` `` | Move the keyboard between the files and the shell |
+| `Ctrl+Shift+D` | Send the shell to its own foot window |
+| `Ctrl+Shift+C` / `Ctrl+Shift+V` | Copy, paste (selecting with the mouse copies too; middle-click pastes it) |
+| `Shift+PgUp` / `Shift+PgDn` | Scroll back through what's gone past |
+
+`Ctrl+Shift+D` doesn't start a new shell in foot. It's the same shell,
+moved: whatever was running keeps running, your history and variables
+come with it, and closing that foot window ends it like any other
+terminal. The next `` ` `` starts a fresh one here.
+
+`S` still opens a separate foot in the current folder, as before.
+
 ## Commands
 
 `:` opens a command line at the bottom: `:cd PATH`, `:mkdir NAME`,
 `:touch NAME`, `:rename NAME`, `:extract [WHERE]`, `:compress NAME`,
-`:term`, and `:!command` to run something in foot here.
+`:shell`, `:detach`, `:term`, and `:!command` to run something in foot
+here.

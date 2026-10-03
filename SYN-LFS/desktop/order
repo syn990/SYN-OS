@@ -342,6 +342,7 @@ syn-connect
 syn-wallgen
 syn-sysmon
 syn-relay
+libvterm
 syn-shell
 
 # [synOS] SYN-OS config on top (needs everything above)

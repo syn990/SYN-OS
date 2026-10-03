@@ -5,11 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 # libarchive reads and writes every archive format the browser handles
 # (see src/Archive.h); its pkg-config file is what both streams install.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
+# libvterm is the terminal area's emulator (see src/TermView.h).
+pkg_check_modules(VTERM REQUIRED IMPORTED_TARGET vterm)
 
 # syn_bar_notify.c/.h reused as-is from syn-bar-core-src — same
 # sibling-source reuse syn-connect-src/syn-crypter-src already make,
@@ -25,6 +27,7 @@ add_executable(syn-shell
   src/MainWindow.cpp
   src/MainWindow.h
   src/MainWindowArchive.cpp
+  src/MainWindowShell.cpp
   src/FileOps.cpp
   src/FileOps.h
   src/Archive.cpp
@@ -34,14 +37,18 @@ add_executable(syn-shell
   src/FileSortProxy.cpp
   src/FileSortProxy.h
   src/Preview.cpp
+  src/PtySession.cpp
+  src/PtySession.h
   src/Preview.h
   src/RowDelegate.cpp
   src/RowDelegate.h
+  src/TermView.cpp
+  src/TermView.h
   ${BARCORE_SRC}/syn_bar_notify.c
 )
 
 target_include_directories(syn-shell PRIVATE ${BARCORE_SRC})
-target_link_libraries(syn-shell PRIVATE Qt6::Widgets PkgConfig::LIBARCHIVE)
+target_link_libraries(syn-shell PRIVATE Qt6::Widgets Qt6::Network PkgConfig::LIBARCHIVE PkgConfig::VTERM)
 
 install(TARGETS syn-shell RUNTIME DESTINATION bin)
 install(FILES resources/syn-shell.desktop
