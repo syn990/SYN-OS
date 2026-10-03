@@ -405,6 +405,10 @@ void MainWindow::undo()
                });
     break;
   }
+  case UndoStep::Chmoded:
+    undoModes(step.pairs);
+    flash(tr("undid the %1").arg(what));
+    break;
   case UndoStep::Renamed: {
     FileJobs::Pairs back;
     for (const FileJobs::Pair &p : step.pairs)

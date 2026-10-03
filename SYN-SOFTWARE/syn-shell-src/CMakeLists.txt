@@ -34,6 +34,7 @@ add_executable(syn-shell
   src/MainWindowRename.cpp
   src/MainWindowShell.cpp
   src/MainWindowTabs.cpp
+  src/MainWindowTools.cpp
   src/FileOps.cpp
   src/FileOps.h
   src/FileJobs.cpp

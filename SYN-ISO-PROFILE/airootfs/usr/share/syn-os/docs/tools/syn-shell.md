@@ -111,6 +111,8 @@ the file under the cursor if nothing is marked.
 | `F7` | New folder |
 | `yp` | Copy the path |
 | `gt` | Open the trash |
+| `O` | Open with: every app that can open it, the usual one first |
+| `+x` / `-x` | Make executable, or not (`:chmod 755` or `:chmod g+w` for the rest) |
 
 Copy and paste go through the system clipboard, so you can copy here and
 paste into another app, or the other way round.

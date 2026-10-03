@@ -143,6 +143,8 @@ const char kHelp[] = R"(  MOVE
   pp  Ctrl+V      paste       yp           copy path
   cw  F2          rename      dD  Delete   to the trash
   cW              bulk rename: the marks (or the whole folder) in $EDITOR below
+  +x  -x          make executable, or not   :chmod 755 / :chmod g+w   (undoable)
+  O               open with: every app that can open it   :openwith CMD
   Ctrl+Z          undo        Shift+Del    delete for good
   gt              the trash   :jobs        the jobs window
   F7              new folder
@@ -603,6 +605,9 @@ void MainWindow::buildActions()
     {"yp", [this] { copyPaths(); }},
     {"cw", [this] { renameCursor(); }},
     {"cW", [this] { bulkRename(); }},
+    {"+x", [this] { changeMode(QStringLiteral("+x")); }},
+    {"-x", [this] { changeMode(QStringLiteral("-x")); }},
+    {"O", [this] { showOpenWith(); }},
     {"dD", [this] { deleteTargets(); }},
     {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
@@ -1399,6 +1404,13 @@ void MainWindow::runCommand(const QString &input)
     deleteTargets();
   } else if (cmd == QLatin1String("delete!") || cmd == QLatin1String("rm!")) {
     deletePermanently();
+  } else if (cmd == QLatin1String("chmod")) {
+    if (arg.isEmpty())
+      flash(tr("chmod needs a mode: :chmod 755, :chmod +x, :chmod g+w"), true);
+    else
+      changeMode(arg);
+  } else if (cmd == QLatin1String("openwith")) {
+    openWithCommand(arg);
   } else if (cmd == QLatin1String("bulkrename") || cmd == QLatin1String("rename-all")) {
     bulkRename();
   } else if (cmd == QLatin1String("emptytrash")) {
@@ -1661,8 +1673,11 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actOpen);
     if (m_proxy->infoOf(idx).isDir() || archive)
       menu.addAction(m_actOpenInTab);
-    if (archive || !m_proxy->infoOf(idx).isDir())
+    if (archive || !m_proxy->infoOf(idx).isDir()) {
       menu.addAction(m_actOpenExternal);
+      QMenu *with = menu.addMenu(tr("Open with"));
+      fillOpenWith(with);
+    }
     menu.addAction(m_actTerminal);
     if (archive) {
       head(tr("ARCHIVE"));
@@ -1679,6 +1694,13 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actPaste);
     menu.addAction(m_actRename);
     menu.addAction(m_actBulkRename);
+    if (!m_proxy->infoOf(idx).isDir()) {
+      bool allExec = true;
+      for (const QString &t : targets())
+        allExec &= QFileInfo(t).isExecutable();
+      menu.addAction(allExec ? tr("Remove execute\t-x") : tr("Make executable\t+x"), this,
+                     [this, allExec] { changeMode(allExec ? QStringLiteral("-x") : QStringLiteral("+x")); });
+    }
     if (inTrashView()) {
       head(tr("TRASH"));
       menu.addAction(m_actRestore);

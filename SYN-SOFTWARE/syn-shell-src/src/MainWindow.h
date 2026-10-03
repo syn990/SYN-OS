@@ -169,7 +169,7 @@ private:
   // File jobs, trash and undo (MainWindowFiles.cpp)
   struct UndoStep
   {
-    enum Kind { Trashed, Moved, Copied, Renamed, Created } kind;
+    enum Kind { Trashed, Moved, Copied, Renamed, Created, Chmoded } kind;
     FileJobs::Pairs pairs;
     QString label; // "trash of 3 items"
   };
@@ -184,6 +184,13 @@ private:
   void openTrash();
   void pushUndo(UndoStep::Kind kind, const FileJobs::Pairs &pairs, const QString &label);
   void undo();
+
+  // Permissions and Open With (MainWindowTools.cpp)
+  void changeMode(const QString &spec);
+  void undoModes(const FileJobs::Pairs &pairs); // from = path, to = old mode in octal
+  void fillOpenWith(QMenu *menu);
+  void showOpenWith();
+  void openWithCommand(const QString &command);
 
   // Tabs (MainWindowTabs.cpp): each its own place, history and cursor.
   struct Tab
