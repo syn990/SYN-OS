@@ -9,7 +9,7 @@
 //   prompt; see PtySession). Inside an archive the shell waits in the
 //   folder that holds it.
 //
-//   Zoom lives here too: Ctrl+wheel (or Ctrl+= - 0) over the files sizes
+//   Zoom and the middle column's field switches live here too: Ctrl+wheel (or Ctrl+= - 0) over the files sizes
 //   everything but the shell, which zooms itself the same way.
 //
 //   SYN-OS     : The Syntax Operating System
@@ -19,8 +19,10 @@
 // ------------------------------------------------------------------------------
 
 #include "MainWindow.h"
+#include "RowDelegate.h"
 #include "TermView.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QFileInfo>
 #include <QFontInfo>
@@ -154,4 +156,25 @@ void MainWindow::applyUiFont(qreal px)
   for (QWidget *w : centralWidget()->findChildren<QWidget *>())
     if (w != m_term && !m_term->isAncestorOf(w))
       w->setFont(f);
+}
+
+// ----------------------------------------------------------------- fields
+
+void MainWindow::toggleField(int field)
+{
+  const int fields = RowDelegate::fields() ^ field;
+  RowDelegate::setFields(fields);
+  for (QAction *a : m_actFields)
+    a->setChecked(fields & a->data().toInt());
+  // Titles over the columns once there's more than the size to tell apart.
+  m_fieldHeader->setVisible(fields & ~RowDelegate::Size);
+  m_fieldHeader->update();
+  m_view->viewport()->update();
+  QSettings().setValue("fields", fields);
+
+  QStringList on;
+  for (QAction *a : m_actFields)
+    if (a->isChecked())
+      on << a->text().section(QLatin1Char('\t'), 0, 0).toLower();
+  flash(on.isEmpty() ? tr("fields: name only") : tr("fields: %1").arg(on.join(QStringLiteral(", "))));
 }

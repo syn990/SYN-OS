@@ -135,6 +135,8 @@ const char kHelp[] = R"(  MOVE
   /  n N          search, next, previous
   zh  Ctrl+H      hidden files
   zi              file-type icons on / off
+  zp zo zs        permissions, owner, size columns on / off
+  zm zc           modified, created columns on / off
   Ctrl+L          type a path
   Ctrl+wheel      zoom (over the files, or over the shell: each zooms on its own)
   Ctrl+= - 0      zoom in, out, back
@@ -232,6 +234,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
 {
   QSettings settings;
   RowDelegate::setShowIcons(settings.value("icons", true).toBool());
+  RowDelegate::setFields(settings.value("fields", int(RowDelegate::Size)).toInt());
 
   m_model = new QFileSystemModel(this);
   m_model->setReadOnly(false); // read-only would silently disable inline rename
@@ -259,6 +262,15 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   m_parentView->setFocusPolicy(Qt::NoFocus);
   m_view = makeView("currentPane");
   m_view->setFocusPolicy(Qt::StrongFocus);
+  static_cast<RowDelegate *>(m_view->itemDelegate())->setDetailed(true);
+  m_fieldHeader = new FieldHeader(m_view, this);
+  m_fieldHeader->setVisible(RowDelegate::fields() & ~RowDelegate::Size);
+  auto *center = new QWidget(this);
+  auto *centerLayout = new QVBoxLayout(center);
+  centerLayout->setContentsMargins(0, 0, 0, 0);
+  centerLayout->setSpacing(0);
+  centerLayout->addWidget(m_fieldHeader);
+  centerLayout->addWidget(m_view, 1);
   m_view->setContextMenuPolicy(Qt::CustomContextMenu);
   m_preview = new Preview(m_proxy, this);
 
@@ -266,7 +278,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   m_split->setChildrenCollapsible(false);
   m_split->setHandleWidth(1);
   m_split->addWidget(m_parentView);
-  m_split->addWidget(m_view);
+  m_split->addWidget(center);
   m_split->addWidget(m_preview);
   m_split->setStretchFactor(0, 1);
   m_split->setStretchFactor(1, 3);
@@ -474,6 +486,22 @@ void MainWindow::buildActions()
   });
   m_actIcons->setCheckable(true);
   m_actIcons->setChecked(RowDelegate::showIcons());
+
+  const struct { int field; const char *label; const char *keys; } fields[] = {
+    {RowDelegate::Permissions, QT_TR_NOOP("Permissions"), "zp"},
+    {RowDelegate::Owner, QT_TR_NOOP("Owner"), "zo"},
+    {RowDelegate::Size, QT_TR_NOOP("Size"), "zs"},
+    {RowDelegate::Modified, QT_TR_NOOP("Modified"), "zm"},
+    {RowDelegate::Created, QT_TR_NOOP("Created"), "zc"},
+  };
+  for (const auto &f : fields) {
+    const int field = f.field;
+    QAction *a = act(tr(f.label), QLatin1String(f.keys), [this, field] { toggleField(field); });
+    a->setCheckable(true);
+    a->setChecked(RowDelegate::fields() & field);
+    a->setData(field);
+    m_actFields << a;
+  }
   m_actExtract   = act(tr("Extract here"), "X", [this] { extractHere(); });
   m_actExtractTo = act(tr("Extract to..."), ":extract", [this] {
     openPrompt(Prompt::Command, QStringLiteral("extract "));
@@ -514,6 +542,11 @@ void MainWindow::buildActions()
     {"dD", [this] { deleteTargets(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
     {"zi", [this] { m_actIcons->trigger(); }},
+    {"zp", [this] { toggleField(RowDelegate::Permissions); }},
+    {"zo", [this] { toggleField(RowDelegate::Owner); }},
+    {"zs", [this] { toggleField(RowDelegate::Size); }},
+    {"zm", [this] { toggleField(RowDelegate::Modified); }},
+    {"zc", [this] { toggleField(RowDelegate::Created); }},
     {"/", [this] { openPrompt(Prompt::Search); }},
     {":", [this] { openPrompt(Prompt::Command); }},
     {"n", [this] { search(m_lastSearch, cursor().row() + 1, 1); }},
@@ -1453,6 +1486,9 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
   if (watched == m_view && event->type() == QEvent::KeyPress)
     return handleKey(static_cast<QKeyEvent *>(event));
 
+  if (watched == m_view->viewport() && event->type() == QEvent::Resize)
+    m_fieldHeader->update();
+
   if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonPress) {
     auto *me = static_cast<QMouseEvent *>(event);
     m_cursorAuto = false;
@@ -1596,6 +1632,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actDetachShell);
   menu.addAction(m_actHidden);
   menu.addAction(m_actIcons);
+  QMenu *fieldsMenu = menu.addMenu(tr("Fields"));
+  fieldsMenu->addActions(m_actFields);
   menu.addAction(m_actRefresh);
   menu.addAction(m_actHelp);
 
@@ -1754,6 +1792,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
   settings.setValue("split", m_split->saveState());
   settings.setValue("vsplit", m_vsplit->saveState());
   settings.setValue("uiPx", m_uiPx);
+  settings.setValue("fields", RowDelegate::fields());
   settings.setValue("showHidden", bool(m_model->filter() & QDir::Hidden));
   QMainWindow::closeEvent(event);
 }

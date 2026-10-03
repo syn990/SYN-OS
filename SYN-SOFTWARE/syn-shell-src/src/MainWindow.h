@@ -60,6 +60,7 @@ class QToolButton;
 class FileSortProxy;
 class Preview;
 class TermView;
+class FieldHeader;
 
 class MainWindow : public QMainWindow
 {
@@ -172,6 +173,7 @@ private:
 
   // Zoom of everything but the shell (the shell zooms itself)
   void zoomUi(int steps);
+  void toggleField(int field);
   void applyUiFont(qreal px);
 
   QFileSystemModel *m_model;
@@ -182,6 +184,7 @@ private:
   QToolButton *m_shellBtn;
   QListView *m_parentView;
   QListView *m_view;
+  FieldHeader *m_fieldHeader;
   Preview *m_preview;
 
   QStackedWidget *m_pathStack;
@@ -215,6 +218,7 @@ private:
   QAction *m_actHidden, *m_actRefresh, *m_actHelp;
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
   QAction *m_actShell, *m_actDetachShell, *m_actIcons;
+  QList<QAction *> m_actFields;
 
   QString m_currentDir;
   QStringList m_back;

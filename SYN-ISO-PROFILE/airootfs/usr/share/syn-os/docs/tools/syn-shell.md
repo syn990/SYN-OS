@@ -41,6 +41,22 @@ theme's colour for code, scripts, images, sound, video, archives,
 documents, keys and the rest (a disc for disk images, a box for
 packages). `zi` turns them off for plain `ls -F` style names.
 
+The middle column can show more about each file, each switched on or
+off on its own, with titles over them so you can tell them apart. Your
+choice is remembered, and the right-click menu has the same switches
+under Fields.
+
+| Key | Field |
+|---|---|
+| `zp` | Permissions, as `ls -l` prints them |
+| `zo` | Owner |
+| `zs` | Size (on to start with) |
+| `zm` | Date modified |
+| `zc` | Date created (shows `-` on drives that don't record it) |
+
+If the column gets too narrow for all of them, owner and created step
+aside first so names keep enough room.
+
 Hold `Ctrl` and turn the wheel to zoom. It zooms whatever is under the
 mouse, the files or the shell, each on its own, and remembers both.
 `Ctrl+=`, `Ctrl+-` and `Ctrl+0` do the same from the keyboard.
