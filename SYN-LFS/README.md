@@ -88,7 +88,7 @@ runit is PID 1, and there's no logind, so:
 - Steam's controller rules hand devices to the `input` group rather than to whoever logind says is here.
 - runit stage 2 raises the open-files limit for every login, which Proton's esync needs.
 
-The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making the changes this system needs: its own `menu.xml` (surf and Steam up front, All Applications generated from the installed .desktop files, the runit services toggle), no SYN-SHARE module on the bar, the Adwaita cursor, dark GTK, and `xdg-open` pointed at surf, FeatherPad and syn-filemanager. On QEMU's virtio GPU, labwc draws the cursor itself (`WLR_NO_HARDWARE_CURSORS`), since the hardware cursor shows upside down there. syn-sysmon's Logs view reads the service logs and syslog rather than a journal.
+The dotfiles come from `SYN-ISO-PROFILE`, with the `syn-desktop` recipe making the changes this system needs: its own `menu.xml` (surf and Steam up front, All Applications generated from the installed .desktop files, the runit services toggle), no SYN-SHARE module on the bar, the Adwaita cursor, dark GTK, and `xdg-open` pointed at surf, FeatherPad and syn-shell. On QEMU's virtio GPU, labwc draws the cursor itself (`WLR_NO_HARDWARE_CURSORS`), since the hardware cursor shows upside down there. syn-sysmon's Logs view reads the service logs and syslog rather than a journal.
 
 ## The installer ISO
 

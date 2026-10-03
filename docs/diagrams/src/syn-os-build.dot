@@ -17,7 +17,7 @@ digraph SYN_OS_BUILD {
 
     subgraph cluster_shared {
         label="Shared repository content"; style="filled,rounded"; fillcolor="#120606"; color="#8a1414"; fontcolor="#ff3030";
-        synsoft   [label="SYN-SOFTWARE/\nsyn-bar, syn-bar-core, syn-connect,\nsyn-filemanager, syn-wallgen, syn-relay,\nsyn-audio, syn-sysmon, syn-crypter"];
+        synsoft   [label="SYN-SOFTWARE/\nsyn-bar, syn-bar-core, syn-connect,\nsyn-shell, syn-wallgen, syn-relay,\nsyn-audio, syn-sysmon, syn-crypter"];
         profile   [label="SYN-ISO-PROFILE/airootfs\nDotfileOverlay: labwc, waybar, foot,\nmako, themes, menus, scripts"];
         installer [label="SYN-ISO-PROFILE/…/usr/lib/syn-os/\nsyn-config.zsh  syn-disk.zsh\nsyn-stage0.zsh  syn-stage1.zsh\nsyn-ui.zsh  syn-packages.zsh"];
         conf      [label="/etc/syn-os/synos.conf\ninstall answers: disk, user, locale,\nPartitionStrat, Encryption, UseLvm,\nFilesystemStrat", shape=note, fillcolor="#2a0808", color="#ff3030", fontcolor="#ffffff"];

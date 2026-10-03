@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   FileSortProxy: the order every column lists in. Directories first,
 //   then names in natural order (file2 before file10, case ignored), the
@@ -9,7 +9,7 @@
 //   order. Also maps between view indexes and paths for its callers.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

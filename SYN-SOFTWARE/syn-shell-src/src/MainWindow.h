@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   MainWindow: ranger's layout as a desktop window. Three columns over
-//   one QFileSystemModel (through FileSortProxy): the parent directory, the current one, and a
-//   preview of whatever the cursor is on. A waybar-style segment strip
+//   one QFileSystemModel (through FileSortProxy): the parent directory,
+//   the current one, and a preview of whatever the cursor is on. A waybar-style segment strip
 //   runs across the top (history, path, pending keys, position, marks,
 //   disk), an ls -l line for the cursor sits at the bottom, and that line
 //   doubles as the / search and : command prompt.
@@ -24,7 +24,7 @@
 //   SYN theme into it), so the stylesheet only names palette roles.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

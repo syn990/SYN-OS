@@ -108,7 +108,7 @@
     </keybind>
 
     <keybind key="W-e">
-      <action name="Execute" command="syn-filemanager"/>
+      <action name="Execute" command="syn-shell"/>
     </keybind>
 
     <keybind key="W-q">

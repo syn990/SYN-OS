@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(syn-filemanager LANGUAGES CXX C)
+project(syn-shell LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +20,7 @@ pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 # syn_bar_notify.h.
 set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
 
-add_executable(syn-filemanager
+add_executable(syn-shell
   src/main.cpp
   src/MainWindow.cpp
   src/MainWindow.h
@@ -40,9 +40,12 @@ add_executable(syn-filemanager
   ${BARCORE_SRC}/syn_bar_notify.c
 )
 
-target_include_directories(syn-filemanager PRIVATE ${BARCORE_SRC})
-target_link_libraries(syn-filemanager PRIVATE Qt6::Widgets PkgConfig::LIBARCHIVE)
+target_include_directories(syn-shell PRIVATE ${BARCORE_SRC})
+target_link_libraries(syn-shell PRIVATE Qt6::Widgets PkgConfig::LIBARCHIVE)
 
-install(TARGETS syn-filemanager RUNTIME DESTINATION bin)
-install(FILES resources/syn-filemanager.desktop
+install(TARGETS syn-shell RUNTIME DESTINATION bin)
+install(FILES resources/syn-shell.desktop
   DESTINATION share/applications)
+# Its old name, so menus, keybinds and scripts written before the rename
+# (every existing ~/.config copy of the dotfiles) still open it.
+install(CODE "file(CREATE_LINK syn-shell \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/syn-filemanager\" SYMBOLIC)")

@@ -1,12 +1,15 @@
 # Maintainer: William Hayward-Holland (Syntax990)
-pkgname=syn-filemanager
-pkgver=1.2.0
+pkgname=syn-shell
+pkgver=2.0.0
 pkgrel=1
-pkgdesc="SYN-OS's own Qt6 file manager: ranger's three columns and keys in a desktop window, archives browsed like folders (libarchive)"
+pkgdesc="SYN-SHELL: SYN-OS's own window onto the system. Ranger's three columns and keys, archives browsed like folders (libarchive)"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
 depends=('qt6-base' 'libarchive')
+provides=('syn-filemanager')
+conflicts=('syn-filemanager')
+replaces=('syn-filemanager')
 makedepends=('cmake' 'pkgconf')
 source=()
 sha256sums=()

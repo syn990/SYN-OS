@@ -40,8 +40,8 @@ one `foot` terminal open so the theme's terminal palette shows too.
 - [ ] `menu-docs-pipe-open.png` — Preferences > Docs, showing the flat
       top-level entries followed by the Theming/Tools/ISO Build/Concepts
       separators (referenced from `../labwc.md`)
-- [ ] `syn-filemanager-main-window.png` — path bar, QTreeView listing, and
-      toolbar (referenced from `../tools/syn-filemanager.md`)
+- [ ] `syn-shell-main-window.png` — the three columns, the segment strip
+      and the detail line (referenced from `../tools/syn-shell.md`)
 - [ ] `waybar-closeup.png` — the full bar width at default height
       (referenced from `../waybar.md`)
 - [ ] `rofi-power-menu.png` — Lock / Log Out / Reboot / Power Off, themed,

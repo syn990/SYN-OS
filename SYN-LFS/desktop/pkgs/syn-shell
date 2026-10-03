@@ -1,0 +1,6 @@
+# SYN-OS syn-shell: files, archives and a shell in one window (Super+E)
+v=local
+always=1
+build() {
+	syn_tool syn-shell
+}

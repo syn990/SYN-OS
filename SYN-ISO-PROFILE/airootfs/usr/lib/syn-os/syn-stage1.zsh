@@ -124,7 +124,7 @@ fi
 # rather than leave it in plaintext on the installed disk.
 sed -i '/^UserAccountPassword=/d' "$SYNOS_CONF"
 
-# Every locally-authored native tool (syn-filemanager, the waybar module
+# Every locally-authored native tool (syn-shell, the waybar module
 # backends, syn-crypter, syn-connect, syn-wallgen) is already on this disk
 # by this point — syn-pacstrap.zsh copies each one's already-built binary
 # straight from the live ISO before Stage 0 even chroots in here. Nothing

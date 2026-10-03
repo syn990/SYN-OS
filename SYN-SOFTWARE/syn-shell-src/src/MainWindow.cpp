@@ -335,7 +335,8 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
 
   applyStyle();
   setWindowIcon(QIcon::fromTheme(QStringLiteral("system-file-manager")));
-  restoreGeometry(settings.value("geometry").toByteArray());
+  if (!restoreGeometry(settings.value("geometry").toByteArray()))
+    resize(1100, 700);
 
   const QString start = expandPath(startPath, QDir::currentPath());
   if (!navigateTo(start, false))
@@ -641,7 +642,7 @@ bool MainWindow::navigateTo(const QString &path, bool recordHistory)
     QString title = p;
     if (title.startsWith(QDir::homePath()))
       title.replace(0, QDir::homePath().size(), QStringLiteral("~"));
-    setWindowTitle(QStringLiteral("syn-filemanager: ") + title);
+    setWindowTitle(QStringLiteral("syn-shell: ") + title);
   }
 
   m_pendingPath = m_lastCursor.value(p);

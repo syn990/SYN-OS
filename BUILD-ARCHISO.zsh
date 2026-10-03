@@ -364,7 +364,7 @@ fi
 mkdir -p "$OUTPUT"
 
 # ---- Build every SYN-SOFTWARE tool for the live environment -----------
-# Every locally-authored C/C++ tool (syn-crypter, syn-filemanager, the
+# Every locally-authored C/C++ tool (syn-crypter, syn-shell, the
 # waybar backends, syn-connect) lives as source under SYN-SOFTWARE/, a
 # sibling of this script and SYN-ISO-PROFILE, not inside airootfs — none
 # of it is installer/archiso-specific, it's SYN-OS's own build-time input.

@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   Preview: the right-hand column. Shows whatever the cursor is on: a
 //   directory's listing (a third view over the same QFileSystemModel), a
@@ -8,7 +8,7 @@
 //   an archive the same pane shows entry folders and entry bytes.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

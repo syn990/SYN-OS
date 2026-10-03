@@ -196,7 +196,7 @@ font-util
 xkbcomp
 xwayland
 
-# [desktopStack] Qt 6, for syn-filemanager
+# [desktopStack] Qt 6, for syn-shell
 qtbase
 qtwayland
 qtsvg
@@ -349,7 +349,7 @@ syn-connect
 syn-wallgen
 syn-sysmon
 syn-relay
-syn-filemanager
+syn-shell
 
 # [synOS] SYN-OS config on top (needs everything above)
 syn-desktop

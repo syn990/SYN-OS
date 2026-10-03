@@ -7,10 +7,10 @@ WORKDIR/
 .syn-build/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/pkgcache/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-os-base/PKGBUILD
-SYN-SOFTWARE/syn-filemanager-src/src/build/
-SYN-SOFTWARE/syn-filemanager-src/pkg/
-SYN-SOFTWARE/syn-filemanager-src/*.pkg.tar.zst
-SYN-SOFTWARE/syn-filemanager-src/*.pkg.tar.zst.sig
+SYN-SOFTWARE/syn-shell-src/src/build/
+SYN-SOFTWARE/syn-shell-src/pkg/
+SYN-SOFTWARE/syn-shell-src/*.pkg.tar.zst
+SYN-SOFTWARE/syn-shell-src/*.pkg.tar.zst.sig
 SYN-SOFTWARE/*/build/
 SYN-SOFTWARE/*-src-build/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-connect
@@ -24,7 +24,9 @@ SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-iso-builder
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-relay
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-sysmon
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-wallgen
+SYN-ISO-PROFILE/airootfs/usr/bin/syn-shell
 SYN-ISO-PROFILE/airootfs/usr/bin/syn-filemanager
+SYN-ISO-PROFILE/airootfs/usr/share/applications/syn-shell.desktop
 SYN-ISO-PROFILE/airootfs/usr/share/applications/syn-filemanager.desktop
 SYN-ISO-PROFILE/airootfs/usr/bin/dislocker*
 SYN-ISO-PROFILE/airootfs/usr/lib/libdislocker.so*

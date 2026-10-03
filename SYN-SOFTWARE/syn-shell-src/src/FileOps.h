@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   FileOps: delete/copy/move logic and their confirmation dialogs, kept
 //   out of MainWindow so filesystem-error handling isn't tangled into the
@@ -14,7 +14,7 @@
 //   "copy" on a shortcut. Delete removes the link, never its target.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

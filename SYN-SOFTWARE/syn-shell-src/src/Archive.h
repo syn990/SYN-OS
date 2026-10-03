@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   Archive: everything libarchive does for us, as plain blocking calls
 //   meant to run on a worker thread. Reads whatever libarchive reads
@@ -17,7 +17,7 @@
 //   the share of the archive file read so far (0..1) from the worker thread.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

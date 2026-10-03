@@ -81,7 +81,7 @@ pacstrapMain() {
     chmod -R +x "${RootMountLocation}/etc/skel/.config/waybar"
   fi
 
-  # SYN-OS's locally-authored native tools (syn-crypter, syn-filemanager,
+  # SYN-OS's locally-authored native tools (syn-crypter, syn-shell,
   # the waybar module backends, syn-connect, syn-sysmon, syn-wallgen) are
   # all built once from source
   # at ISO-build time (see BUILD-ARCHISO.zsh, SYN-SOFTWARE/), not compiled
@@ -92,7 +92,7 @@ pacstrapMain() {
   #
   # Each entry is "binary_path[:extra_file]" — extra_file (if present) is
   # copied alongside the binary at the same relative destination path, for
-  # syn-filemanager's .desktop entry. Everything else has no extra file.
+  # syn-shell's .desktop entry. Everything else has no extra file.
   local -a nativeTools
   nativeTools=(
     /usr/lib/syn-os/syn-audio
@@ -106,7 +106,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-sysmon
     /usr/lib/syn-os/syn-wallgen
     /usr/lib/syn-os/syn-uplink-dialpad
-    "/usr/bin/syn-filemanager:/usr/share/applications/syn-filemanager.desktop"
+    "/usr/bin/syn-shell:/usr/share/applications/syn-shell.desktop"
     # dislocker (BitLocker) — AUR-only upstream, vendored in
     # SYN-SOFTWARE/dislocker-src and built by the same loop. install
     # follows symlinks, so /usr/bin/dislocker and the soname land as
@@ -133,6 +133,10 @@ pacstrapMain() {
       syn_ui::error "$toolName missing from the live ISO — it wasn't built at ISO-build time (see BUILD-ARCHISO.zsh output), so it won't be available on this install."
     fi
   done
+  # syn-shell's old name, for anything still calling it (install would
+  # have copied the whole binary again through the link).
+  [ -x "${RootMountLocation}/usr/bin/syn-shell" ] \
+    && ln -sf syn-shell "${RootMountLocation}/usr/bin/syn-filemanager"
 
   # Docs are static system data, not a per-user dotfile, so they get their
   # own copy to /usr/share rather than living inside DotfileOverlay above.

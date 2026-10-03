@@ -161,7 +161,7 @@ render_qt "$TEMPLATES_DIR/qt5ct-colors.conf.tmpl" "$HOME/.config/qt5ct/colors/$S
 sed -i "s|^color_scheme_path=.*|color_scheme_path=$HOME/.config/qt5ct/colors/$SYN_THEME_NAME.conf|" "$HOME/.config/qt5ct/qt5ct.conf"
 
 # -------- qt6ct (same as qt5ct above — this is the one that matters:
-# every Qt app here (falkon, syn-filemanager) links against Qt6, not Qt5,
+# every Qt app here (falkon, syn-shell) links against Qt6, not Qt5,
 # so qt5ct's theming above is inert for all of them. Kept in case a Qt5
 # app is ever installed.) --------
 if [[ -f "$HOME/.config/qt6ct/qt6ct.conf" ]]; then
@@ -222,4 +222,4 @@ print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 print "Theme applied: $SYN_THEME_NAME"
 print "  waybar, labwc, mako: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
-print "  qt6ct (falkon, syn-filemanager), gtk3 (audacity, etherape, virt-manager, virt-viewer): applies on next launch"
+print "  qt6ct (falkon, syn-shell), gtk3 (audacity, etherape, virt-manager, virt-viewer): applies on next launch"

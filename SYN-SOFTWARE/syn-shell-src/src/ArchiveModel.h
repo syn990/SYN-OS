@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   ArchiveModel: an archive's listing as a folder tree the same three
 //   columns can walk. Directories an archive only implies (a tar holding
@@ -9,7 +9,7 @@
 //   when the disk view does.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------

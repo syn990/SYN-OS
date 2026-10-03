@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   MainWindow, archive half: walking into archives, previewing them and
 //   their entries, extracting, copying out and compressing. The disk
@@ -10,7 +10,7 @@
 //   stale result never paints over a newer cursor.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ QString MainWindow::tempSlot()
 {
   if (!m_tempDir)
     m_tempDir = std::make_unique<QTemporaryDir>(QDir::tempPath()
-                                                + QStringLiteral("/syn-filemanager-XXXXXX"));
+                                                + QStringLiteral("/syn-shell-XXXXXX"));
   const QString slot = m_tempDir->path() + QLatin1Char('/') + QString::number(++m_tempSlots);
   QDir().mkpath(slot);
   return slot;
@@ -283,7 +283,7 @@ void MainWindow::enterArchiveDir(const QString &inner, bool recordHistory, bool 
   rebuildCrumbs();
   updateDisk();
   updateHistoryButtons();
-  setWindowTitle(QStringLiteral("syn-filemanager: ") + QFileInfo(m_session->file()).fileName()
+  setWindowTitle(QStringLiteral("syn-shell: ") + QFileInfo(m_session->file()).fileName()
                  + (inner.isEmpty() ? QString() : QLatin1Char('/') + inner));
 
   m_pendingPath = m_lastCursor.value(location());

@@ -29,9 +29,9 @@
       </action>
     </item>
 
-    <item label="File browser">
+    <item label="SYN-SHELL">
       <action name="Execute">
-        <command>syn-filemanager</command>
+        <command>syn-shell</command>
       </action>
     </item>
 
@@ -266,9 +266,9 @@
           </action>
         </item>
 
-        <item label="Kill File Browser (syn-filemanager)">
+        <item label="Kill SYN-SHELL (syn-shell)">
           <action name="Execute">
-            <command>pkill syn-filemanager</command>
+            <command>pkill -x syn-shell</command>
           </action>
         </item>
 

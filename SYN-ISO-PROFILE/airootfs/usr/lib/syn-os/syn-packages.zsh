@@ -103,7 +103,7 @@ desktopStack=(
   qt6ct               # Qt6 Configuration Utility
   kvantum             # SVG-based theme engine for Qt
   kvantum-qt5         # Qt5 styles for the Kvantum theme engine
-  qt6-base            # Qt6 core libraries — syn-filemanager (File browser, Super+E) links
+  qt6-base            # Qt6 core libraries — syn-shell (SYN-SHELL, Super+E) links
                       # against this at runtime; built at ISO-build time, not pacstrap'd as
                       # source, but the shared libraries themselves are still needed here
   lxqt-archiver       # Lightweight archive manager (Qt port of Xarchiver)

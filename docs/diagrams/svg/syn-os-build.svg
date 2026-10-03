@@ -17,7 +17,7 @@
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_shared</title>
-<path fill="#120606" stroke="#8a1414" d="M880.38,-347C880.38,-347 1088.62,-347 1088.62,-347 1094.62,-347 1100.62,-353 1100.62,-359 1100.62,-359 1100.62,-673 1100.62,-673 1100.62,-679 1094.62,-685 1088.62,-685 1088.62,-685 880.38,-685 880.38,-685 874.38,-685 868.38,-679 868.38,-673 868.38,-673 868.38,-359 868.38,-359 868.38,-353 874.38,-347 880.38,-347"/>
+<path fill="#120606" stroke="#8a1414" d="M892.75,-347C892.75,-347 1076.25,-347 1076.25,-347 1082.25,-347 1088.25,-353 1088.25,-359 1088.25,-359 1088.25,-673 1088.25,-673 1088.25,-679 1082.25,-685 1076.25,-685 1076.25,-685 892.75,-685 892.75,-685 886.75,-685 880.75,-679 880.75,-673 880.75,-673 880.75,-359 880.75,-359 880.75,-353 886.75,-347 892.75,-347"/>
 <text xml:space="preserve" text-anchor="middle" x="984.5" y="-669.6" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#ff3030">Shared repository content</text>
 </g>
 <g id="clust3" class="cluster">
@@ -179,10 +179,10 @@
 <!-- synsoft -->
 <g id="node7" class="node">
 <title>synsoft</title>
-<path fill="#161616" stroke="#8a1414" stroke-width="1.2" d="M1080.62,-570.5C1080.62,-570.5 888.38,-570.5 888.38,-570.5 882.38,-570.5 876.38,-564.5 876.38,-558.5 876.38,-558.5 876.38,-523.5 876.38,-523.5 876.38,-517.5 882.38,-511.5 888.38,-511.5 888.38,-511.5 1080.62,-511.5 1080.62,-511.5 1086.62,-511.5 1092.62,-517.5 1092.62,-523.5 1092.62,-523.5 1092.62,-558.5 1092.62,-558.5 1092.62,-564.5 1086.62,-570.5 1080.62,-570.5"/>
+<path fill="#161616" stroke="#8a1414" stroke-width="1.2" d="M1067.88,-570.5C1067.88,-570.5 901.12,-570.5 901.12,-570.5 895.12,-570.5 889.12,-564.5 889.12,-558.5 889.12,-558.5 889.12,-523.5 889.12,-523.5 889.12,-517.5 895.12,-511.5 901.12,-511.5 901.12,-511.5 1067.88,-511.5 1067.88,-511.5 1073.88,-511.5 1079.88,-517.5 1079.88,-523.5 1079.88,-523.5 1079.88,-558.5 1079.88,-558.5 1079.88,-564.5 1073.88,-570.5 1067.88,-570.5"/>
 <text xml:space="preserve" text-anchor="middle" x="984.5" y="-557" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#d8d8d8">SYN&#45;SOFTWARE/</text>
 <text xml:space="preserve" text-anchor="middle" x="984.5" y="-544.25" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#d8d8d8">syn&#45;bar, syn&#45;bar&#45;core, syn&#45;connect,</text>
-<text xml:space="preserve" text-anchor="middle" x="984.5" y="-531.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#d8d8d8">syn&#45;filemanager, syn&#45;wallgen, syn&#45;relay,</text>
+<text xml:space="preserve" text-anchor="middle" x="984.5" y="-531.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#d8d8d8">syn&#45;shell, syn&#45;wallgen, syn&#45;relay,</text>
 <text xml:space="preserve" text-anchor="middle" x="984.5" y="-518.75" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#d8d8d8">syn&#45;audio, syn&#45;sysmon, syn&#45;crypter</text>
 </g>
 <!-- cmake_tools -->
@@ -195,13 +195,13 @@
 <!-- synsoft&#45;&gt;cmake_tools -->
 <g id="edge14" class="edge">
 <title>synsoft&#45;&gt;cmake_tools</title>
-<path fill="none" stroke="#8a1414" d="M1093.17,-560.1C1105.62,-565.86 1117.25,-573.33 1126.75,-583 1152.3,-609 1124.66,-634.65 1148.75,-662 1187.54,-706.05 1251.17,-729.34 1299.38,-741.29"/>
+<path fill="none" stroke="#8a1414" d="M1080.24,-554.8C1097.48,-561.04 1114.02,-570.04 1126.75,-583 1152.3,-609 1124.66,-634.65 1148.75,-662 1187.54,-706.05 1251.17,-729.34 1299.38,-741.29"/>
 <polygon fill="#8a1414" stroke="#8a1414" points="1298.73,-743.66 1306.11,-742.9 1299.87,-738.89 1298.73,-743.66"/>
 </g>
 <!-- synsoft&#45;&gt;s_desktop -->
 <g id="edge28" class="edge">
 <title>synsoft&#45;&gt;s_desktop</title>
-<path fill="none" stroke="#8a1414" d="M1092.91,-527.99C1144.85,-515.67 1202.66,-491.67 1234.25,-445 1299,-349.33 1191.65,-281.77 1256.25,-186 1257.64,-183.95 1259.12,-181.97 1260.7,-180.06"/>
+<path fill="none" stroke="#8a1414" d="M1080.25,-530.8C1135.18,-519.45 1200.07,-495.51 1234.25,-445 1299,-349.33 1191.65,-281.77 1256.25,-186 1257.64,-183.95 1259.12,-181.97 1260.7,-180.06"/>
 <polygon fill="#8a1414" stroke="#8a1414" points="1262.45,-181.77 1265.35,-174.95 1258.83,-178.47 1262.45,-181.77"/>
 <text xml:space="preserve" text-anchor="middle" x="1191.5" y="-511.71" font-family="Helvetica,sans-Serif" font-size="9.00" fill="#b0b0b0">syn&#45;* recipes</text>
 </g>

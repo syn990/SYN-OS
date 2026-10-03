@@ -1,5 +1,5 @@
 # Qt's colours, font and icon theme from a config file, which is how
-# syn-theme-apply themes syn-filemanager and FeatherPad. Upstream moved from
+# syn-theme-apply themes syn-shell and FeatherPad. Upstream moved from
 # GitHub (abandoned at 0.9) to opencode.net; 0.11 builds against Qt 6.10+,
 # where the private Gui headers it uses are a separate CMake package
 v=0.11

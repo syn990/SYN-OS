@@ -4,7 +4,7 @@ A Linux desktop by William Hayward-Holland (Syntax990).
 
 ![SYN-OS desktop, LabWC menu open over Waybar](./Images/labwc-SYNOS-1.png)
 
-SYN-OS is its dotfiles and its applications: labwc, waybar, foot and mako configured as one desktop, 63 live themes, and a set of native tools written for it (syn-bar, syn-connect, syn-filemanager, syn-relay, syn-crypter, syn-wallgen and others, under [SYN-SOFTWARE](./SYN-SOFTWARE)). One answers file, `synos.conf`, drives the installer.
+SYN-OS is its dotfiles and its applications: labwc, waybar, foot and mako configured as one desktop, 63 live themes, and a set of native tools written for it (syn-bar, syn-connect, syn-shell, syn-relay, syn-crypter, syn-wallgen and others, under [SYN-SOFTWARE](./SYN-SOFTWARE)). One answers file, `synos.conf`, drives the installer.
 
 That layer sits on one of two bases, built from the same repository:
 

@@ -409,7 +409,7 @@ Covered in depth in their own pages, listed here for the map:
 | syn-relay | `/usr/lib/syn-os/syn-relay` | [Remote machines](./tools/syn-relay.md) |
 | syn-sysmon | `/usr/lib/syn-os/syn-sysmon` | [System monitor & logs](./tools/syn-sysmon.md) |
 | syn-audio | `/usr/lib/syn-os/syn-audio` | [Audio mixer](./tools/audio.md) |
-| syn-filemanager | `/usr/lib/syn-os/syn-filemanager` | [File manager](./tools/syn-filemanager.md) |
+| syn-shell | `/usr/bin/syn-shell` | [SYN-SHELL](./tools/syn-shell.md) |
 | syn-crypter (native) | `/usr/lib/syn-os/syn-crypter` | [Encryption](./tools/syn-crypter.md) |
 | syn-wallgen | `/usr/lib/syn-os/syn-wallgen` | [Wallpapers](./tools/syn-wallgen.md) |
 | syn-uplink-dialpad | `/usr/lib/syn-os/syn-uplink-dialpad` | [Prompts](./tools/syn-uplink-dialpad.md) |

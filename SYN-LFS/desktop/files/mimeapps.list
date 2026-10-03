@@ -1,4 +1,4 @@
-# What xdg-open (and so Steam, surf and syn-filemanager) opens each
+# What xdg-open (and so Steam, surf and syn-shell) opens each
 # kind of file and link with, for every user; ~/.config/mimeapps.list
 # overrides it
 [Default Applications]
@@ -18,5 +18,5 @@ text/markdown=featherpad.desktop
 application/x-shellscript=featherpad.desktop
 application/json=featherpad.desktop
 application/xml=featherpad.desktop
-inode/directory=syn-filemanager.desktop
+inode/directory=syn-shell.desktop
 x-scheme-handler/steam=steam.desktop

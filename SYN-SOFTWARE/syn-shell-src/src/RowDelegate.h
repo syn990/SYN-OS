@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-//                     S Y N - F I L E M A N A G E R
+//                           S Y N - S H E L L
 //
 //   RowDelegate: paints one QFileSystemModel row the way `ls -F` would
 //   print it, no icons: directories bold with a trailing "/", symlinks
@@ -9,7 +9,7 @@
 //   gutter, the way ranger keeps the cursor and its marks apart.
 //
 //   SYN-OS     : The Syntax Operating System
-//   Component  : SYN-FILEMANAGER (Desktop)
+//   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
 //   License    : MIT License
 // ------------------------------------------------------------------------------
