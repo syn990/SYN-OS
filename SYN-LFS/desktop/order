@@ -343,6 +343,7 @@ syn-wallgen
 syn-sysmon
 syn-relay
 libvterm
+syntax-highlighting
 syn-shell
 
 # [synOS] SYN-OS config on top (needs everything above)

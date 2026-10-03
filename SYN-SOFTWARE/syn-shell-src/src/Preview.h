@@ -4,7 +4,10 @@
 //   Preview: the right-hand column. Shows whatever the cursor is on: a
 //   directory's listing (a third view over the same QFileSystemModel), a
 //   text file's first 64K, an image scaled to fit, or a hexdump -C style
-//   dump of anything binary. A title line above names what's shown. Inside
+//   dump of anything binary. Code is coloured by KSyntaxHighlighting
+//   (Kate's engine, 300+ languages) with a theme written from the SYN
+//   palette, when SYN-SHELL was built with it. A title line above names
+//   what's shown. Inside
 //   an archive the same pane shows entry folders and entry bytes.
 //
 //   SYN-OS     : The Syntax Operating System
@@ -47,10 +50,14 @@ public:
 
 protected:
   void resizeEvent(QResizeEvent *event) override;
+  void changeEvent(QEvent *event) override;
 
 private:
   void showImage();
-  void showBytes(const QString &title, const QByteArray &data);
+  void showBytes(const QString &title, const QByteArray &data, const QString &name);
+  // Colours m_text for `name`'s language, or not at all (plain, hex).
+  void highlight(const QString &name);
+  void dropHighlighter();
 
   FileSortProxy *m_model;
   QLabel *m_title;
@@ -61,4 +68,6 @@ private:
   QString m_path;
   bool m_isImage = false;
   QByteArray m_imageData; // when the image came from showData, not a path
+  QObject *m_highlighter = nullptr; // a KSyntaxHighlighting::SyntaxHighlighter, if built with it
+  QString m_language;
 };

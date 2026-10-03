@@ -12,6 +12,9 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 # libvterm is the terminal area's emulator (see src/TermView.h).
 pkg_check_modules(VTERM REQUIRED IMPORTED_TARGET vterm)
+# KDE's syntax highlighting engine colours code previews. Optional: the
+# previews stay plain without it.
+find_package(KF6SyntaxHighlighting QUIET)
 
 # syn_bar_notify.c/.h reused as-is from syn-bar-core-src — same
 # sibling-source reuse syn-connect-src/syn-crypter-src already make,
@@ -63,6 +66,11 @@ add_executable(syn-shell
 
 target_include_directories(syn-shell PRIVATE ${BARCORE_SRC})
 target_link_libraries(syn-shell PRIVATE Qt6::Widgets Qt6::Network PkgConfig::LIBARCHIVE PkgConfig::VTERM)
+
+if (KF6SyntaxHighlighting_FOUND)
+  target_link_libraries(syn-shell PRIVATE KF6::SyntaxHighlighting)
+  target_compile_definitions(syn-shell PRIVATE SYN_HAVE_KSYNTAXHIGHLIGHTING)
+endif()
 
 install(TARGETS syn-shell RUNTIME DESTINATION bin)
 install(FILES resources/syn-shell.desktop

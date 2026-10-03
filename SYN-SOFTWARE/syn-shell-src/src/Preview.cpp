@@ -16,6 +16,16 @@
 #include <QTextDocument>
 #include <QVBoxLayout>
 
+#ifdef SYN_HAVE_KSYNTAXHIGHLIGHTING
+#include <KSyntaxHighlighting/Definition>
+#include <KSyntaxHighlighting/Repository>
+#include <KSyntaxHighlighting/SyntaxHighlighter>
+#include <KSyntaxHighlighting/Theme>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#endif
+
 namespace {
 
 constexpr qint64 kTextLimit = 64 * 1024;
@@ -42,6 +52,103 @@ QString hexDump(const QByteArray &data)
   }
   return out;
 }
+
+#ifdef SYN_HAVE_KSYNTAXHIGHLIGHTING
+// The SYN theme as a KSyntaxHighlighting theme file, from the palette
+// qt6ct fills with the active theme: keywords in the accent, strings and
+// numbers in shades of it (lighter on a dark theme, darker on a light
+// one), types and builtins bold, comments greyed.
+QByteArray synTheme(const QPalette &pal)
+{
+  const QColor bg = pal.color(QPalette::Window);
+  const QColor fg = pal.color(QPalette::Text);
+  const QColor accent = pal.color(QPalette::Highlight);
+  const bool dark = bg.lightness() < 128;
+  auto mix = [](const QColor &a, const QColor &b, double t) {
+    return QColor::fromRgbF(float(a.redF() * (1 - t) + b.redF() * t),
+                            float(a.greenF() * (1 - t) + b.greenF() * t),
+                            float(a.blueF() * (1 - t) + b.blueF() * t));
+  };
+  const QColor str = dark ? accent.lighter(160) : accent.darker(140);
+  const QColor num = dark ? accent.lighter(130) : accent.darker(120);
+  const QColor dim = mix(fg, bg, 0.5);
+  const QColor op = mix(fg, bg, 0.2);
+  auto style = [](const QColor &c, bool bold = false, bool italic = false) {
+    QJsonObject o{{"text-color", c.name()}};
+    if (bold)
+      o.insert("bold", true);
+    if (italic)
+      o.insert("italic", true);
+    return o;
+  };
+  const QJsonObject styles{
+    {"Normal", style(fg)},
+    {"Keyword", style(accent, true)},
+    {"ControlFlow", style(accent, true)},
+    {"Function", style(fg)},
+    {"Variable", style(num)},
+    {"Operator", style(op)},
+    {"BuiltIn", style(fg, true)},
+    {"Extension", style(accent)},
+    {"Preprocessor", style(accent)},
+    {"Attribute", style(accent)},
+    {"Annotation", style(accent)},
+    {"Import", style(accent)},
+    {"DataType", style(fg, true)},
+    {"DecVal", style(num)},
+    {"BaseN", style(num)},
+    {"Float", style(num)},
+    {"Constant", style(num, true)},
+    {"Char", style(str)},
+    {"SpecialChar", style(num)},
+    {"String", style(str)},
+    {"VerbatimString", style(str)},
+    {"SpecialString", style(str)},
+    {"Comment", style(dim, false, true)},
+    {"Documentation", style(dim, false, true)},
+    {"CommentVar", style(dim, true, true)},
+    {"RegionMarker", style(dim)},
+    {"Information", style(accent, true)},
+    {"Warning", style(accent, true)},
+    {"Alert", style(accent, true)},
+    {"Error", style(accent, true)},
+    {"Others", style(fg)},
+  };
+  const QJsonObject editor{
+    {"BackgroundColor", bg.name()},
+    {"TextSelection", accent.name()},
+  };
+  return QJsonDocument(QJsonObject{
+                         {"metadata", QJsonObject{{"name", "SYN"}, {"revision", 1}}},
+                         {"text-styles", styles},
+                         {"editor-colors", editor},
+                       })
+    .toJson();
+}
+
+// One repository for every preview: loading its index of definitions
+// is the slow part. Its custom search path holds the SYN theme.
+KSyntaxHighlighting::Repository &repository(const QPalette &pal, bool rewriteTheme)
+{
+  static KSyntaxHighlighting::Repository *repo = nullptr;
+  const QByteArray xdg = qgetenv("XDG_RUNTIME_DIR");
+  const QString dir = (xdg.isEmpty() ? QDir::tempPath() : QString::fromLocal8Bit(xdg))
+                    + QStringLiteral("/syn-shell/highlighting");
+  if (!repo || rewriteTheme) {
+    QDir().mkpath(dir + QStringLiteral("/themes"));
+    QFile f(dir + QStringLiteral("/themes/syn.theme"));
+    if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      f.write(synTheme(pal));
+  }
+  if (!repo) {
+    repo = new KSyntaxHighlighting::Repository;
+    repo->addCustomSearchPath(dir);
+  } else if (rewriteTheme) {
+    repo->reload();
+  }
+  return *repo;
+}
+#endif
 
 } // namespace
 
@@ -101,6 +208,7 @@ void Preview::showText(const QString &title, const QString &text)
   m_isImage = false;
   m_imageData.clear();
   m_title->setText(title);
+  dropHighlighter();
   m_text->setPlainText(text);
   m_stack->setCurrentWidget(m_text);
 }
@@ -155,17 +263,71 @@ void Preview::showPath(const QString &path)
     showText(head, f.errorString());
     return;
   }
-  showBytes(head, f.read(kTextLimit));
+  showBytes(head, f.read(kTextLimit), info.fileName());
 }
 
-void Preview::showBytes(const QString &title, const QByteArray &data)
+void Preview::showBytes(const QString &title, const QByteArray &data, const QString &name)
 {
   m_title->setText(title);
-  if (data.left(4096).contains('\0'))
+  dropHighlighter();
+  if (data.left(4096).contains('\0')) {
     m_text->setPlainText(hexDump(data.left(kHexLimit)));
-  else
+  } else {
     m_text->setPlainText(QString::fromUtf8(data.left(kTextLimit)));
+    highlight(name); // after the text: it only ever sees the text it colours
+    if (!m_language.isEmpty())
+      m_title->setText(title + QStringLiteral("  ") + m_language);
+  }
   m_stack->setCurrentWidget(m_text);
+}
+
+// A new highlighter for every preview, attached once its text is in, and
+// the old one gone before the text changes: the engine queues work on the
+// blocks it has seen, and deleting it is what drops that queue (a block
+// of replaced text crashes it).
+void Preview::dropHighlighter()
+{
+  delete m_highlighter;
+  m_highlighter = nullptr;
+  m_language.clear();
+}
+
+void Preview::highlight(const QString &name)
+{
+  dropHighlighter();
+#ifdef SYN_HAVE_KSYNTAXHIGHLIGHTING
+  if (name.isEmpty())
+    return;
+  KSyntaxHighlighting::Repository &repo = repository(palette(), false);
+  const KSyntaxHighlighting::Definition def = repo.definitionForFileName(name);
+  // Plain text gets none: nothing to colour, and no "Normal Text" label.
+  if (!def.isValid() || def.name() == QLatin1String("Normal Text"))
+    return;
+  auto *h = new KSyntaxHighlighting::SyntaxHighlighter(m_text->document());
+  h->setTheme(repo.theme(QStringLiteral("SYN")));
+  h->setDefinition(def);
+  m_highlighter = h;
+  m_language = def.name().toLower();
+#else
+  Q_UNUSED(name);
+#endif
+}
+
+void Preview::changeEvent(QEvent *event)
+{
+  QWidget::changeEvent(event);
+#ifdef SYN_HAVE_KSYNTAXHIGHLIGHTING
+  // A theme switch: write the SYN theme again from the new palette.
+  if (event->type() == QEvent::PaletteChange) {
+    KSyntaxHighlighting::Repository &repo = repository(palette(), true);
+    if (auto *h = static_cast<KSyntaxHighlighting::SyntaxHighlighter *>(m_highlighter)) {
+      const QString lang = h->definition().name();
+      h->setTheme(repo.theme(QStringLiteral("SYN")));
+      h->setDefinition(repo.definitionForName(lang));
+      h->rehighlight();
+    }
+  }
+#endif
 }
 
 void Preview::showDir(QAbstractItemModel *model, const QModelIndex &root, const QString &title)
@@ -198,7 +360,7 @@ void Preview::showData(const QString &name, qint64 size, const QByteArray &data)
     showImage();
     return;
   }
-  showBytes(head, data);
+  showBytes(head, data, name);
 }
 
 void Preview::showImage()

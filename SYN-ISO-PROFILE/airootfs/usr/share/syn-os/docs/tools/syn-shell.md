@@ -88,6 +88,14 @@ The strip along the top shows where you are, your position in the list,
 how much you've marked and how full the drive is. The line along the
 bottom is the file under the cursor the way `ls -l` would print it.
 
+## Previews
+
+The column on the right shows whatever the cursor is on: a folder's
+contents, a picture, the text of a file, or a hex dump of anything that
+isn't text. Code is coloured by language (over 300 of them, the same
+engine Kate uses) in the theme's own colours, and the language is named
+at the top.
+
 ## Files
 
 Actions work on what you've marked (`Space` marks and moves on), or on

@@ -1,0 +1,9 @@
+# KDE's syntax highlighting engine (Kate's), for the code previews in
+# SYN-SHELL: 300+ languages, coloured with a theme SYN-SHELL writes from
+# the SYN palette. The same version as extra-cmake-modules above it;
+# Perl generates some of its definitions at build time
+v=6.29.0
+src=("https://download.kde.org/stable/frameworks/${v%.*}/syntax-highlighting-$v.tar.xz sha256:924c4cfab4043ede9a40bc55721a62515c7b83c6b84c0bdcc29cd3cdf89b09b4")
+build() {
+	cmake_build -D BUILD_TESTING=OFF -D BUILD_QCH=OFF
+}
