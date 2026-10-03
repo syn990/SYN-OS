@@ -2,7 +2,7 @@
 //                           S Y N - S H E L L
 //
 //   RowDelegate: paints one QFileSystemModel row the way `ls -F` would
-//   print it, no icons: directories bold with a trailing "/", symlinks
+//   print it, behind a SynIcons file-type icon (switchable off): directories bold with a trailing "/", symlinks
 //   "@" plus their target, executables "*", dotfiles dimmed, file size
 //   right-aligned. The view's current index (the cursor) gets the solid
 //   accent bar; selected rows are marks, shown as a bar in the left
@@ -31,6 +31,10 @@ public:
   // The inline rename editor starts at the name column, past the gutter.
   void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
                             const QModelIndex &index) const override;
+
+  // One switch for every view's rows.
+  static void setShowIcons(bool show);
+  static bool showIcons();
 };
 
 // 7.0G, 512B, 13K: the same unit style waybar's disk module uses.

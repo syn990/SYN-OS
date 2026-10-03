@@ -24,6 +24,8 @@
 #include <QVector>
 #include <QWidget>
 
+class QVariantAnimation;
+
 extern "C" {
 #include <vterm.h>
 }
@@ -47,6 +49,10 @@ public:
   bool detachToFoot(QString *error);
   QString cwd() const { return m_cwd; }
   void reloadColours();
+  // Text size in pixels; animated steps along Zoom::kLadder when asked.
+  int fontPixels() const { return m_fontPx; }
+  void setFontPixels(int px, bool animate);
+  void zoomBy(int steps);
 
 signals:
   void cwdChanged(const QString &dir);
@@ -55,6 +61,7 @@ signals:
   void toggleFocusRequested();
   void detachRequested();
   void hideRequested();
+  void zoomChanged(int px);
 
 protected:
   bool event(QEvent *e) override;
@@ -90,6 +97,8 @@ private:
   void onDisconnected();
   void updateGeometry();
   void resetTerminal();
+  void applyFont(int px);
+  void resizeGrid();
 
   // Absolute line numbers count scrollback first (0 = oldest), then the
   // screen; the view shows m_rows of them ending m_scrollOffset above
@@ -116,6 +125,13 @@ private:
   QString m_cwd;
 
   QFont m_font;
+  int m_fontPx = 12;
+  // While a zoom animates, the grid is drawn scaled instead of re-laid
+  // out every frame: the shell gets one resize, at the end.
+  qreal m_paintScale = 1.0;
+  QVariantAnimation *m_zoomAnim;
+  int m_wheelAcc = 0;
+  QTimer m_zoomTag; // shows the new size for a moment
   int m_cw = 8, m_ch = 16, m_ascent = 12;
   int m_rows = 24, m_cols = 80;
 

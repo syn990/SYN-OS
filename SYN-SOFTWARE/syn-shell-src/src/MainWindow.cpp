@@ -6,6 +6,7 @@
 #include "Preview.h"
 #include "RowDelegate.h"
 #include "TermView.h"
+#include "Zoom.h"
 
 #include <QAction>
 #include <QApplication>
@@ -36,7 +37,9 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
+#include <QVariantAnimation>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 #include <QWidgetAction>
 
 namespace {
@@ -131,7 +134,10 @@ const char kHelp[] = R"(  MOVE
   FIND / VIEW
   /  n N          search, next, previous
   zh  Ctrl+H      hidden files
+  zi              file-type icons on / off
   Ctrl+L          type a path
+  Ctrl+wheel      zoom (over the files, or over the shell: each zooms on its own)
+  Ctrl+= - 0      zoom in, out, back
   S               terminal here
   R  F5           refresh
   ?               this
@@ -192,6 +198,27 @@ QString usage(const QStorageInfo &st)
        + humanSize(st.bytesTotal());
 }
 
+// Hands Ctrl+wheel events to a callback that says whether it took them.
+class WheelZoomFilter : public QObject
+{
+public:
+  WheelZoomFilter(QObject *parent, std::function<bool(QWidget *, QWheelEvent *)> fn)
+    : QObject(parent), m_fn(std::move(fn)) {}
+
+protected:
+  bool eventFilter(QObject *watched, QEvent *event) override
+  {
+    if (event->type() != QEvent::Wheel)
+      return false;
+    auto *wheel = static_cast<QWheelEvent *>(event);
+    auto *w = qobject_cast<QWidget *>(watched);
+    return w && (wheel->modifiers() & Qt::ControlModifier) && m_fn(w, wheel);
+  }
+
+private:
+  std::function<bool(QWidget *, QWheelEvent *)> m_fn;
+};
+
 void repolish(QWidget *w)
 {
   w->style()->unpolish(w);
@@ -204,6 +231,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   : QMainWindow(parent)
 {
   QSettings settings;
+  RowDelegate::setShowIcons(settings.value("icons", true).toBool());
 
   m_model = new QFileSystemModel(this);
   m_model->setReadOnly(false); // read-only would silently disable inline rename
@@ -342,6 +370,32 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
 
   m_view->installEventFilter(this);
   m_view->viewport()->installEventFilter(this);
+  // Ctrl+wheel anywhere over the window: the views would otherwise take
+  // it as a scroll. Its own filter object, application-wide, so it never
+  // sees the key events this window's filters handle.
+  qApp->installEventFilter(new WheelZoomFilter(this, [this](QWidget *w, QWheelEvent *e) {
+    // The shell zooms itself; everything else in this window zooms here.
+    if (w->window() != this || w == m_term || m_term->isAncestorOf(w))
+      return false;
+    m_uiWheelAcc += e->angleDelta().y();
+    while (qAbs(m_uiWheelAcc) >= 120) {
+      zoomUi(m_uiWheelAcc > 0 ? 1 : -1);
+      m_uiWheelAcc -= m_uiWheelAcc > 0 ? 120 : -120;
+    }
+    return true;
+  }));
+
+  // Zoom: animated through fractional sizes, settling on a ladder size.
+  m_uiZoomAnim = new QVariantAnimation(this);
+  m_uiZoomAnim->setDuration(Zoom::kAnimationMs);
+  m_uiZoomAnim->setEasingCurve(QEasingCurve::OutCubic);
+  connect(m_uiZoomAnim, &QVariantAnimation::valueChanged, this,
+          [this](const QVariant &v) { applyUiFont(v.toReal()); });
+  m_uiPx = Zoom::step(settings.value("uiPx", QFontInfo(font()).pixelSize()).toInt(), 0);
+  applyUiFont(m_uiPx);
+  if (settings.contains("termPx"))
+    m_term->setFontPixels(settings.value("termPx").toInt(), false);
+  connect(m_term, &TermView::zoomChanged, this, [](int px) { QSettings().setValue("termPx", px); });
 
   applyStyle();
   setWindowIcon(QIcon::fromTheme(QStringLiteral("system-file-manager")));
@@ -411,6 +465,15 @@ void MainWindow::buildActions()
     setShowHidden(!(m_model->filter() & QDir::Hidden));
   });
   m_actHidden->setCheckable(true);
+  m_actIcons     = act(tr("Icons"), "zi", [this] {
+    RowDelegate::setShowIcons(!RowDelegate::showIcons());
+    m_actIcons->setChecked(RowDelegate::showIcons());
+    QSettings().setValue("icons", RowDelegate::showIcons());
+    for (QListView *v : findChildren<QListView *>())
+      v->viewport()->update();
+  });
+  m_actIcons->setCheckable(true);
+  m_actIcons->setChecked(RowDelegate::showIcons());
   m_actExtract   = act(tr("Extract here"), "X", [this] { extractHere(); });
   m_actExtractTo = act(tr("Extract to..."), ":extract", [this] {
     openPrompt(Prompt::Command, QStringLiteral("extract "));
@@ -450,6 +513,7 @@ void MainWindow::buildActions()
     {"cw", [this] { renameCursor(); }},
     {"dD", [this] { deleteTargets(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
+    {"zi", [this] { m_actIcons->trigger(); }},
     {"/", [this] { openPrompt(Prompt::Search); }},
     {":", [this] { openPrompt(Prompt::Command); }},
     {"n", [this] { search(m_lastSearch, cursor().row() + 1, 1); }},
@@ -1296,6 +1360,10 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     case Qt::Key_L: beginPathEdit(); break;
     case Qt::Key_R: m_actRefresh->trigger(); break;
     case Qt::Key_QuoteLeft: toggleShellFocus(); break;
+    case Qt::Key_Equal:
+    case Qt::Key_Plus: zoomUi(1); break;
+    case Qt::Key_Minus: zoomUi(-1); break;
+    case Qt::Key_0: zoomUi(0); break;
     case Qt::Key_D:
       if (!(mods & Qt::ShiftModifier))
         return false;
@@ -1527,6 +1595,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
   if (m_term->isRunning())
     menu.addAction(m_actDetachShell);
   menu.addAction(m_actHidden);
+  menu.addAction(m_actIcons);
   menu.addAction(m_actRefresh);
   menu.addAction(m_actHelp);
 
@@ -1684,6 +1753,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
   settings.setValue("geometry", saveGeometry());
   settings.setValue("split", m_split->saveState());
   settings.setValue("vsplit", m_vsplit->saveState());
+  settings.setValue("uiPx", m_uiPx);
   settings.setValue("showHidden", bool(m_model->filter() & QDir::Hidden));
   QMainWindow::closeEvent(event);
 }

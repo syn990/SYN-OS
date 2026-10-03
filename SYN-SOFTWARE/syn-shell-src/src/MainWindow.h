@@ -45,6 +45,7 @@
 class ArchiveSession;
 class QAbstractItemModel;
 class QAction;
+class QVariantAnimation;
 class QFileSystemModel;
 class QHBoxLayout;
 class QKeyEvent;
@@ -169,6 +170,10 @@ private:
   void onShellCwd(const QString &dir);
   void onShellFinished(bool detached);
 
+  // Zoom of everything but the shell (the shell zooms itself)
+  void zoomUi(int steps);
+  void applyUiFont(qreal px);
+
   QFileSystemModel *m_model;
   FileSortProxy *m_proxy;   // what every view shows: sorted, dirs first
   QSplitter *m_split;
@@ -209,7 +214,7 @@ private:
   QAction *m_actBack, *m_actForward, *m_actUp, *m_actHome, *m_actRoot;
   QAction *m_actHidden, *m_actRefresh, *m_actHelp;
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
-  QAction *m_actShell, *m_actDetachShell;
+  QAction *m_actShell, *m_actDetachShell, *m_actIcons;
 
   QString m_currentDir;
   QStringList m_back;
@@ -251,4 +256,8 @@ private:
   // Where opened and copied-out entries are extracted; removed on exit.
   std::unique_ptr<QTemporaryDir> m_tempDir;
   int m_tempSlots = 0;
+
+  int m_uiPx = 12;
+  QVariantAnimation *m_uiZoomAnim;
+  int m_uiWheelAcc = 0;
 };

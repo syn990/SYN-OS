@@ -9,6 +9,9 @@
 //   prompt; see PtySession). Inside an archive the shell waits in the
 //   folder that holds it.
 //
+//   Zoom lives here too: Ctrl+wheel (or Ctrl+= - 0) over the files sizes
+//   everything but the shell, which zooms itself the same way.
+//
 //   SYN-OS     : The Syntax Operating System
 //   Component  : SYN-SHELL (Desktop)
 //   Author     : William Hayward-Holland (Syntax990)
@@ -18,11 +21,16 @@
 #include "MainWindow.h"
 #include "TermView.h"
 
+#include <QApplication>
 #include <QFileInfo>
+#include <QFontInfo>
 #include <QListView>
 #include <QSettings>
 #include <QSplitter>
 #include <QToolButton>
+#include <QVariantAnimation>
+
+#include "Zoom.h"
 
 void MainWindow::buildShell()
 {
@@ -111,4 +119,39 @@ void MainWindow::onShellFinished(bool detached)
   if (hadFocus || detached)
     m_view->setFocus();
   flash(detached ? tr("shell moved to foot; ` starts a new one here") : tr("shell ended"));
+}
+
+// ------------------------------------------------------------------- zoom
+
+void MainWindow::zoomUi(int steps)
+{
+  // Steps from where a running animation is heading, so notches add up.
+  const int base = m_uiZoomAnim->state() == QAbstractAnimation::Running
+                     ? qRound(m_uiZoomAnim->endValue().toReal()) : m_uiPx;
+  const int home = QFontInfo(QApplication::font()).pixelSize();
+  const int target = steps == 0 ? Zoom::step(home, 0) : Zoom::step(base, steps);
+  const qreal from = m_uiZoomAnim->state() == QAbstractAnimation::Running
+                       ? m_uiZoomAnim->currentValue().toReal() : qreal(m_uiPx);
+  m_uiZoomAnim->stop();
+  m_uiPx = target;
+  m_uiZoomAnim->setStartValue(from);
+  m_uiZoomAnim->setEndValue(qreal(target));
+  m_uiZoomAnim->start();
+  flash(tr("zoom %1px").arg(target));
+}
+
+// Fractional sizes while animating: Terminus has none, so those frames
+// take the nearest size it does have; the last frame is a ladder size.
+// Set on every widget, not just the top one: widgets the stylesheet
+// styles don't inherit a font change from their parent.
+void MainWindow::applyUiFont(qreal px)
+{
+  QFont f = QApplication::font();
+  f.setPixelSize(qMax(6, qRound(px)));
+  if (centralWidget()->font() == f)
+    return;
+  centralWidget()->setFont(f);
+  for (QWidget *w : centralWidget()->findChildren<QWidget *>())
+    if (w != m_term && !m_term->isAncestorOf(w))
+      w->setFont(f);
 }

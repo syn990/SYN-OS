@@ -1,5 +1,6 @@
 #include "TermView.h"
 #include "PtySession.h"
+#include "Zoom.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -8,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFontDatabase>
+#include <QFontInfo>
 #include <QFontMetrics>
 #include <QKeyEvent>
 #include <QLocalSocket>
@@ -15,6 +17,7 @@
 #include <QPainter>
 #include <QProcess>
 #include <QUrl>
+#include <QVariantAnimation>
 
 #include <cstring>
 
@@ -99,10 +102,26 @@ TermView::TermView(QWidget *parent)
   m_font.setStyleHint(QFont::Monospace);
   m_font.setFixedPitch(true);
   m_font.setKerning(false);
+  m_fontPx = QFontInfo(m_font).pixelSize();
+  m_font.setPixelSize(m_fontPx);
   const QFontMetrics fm(m_font);
   m_cw = qMax(1, fm.horizontalAdvance(QLatin1Char('M')));
   m_ch = qMax(1, fm.height());
   m_ascent = fm.ascent();
+
+  m_zoomAnim = new QVariantAnimation(this);
+  m_zoomAnim->setDuration(Zoom::kAnimationMs);
+  m_zoomAnim->setEasingCurve(QEasingCurve::OutCubic);
+  connect(m_zoomAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+    m_paintScale = v.toReal() / m_fontPx;
+    update();
+  });
+  connect(m_zoomAnim, &QVariantAnimation::finished, this, [this] {
+    applyFont(qRound(m_zoomAnim->endValue().toReal()));
+  });
+  m_zoomTag.setSingleShot(true);
+  m_zoomTag.setInterval(900);
+  connect(&m_zoomTag, &QTimer::timeout, this, qOverload<>(&QWidget::update));
 
   m_vt = vterm_new(m_rows, m_cols);
   vterm_set_utf8(m_vt, 1);
@@ -420,6 +439,10 @@ void TermView::paintEvent(QPaintEvent *)
 {
   QPainter p(this);
   p.fillRect(rect(), m_bg);
+  if (m_paintScale != 1.0) {
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    p.scale(m_paintScale, m_paintScale);
+  }
 
   QFont bold = m_font, italic = m_font, boldItalic = m_font;
   bold.setBold(true);
@@ -510,9 +533,14 @@ void TermView::paintEvent(QPaintEvent *)
     }
   }
 
-  if (m_scrollOffset > 0) {
-    // How far back, top right, waybar style.
-    const QString tag = QStringLiteral(" -%1 ").arg(m_scrollOffset);
+  p.resetTransform();
+  if (m_scrollOffset > 0 || m_zoomTag.isActive()) {
+    // How far back (or the size just zoomed to), top right, waybar style.
+    const QString tag = m_zoomTag.isActive()
+                          ? QStringLiteral(" %1px ").arg(m_zoomAnim->state() == QAbstractAnimation::Running
+                                                           ? qRound(m_zoomAnim->endValue().toReal())
+                                                           : m_fontPx)
+                          : QStringLiteral(" -%1 ").arg(m_scrollOffset);
     const QFontMetrics fm(m_font);
     const QRect r(width() - fm.horizontalAdvance(tag) - 4, 2, fm.horizontalAdvance(tag), m_ch);
     p.fillRect(r, palette().color(QPalette::Highlight));
@@ -523,6 +551,55 @@ void TermView::paintEvent(QPaintEvent *)
 }
 
 void TermView::resizeEvent(QResizeEvent *)
+{
+  resizeGrid();
+}
+
+void TermView::setFontPixels(int px, bool animate)
+{
+  px = Zoom::step(px, 0);
+  const qreal from = m_fontPx * m_paintScale;
+  m_zoomAnim->stop();
+  m_zoomTag.start();
+  if (!animate || !isVisible()) {
+    applyFont(px);
+    return;
+  }
+  if (qFuzzyCompare(from, qreal(px))) {
+    applyFont(px);
+    return;
+  }
+  m_zoomAnim->setStartValue(from);
+  m_zoomAnim->setEndValue(qreal(px));
+  m_zoomAnim->start();
+}
+
+void TermView::zoomBy(int steps)
+{
+  // Steps from where an animation is heading, so quick notches add up.
+  const int base = m_zoomAnim->state() == QAbstractAnimation::Running
+                     ? qRound(m_zoomAnim->endValue().toReal()) : m_fontPx;
+  const int home = QFontInfo(QFontDatabase::systemFont(QFontDatabase::FixedFont)).pixelSize();
+  setFontPixels(steps == 0 ? home : Zoom::step(base, steps), true);
+}
+
+void TermView::applyFont(int px)
+{
+  m_paintScale = 1.0;
+  const bool changed = px != m_fontPx;
+  m_fontPx = px;
+  m_font.setPixelSize(px);
+  const QFontMetrics fm(m_font);
+  m_cw = qMax(1, fm.horizontalAdvance(QLatin1Char('M')));
+  m_ch = qMax(1, fm.height());
+  m_ascent = fm.ascent();
+  resizeGrid();
+  update();
+  if (changed)
+    emit zoomChanged(px);
+}
+
+void TermView::resizeGrid()
 {
   const int cols = qMax(2, width() / m_cw);
   const int rows = qMax(2, height() / m_ch);
@@ -576,6 +653,21 @@ void TermView::keyPressEvent(QKeyEvent *e)
   if ((mods & Qt::ControlModifier) && key == Qt::Key_QuoteLeft) {
     emit toggleFocusRequested();
     return;
+  }
+  // foot's zoom keys: Ctrl+= or Ctrl++, Ctrl+-, Ctrl+0.
+  if ((mods & Qt::ControlModifier) && !(mods & Qt::AltModifier)) {
+    if (key == Qt::Key_Equal || key == Qt::Key_Plus) {
+      zoomBy(1);
+      return;
+    }
+    if (key == Qt::Key_Minus) {
+      zoomBy(-1);
+      return;
+    }
+    if (key == Qt::Key_0) {
+      zoomBy(0);
+      return;
+    }
   }
   if ((mods & (Qt::ControlModifier | Qt::ShiftModifier))
       == (Qt::ControlModifier | Qt::ShiftModifier)) {
@@ -753,6 +845,15 @@ void TermView::mouseDoubleClickEvent(QMouseEvent *e)
 
 void TermView::wheelEvent(QWheelEvent *e)
 {
+  if (e->modifiers() & Qt::ControlModifier) {
+    // Ctrl+wheel zooms; a touchpad's small deltas add up to whole steps.
+    m_wheelAcc += e->angleDelta().y();
+    while (qAbs(m_wheelAcc) >= 120) {
+      zoomBy(m_wheelAcc > 0 ? 1 : -1);
+      m_wheelAcc -= m_wheelAcc > 0 ? 120 : -120;
+    }
+    return;
+  }
   const int notches = e->angleDelta().y() / 120;
   if (notches == 0)
     return;

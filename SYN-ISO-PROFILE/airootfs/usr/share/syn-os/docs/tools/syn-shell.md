@@ -35,6 +35,16 @@ that lists every action with its key.
 | `S` | Open foot in this folder |
 | `?` | Every key, in the preview column |
 
+Every file wears a SYN-OS icon saying what it is: a folder with its tab
+cut at an angle, and a sheet with a clipped corner and a mark in the
+theme's colour for code, scripts, images, sound, video, archives,
+documents, keys and the rest (a disc for disk images, a box for
+packages). `zi` turns them off for plain `ls -F` style names.
+
+Hold `Ctrl` and turn the wheel to zoom. It zooms whatever is under the
+mouse, the files or the shell, each on its own, and remembers both.
+`Ctrl+=`, `Ctrl+-` and `Ctrl+0` do the same from the keyboard.
+
 The strip along the top shows where you are, your position in the list,
 how much you've marked and how full the drive is. The line along the
 bottom is the file under the cursor the way `ls -l` would print it.

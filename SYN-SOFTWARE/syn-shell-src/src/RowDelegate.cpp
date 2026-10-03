@@ -1,5 +1,6 @@
 #include "RowDelegate.h"
 #include "ArchiveModel.h"
+#include "SynIcons.h"
 
 #include <QAbstractItemView>
 #include <QFileInfo>
@@ -10,7 +11,25 @@ namespace {
 
 constexpr int kGutter = 10; // mark bar + breathing room before the name
 
+bool g_icons = true;
+
+// Where the name starts: past the gutter, and past the icon when shown.
+int textStart(const QRect &row)
+{
+  return g_icons ? kGutter + row.height() + 2 : kGutter;
+}
+
 } // namespace
+
+void RowDelegate::setShowIcons(bool show)
+{
+  g_icons = show;
+}
+
+bool RowDelegate::showIcons()
+{
+  return g_icons;
+}
 
 QString humanSize(qint64 bytes)
 {
@@ -31,7 +50,7 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
 {
   // A disk row carries a QFileInfo; an archive row carries EntryRole data.
   QString name, linkTarget;
-  bool dir, link, exec, encrypted = false;
+  bool dir, link, exec, encrypted = false, special = false;
   qint64 size;
   const QVariant fileInfo = index.data(QFileSystemModel::FileInfoRole);
   if (fileInfo.isValid()) {
@@ -42,6 +61,7 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     linkTarget = link ? info.symLinkTarget() : QString();
     exec = info.isExecutable();
     size = info.size();
+    special = !link && info.exists() && !info.isFile() && !dir;
   } else {
     name = index.data().toString();
     dir = index.data(EntryRole::IsDir).toBool();
@@ -97,7 +117,17 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
   painter->setFont(font);
   const QFontMetrics fm(font);
 
-  QRect text = r.adjusted(kGutter, 0, -8, 0);
+  if (g_icons) {
+    const int side = r.height() - 4;
+    QColor line = fg;
+    line.setAlphaF(fg.alphaF() * 0.8);
+    SynIcons::paint(painter, QRectF(r.left() + kGutter - 2, r.top() + 2, side, side),
+                    SynIcons::kindFor(link ? QFileInfo(linkTarget).fileName() : name, dir, exec,
+                                      special),
+                    line, accent, link); // a link looks like what it points at
+  }
+
+  QRect text = r.adjusted(textStart(r), 0, -8, 0);
   int rightWidth = 0;
   if (!right.isEmpty()) {
     // A link target can be long; it never gets more than half the row.
@@ -127,5 +157,5 @@ QSize RowDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInde
 void RowDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
                                        const QModelIndex &) const
 {
-  editor->setGeometry(option.rect.adjusted(kGutter - 3, 0, 0, 0));
+  editor->setGeometry(option.rect.adjusted(textStart(option.rect) - 3, 0, 0, 0));
 }

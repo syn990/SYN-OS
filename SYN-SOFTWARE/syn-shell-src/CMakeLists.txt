@@ -42,8 +42,11 @@ add_executable(syn-shell
   src/Preview.h
   src/RowDelegate.cpp
   src/RowDelegate.h
+  src/SynIcons.cpp
+  src/SynIcons.h
   src/TermView.cpp
   src/TermView.h
+  src/Zoom.h
   ${BARCORE_SRC}/syn_bar_notify.c
 )
 
