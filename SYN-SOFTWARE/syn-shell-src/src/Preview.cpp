@@ -363,6 +363,17 @@ void Preview::showData(const QString &name, qint64 size, const QByteArray &data)
   showBytes(head, data, name);
 }
 
+void Preview::showImageFile(const QString &imagePath, const QString &title)
+{
+  dropHighlighter();
+  m_path = imagePath;
+  m_imageData.clear();
+  m_isImage = true;
+  m_title->setText(title);
+  m_stack->setCurrentWidget(m_image);
+  showImage();
+}
+
 void Preview::showImage()
 {
   QBuffer buffer(&m_imageData);

@@ -1,13 +1,15 @@
 # Maintainer: William Hayward-Holland (Syntax990)
 pkgname=syn-shell
-pkgver=2.7.0
+pkgver=2.8.0
 pkgrel=1
 pkgdesc="SYN-SHELL: SYN-OS's own window onto the system. Ranger's three columns and keys, archives browsed like folders (libarchive), a shell area that moves to foot (libvterm)"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
 depends=('qt6-base' 'libarchive' 'libvterm' 'syntax-highlighting')
-optdepends=('git: status marks in repositories')
+optdepends=('git: status marks in repositories'
+            'poppler: PDF previews'
+            'ffmpeg: video frames, audio tags and cover art in previews')
 provides=('syn-filemanager')
 conflicts=('syn-filemanager')
 replaces=('syn-filemanager')

@@ -155,6 +155,7 @@ bool MainWindow::startJob(
 
 void MainWindow::cancelPreview()
 {
+  killMedia();
   if (m_previewCancel)
     *m_previewCancel = true;
   m_previewCancel.reset();

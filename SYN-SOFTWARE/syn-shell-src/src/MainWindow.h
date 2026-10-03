@@ -47,6 +47,7 @@
 class ArchiveSession;
 class QAbstractItemModel;
 class QAction;
+class QProcess;
 class QVariantAnimation;
 class QFileSystemModel;
 class QHBoxLayout;
@@ -193,6 +194,12 @@ private:
   void openWithCommand(const QString &command);
   void measureFolders(); // du: sizes of the marked folders, or all here
 
+  // Media previews (MainWindowMedia.cpp): true if it took the preview on.
+  bool previewMedia(const QString &path, const QString &mime);
+  void mediaRun(const QString &program, const QStringList &args,
+                std::function<void(int, const QByteArray &)> done);
+  void killMedia();
+
   // Tabs (MainWindowTabs.cpp): each its own place, history and cursor.
   struct Tab
   {
@@ -320,6 +327,7 @@ private:
   bool m_jobsAutoShown = false;
   QList<UndoStep> m_undo;
   QHash<QString, qint64> m_folderSizes;  // measured folders: bytes
+  QList<QProcess *> m_mediaProcs;        // pdftoppm/ffmpeg for the preview now showing
   QHash<QString, qint64> m_folderItems;  // and how many entries
 
   QList<Tab> m_tabs;   // the current tab's entry is only brought up to date on leaving it

@@ -44,6 +44,8 @@ public:
   // Bytes from somewhere other than a file on disk (an archive entry):
   // image, text or hex by what `name` and the bytes say they are.
   void showData(const QString &name, qint64 size, const QByteArray &data);
+  // A picture rendered for something else (a PDF page, a video frame).
+  void showImageFile(const QString &imagePath, const QString &title);
 
   QListView *dirView() const { return m_dir; }
   QString path() const { return m_path; }

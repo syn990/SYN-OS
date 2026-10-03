@@ -97,7 +97,10 @@ bottom is the file under the cursor the way `ls -l` would print it.
 
 The column on the right shows whatever the cursor is on: a folder's
 contents, a picture, the text of a file, or a hex dump of anything that
-isn't text. Code is coloured by language (over 300 of them, the same
+isn't text. A PDF shows its first page and how many pages it has, a
+video a frame from a little way in with its length and size, and music
+its cover art or its tags (artist, title, album, year). Code is
+coloured by language (over 300 of them, the same
 engine Kate uses) in the theme's own colours, and the language is named
 at the top.
 

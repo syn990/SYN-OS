@@ -110,6 +110,7 @@ desktopStack=(
                       # there's no archive manager here: SYN-SHELL opens archives itself
   libvterm            # The terminal emulator library SYN-SHELL's shell area draws with
   syntax-highlighting # KDE's highlighting engine, for SYN-SHELL's code previews
+  poppler             # pdftoppm and pdfinfo: SYN-SHELL's PDF previews
   featherpad          # Lightweight text editor for the LXQt desktop environment
 )
 

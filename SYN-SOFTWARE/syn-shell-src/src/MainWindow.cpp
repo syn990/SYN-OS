@@ -1902,7 +1902,7 @@ void MainWindow::updatePreview()
   if (QFileInfo(path).isFile()
       && (Archive::isArchiveMime(mime) || Archive::isCompressedFileMime(mime)))
     previewArchiveFile(path);
-  else
+  else if (!previewMedia(path, mime))
     m_preview->showPath(path);
 }
 
