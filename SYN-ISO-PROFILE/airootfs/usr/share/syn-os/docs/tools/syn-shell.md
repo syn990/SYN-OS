@@ -61,6 +61,14 @@ Hold `Ctrl` and turn the wheel to zoom. It zooms whatever is under the
 mouse, the files or the shell, each on its own, and remembers both.
 `Ctrl+=`, `Ctrl+-` and `Ctrl+0` do the same from the keyboard.
 
+## Tabs
+
+`Ctrl+T` opens a new tab where you are, and from then on a row of tabs
+sits under the top strip. Each tab keeps its own place and its own
+back and forward. `Ctrl+Tab` and `Ctrl+Shift+Tab` go to the next and
+previous, `Alt+1` to `Alt+9` straight to one, `Ctrl+W` closes one (or
+middle-click it). Right-click a folder for "Open in new tab".
+
 The strip along the top shows where you are, your position in the list,
 how much you've marked and how full the drive is. The line along the
 bottom is the file under the cursor the way `ls -l` would print it.

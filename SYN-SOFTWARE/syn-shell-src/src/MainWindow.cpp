@@ -67,6 +67,13 @@ QMainWindow, #central { background: palette(window); }
 #header QLabel#keys { background: palette(highlight); color: #ffffff; }
 #header QToolButton#jobs:checked { background: palette(highlight); color: #ffffff; }
 QScrollArea#jobScroll { background: palette(window); border: none; }
+#tabBar { background: palette(window); }
+#tabBar QToolButton {
+  background: palette(button); color: palette(text); border: none;
+  padding: 2px 10px; margin: 0 0 4px 4px;
+}
+#tabBar QToolButton:hover { background: palette(light); }
+#tabBar QToolButton#tabCurrent { background: palette(highlight); color: #ffffff; font-weight: bold; }
 #header QToolButton#crumb { background: transparent; padding: 3px 3px; margin: 4px 0; }
 #header QToolButton#crumb:hover { background: palette(light); color: #ffffff; }
 #header QToolButton#crumbCurrent {
@@ -145,6 +152,7 @@ const char kHelp[] = R"(  MOVE
   zp zo zs        permissions, owner, size columns on / off
   zm zc           modified, created columns on / off
   Ctrl+L          type a path
+  Ctrl+T Ctrl+W   new tab, close tab      Ctrl+Tab  next tab    Alt+1..9  tab 1..9
   Ctrl+wheel      zoom (over the files, or over the shell: each zooms on its own)
   Ctrl+= - 0      zoom in, out, back
   S               terminal here
@@ -302,6 +310,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
   layout->addWidget(buildHeader());
+  layout->addWidget(buildTabBar());
   buildShell();
   layout->addWidget(m_vsplit, 1);
   layout->addWidget(buildFooter());
@@ -458,6 +467,19 @@ void MainWindow::buildActions()
   m_actRestore   = act(tr("Restore"), "", [this] { restoreTargets(); });
   m_actEmptyTrash = act(tr("Empty trash"), ":emptytrash", [this] { emptyTrash(); });
   m_actTrash     = act(tr("Trash"), "gt", [this] { openTrash(); });
+  m_actNewTab    = act(tr("New tab"), "Ctrl+T", [this] { newTab(location()); });
+  m_actCloseTab  = act(tr("Close tab"), "Ctrl+W", [this] { closeTab(m_tab); });
+  m_actOpenInTab = act(tr("Open in new tab"), "", [this] {
+    const QModelIndex c = cursor();
+    if (!c.isValid())
+      return;
+    if (m_inArchive) {
+      const QString entry = cursorKey(c);
+      newTab(m_session->isDir(entry) ? m_session->file() + QLatin1Char('\x1f') + entry : location());
+    } else {
+      newTab(m_proxy->pathOf(c));
+    }
+  });
   m_actCopyPath  = act(tr("Copy path"), "yp", [this] { copyPaths(); });
   m_actMark      = act(tr("Mark"), "Space", [this] { toggleMark(); });
   m_actClearMarks = act(tr("Clear marks"), "uv", [this] { clearMarks(); });
@@ -1009,6 +1031,7 @@ void MainWindow::rebuildCrumbs()
     m_crumbLayout->addWidget(b);
   }
   m_crumbLayout->addStretch(1);
+  updateTabBar(); // the tab's name follows where it is
 }
 
 void MainWindow::beginPathEdit()
@@ -1388,6 +1411,10 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     case Qt::Key_X: yank(true); break;
     case Qt::Key_V: paste(); break;
     case Qt::Key_Z: undo(); break;
+    case Qt::Key_T: newTab(location()); break;
+    case Qt::Key_W: closeTab(m_tab); break;
+    case Qt::Key_Tab: switchTab((m_tab + 1) % int(m_tabs.size())); break;
+    case Qt::Key_Backtab: switchTab((m_tab + int(m_tabs.size()) - 1) % int(m_tabs.size())); break;
     case Qt::Key_H: m_actHidden->trigger(); break;
     case Qt::Key_L: beginPathEdit(); break;
     case Qt::Key_R: m_actRefresh->trigger(); break;
@@ -1421,7 +1448,12 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     case Qt::Key_Right: goForward(); break;
     case Qt::Key_Up: navigateUp(); break;
     case Qt::Key_Home: navigateTo(QDir::homePath()); break;
-    default: return false;
+    default:
+      if (key >= Qt::Key_1 && key <= Qt::Key_9 && key - Qt::Key_1 < m_tabs.size()) {
+        switchTab(key - Qt::Key_1);
+        break;
+      }
+      return false;
     }
     return done();
   }
@@ -1593,6 +1625,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
                    : m_proxy->infoOf(idx).fileName().toUpper().left(28));
     m_actOpen->setText(archive ? tr("Browse archive\tl") : tr("Open\tl"));
     menu.addAction(m_actOpen);
+    if (m_proxy->infoOf(idx).isDir() || archive)
+      menu.addAction(m_actOpenInTab);
     if (archive || !m_proxy->infoOf(idx).isDir())
       menu.addAction(m_actOpenExternal);
     menu.addAction(m_actTerminal);
@@ -1637,6 +1671,9 @@ void MainWindow::showContextMenu(const QPoint &pos)
   menu.addAction(m_actUndo);
 
   head(tr("GO"));
+  menu.addAction(m_actNewTab);
+  if (m_tabs.size() > 1)
+    menu.addAction(m_actCloseTab);
   menu.addAction(m_actBack);
   menu.addAction(m_actForward);
   menu.addAction(m_actUp);

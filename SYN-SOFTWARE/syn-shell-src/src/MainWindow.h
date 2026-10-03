@@ -184,6 +184,18 @@ private:
   void pushUndo(UndoStep::Kind kind, const FileJobs::Pairs &pairs, const QString &label);
   void undo();
 
+  // Tabs (MainWindowTabs.cpp): each its own place, history and cursor.
+  struct Tab
+  {
+    QString location;
+    QStringList back, forward;
+  };
+  QWidget *buildTabBar();
+  void newTab(const QString &location);
+  void closeTab(int index);
+  void switchTab(int index);
+  void updateTabBar();
+
   // Shell area (MainWindowShell.cpp)
   void buildShell();
   void toggleShellPane();
@@ -243,6 +255,7 @@ private:
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
   QAction *m_actShell, *m_actDetachShell, *m_actIcons;
   QAction *m_actUndo, *m_actDeleteForever, *m_actRestore, *m_actEmptyTrash, *m_actTrash;
+  QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab;
   QList<QAction *> m_actFields;
 
   QString m_currentDir;
@@ -280,6 +293,11 @@ private:
   JobsWindow *m_jobsWindow;
   bool m_jobsAutoShown = false;
   QList<UndoStep> m_undo;
+
+  QList<Tab> m_tabs;   // the current tab's entry is only brought up to date on leaving it
+  int m_tab = 0;
+  QWidget *m_tabBar;
+  QHBoxLayout *m_tabLayout;
   // Previews of archives and their entries read on a worker too; a newer
   // preview cancels the one in flight and its result is dropped.
   std::shared_ptr<std::atomic_bool> m_previewCancel;
