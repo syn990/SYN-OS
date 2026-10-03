@@ -43,6 +43,8 @@ add_executable(syn-shell
   src/ArchiveModel.cpp
   src/ArchiveModel.h
   src/FileSortProxy.cpp
+  src/GitStatus.cpp
+  src/GitStatus.h
   src/FileSortProxy.h
   src/Preview.cpp
   src/PtySession.cpp

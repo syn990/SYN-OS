@@ -21,6 +21,7 @@
 #include "FileJobs.h"
 #include "FileOps.h"
 #include "FileSortProxy.h"
+#include "GitStatus.h"
 #include "Jobs.h"
 #include "JobsWindow.h"
 
@@ -29,6 +30,7 @@
 #include <QClipboard>
 #include <QDir>
 #include <QFileInfo>
+#include <QLabel>
 #include <QListView>
 #include <QMessageBox>
 #include <QMimeData>
@@ -140,7 +142,72 @@ void MainWindow::runFileJob(const QString &title, std::function<FileJobs::Pairs(
                     flash(job.summary);
                   }
                   updateDisk();
+                  m_git->poke();
                 });
+}
+
+// ------------------------------------------------------------------- git
+
+void MainWindow::updateGitSegment()
+{
+  if (!m_git->inRepo()) {
+    m_gitSeg->hide();
+    return;
+  }
+  // branch, ahead/behind, then staged / changed / new / conflicts
+  QStringList parts{m_git->branch().isEmpty() ? tr("(no branch)") : m_git->branch()};
+  if (m_git->ahead())
+    parts << QStringLiteral("\u2191%1").arg(m_git->ahead());
+  if (m_git->behind())
+    parts << QStringLiteral("\u2193%1").arg(m_git->behind());
+  QStringList counts;
+  if (m_git->staged())
+    counts << QStringLiteral("+%1").arg(m_git->staged());
+  if (m_git->changed())
+    counts << QStringLiteral("~%1").arg(m_git->changed());
+  if (m_git->untracked())
+    counts << QStringLiteral("?%1").arg(m_git->untracked());
+  if (m_git->conflicts())
+    counts << QStringLiteral("!%1").arg(m_git->conflicts());
+  m_gitSeg->setText(parts.join(QLatin1Char(' ')) + (counts.isEmpty() ? QString() : QStringLiteral("  ") + counts.join(QLatin1Char(' '))));
+  m_gitSeg->setToolTip(tr("%1\n%2 staged, %3 changed, %4 new, %5 in conflict\n%6 ahead, %7 behind")
+                         .arg(m_git->root()).arg(m_git->staged()).arg(m_git->changed())
+                         .arg(m_git->untracked()).arg(m_git->conflicts())
+                         .arg(m_git->ahead()).arg(m_git->behind()));
+  m_gitSeg->show();
+}
+
+QString MainWindow::gitWords(const QString &path) const
+{
+  const GitStatus::Mark m = m_git->markFor(path);
+  if (!m.any())
+    return QString();
+  if (m.ignored)
+    return tr("git: ignored");
+  if (m.untracked)
+    return tr("git: new");
+  if (m.x == 'U' || m.y == 'U' || (m.x == m.y && (m.x == 'A' || m.x == 'D')))
+    return tr("git: in conflict");
+  QStringList w;
+  auto word = [](char c) {
+    switch (c) {
+    case 'M': return QObject::tr("modified");
+    case 'A': return QObject::tr("added");
+    case 'D': return QObject::tr("deleted");
+    case 'R': return QObject::tr("renamed");
+    case 'C': return QObject::tr("copied");
+    case 'U': return QObject::tr("in conflict");
+    case 'T': return QObject::tr("type changed");
+    default: return QString();
+    }
+  };
+  if (m.x != ' ')
+    w << word(m.x) + tr(", staged");
+  if (m.y != ' ')
+    w << word(m.y);
+  if (w.isEmpty() && m.dirty)
+    w << tr("changes inside");
+  return QStringLiteral("git: ") + w.join(QStringLiteral("; "));
 }
 
 // ------------------------------------------------------------------ paste

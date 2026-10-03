@@ -61,6 +61,21 @@ Hold `Ctrl` and turn the wheel to zoom. It zooms whatever is under the
 mouse, the files or the shell, each on its own, and remembers both.
 `Ctrl+=`, `Ctrl+-` and `Ctrl+0` do the same from the keyboard.
 
+## Git
+
+Inside a git repository, every file shows what git thinks of it, in
+git's own letters (as `git status -s` prints them) at the end of its
+name: `M` modified, `A` added, `R` renamed, `??` new, and a red `UU` for
+a conflict. The left letter is what's staged, in the theme's colour, the
+right one what isn't yet. A folder with changes somewhere inside gets a
+dot, and anything git ignores is greyed out.
+
+The top strip shows the branch, how far ahead (↑) or behind (↓) it is,
+and counts: `+` staged, `~` changed, `?` new, `!` in conflict. The
+bottom line spells out the file under the cursor ("git: modified,
+staged"). It keeps up by itself, including after a commit in the shell
+area. `zg` turns it all off.
+
 ## Tabs
 
 `Ctrl+T` opens a new tab where you are, and from then on a row of tabs

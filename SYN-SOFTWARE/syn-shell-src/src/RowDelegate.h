@@ -23,6 +23,7 @@
 #include <QStyledItemDelegate>
 #include <QWidget>
 
+class GitStatus;
 class QAbstractItemView;
 class QFontMetrics;
 
@@ -51,6 +52,8 @@ public:
   // The middle column is detailed; the parent and preview columns, too
   // narrow for it, show the name and size only.
   void setDetailed(bool detailed) { m_detailed = detailed; }
+  // Git's marks beside each name in a detailed view, when in a repository.
+  static void setGit(const GitStatus *git);
 
   struct Column
   {

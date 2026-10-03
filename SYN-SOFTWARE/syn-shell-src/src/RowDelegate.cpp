@@ -1,6 +1,7 @@
 #include "RowDelegate.h"
 #include "ArchiveModel.h"
 #include "SynIcons.h"
+#include "GitStatus.h"
 
 #include <QAbstractItemView>
 #include <QDateTime>
@@ -15,6 +16,7 @@ constexpr int kGutter = 10; // mark bar + breathing room before the name
 
 bool g_icons = true;
 int g_fields = RowDelegate::Size;
+const GitStatus *g_git = nullptr;
 
 QString perms(bool dir, bool link, uint mode)
 {
@@ -69,6 +71,11 @@ void RowDelegate::setFields(int fields)
 int RowDelegate::fields()
 {
   return g_fields;
+}
+
+void RowDelegate::setGit(const GitStatus *git)
+{
+  g_git = git;
 }
 
 int RowDelegate::nameStart(int rowHeight)
@@ -136,7 +143,7 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                         const QModelIndex &index) const
 {
   // A disk row carries a QFileInfo; an archive row carries EntryRole data.
-  QString name, linkTarget, owner;
+  QString name, linkTarget, owner, absPath;
   bool dir, link, exec, encrypted = false, special = false;
   qint64 size;
   uint mode = 0;
@@ -144,6 +151,7 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
   const QVariant fileInfo = index.data(QFileSystemModel::FileInfoRole);
   if (fileInfo.isValid()) {
     const QFileInfo info = fileInfo.value<QFileInfo>();
+    absPath = info.absoluteFilePath();
     if (m_detailed && g_fields) {
       mode = modeOf(info);
       if (g_fields & Owner)
@@ -192,8 +200,11 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
   const QColor accent = cursor ? pal.highlightedText().color() : pal.highlight().color();
   QColor dim = fg;
   dim.setAlphaF(0.5);
-  if (name.startsWith(QLatin1Char('.')) && !cursor)
-    fg.setAlphaF(0.55);
+  GitStatus::Mark git;
+  if (m_detailed && g_git && !absPath.isEmpty())
+    git = g_git->markFor(absPath);
+  if ((name.startsWith(QLatin1Char('.')) || git.ignored) && !cursor)
+    fg.setAlphaF(git.ignored ? 0.4 : 0.55); // ignored by git: quieter still
 
   QString suffix;
   if (link)
@@ -252,6 +263,38 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     const int nameRight = cols.isEmpty() ? text.right() : r.left() + cols.first().left - pfm.horizontalAdvance(QStringLiteral("  "));
     QRect nameRect = text;
     nameRect.setRight(nameRight);
+
+    // Git: its own short-status letters (as `git status -s` prints them)
+    // at the end of the name's room. Staged letter in the accent, the
+    // worktree one plain, "??" new, a dot on a folder with changes in it.
+    if (git.any() && !git.ignored) {
+      const int slot = pfm.horizontalAdvance(QStringLiteral("MM")) + 10;
+      const QRect badge(nameRect.right() - slot + 1, r.top(), slot, r.height());
+      nameRect.setRight(badge.left() - 4);
+      QFont b = plain;
+      b.setBold(true);
+      painter->setFont(b);
+      const QFontMetrics bfm(b);
+      const QColor white = pal.highlightedText().color();
+      if (git.x == 'U' || git.y == 'U' || (git.x == 'A' && git.y == 'A') || (git.x == 'D' && git.y == 'D')) {
+        painter->fillRect(badge.adjusted(2, 3, -2, -3), cursor ? white : accent);
+        painter->setPen(cursor ? accent : white);
+        painter->drawText(badge, Qt::AlignCenter, QStringLiteral("UU"));
+      } else if (git.untracked) {
+        painter->setPen(dim);
+        painter->drawText(badge, Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("??"));
+      } else if (git.x != ' ' || git.y != ' ') {
+        const int cw = bfm.horizontalAdvance(QLatin1Char('M'));
+        const QRect xr(badge.right() - 2 * cw + 1, badge.top(), cw, badge.height());
+        painter->setPen(cursor ? white : accent);
+        painter->drawText(xr, Qt::AlignCenter, QString(QLatin1Char(git.x)));
+        painter->setPen(fg);
+        painter->drawText(xr.translated(cw, 0), Qt::AlignCenter, QString(QLatin1Char(git.y)));
+      } else if (git.dirty) {
+        painter->setPen(cursor ? white : accent);
+        painter->drawText(badge, Qt::AlignVCenter | Qt::AlignRight, QStringLiteral("\u2022"));
+      }
+    }
     QString extra;
     if (link)
       extra = QStringLiteral(" -> ") + linkTarget;

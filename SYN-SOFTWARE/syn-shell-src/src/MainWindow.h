@@ -62,6 +62,7 @@ class QToolButton;
 class FileSortProxy;
 class Preview;
 class TermView;
+class GitStatus;
 class JobsWindow;
 namespace Jobs { class Manager; struct Job; struct Progress; }
 class FieldHeader;
@@ -196,6 +197,9 @@ private:
   void switchTab(int index);
   void updateTabBar();
 
+  void updateGitSegment();
+  QString gitWords(const QString &path) const;
+
   // Shell area (MainWindowShell.cpp)
   void buildShell();
   void toggleShellPane();
@@ -233,6 +237,8 @@ private:
   QLabel *m_posSeg;
   QLabel *m_markSeg;
   QLabel *m_fsSeg;
+  QLabel *m_gitSeg;
+  GitStatus *m_git;
   QToolButton *m_jobBtn;
   QToolButton *m_hiddenBtn;
 
@@ -255,7 +261,7 @@ private:
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
   QAction *m_actShell, *m_actDetachShell, *m_actIcons;
   QAction *m_actUndo, *m_actDeleteForever, *m_actRestore, *m_actEmptyTrash, *m_actTrash;
-  QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab;
+  QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab, *m_actGit;
   QList<QAction *> m_actFields;
 
   QString m_currentDir;

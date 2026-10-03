@@ -2,6 +2,7 @@
 #include "Archive.h"
 #include "ArchiveModel.h"
 #include "FileOps.h"
+#include "GitStatus.h"
 #include "Jobs.h"
 #include "JobsWindow.h"
 #include "FileSortProxy.h"
@@ -149,6 +150,8 @@ const char kHelp[] = R"(  MOVE
   /  n N          search, next, previous
   zh  Ctrl+H      hidden files
   zi              file-type icons on / off
+  zg              git marks on / off: M modified, A added, ?? new, UU conflict
+                  (left letter staged, right one not); a dot: changes inside
   zp zo zs        permissions, owner, size columns on / off
   zm zc           modified, created columns on / off
   Ctrl+L          type a path
@@ -250,6 +253,9 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   QSettings settings;
   RowDelegate::setShowIcons(settings.value("icons", true).toBool());
   RowDelegate::setFields(settings.value("fields", int(RowDelegate::Size)).toInt());
+  m_git = new GitStatus(this);
+  m_git->setEnabled(settings.value("git", true).toBool());
+  RowDelegate::setGit(m_git);
 
   m_model = new QFileSystemModel(this);
   m_model->setReadOnly(false); // read-only would silently disable inline rename
@@ -371,7 +377,9 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   });
   // These three only concern the disk view; inside an archive the disk
   // still changes (extracting beside it) but must not move the cursor.
+  connect(m_proxy, &QAbstractItemModel::dataChanged, this, [this] { m_git->poke(); });
   connect(m_proxy, &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex &parent) {
+    m_git->poke();
     if (!m_inArchive && parent == m_view->rootIndex()) {
       tryPending();
       updateInfo();
@@ -383,10 +391,16 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
       tryPending();
   });
   connect(m_proxy, &QAbstractItemModel::rowsRemoved, this, [this](const QModelIndex &parent) {
+    m_git->poke();
     if (m_inArchive || parent != m_view->rootIndex())
       return;
     if (!cursor().isValid())
       setCursorRow(m_lastRow);
+    updateInfo();
+  });
+  connect(m_git, &GitStatus::updated, this, [this] {
+    updateGitSegment();
+    m_view->viewport()->update();
     updateInfo();
   });
   connect(m_model, &QFileSystemModel::fileRenamed, this,
@@ -523,6 +537,16 @@ void MainWindow::buildActions()
   });
   m_actIcons->setCheckable(true);
   m_actIcons->setChecked(RowDelegate::showIcons());
+  m_actGit       = act(tr("Git marks"), "zg", [this] {
+    m_git->setEnabled(!m_git->enabled());
+    m_actGit->setChecked(m_git->enabled());
+    QSettings().setValue("git", m_git->enabled());
+    if (m_git->enabled())
+      m_git->setFolder(m_currentDir);
+    flash(m_git->enabled() ? tr("git marks on") : tr("git marks off"));
+  });
+  m_actGit->setCheckable(true);
+  m_actGit->setChecked(m_git->enabled());
 
   const struct { int field; const char *label; const char *keys; } fields[] = {
     {RowDelegate::Permissions, QT_TR_NOOP("Permissions"), "zp"},
@@ -580,6 +604,7 @@ void MainWindow::buildActions()
     {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
     {"zi", [this] { m_actIcons->trigger(); }},
+    {"zg", [this] { m_actGit->trigger(); }},
     {"zp", [this] { toggleField(RowDelegate::Permissions); }},
     {"zo", [this] { toggleField(RowDelegate::Owner); }},
     {"zs", [this] { toggleField(RowDelegate::Size); }},
@@ -648,6 +673,8 @@ QWidget *MainWindow::buildHeader()
     l->setProperty("seg", true);
     return l;
   };
+  m_gitSeg = segment("git");
+  m_gitSeg->hide();
   m_keySeg = segment("keys");
   m_keySeg->hide();
   m_posSeg = segment("pos");
@@ -691,6 +718,7 @@ QWidget *MainWindow::buildHeader()
   h->addWidget(m_backBtn);
   h->addWidget(m_fwdBtn);
   h->addWidget(m_pathStack, 1);
+  h->addWidget(m_gitSeg);
   h->addWidget(m_keySeg);
   h->addWidget(m_posSeg);
   h->addWidget(m_markSeg);
@@ -801,6 +829,7 @@ bool MainWindow::navigateTo(const QString &path, bool recordHistory)
     updateDisk();
     updateHistoryButtons();
     syncShell();
+    m_git->setFolder(p);
 
     QString title = p;
     if (title.startsWith(QDir::homePath()))
@@ -1694,6 +1723,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actDetachShell);
   menu.addAction(m_actHidden);
   menu.addAction(m_actIcons);
+  menu.addAction(m_actGit);
   QMenu *fieldsMenu = menu.addMenu(tr("Fields"));
   fieldsMenu->addActions(m_actFields);
   menu.addAction(m_actRefresh);
@@ -1769,6 +1799,14 @@ void MainWindow::updateInfo()
     return;
   }
   const QString path = c.isValid() ? m_proxy->pathOf(c) : m_currentDir;
+  if (c.isValid() && !inTrashView()) {
+    const QString git = gitWords(path);
+    const QString mime = QMimeDatabase().mimeTypeForFile(path).name();
+    m_mime->setText(git.isEmpty() ? mime : git + QStringLiteral("  ·  ") + mime);
+    if (!m_flashTimer->isActive())
+      m_detail->setText(detailLine(path));
+    return;
+  }
   if (c.isValid() && inTrashView()) {
     const QString from = FileJobs::originalPath(path);
     m_mime->setText(from.isEmpty() ? QString() : tr("from %1").arg(from));
@@ -1845,6 +1883,8 @@ void MainWindow::flash(const QString &message, bool error)
 
 void MainWindow::changeEvent(QEvent *event)
 {
+  if (event->type() == QEvent::ActivationChange && isActiveWindow())
+    m_git->poke();
   if (event->type() == QEvent::ApplicationPaletteChange) {
     applyStyle();
     m_term->reloadColours(); // the theme rewrote foot.ini too
