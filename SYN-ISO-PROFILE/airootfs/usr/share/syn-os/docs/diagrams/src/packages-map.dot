@@ -53,7 +53,6 @@ digraph package_map {
   fonts_ex -> synstall;
   apps_ex -> synstall;
 
-  base_ex -> desktop_ex [style=dotted, color="#665522", label="  fuse used by\n  lxqt-archiver\n  at runtime"];
   shell_ex -> desktop_ex [style=dotted, color="#665522", label="  foot is the terminal\n  labwc's keybind opens"];
 
   note [shape=note, fillcolor="#1a1608", color="#665522", fontcolor="#ccaa66",

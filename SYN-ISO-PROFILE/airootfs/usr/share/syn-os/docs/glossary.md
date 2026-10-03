@@ -36,7 +36,7 @@ every install profile, including the minimal one.
 **desktopStack**: `labwc`, `wmenu`, `wlr-randr`, `grim`, `slurp`,
 `archlinux-xdg-menu`, `waybar`, `mako`, `libnotify`, `swaybg`,
 `swaylock`, `fuzzel`, `rofi`, `feh`, `qt5ct`, `qt6ct`, `kvantum`,
-`kvantum-qt5`, `qt6-base`, `lxqt-archiver`, `featherpad`.
+`kvantum-qt5`, `qt6-base`, `featherpad`.
 
 **devToolkit**: `base-devel`, `gcc`, `fakeroot`, `android-tools`,
 `archiso`, `binwalk`, `hexedit`, `lshw`, `yt-dlp`,

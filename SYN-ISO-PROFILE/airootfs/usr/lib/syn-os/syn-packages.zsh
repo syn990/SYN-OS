@@ -105,8 +105,9 @@ desktopStack=(
   kvantum-qt5         # Qt5 styles for the Kvantum theme engine
   qt6-base            # Qt6 core libraries — syn-shell (SYN-SHELL, Super+E) links
                       # against this at runtime; built at ISO-build time, not pacstrap'd as
-                      # source, but the shared libraries themselves are still needed here
-  lxqt-archiver       # Lightweight archive manager (Qt port of Xarchiver)
+                      # source, but the shared libraries themselves are still needed here.
+                      # Its other library, libarchive, comes with pacman; it's also why
+                      # there's no archive manager here: SYN-SHELL opens archives itself
   featherpad          # Lightweight text editor for the LXQt desktop environment
 )
 

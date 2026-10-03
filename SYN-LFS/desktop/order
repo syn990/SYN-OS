@@ -232,13 +232,6 @@ giflib
 imlib2
 feh
 json-glib
-libexif
-libfm-extra
-menu-cache
-lxqt-build-tools
-lxqt-menu-data
-libfm-qt
-lxqt-archiver
 
 # [fontsI18n] Fonts
 terminus-font
