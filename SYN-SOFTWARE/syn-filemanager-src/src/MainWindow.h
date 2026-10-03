@@ -1,9 +1,27 @@
 // ------------------------------------------------------------------------------
 //                     S Y N - F I L E M A N A G E R
 //
-//   MainWindow: QTreeView + QFileSystemModel wiring, toolbar, and
-//   keyboard shortcuts. Delegates the actual filesystem work to FileOps
-//   so this class only owns UI state.
+//   MainWindow: ranger's layout as a desktop window. Three columns over
+//   one QFileSystemModel (through FileSortProxy): the parent directory, the current one, and a
+//   preview of whatever the cursor is on. A waybar-style segment strip
+//   runs across the top (history, path, pending keys, position, marks,
+//   disk), an ls -l line for the cursor sits at the bottom, and that line
+//   doubles as the / search and : command prompt.
+//
+//   Keyboard first, with ranger's keys (hjkl, gg/G, yy/dd/pp, cw, dD,
+//   space to mark, / and :); every action is also on the labwc-style
+//   right-click menu, which prints the key next to it. No toolbar.
+//
+//   The cursor (current index) and the marks (the selection) are kept
+//   apart, as in ranger: moving never touches the marks, and an action
+//   applies to the marks if there are any, otherwise to the cursor.
+//
+//   Archives open like folders (MainWindowArchive.cpp): the same columns
+//   walk an ArchiveModel instead of the disk, read-only, with extract,
+//   copy-out and compress done by libarchive on a worker thread.
+//
+//   Colours come from the application palette (qt6ct renders the active
+//   SYN theme into it), so the stylesheet only names palette roles.
 //
 //   SYN-OS     : The Syntax Operating System
 //   Component  : SYN-FILEMANAGER (Desktop)
@@ -13,13 +31,29 @@
 
 #pragma once
 
+#include <QHash>
+#include <atomic>
+#include <functional>
+#include <memory>
 #include <QMainWindow>
 #include <QStringList>
 
+class ArchiveSession;
+class QAbstractItemModel;
+class QAction;
 class QFileSystemModel;
-class QTreeView;
-class QLineEdit;
+class QHBoxLayout;
+class QKeyEvent;
 class QLabel;
+class QLineEdit;
+class QListView;
+class QSplitter;
+class QStackedWidget;
+class QTemporaryDir;
+class QTimer;
+class QToolButton;
+class FileSortProxy;
+class Preview;
 
 class MainWindow : public QMainWindow
 {
@@ -27,29 +61,174 @@ class MainWindow : public QMainWindow
 
 public:
   explicit MainWindow(const QString &startPath, QWidget *parent = nullptr);
+  ~MainWindow() override; // out of line: unique_ptrs to forward-declared types
 
-private slots:
-  void navigateUp();
-  void navigateHome();
-  void navigateToPathBar();
-  void onDoubleClicked(const QModelIndex &index);
-  void onSelectionChanged();
-  void renameSelected();
-  void deleteSelected();
-  void copySelected();
-  void cutSelected();
-  void pasteClipboard();
+protected:
+  bool eventFilter(QObject *watched, QEvent *event) override;
+  void changeEvent(QEvent *event) override;
+  void closeEvent(QCloseEvent *event) override;
 
 private:
-  void setRoot(const QString &path);
-  QStringList selectedPaths() const;
-  bool isInlineEditorActive() const;
+  enum class Prompt { None, Search, Command };
+
+  void buildActions();
+  QWidget *buildHeader();
+  QWidget *buildFooter();
+  void applyStyle();
+
+  bool navigateTo(const QString &path, bool recordHistory = true);
+  void goBack();
+  void goForward();
+  void navigateUp();
+  void openCursor();
+  void openTerminal(const QString &dir, const QString &command = QString());
+
+  void renameCursor();
+  void deleteTargets();
+  void yank(bool cut);
+  void paste();
+  void copyPaths();
+  void newEntry(bool folder);
+  void setShowHidden(bool show);
+
+  bool handleKey(QKeyEvent *ev);
+  void moveCursor(int delta);
+  void setCursorRow(int row);
+  void toggleMark();
+  void clearMarks();
+  bool search(const QString &needle, int from, int step);
+
+  void openPrompt(Prompt kind, const QString &text = QString());
+  void closePrompt();
+  void runCommand(const QString &line);
+
+  void showContextMenu(const QPoint &pos);
+  void beginPathEdit();
+  void endPathEdit();
+  void rebuildCrumbs();
+
+  void onCursorChanged();
+  void updatePreview();
+  void updateInfo();
+  void updateDisk();
+  void tryPending();
+  void flash(const QString &message, bool error = false);
+  void showHelp();
+
+  QModelIndex cursor() const;
+  QStringList targets() const;
+  QString detailLine(const QString &path) const;
+  QStringList deviceRoots() const;
+
+  // Locations: a folder on disk, or archive file + '\x1f' + folder inside.
+  QString location() const;
+  QString cursorKey(const QModelIndex &idx) const;
+  QModelIndex indexForKey(const QString &key) const;
+  void goToLocation(const QString &loc, bool recordHistory);
+  void leaveLocation(bool recordHistory);
+  void setViewModel(QListView *view, QAbstractItemModel *model);
+  void updateHistoryButtons();
+
+  // Archives (MainWindowArchive.cpp)
+  void openArchive(const QString &file, const QString &inner, bool recordHistory,
+                   const QString &password = QString());
+  void enterArchiveDir(const QString &inner, bool recordHistory, bool leave = true);
+  void leaveArchive();
+  QStringList archiveTargets() const;
+  bool refuseInArchive();
+  void extractHere();
+  void extractArchiveFile(const QString &file, const QString &dest, const QString &password);
+  void extractEntries(const QStringList &entries, const QString &dest, const QString &verb,
+                      std::function<void(const QStringList &)> done);
+  void compress(const QString &name);
+  void openEntry(const QString &entry);
+  void openExternal();
+  QString tempSlot();
+  QString askPassword(const QString &file, bool retry);
+  void previewArchiveFile(const QString &file);
+  void previewEntry(const QString &entry);
+  QString entryDetail(const QModelIndex &idx) const;
+  bool startJob(const QString &label,
+                std::function<void(const std::atomic_bool *, const std::function<void(double)> &)> work,
+                std::function<void()> done);
+  void cancelPreview();
 
   QFileSystemModel *m_model;
-  QTreeView *m_view;
-  QLineEdit *m_pathBar;
-  QLabel *m_statusLabel;
+  FileSortProxy *m_proxy;   // what every view shows: sorted, dirs first
+  QSplitter *m_split;
+  QListView *m_parentView;
+  QListView *m_view;
+  Preview *m_preview;
 
-  QStringList m_clipboard;
-  bool m_clipboardIsCut = false;
+  QStackedWidget *m_pathStack;
+  QWidget *m_crumbs;
+  QHBoxLayout *m_crumbLayout;
+  QLineEdit *m_pathEdit;
+  QToolButton *m_backBtn;
+  QToolButton *m_fwdBtn;
+  QLabel *m_keySeg;
+  QLabel *m_posSeg;
+  QLabel *m_markSeg;
+  QLabel *m_fsSeg;
+  QLabel *m_jobSeg;
+  QToolButton *m_hiddenBtn;
+
+  QStackedWidget *m_footer;
+  QLabel *m_detail;
+  QLabel *m_mime;
+  QLabel *m_promptLabel;
+  QLineEdit *m_prompt;
+  Prompt m_promptKind = Prompt::None;
+
+  QTimer *m_previewTimer;
+  QTimer *m_flashTimer;
+
+  QAction *m_actOpen, *m_actTerminal;
+  QAction *m_actCopy, *m_actCut, *m_actPaste, *m_actRename, *m_actDelete, *m_actCopyPath;
+  QAction *m_actMark, *m_actClearMarks;
+  QAction *m_actNewFolder, *m_actNewFile;
+  QAction *m_actBack, *m_actForward, *m_actUp, *m_actHome, *m_actRoot;
+  QAction *m_actHidden, *m_actRefresh, *m_actHelp;
+  QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
+
+  QString m_currentDir;
+  QStringList m_back;
+  QStringList m_forward;
+  QHash<QString, std::function<void()>> m_bindings;
+  QString m_keys;            // pending multi-key sequence: g, y, d, p, c, z
+  QString m_lastSearch;
+  int m_searchOrigin = 0;
+  int m_lastRow = 0;         // where the cursor falls back to when its row is deleted
+
+  // Where the cursor last sat in each directory visited, so going back
+  // into one (or up out of one) lands where you left it, as ranger does.
+  QHash<QString, QString> m_lastCursor;
+
+  // A path to put the cursor on (and optionally start renaming) once the
+  // model has loaded it: QFileSystemModel populates asynchronously, so a
+  // just-created file isn't an index yet at the moment we ask for it.
+  QString m_pendingPath;
+  bool m_pendingEdit = false;
+
+  // True from entering a directory until the user moves or a pending path
+  // lands: rows arrive and sort in batches, so "the top" keeps changing
+  // while it loads and the cursor has to follow it there.
+  bool m_cursorAuto = false;
+
+  // The archive being browsed (kept after leaving, so going back in is
+  // instant unless the file changed), and where in it the view is.
+  std::unique_ptr<ArchiveSession> m_session;
+  bool m_inArchive = false;
+  QString m_arcDir;
+
+  // One foreground job (read, extract, compress) at a time; Esc cancels.
+  std::shared_ptr<std::atomic_bool> m_jobCancel;
+  QString m_jobLabel;
+  // Previews of archives and their entries read on a worker too; a newer
+  // preview cancels the one in flight and its result is dropped.
+  std::shared_ptr<std::atomic_bool> m_previewCancel;
+  quint64 m_previewGen = 0;
+  // Where opened and copied-out entries are extracted; removed on exit.
+  std::unique_ptr<QTemporaryDir> m_tempDir;
+  int m_tempSlots = 0;
 };

@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+# libarchive reads and writes every archive format the browser handles
+# (see src/Archive.h); its pkg-config file is what both streams install.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 
 # syn_bar_notify.c/.h reused as-is from syn-bar-core-src — same
 # sibling-source reuse syn-connect-src/syn-crypter-src already make,
@@ -20,13 +24,24 @@ add_executable(syn-filemanager
   src/main.cpp
   src/MainWindow.cpp
   src/MainWindow.h
+  src/MainWindowArchive.cpp
   src/FileOps.cpp
   src/FileOps.h
+  src/Archive.cpp
+  src/Archive.h
+  src/ArchiveModel.cpp
+  src/ArchiveModel.h
+  src/FileSortProxy.cpp
+  src/FileSortProxy.h
+  src/Preview.cpp
+  src/Preview.h
+  src/RowDelegate.cpp
+  src/RowDelegate.h
   ${BARCORE_SRC}/syn_bar_notify.c
 )
 
 target_include_directories(syn-filemanager PRIVATE ${BARCORE_SRC})
-target_link_libraries(syn-filemanager PRIVATE Qt6::Widgets)
+target_link_libraries(syn-filemanager PRIVATE Qt6::Widgets PkgConfig::LIBARCHIVE)
 
 install(TARGETS syn-filemanager RUNTIME DESTINATION bin)
 install(FILES resources/syn-filemanager.desktop
