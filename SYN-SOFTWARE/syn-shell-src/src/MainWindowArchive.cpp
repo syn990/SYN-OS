@@ -5,7 +5,7 @@
 //   their entries, extracting, copying out and compressing. The disk
 //   half (MainWindow.cpp) calls in here wherever a location can be an
 //   archive. libarchive work always runs on the global thread pool:
-//   foreground jobs through startJob() (one at a time, progress in the
+//   foreground jobs through startJob() (in the jobs window with the file
 //   header, Esc cancels), previews on their own generation counter so a
 //   stale result never paints over a newer cursor.
 //
@@ -19,6 +19,7 @@
 #include "Archive.h"
 #include "ArchiveModel.h"
 #include "FileSortProxy.h"
+#include "Jobs.h"
 #include "Preview.h"
 #include "RowDelegate.h"
 
@@ -137,33 +138,18 @@ bool MainWindow::startJob(
   std::function<void(const std::atomic_bool *, const std::function<void(double)> &)> work,
   std::function<void()> done)
 {
-  if (m_jobCancel) {
-    flash(tr("busy %1, Esc cancels it").arg(m_jobLabel), true);
-    return false;
-  }
-  auto cancel = std::make_shared<std::atomic_bool>(false);
-  m_jobCancel = cancel;
-  m_jobLabel = label;
-  m_jobSeg->setText(label);
-  m_jobSeg->show();
-
-  QPointer<MainWindow> self(this);
-  const std::function<void(double)> progress = [self, cancel, label](double f) {
-    QMetaObject::invokeMethod(qApp, [self, cancel, label, f] {
-      if (self && self->m_jobCancel == cancel)
-        self->m_jobSeg->setText(QStringLiteral("%1 %2%").arg(label).arg(int(f * 100)));
-    }, Qt::QueuedConnection);
-  };
-  QThreadPool::globalInstance()->start([self, cancel, work, done, progress] {
-    work(cancel.get(), progress);
-    QMetaObject::invokeMethod(qApp, [self, cancel, done] {
-      if (!self || self->m_jobCancel != cancel)
-        return;
-      self->m_jobCancel.reset();
-      self->m_jobSeg->hide();
-      done();
-    }, Qt::QueuedConnection);
-  });
+  // An archive job is a job like any other: in the jobs window, beside
+  // copies and moves, cancelled from there or with Esc. libarchive
+  // reports how far through the archive it is, so it counts in tenths
+  // of a percent rather than bytes or items.
+  m_jobs->start(label,
+                [work](Jobs::Progress &p) {
+                  p.bytes = false;
+                  p.counts = false;
+                  p.total = 1000;
+                  work(&p.cancel, [&p](double f) { p.done = qint64(f * 1000); });
+                },
+                [done](Jobs::Job &) { done(); });
   return true;
 }
 
@@ -208,7 +194,7 @@ void MainWindow::openArchive(const QString &file, const QString &inner, bool rec
   }
 
   auto result = std::make_shared<Archive::Listing>();
-  startJob(tr("reading"),
+  startJob(tr("Reading %1").arg(QFileInfo(file).fileName()),
            [file, password, result](const std::atomic_bool *cancel,
                                     const std::function<void(double)> &progress) {
              *result = Archive::list(file, password, 0, 0, cancel, progress);
@@ -351,7 +337,7 @@ void MainWindow::extractHere()
              != QMessageBox::Yes)
       return;
     clearMarks();
-    extractEntries(entries, m_currentDir, tr("extracting"), [this](const QStringList &paths) {
+    extractEntries(entries, m_currentDir, tr("Extracting %n item(s) from %1", nullptr, int(entries.size())).arg(QFileInfo(m_session->file()).fileName()), [this](const QStringList &paths) {
       flash(tr("%n extracted beside the archive", nullptr, paths.size()));
     });
     return;
@@ -384,7 +370,7 @@ void MainWindow::extractArchiveFile(const QString &file, const QString &dest,
 
   auto result = std::make_shared<Archive::Written>();
   auto target = std::make_shared<QString>();
-  startJob(tr("extracting"),
+  startJob(tr("Extracting %1").arg(QFileInfo(file).fileName()),
            [file, folder, pw, base, result, target](const std::atomic_bool *cancel,
                                                     const std::function<void(double)> &progress) {
              QDir().mkpath(folder);
@@ -429,6 +415,8 @@ void MainWindow::extractArchiveFile(const QString &file, const QString &dest,
                flash(result->error, true);
                return;
              }
+             pushUndo(UndoStep::Created, {{*target, QString()}},
+                      tr("extract of %1").arg(QFileInfo(file).fileName()));
              flash(tr("extracted to %1%2").arg(QFileInfo(*target).fileName(),
                                                result->skipped
                                                  ? tr("  (%n skipped)", nullptr, result->skipped)
@@ -482,7 +470,7 @@ void MainWindow::extractEntries(const QStringList &entries, const QString &dest,
 
 void MainWindow::openEntry(const QString &entry)
 {
-  extractEntries({entry}, tempSlot(), tr("opening"), [this](const QStringList &paths) {
+  extractEntries({entry}, tempSlot(), tr("Opening %1").arg(entry.section(QLatin1Char('/'), -1)), [this](const QStringList &paths) {
     if (paths.isEmpty())
       return;
     // xdg-open's choice, same as for a file on disk.
@@ -536,7 +524,7 @@ void MainWindow::compress(const QString &name)
 
   const QString base = m_currentDir;
   auto result = std::make_shared<Archive::Written>();
-  startJob(tr("compressing"),
+  startJob(tr("Compressing %n item(s) into %1", nullptr, int(paths.size())).arg(QFileInfo(out).fileName()),
            [out, paths, base, result](const std::atomic_bool *cancel,
                                       const std::function<void(double)> &progress) {
              *result = Archive::create(out, paths, base, cancel, progress);
@@ -551,6 +539,7 @@ void MainWindow::compress(const QString &name)
                return;
              }
              clearMarks();
+             pushUndo(UndoStep::Created, {{out, QString()}}, tr("compress into %1").arg(QFileInfo(out).fileName()));
              flash(tr("%n packed into %1  %2", nullptr, paths.size())
                      .arg(QFileInfo(out).fileName(), humanSize(QFileInfo(out).size())));
              if (!m_inArchive && QFileInfo(out).absolutePath() == m_currentDir) {

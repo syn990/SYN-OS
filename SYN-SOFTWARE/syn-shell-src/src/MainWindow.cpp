@@ -2,6 +2,8 @@
 #include "Archive.h"
 #include "ArchiveModel.h"
 #include "FileOps.h"
+#include "Jobs.h"
+#include "JobsWindow.h"
 #include "FileSortProxy.h"
 #include "Preview.h"
 #include "RowDelegate.h"
@@ -25,6 +27,7 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QProcess>
@@ -62,6 +65,8 @@ QMainWindow, #central { background: palette(window); }
 #header QToolButton:disabled { color: palette(mid); }
 #header QToolButton:checked { background: palette(highlight); color: #ffffff; }
 #header QLabel#keys { background: palette(highlight); color: #ffffff; }
+#header QToolButton#jobs:checked { background: palette(highlight); color: #ffffff; }
+QScrollArea#jobScroll { background: palette(window); border: none; }
 #header QToolButton#crumb { background: transparent; padding: 3px 3px; margin: 4px 0; }
 #header QToolButton#crumb:hover { background: palette(light); color: #ffffff; }
 #header QToolButton#crumbCurrent {
@@ -125,10 +130,12 @@ const char kHelp[] = R"(  MOVE
   Ctrl+A          mark everything here
   uv  Esc         clear marks
 
-  FILES  (on the marks, or the cursor if nothing is marked)
+  FILES  (on the marks, or the cursor if nothing is marked; all run as jobs)
   yy  Ctrl+C      copy        dd  Ctrl+X   cut
   pp  Ctrl+V      paste       yp           copy path
-  cw  F2          rename      dD  Delete   delete
+  cw  F2          rename      dD  Delete   to the trash
+  Ctrl+Z          undo        Shift+Del    delete for good
+  gt              the trash   :jobs        the jobs window
   F7              new folder
 
   FIND / VIEW
@@ -286,6 +293,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   if (!m_split->restoreState(settings.value("split").toByteArray()))
     m_split->setSizes({170, 420, 560});
 
+  buildJobs();
   buildActions();
 
   auto *central = new QWidget(this);
@@ -373,7 +381,9 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
     updateInfo();
   });
   connect(m_model, &QFileSystemModel::fileRenamed, this,
-          [this](const QString &dir, const QString &, const QString &newName) {
+          [this](const QString &dir, const QString &oldName, const QString &newName) {
+    pushUndo(UndoStep::Renamed, {{dir + QLatin1Char('/') + oldName, dir + QLatin1Char('/') + newName}},
+             tr("rename of %1").arg(oldName));
     if (dir == m_currentDir && !m_inArchive) {
       m_pendingPath = dir + QLatin1Char('/') + newName;
       tryPending();
@@ -442,7 +452,12 @@ void MainWindow::buildActions()
   m_actCut       = act(tr("Cut"), "dd", [this] { yank(true); });
   m_actPaste     = act(tr("Paste"), "pp", [this] { paste(); });
   m_actRename    = act(tr("Rename"), "cw", [this] { renameCursor(); });
-  m_actDelete    = act(tr("Delete"), "dD", [this] { deleteTargets(); });
+  m_actDelete    = act(tr("Move to trash"), "dD", [this] { deleteTargets(); });
+  m_actDeleteForever = act(tr("Delete permanently"), "Shift+Del", [this] { deletePermanently(); });
+  m_actUndo      = act(tr("Undo"), "Ctrl+Z", [this] { undo(); });
+  m_actRestore   = act(tr("Restore"), "", [this] { restoreTargets(); });
+  m_actEmptyTrash = act(tr("Empty trash"), ":emptytrash", [this] { emptyTrash(); });
+  m_actTrash     = act(tr("Trash"), "gt", [this] { openTrash(); });
   m_actCopyPath  = act(tr("Copy path"), "yp", [this] { copyPaths(); });
   m_actMark      = act(tr("Mark"), "Space", [this] { toggleMark(); });
   m_actClearMarks = act(tr("Clear marks"), "uv", [this] { clearMarks(); });
@@ -540,6 +555,7 @@ void MainWindow::buildActions()
     {"yp", [this] { copyPaths(); }},
     {"cw", [this] { renameCursor(); }},
     {"dD", [this] { deleteTargets(); }},
+    {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
     {"zi", [this] { m_actIcons->trigger(); }},
     {"zp", [this] { toggleField(RowDelegate::Permissions); }},
@@ -615,9 +631,15 @@ QWidget *MainWindow::buildHeader()
   m_posSeg = segment("pos");
   m_markSeg = segment("marks");
   m_markSeg->hide();
-  m_jobSeg = segment("job");
-  m_jobSeg->setToolTip(tr("Esc cancels"));
-  m_jobSeg->hide();
+  m_jobBtn = new QToolButton(header);
+  m_jobBtn->setObjectName("jobs");
+  m_jobBtn->setCheckable(true);
+  m_jobBtn->setToolTip(tr("Copies, moves and the rest: click for the jobs window"));
+  m_jobBtn->hide();
+  connect(m_jobBtn, &QToolButton::clicked, this, [this] {
+    updateJobButton(); // undo the click's own check toggle
+    showJobs();
+  });
   m_fsSeg = segment("fs");
 
   m_hiddenBtn = new QToolButton(header);
@@ -641,7 +663,7 @@ QWidget *MainWindow::buildHeader()
 
   for (QWidget *w : {static_cast<QWidget *>(m_backBtn), static_cast<QWidget *>(m_fwdBtn),
                      static_cast<QWidget *>(m_hiddenBtn), static_cast<QWidget *>(helpBtn),
-                     static_cast<QWidget *>(m_shellBtn)})
+                     static_cast<QWidget *>(m_shellBtn), static_cast<QWidget *>(m_jobBtn)})
     w->setFocusPolicy(Qt::NoFocus);
 
   h->addWidget(m_backBtn);
@@ -650,7 +672,7 @@ QWidget *MainWindow::buildHeader()
   h->addWidget(m_keySeg);
   h->addWidget(m_posSeg);
   h->addWidget(m_markSeg);
-  h->addWidget(m_jobSeg);
+  h->addWidget(m_jobBtn);
   h->addWidget(m_fsSeg);
   h->addWidget(m_shellBtn);
   h->addWidget(m_hiddenBtn);
@@ -1116,18 +1138,6 @@ void MainWindow::renameCursor()
     m_view->edit(c);
 }
 
-void MainWindow::deleteTargets()
-{
-  if (refuseInArchive())
-    return;
-  const QStringList paths = targets();
-  if (paths.isEmpty())
-    return;
-  FileOps::deleteEntries(this, paths);
-  clearMarks();
-  updateDisk();
-}
-
 void MainWindow::yank(bool cut)
 {
   if (m_inArchive) {
@@ -1140,7 +1150,7 @@ void MainWindow::yank(bool cut)
     if (entries.isEmpty())
       return;
     clearMarks();
-    extractEntries(entries, tempSlot(), tr("copying out"), [this](const QStringList &paths) {
+    extractEntries(entries, tempSlot(), tr("Copying %n item(s) out of the archive", nullptr, int(entries.size())), [this](const QStringList &paths) {
       auto *mime = new QMimeData;
       QList<QUrl> urls;
       QByteArray marker = "copy";
@@ -1178,33 +1188,6 @@ void MainWindow::yank(bool cut)
   flash(cut ? tr("%n cut", nullptr, paths.size()) : tr("%n yanked", nullptr, paths.size()));
 }
 
-void MainWindow::paste()
-{
-  if (refuseInArchive())
-    return;
-  const QMimeData *mime = QApplication::clipboard()->mimeData();
-  QStringList paths;
-  if (mime)
-    for (const QUrl &url : mime->urls())
-      if (url.isLocalFile())
-        paths << url.toLocalFile();
-  if (paths.isEmpty()) {
-    flash(tr("nothing to paste"), true);
-    return;
-  }
-
-  const bool cut = mime->data(kCopiedFilesMime).startsWith("cut");
-  m_pendingPath = m_currentDir + QLatin1Char('/') + QFileInfo(paths.first()).fileName();
-  if (cut) {
-    FileOps::moveEntries(this, paths, m_currentDir);
-    QApplication::clipboard()->clear();
-  } else {
-    FileOps::copyEntries(this, paths, m_currentDir);
-  }
-  tryPending();
-  updateDisk();
-}
-
 void MainWindow::copyPaths()
 {
   QStringList paths = targets();
@@ -1239,6 +1222,8 @@ void MainWindow::newEntry(bool folder)
     flash(tr("could not create %1 (permission denied?)").arg(QFileInfo(path).fileName()), true);
     return;
   }
+  pushUndo(UndoStep::Created, {{path, QString()}},
+           folder ? tr("new folder") : tr("new file"));
   m_pendingPath = path;
   m_pendingEdit = true;
   tryPending();
@@ -1301,6 +1286,7 @@ void MainWindow::runCommand(const QString &input)
       return;
     }
     const QString path = expandPath(arg, m_currentDir);
+    const bool existed = QFileInfo::exists(path);
     bool ok;
     if (cmd == QLatin1String("mkdir")) {
       ok = QDir().mkpath(path);
@@ -1309,6 +1295,8 @@ void MainWindow::runCommand(const QString &input)
       QFile f(path);
       ok = f.exists() || f.open(QIODevice::WriteOnly);
     }
+    if (ok && !existed)
+      pushUndo(UndoStep::Created, {{path, QString()}}, tr("%1 %2").arg(cmd, QFileInfo(path).fileName()));
     if (!ok) {
       flash(tr("%1: could not create %2").arg(cmd, arg), true);
       return;
@@ -1332,17 +1320,18 @@ void MainWindow::runCommand(const QString &input)
       flash(tr("rename: %1 already exists").arg(arg), true);
       return;
     }
-    if (!QFile::rename(from, to)) {
+    if (!QDir().rename(from, to)) {
       flash(tr("rename: failed (permission denied?)"), true);
       return;
     }
+    pushUndo(UndoStep::Renamed, {{from, to}}, tr("rename of %1").arg(QFileInfo(from).fileName()));
     m_pendingPath = to;
     tryPending();
   } else if (cmd == QLatin1String("extract") || cmd == QLatin1String("x")) {
     const QString dest = arg.isEmpty() ? m_currentDir : expandPath(arg, m_currentDir);
     if (m_inArchive) {
       const QStringList entries = archiveTargets();
-      extractEntries(entries, dest, tr("extracting"), [this, dest](const QStringList &paths) {
+      extractEntries(entries, dest, tr("Extracting %n item(s) to %1", nullptr, int(entries.size())).arg(QFileInfo(dest).fileName()), [this, dest](const QStringList &paths) {
         flash(tr("%n extracted into %1", nullptr, paths.size()).arg(dest));
       });
     } else if (cursor().isValid()) {
@@ -1350,8 +1339,17 @@ void MainWindow::runCommand(const QString &input)
     }
   } else if (cmd == QLatin1String("compress") || cmd == QLatin1String("pack")) {
     compress(arg);
-  } else if (cmd == QLatin1String("delete") || cmd == QLatin1String("rm")) {
+  } else if (cmd == QLatin1String("delete") || cmd == QLatin1String("rm")
+             || cmd == QLatin1String("trash")) {
     deleteTargets();
+  } else if (cmd == QLatin1String("delete!") || cmd == QLatin1String("rm!")) {
+    deletePermanently();
+  } else if (cmd == QLatin1String("emptytrash")) {
+    emptyTrash();
+  } else if (cmd == QLatin1String("undo")) {
+    undo();
+  } else if (cmd == QLatin1String("jobs")) {
+    showJobs();
   } else if (cmd == QLatin1String("term")) {
     openTerminal(m_currentDir);
   } else if (cmd == QLatin1String("shell")) {
@@ -1389,6 +1387,7 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     case Qt::Key_C: yank(false); break;
     case Qt::Key_X: yank(true); break;
     case Qt::Key_V: paste(); break;
+    case Qt::Key_Z: undo(); break;
     case Qt::Key_H: m_actHidden->trigger(); break;
     case Qt::Key_L: beginPathEdit(); break;
     case Qt::Key_R: m_actRefresh->trigger(); break;
@@ -1439,7 +1438,12 @@ bool MainWindow::handleKey(QKeyEvent *ev)
   case Qt::Key_Right:
   case Qt::Key_Return:
   case Qt::Key_Enter: openCursor(); return done();
-  case Qt::Key_Delete: deleteTargets(); return done();
+  case Qt::Key_Delete:
+    if (mods & Qt::ShiftModifier)
+      deletePermanently();
+    else
+      deleteTargets();
+    return done();
   case Qt::Key_F2: renameCursor(); return done();
   case Qt::Key_F5: m_actRefresh->trigger(); return done();
   case Qt::Key_F7: newEntry(true); return done();
@@ -1449,9 +1453,15 @@ bool MainWindow::handleKey(QKeyEvent *ev)
     return done();
   }
   case Qt::Key_Escape:
-    if (m_jobCancel && m_keys.isEmpty()) {
-      *m_jobCancel = true;
-      flash(tr("cancelling %1").arg(m_jobLabel));
+    if (m_keys.isEmpty() && m_jobs->running() > 0) {
+      // The newest job still going.
+      for (auto it = m_jobs->jobs().crbegin(); it != m_jobs->jobs().crend(); ++it) {
+        if ((*it)->state != Jobs::State::Running)
+          continue;
+        (*it)->progress->cancel = true;
+        flash(tr("cancelling: %1").arg((*it)->title));
+        break;
+      }
     } else if (m_keys.isEmpty()) {
       clearMarks();
     }
@@ -1600,7 +1610,15 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actCut);
     menu.addAction(m_actPaste);
     menu.addAction(m_actRename);
-    menu.addAction(m_actDelete);
+    if (inTrashView()) {
+      head(tr("TRASH"));
+      menu.addAction(m_actRestore);
+      menu.addAction(m_actDeleteForever);
+      menu.addAction(m_actEmptyTrash);
+    } else {
+      menu.addAction(m_actDelete);
+      menu.addAction(m_actDeleteForever);
+    }
     menu.addAction(m_actCopyPath);
     menu.addAction(m_actCompress);
     menu.addAction(m_view->selectionModel()->isSelected(idx) ? m_actClearMarks : m_actMark);
@@ -1610,7 +1628,13 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actNewFile);
     menu.addAction(m_actPaste);
     menu.addAction(m_actTerminal);
+    if (inTrashView())
+      menu.addAction(m_actEmptyTrash);
   }
+  m_actUndo->setEnabled(!m_undo.isEmpty());
+  m_actUndo->setText(m_undo.isEmpty() ? tr("Undo\tCtrl+Z")
+                                      : tr("Undo the %1\tCtrl+Z").arg(m_undo.last().label));
+  menu.addAction(m_actUndo);
 
   head(tr("GO"));
   menu.addAction(m_actBack);
@@ -1618,6 +1642,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
   menu.addAction(m_actUp);
   menu.addAction(m_actHome);
   menu.addAction(m_actRoot);
+  menu.addAction(m_actTrash);
   for (const QString &root : deviceRoots()) {
     if (root == QDir::rootPath())
       continue;
@@ -1635,6 +1660,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
   QMenu *fieldsMenu = menu.addMenu(tr("Fields"));
   fieldsMenu->addActions(m_actFields);
   menu.addAction(m_actRefresh);
+  if (!m_jobs->jobs().isEmpty())
+    menu.addAction(tr("Jobs\t:jobs"), this, &MainWindow::showJobs);
   menu.addAction(m_actHelp);
 
   menu.exec(m_view->viewport()->mapToGlobal(pos));
@@ -1705,6 +1732,13 @@ void MainWindow::updateInfo()
     return;
   }
   const QString path = c.isValid() ? m_proxy->pathOf(c) : m_currentDir;
+  if (c.isValid() && inTrashView()) {
+    const QString from = FileJobs::originalPath(path);
+    m_mime->setText(from.isEmpty() ? QString() : tr("from %1").arg(from));
+    if (!m_flashTimer->isActive())
+      m_detail->setText(detailLine(path));
+    return;
+  }
   m_mime->setText(c.isValid() ? QMimeDatabase().mimeTypeForFile(path).name() : QString());
   if (!m_flashTimer->isActive())
     m_detail->setText(detailLine(path));
@@ -1783,9 +1817,17 @@ void MainWindow::changeEvent(QEvent *event)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-  // The worker threads poll these; the pool waits for them on exit.
-  if (m_jobCancel)
-    *m_jobCancel = true;
+  if (m_jobs->running() > 0) {
+    if (QMessageBox::question(this, tr("Jobs still running"),
+                              tr("%n job(s) still running. Cancel and quit?", nullptr, m_jobs->running()),
+                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+        != QMessageBox::Yes) {
+      event->ignore();
+      return;
+    }
+    m_jobs->cancelAll();
+    m_jobs->waitForAll(5000); // copies stop mid-chunk and clean up after themselves
+  }
   cancelPreview();
   QSettings settings;
   settings.setValue("geometry", saveGeometry());

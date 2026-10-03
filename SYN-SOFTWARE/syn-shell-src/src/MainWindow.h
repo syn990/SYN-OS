@@ -35,6 +35,8 @@
 
 #pragma once
 
+#include "FileJobs.h"
+
 #include <QHash>
 #include <atomic>
 #include <functional>
@@ -60,6 +62,8 @@ class QToolButton;
 class FileSortProxy;
 class Preview;
 class TermView;
+class JobsWindow;
+namespace Jobs { class Manager; struct Job; struct Progress; }
 class FieldHeader;
 
 class MainWindow : public QMainWindow
@@ -92,6 +96,7 @@ private:
 
   void renameCursor();
   void deleteTargets();
+  void deletePermanently();
   void yank(bool cut);
   void paste();
   void copyPaths();
@@ -160,6 +165,25 @@ private:
                 std::function<void()> done);
   void cancelPreview();
 
+  // File jobs, trash and undo (MainWindowFiles.cpp)
+  struct UndoStep
+  {
+    enum Kind { Trashed, Moved, Copied, Renamed, Created } kind;
+    FileJobs::Pairs pairs;
+    QString label; // "trash of 3 items"
+  };
+  void buildJobs();
+  void showJobs();
+  void updateJobButton();
+  void runFileJob(const QString &title, std::function<FileJobs::Pairs(Jobs::Progress &)> work,
+                  std::function<void(const FileJobs::Pairs &, Jobs::Job &)> done);
+  bool inTrashView() const;
+  void restoreTargets();
+  void emptyTrash();
+  void openTrash();
+  void pushUndo(UndoStep::Kind kind, const FileJobs::Pairs &pairs, const QString &label);
+  void undo();
+
   // Shell area (MainWindowShell.cpp)
   void buildShell();
   void toggleShellPane();
@@ -197,7 +221,7 @@ private:
   QLabel *m_posSeg;
   QLabel *m_markSeg;
   QLabel *m_fsSeg;
-  QLabel *m_jobSeg;
+  QToolButton *m_jobBtn;
   QToolButton *m_hiddenBtn;
 
   QStackedWidget *m_footer;
@@ -218,6 +242,7 @@ private:
   QAction *m_actHidden, *m_actRefresh, *m_actHelp;
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
   QAction *m_actShell, *m_actDetachShell, *m_actIcons;
+  QAction *m_actUndo, *m_actDeleteForever, *m_actRestore, *m_actEmptyTrash, *m_actTrash;
   QList<QAction *> m_actFields;
 
   QString m_currentDir;
@@ -250,9 +275,11 @@ private:
   bool m_inArchive = false;
   QString m_arcDir;
 
-  // One foreground job (read, extract, compress) at a time; Esc cancels.
-  std::shared_ptr<std::atomic_bool> m_jobCancel;
-  QString m_jobLabel;
+  // Everything slow (copy, move, trash, extract, compress) runs as a job.
+  Jobs::Manager *m_jobs;
+  JobsWindow *m_jobsWindow;
+  bool m_jobsAutoShown = false;
+  QList<UndoStep> m_undo;
   // Previews of archives and their entries read on a worker too; a newer
   // preview cancels the one in flight and its result is dropped.
   std::shared_ptr<std::atomic_bool> m_previewCancel;

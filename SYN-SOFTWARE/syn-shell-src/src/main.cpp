@@ -12,12 +12,36 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QRegularExpression>
 #include <QSettings>
+#include <QTranslator>
 
 #include <cstdlib>
+#include <cstring>
 
 #include "MainWindow.h"
 #include "PtySession.h"
+
+namespace {
+
+// English plurals with no translation files: Qt hands every tr() with a
+// count to the installed translators first, so "%n item(s)" becomes
+// "1 item" or "3 items" here, before Qt puts the number in.
+class EnglishPlurals : public QTranslator
+{
+public:
+  bool isEmpty() const override { return false; }
+  QString translate(const char *, const char *source, const char *, int n) const override
+  {
+    if (n < 0 || !source || !strstr(source, "(s)"))
+      return QString();
+    QString text = QString::fromUtf8(source);
+    text.replace(QStringLiteral("(s)"), n == 1 ? QString() : QStringLiteral("s"));
+    return text;
+  }
+};
+
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -33,6 +57,8 @@ int main(int argc, char *argv[])
   QApplication app(argc, argv);
   app.setApplicationName("syn-shell");
   app.setOrganizationName("SYN-OS");
+  EnglishPlurals plurals;
+  app.installTranslator(&plurals);
 
   // Settings kept under the old name (window size, columns, hidden
   // files) carry over once.

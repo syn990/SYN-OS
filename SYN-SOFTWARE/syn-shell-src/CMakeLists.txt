@@ -27,9 +27,16 @@ add_executable(syn-shell
   src/MainWindow.cpp
   src/MainWindow.h
   src/MainWindowArchive.cpp
+  src/MainWindowFiles.cpp
   src/MainWindowShell.cpp
   src/FileOps.cpp
   src/FileOps.h
+  src/FileJobs.cpp
+  src/FileJobs.h
+  src/Jobs.cpp
+  src/Jobs.h
+  src/JobsWindow.cpp
+  src/JobsWindow.h
   src/Archive.cpp
   src/Archive.h
   src/ArchiveModel.cpp

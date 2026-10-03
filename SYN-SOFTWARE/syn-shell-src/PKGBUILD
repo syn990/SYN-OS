@@ -1,6 +1,6 @@
 # Maintainer: William Hayward-Holland (Syntax990)
 pkgname=syn-shell
-pkgver=2.3.0
+pkgver=2.4.0
 pkgrel=1
 pkgdesc="SYN-SHELL: SYN-OS's own window onto the system. Ranger's three columns and keys, archives browsed like folders (libarchive), a shell area that moves to foot (libvterm)"
 arch=('x86_64')

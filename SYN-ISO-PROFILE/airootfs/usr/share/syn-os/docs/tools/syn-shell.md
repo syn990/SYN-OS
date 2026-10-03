@@ -74,12 +74,30 @@ the file under the cursor if nothing is marked.
 |---|---|
 | `yy` / `dd` / `pp` | Copy, cut, paste (also `Ctrl+C` `Ctrl+X` `Ctrl+V`) |
 | `cw` or `F2` | Rename |
-| `dD` or `Delete` | Delete, after asking |
+| `dD` or `Delete` | Move to the trash (no question: `Ctrl+Z` brings it back) |
+| `Shift+Delete` | Delete for good, after asking |
+| `Ctrl+Z` | Undo the last trash, move, copy, rename or new file |
 | `F7` | New folder |
 | `yp` | Copy the path |
+| `gt` | Open the trash |
 
 Copy and paste go through the system clipboard, so you can copy here and
 paste into another app, or the other way round.
+
+Copying, moving and deleting happen in the background, so the window
+never stops while a big folder goes across. A jobs window opens by
+itself for anything that takes more than a moment, showing each one's
+progress, the file it's on, its speed and how long is left, with a
+CANCEL for each; the JOBS button in the top strip opens it again later.
+Cancelling never leaves a half-copied file behind.
+
+When names already exist where you paste, you're asked once: replace
+them, keep both (the new one becomes "name (2)"), or skip them. Pasting
+a copy into the folder it came from makes "name (2)" straight away.
+
+The trash is the same one every other app uses. In it, the bottom line
+says where each file came from; the right-click menu restores it there,
+deletes it for good, or empties the trash.
 
 Copying a shortcut (a symlink) copies the shortcut, not what it points
 to, and deleting one never touches the real file. Moving to another

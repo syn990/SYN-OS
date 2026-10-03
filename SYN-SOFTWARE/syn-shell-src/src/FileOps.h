@@ -1,17 +1,12 @@
 // ------------------------------------------------------------------------------
 //                           S Y N - S H E L L
 //
-//   FileOps: delete/copy/move logic and their confirmation dialogs, kept
-//   out of MainWindow so filesystem-error handling isn't tangled into the
-//   UI class. Every entry point here shows its own QMessageBox — callers
-//   don't need to know whether an operation succeeded to decide whether
-//   to warn the user, that's handled internally.
-//
-//   Symlinks: copy recreates the link itself (readlink + create a new
-//   symlink at the destination) rather than dereferencing it — copying a
-//   broken or self-referential symlink's target would either fail or
-//   loop, and recreating the link matches what most users expect from
-//   "copy" on a shortcut. Delete removes the link, never its target.
+//   FileOps: the questions asked before a file job starts, on the UI
+//   thread, so FileJobs (the work, on a worker) never has to stop and ask.
+//   Pasting a folder into itself or moving something onto itself is
+//   refused here; names that already exist at the destination get one
+//   question for the whole paste: replace, keep both, or skip. Also the
+//   one place the job results sound through syn-bar-core.
 //
 //   SYN-OS     : The Syntax Operating System
 //   Component  : SYN-SHELL (Desktop)
@@ -21,27 +16,25 @@
 
 #pragma once
 
+#include "FileJobs.h"
+
 #include <QString>
 #include <QStringList>
 #include <QWidget>
 
+#include <optional>
+
 namespace FileOps {
 
-// Prompts for confirmation, then permanently deletes every path in
-// `paths` (files and/or directories). No trash — this is final. Shows a
-// summary dialog if any entry fails partway through the batch.
-void deleteEntries(QWidget *parent, const QStringList &paths);
+// What to do with a paste, or nothing if it shouldn't happen.
+std::optional<FileJobs::Conflict> askTransfer(QWidget *parent, const QStringList &paths,
+                                              const QString &destDir, bool move);
 
-// Copies each path in `paths` into `destDir`. Recurses into directories.
-// Prompts once up front if any destination would overwrite an existing
-// entry, then proceeds best-effort — a failure on one entry doesn't stop
-// the rest. Shows a summary dialog listing any failures.
-void copyEntries(QWidget *parent, const QStringList &paths, const QString &destDir);
+// Deleting for good (not to the trash): asks first.
+bool confirmPermanentDelete(QWidget *parent, const QStringList &paths);
 
-// Moves each path in `paths` into `destDir`. Tries a same-filesystem
-// rename first; falls back to copy-then-delete-source automatically when
-// the rename fails because source and destination are on different
-// filesystems (EXDEV) — e.g. moving to a different mount or a USB drive.
-void moveEntries(QWidget *parent, const QStringList &paths, const QString &destDir);
+// The job tones: SUCCESS when a long one finishes, FAIL when one fails.
+void soundSuccess();
+void soundFailure();
 
 } // namespace FileOps
