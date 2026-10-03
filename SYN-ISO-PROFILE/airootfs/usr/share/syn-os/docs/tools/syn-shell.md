@@ -54,6 +54,11 @@ under Fields.
 | `zm` | Date modified |
 | `zc` | Date created (shows `-` on drives that don't record it) |
 
+Folders show `-` for their size until you ask: `du` (or Folder sizes on
+the right-click menu) measures every folder here, or just the marked
+ones, in the background, and fills the sizes in; the bottom line then
+says how much is inside, and in how many files.
+
 If the column gets too narrow for all of them, owner and created step
 aside first so names keep enough room.
 

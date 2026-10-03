@@ -145,6 +145,7 @@ const char kHelp[] = R"(  MOVE
   cW              bulk rename: the marks (or the whole folder) in $EDITOR below
   +x  -x          make executable, or not   :chmod 755 / :chmod g+w   (undoable)
   O               open with: every app that can open it   :openwith CMD
+  du              folder sizes: the marked folders, or every one here (a job)
   Ctrl+Z          undo        Shift+Del    delete for good
   gt              the trash   :jobs        the jobs window
   F7              new folder
@@ -259,6 +260,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   m_git = new GitStatus(this);
   m_git->setEnabled(settings.value("git", true).toBool());
   RowDelegate::setGit(m_git);
+  RowDelegate::setFolderSizes(&m_folderSizes);
 
   m_model = new QFileSystemModel(this);
   m_model->setReadOnly(false); // read-only would silently disable inline rename
@@ -608,6 +610,7 @@ void MainWindow::buildActions()
     {"+x", [this] { changeMode(QStringLiteral("+x")); }},
     {"-x", [this] { changeMode(QStringLiteral("-x")); }},
     {"O", [this] { showOpenWith(); }},
+    {"du", [this] { measureFolders(); }},
     {"dD", [this] { deleteTargets(); }},
     {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
@@ -1409,6 +1412,8 @@ void MainWindow::runCommand(const QString &input)
       flash(tr("chmod needs a mode: :chmod 755, :chmod +x, :chmod g+w"), true);
     else
       changeMode(arg);
+  } else if (cmd == QLatin1String("du") || cmd == QLatin1String("sizes")) {
+    measureFolders();
   } else if (cmd == QLatin1String("openwith")) {
     openWithCommand(arg);
   } else if (cmd == QLatin1String("bulkrename") || cmd == QLatin1String("rename-all")) {
@@ -1754,6 +1759,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
   menu.addAction(m_actGit);
   QMenu *fieldsMenu = menu.addMenu(tr("Fields"));
   fieldsMenu->addActions(m_actFields);
+  if (!m_inArchive)
+    menu.addAction(tr("Folder sizes\tdu"), this, &MainWindow::measureFolders);
   menu.addAction(m_actRefresh);
   if (!m_jobs->jobs().isEmpty())
     menu.addAction(tr("Jobs\t:jobs"), this, &MainWindow::showJobs);
@@ -1782,8 +1789,14 @@ QStringList MainWindow::deviceRoots() const
 QString MainWindow::detailLine(const QString &path) const
 {
   const QFileInfo i(path);
+  // A folder's size once du has measured it: "1.2G in 3401 items".
+  const QString key = i.absoluteFilePath();
+  const QString size = !i.isDir() ? humanSize(i.size())
+                     : m_folderSizes.contains(key)
+                       ? tr("%1 in %n item(s)", nullptr, int(m_folderItems.value(key))).arg(humanSize(m_folderSizes.value(key)))
+                       : QStringLiteral("-");
   QString line = permString(i) + QStringLiteral("  ") + i.owner() + QLatin1Char(':') + i.group()
-               + QStringLiteral("  ") + (i.isDir() ? QStringLiteral("-") : humanSize(i.size()))
+               + QStringLiteral("  ") + size
                + QStringLiteral("  ")
                + i.lastModified().toString(QStringLiteral("yyyy-MM-dd HH:mm"))
                + QStringLiteral("  ") + (i.fileName().isEmpty() ? path : i.fileName());

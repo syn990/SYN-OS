@@ -24,6 +24,7 @@
 #include "GitStatus.h"
 #include "Jobs.h"
 #include "JobsWindow.h"
+#include "RowDelegate.h"
 
 #include <QAction>
 #include <QApplication>
@@ -144,6 +145,66 @@ void MainWindow::runFileJob(const QString &title, std::function<FileJobs::Pairs(
                   updateDisk();
                   m_git->poke();
                 });
+}
+
+// ------------------------------------------------------------ folder sizes
+
+void MainWindow::measureFolders()
+{
+  if (refuseInArchive())
+    return;
+  QStringList folders;
+  for (const QModelIndex &idx : m_view->selectionModel()->selectedIndexes())
+    if (idx.parent() == m_view->rootIndex() && m_proxy->infoOf(idx).isDir())
+      folders << m_proxy->pathOf(idx);
+  if (folders.isEmpty())
+    for (int r = 0; r < m_proxy->rowCount(m_view->rootIndex()); ++r) {
+      const QModelIndex idx = m_proxy->index(r, 0, m_view->rootIndex());
+      const QFileInfo fi = m_proxy->infoOf(idx);
+      if (fi.isDir() && !fi.isSymLink())
+        folders << fi.absoluteFilePath();
+    }
+  if (folders.isEmpty()) {
+    flash(tr("no folders here to measure"));
+    return;
+  }
+  // Without the field the sizes have nowhere to show: switch it on.
+  if (!(RowDelegate::fields() & RowDelegate::Size))
+    toggleField(RowDelegate::Size);
+
+  struct Sizes { QHash<QString, qint64> bytes, items; };
+  auto out = std::make_shared<Sizes>();
+  const QString where = shortDir(m_currentDir);
+  runFileJob(tr("Measuring %n folder(s) in %1", nullptr, int(folders.size())).arg(where),
+             [folders, out](Jobs::Progress &p) {
+               p.bytes = false;
+               p.total = folders.size();
+               for (const QString &f : folders) {
+                 if (p.cancel)
+                   break;
+                 p.setCurrent(f);
+                 qint64 items = 0;
+                 const qint64 bytes = FileJobs::folderSize(p, f, &items);
+                 if (!p.cancel) {
+                   out->bytes.insert(f, bytes);
+                   out->items.insert(f, items);
+                 }
+                 ++p.done;
+               }
+               return FileJobs::Pairs();
+             },
+             [this, out](const FileJobs::Pairs &, Jobs::Job &job) {
+               qint64 total = 0;
+               for (auto it = out->bytes.cbegin(); it != out->bytes.cend(); ++it) {
+                 m_folderSizes.insert(it.key(), it.value());
+                 m_folderItems.insert(it.key(), out->items.value(it.key()));
+                 total += it.value();
+               }
+               job.summary = tr("%n folder(s) measured, %1 in all", nullptr, int(out->bytes.size()))
+                               .arg(humanSize(total));
+               m_view->viewport()->update();
+               updateInfo();
+             });
 }
 
 // ------------------------------------------------------------------- git

@@ -17,6 +17,7 @@ constexpr int kGutter = 10; // mark bar + breathing room before the name
 bool g_icons = true;
 int g_fields = RowDelegate::Size;
 const GitStatus *g_git = nullptr;
+const QHash<QString, qint64> *g_folderSizes = nullptr;
 
 QString perms(bool dir, bool link, uint mode)
 {
@@ -76,6 +77,11 @@ int RowDelegate::fields()
 void RowDelegate::setGit(const GitStatus *git)
 {
   g_git = git;
+}
+
+void RowDelegate::setFolderSizes(const QHash<QString, qint64> *sizes)
+{
+  g_folderSizes = sizes;
 }
 
 int RowDelegate::nameStart(int rowHeight)
@@ -252,7 +258,13 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
       switch (c.field) {
       case Permissions: value = perms(dir, link, mode); break;
       case Owner: value = owner.isEmpty() ? QStringLiteral("-") : owner; break;
-      case Size: value = dir ? QStringLiteral("-") : size >= 0 ? humanSize(size) : QStringLiteral("?"); break;
+      case Size:
+        if (dir)
+          value = g_folderSizes && g_folderSizes->contains(absPath)
+                    ? humanSize(g_folderSizes->value(absPath)) : QStringLiteral("-");
+        else
+          value = size >= 0 ? humanSize(size) : QStringLiteral("?");
+        break;
       case Modified: value = stamp(modified); break;
       case Created: value = stamp(created); break;
       }

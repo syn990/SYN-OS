@@ -51,6 +51,10 @@ Pairs trash(Jobs::Progress &p, const QStringList &paths);  // from = original, t
 Pairs restore(Jobs::Progress &p, const QStringList &trashed);
 void emptyTrash(Jobs::Progress &p);
 
+// Bytes (apparent size, as ls shows) and entries under a folder, links
+// not followed; polls cancel.
+qint64 folderSize(Jobs::Progress &p, const QString &path, qint64 *items);
+
 QString homeTrash();        // ~/.local/share/Trash
 bool isInTrash(const QString &path);
 QString originalPath(const QString &trashedFile); // from its .trashinfo, "" if unknown

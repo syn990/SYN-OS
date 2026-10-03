@@ -228,6 +228,15 @@ QString trashFor(const QString &path)
 
 } // namespace
 
+qint64 folderSize(Jobs::Progress &p, const QString &path, qint64 *items)
+{
+  int n = 0;
+  const qint64 bytes = sizeOf(p, path, &n);
+  if (items)
+    *items = n > 0 ? n - 1 : 0; // not counting the folder itself
+  return bytes;
+}
+
 QString homeTrash()
 {
   const QByteArray xdg = qgetenv("XDG_DATA_HOME");

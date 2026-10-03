@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QStyledItemDelegate>
 #include <QWidget>
@@ -54,6 +55,8 @@ public:
   void setDetailed(bool detailed) { m_detailed = detailed; }
   // Git's marks beside each name in a detailed view, when in a repository.
   static void setGit(const GitStatus *git);
+  // Folder sizes measured on request (du): shown in the Size column.
+  static void setFolderSizes(const QHash<QString, qint64> *sizes);
 
   struct Column
   {

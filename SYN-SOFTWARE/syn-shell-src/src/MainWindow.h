@@ -191,6 +191,7 @@ private:
   void fillOpenWith(QMenu *menu);
   void showOpenWith();
   void openWithCommand(const QString &command);
+  void measureFolders(); // du: sizes of the marked folders, or all here
 
   // Tabs (MainWindowTabs.cpp): each its own place, history and cursor.
   struct Tab
@@ -318,6 +319,8 @@ private:
   JobsWindow *m_jobsWindow;
   bool m_jobsAutoShown = false;
   QList<UndoStep> m_undo;
+  QHash<QString, qint64> m_folderSizes;  // measured folders: bytes
+  QHash<QString, qint64> m_folderItems;  // and how many entries
 
   QList<Tab> m_tabs;   // the current tab's entry is only brought up to date on leaving it
   int m_tab = 0;
