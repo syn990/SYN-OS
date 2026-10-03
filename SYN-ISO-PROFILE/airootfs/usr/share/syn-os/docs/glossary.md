@@ -296,6 +296,12 @@ Labwc menus generated live by running a script, not fixed XML.
   submenu per connected screen with power/layout/scale/rotation
   controls. Reads and writes `~/.config/syn-os/disabled-outputs` and
   `~/.config/syn-os/display-layout` so layout survives a reboot.
+- **`syn-pipe-defaults.zsh`**: default apps by kind of file (web,
+  folders, archives, text, images, audio, video, PDF, torrents), from
+  every installed app's declared types. Choosing one writes every type
+  of that kind the app opens, with all their alias names, to
+  `~/.config/mimeapps.list`; SYN-OS's own defaults are in
+  `/etc/xdg/mimeapps.list`. See [Default apps](./tools/default-apps.md).
 - **`syn-pipe-share.zsh`**: the full SYN-SHARE menu, server and
   client actions for all six protocols.
 - **`syn-pipe-blackarch.zsh`**: only reachable once BlackArch tooling

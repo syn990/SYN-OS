@@ -218,6 +218,10 @@
               label="Themes"
               execute="/usr/lib/syn-os/syn-pipe-theme.zsh" />
 
+        <menu id="defaults-pipe"
+              label="Default Apps"
+              execute="/usr/lib/syn-os/syn-pipe-defaults.zsh" />
+
         <item label="Toggle Bar Position">
           <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />
         </item>

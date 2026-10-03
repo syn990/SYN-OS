@@ -1,6 +1,7 @@
 # What xdg-open (and so Steam, surf and syn-shell) opens each
 # kind of file and link with, for every user; ~/.config/mimeapps.list
-# overrides it
+# overrides it, and Preferences > Desktop > Default Apps
+# (syn-pipe-defaults.zsh) is how a user changes it
 [Default Applications]
 x-scheme-handler/http=surf.desktop
 x-scheme-handler/https=surf.desktop
