@@ -18,6 +18,7 @@ bool g_icons = true;
 int g_fields = RowDelegate::Size;
 const GitStatus *g_git = nullptr;
 const QHash<QString, qint64> *g_folderSizes = nullptr;
+double g_backgroundAlpha = 1.0;
 
 QString perms(bool dir, bool link, uint mode)
 {
@@ -82,6 +83,16 @@ void RowDelegate::setGit(const GitStatus *git)
 void RowDelegate::setFolderSizes(const QHash<QString, qint64> *sizes)
 {
   g_folderSizes = sizes;
+}
+
+void RowDelegate::setBackgroundAlpha(double alpha)
+{
+  g_backgroundAlpha = alpha;
+}
+
+double RowDelegate::backgroundAlpha()
+{
+  return g_backgroundAlpha;
 }
 
 int RowDelegate::nameStart(int rowHeight)
@@ -380,7 +391,11 @@ void FieldHeader::paintEvent(QPaintEvent *)
   // The same layout the rows use, against the same width (the view's
   // viewport, so a scrollbar is allowed for) and the same row height.
   QPainter p(this);
-  p.fillRect(rect(), palette().color(QPalette::Base));
+  QColor base = palette().color(QPalette::Base);
+  base.setAlphaF(float(g_backgroundAlpha));
+  p.setCompositionMode(QPainter::CompositionMode_Source);
+  p.fillRect(rect(), base);
+  p.setCompositionMode(QPainter::CompositionMode_SourceOver);
   const QFontMetrics fm(font());
   const int rowHeight = fm.height() + 6;
   const int start = RowDelegate::nameStart(rowHeight);

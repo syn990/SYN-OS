@@ -57,6 +57,9 @@ public:
   static void setGit(const GitStatus *git);
   // Folder sizes measured on request (du): shown in the Size column.
   static void setFolderSizes(const QHash<QString, qint64> *sizes);
+  // The window's background opacity, for what paints its own background.
+  static void setBackgroundAlpha(double alpha);
+  static double backgroundAlpha();
 
   struct Column
   {

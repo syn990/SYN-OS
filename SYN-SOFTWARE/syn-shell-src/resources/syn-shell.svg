@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYN-SHELL: the SYN sheet (top corner cut at 45 degrees) holding
+     three rows of files and the shell's prompt. SYN-OS red on black. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M5 5H45L59 19V59H5Z" fill="#0a0a0a" stroke="#e00000" stroke-width="3.5" stroke-linejoin="miter"/>
+  <path d="M5 17H44" stroke="#e00000" stroke-width="2"/>
+  <rect x="11" y="23" width="6" height="4" fill="#e00000"/>
+  <rect x="20" y="23" width="26" height="4" fill="#f0f0f0"/>
+  <rect x="11" y="30" width="6" height="4" fill="#e00000"/>
+  <rect x="20" y="30" width="19" height="4" fill="#f0f0f0"/>
+  <rect x="11" y="37" width="6" height="4" fill="#e00000"/>
+  <rect x="20" y="37" width="23" height="4" fill="#f0f0f0"/>
+  <path d="M12 45l6 4.5-6 4.5" fill="none" stroke="#e00000" stroke-width="3.5" stroke-linecap="square"/>
+  <path d="M23 53H36" stroke="#f0f0f0" stroke-width="3.5"/>
+</svg>

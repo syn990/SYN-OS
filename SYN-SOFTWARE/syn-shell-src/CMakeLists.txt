@@ -77,6 +77,8 @@ endif()
 install(TARGETS syn-shell RUNTIME DESTINATION bin)
 install(FILES resources/syn-shell.desktop
   DESTINATION share/applications)
+install(FILES resources/syn-shell.svg
+  DESTINATION share/icons/hicolor/scalable/apps)
 # Its old name, so menus, keybinds and scripts written before the rename
 # (every existing ~/.config copy of the dotfiles) still open it.
 install(CODE "file(CREATE_LINK syn-shell \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/syn-filemanager\" SYMBOLIC)")

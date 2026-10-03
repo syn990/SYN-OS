@@ -62,6 +62,10 @@ says how much is inside, and in how many files.
 If the column gets too narrow for all of them, owner and created step
 aside first so names keep enough room.
 
+The Opacity slider on the right-click menu (or `:opacity 70`) lets the
+desktop show through the window the way foot's does: only the
+backgrounds go see-through, never the text. It's remembered.
+
 Hold `Ctrl` and turn the wheel to zoom. It zooms whatever is under the
 mouse, the files or the shell, each on its own, and remembers both.
 `Ctrl+=`, `Ctrl+-` and `Ctrl+0` do the same from the keyboard.
@@ -190,6 +194,10 @@ line.
 | `Ctrl+Shift+D` | Send the shell to its own foot window |
 | `Ctrl+Shift+C` / `Ctrl+Shift+V` | Copy, paste (selecting with the mouse copies too; middle-click pastes it) |
 | `Shift+PgUp` / `Shift+PgDn` | Scroll back through what's gone past |
+
+`Ctrl`+click a web link in the shell's output to open it, or a path
+(a compiler's `src/main.c:12:3` included) to show that file in the
+files above; the shell itself stays where it is.
 
 `Ctrl+Shift+D` doesn't start a new shell in foot. It's the same shell,
 moved: whatever was running keeps running, your history and variables

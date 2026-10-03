@@ -24,6 +24,12 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QMenu>
+#include <QSlider>
+#include <QTimer>
+#include <QWidgetAction>
 #include <QFileInfo>
 #include <QFontInfo>
 #include <QListView>
@@ -62,6 +68,7 @@ void MainWindow::buildShell()
   connect(m_term, &TermView::toggleFocusRequested, this, &MainWindow::toggleShellFocus);
   connect(m_term, &TermView::detachRequested, this, &MainWindow::detachShell);
   connect(m_term, &TermView::hideRequested, this, &MainWindow::hideShell);
+  connect(m_term, &TermView::pathClicked, this, &MainWindow::onShellPathClicked);
 }
 
 void MainWindow::showShell(bool focus)
@@ -108,8 +115,19 @@ void MainWindow::detachShell()
     flash(tr("shell to foot: %1").arg(error), true);
 }
 
+void MainWindow::onShellPathClicked(const QString &path)
+{
+  // The browser goes to it (a file: its folder, cursor on it); the shell
+  // stays where it is, it was only showing the path.
+  m_quietShell = true;
+  navigateTo(path);
+  m_quietShell = false;
+}
+
 void MainWindow::syncShell()
 {
+  if (m_quietShell)
+    return;
   if (m_term && m_term->isRunning() && !m_currentDir.isEmpty() && m_term->cwd() != m_currentDir)
     m_term->requestCd(m_currentDir);
 }
@@ -186,4 +204,49 @@ void MainWindow::toggleField(int field)
     if (a->isChecked())
       on << a->text().section(QLatin1Char('\t'), 0, 0).toLower();
   flash(on.isEmpty() ? tr("fields: name only") : tr("fields: %1").arg(on.join(QStringLiteral(", "))));
+}
+
+// ---------------------------------------------------------------- opacity
+
+void MainWindow::setOpacity(double opacity)
+{
+  m_opacity = qBound(0.3, opacity, 1.0);
+  applyStyle();
+  m_term->setBackgroundAlpha(m_opacity);
+  if (m_task)
+    m_task->setBackgroundAlpha(m_opacity);
+  RowDelegate::setBackgroundAlpha(m_opacity);
+  m_fieldHeader->update();
+  QSettings().setValue("opacity", m_opacity);
+}
+
+// A slider on the menu, live: the window fades as it moves.
+void MainWindow::addOpacitySlider(QMenu *menu)
+{
+  auto *row = new QWidget(menu);
+  row->setObjectName("opacityRow");
+  auto *h = new QHBoxLayout(row);
+  h->setContentsMargins(12, 4, 12, 4);
+  auto *label = new QLabel(tr("Opacity"), row);
+  auto *slider = new QSlider(Qt::Horizontal, row);
+  slider->setRange(30, 100);
+  slider->setValue(int(qRound(m_opacity * 100)));
+  slider->setMinimumWidth(140);
+  auto *value = new QLabel(QStringLiteral("%1%").arg(slider->value()), row);
+  value->setMinimumWidth(value->fontMetrics().horizontalAdvance(QStringLiteral("100%")) + 12);
+  h->addWidget(label);
+  h->addWidget(slider, 1);
+  h->addWidget(value);
+  // Re-styling the window is the slow part: once per pause in the drag.
+  auto *settle = new QTimer(row);
+  settle->setSingleShot(true);
+  settle->setInterval(40);
+  connect(settle, &QTimer::timeout, this, [this, slider] { setOpacity(slider->value() / 100.0); });
+  connect(slider, &QSlider::valueChanged, row, [value, settle](int v) {
+    value->setText(QStringLiteral("%1%").arg(v));
+    settle->start();
+  });
+  auto *action = new QWidgetAction(menu);
+  action->setDefaultWidget(row);
+  menu->addAction(action);
 }

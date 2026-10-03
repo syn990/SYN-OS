@@ -50,6 +50,9 @@ public:
   bool detachToFoot(QString *error);
   QString cwd() const { return m_cwd; }
   void reloadColours();
+  // The default background's opacity (the window's setting); text and
+  // coloured cells stay solid, as foot's alpha does it.
+  void setBackgroundAlpha(double alpha);
   // Text size in pixels; animated steps along Zoom::kLadder when asked.
   int fontPixels() const { return m_fontPx; }
   void setFontPixels(int px, bool animate);
@@ -63,6 +66,8 @@ signals:
   void detachRequested();
   void hideRequested();
   void zoomChanged(int px);
+  // Ctrl+click on a path in the output: a file or folder that exists.
+  void pathClicked(const QString &path);
 
 protected:
   bool event(QEvent *e) override;
@@ -109,6 +114,8 @@ private:
   QColor colour(VTermColor c, bool foreground) const;
   QPoint cellAtPixel(const QPoint &p) const; // (col, absolute line)
   QString selectedText() const;
+  QString lineText(int line, QVector<int> *colAt) const;
+  bool openLinkAt(const QPoint &cell);
   bool isSelected(int line, int col) const;
   void pasteText(const QString &text);
   void scrollBy(int lines);
@@ -151,4 +158,5 @@ private:
   QPoint m_selAnchor, m_selEnd; // (col, absolute line)
 
   QColor m_fg, m_bg, m_palette[16];
+  double m_bgAlpha = 1.0;
 };

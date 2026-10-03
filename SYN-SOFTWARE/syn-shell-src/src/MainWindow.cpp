@@ -122,6 +122,12 @@ QLabel#menuHead {
   background: palette(base); color: palette(highlight); font-weight: bold;
   padding: 4px 12px;
 }
+QWidget#opacityRow { background: transparent; }
+QLabel#emptyNote { color: palette(mid); background: transparent; }
+QWidget#opacityRow QLabel { color: palette(highlight); padding: 0 6px; }
+QSlider::groove:horizontal { height: 4px; background: palette(base); }
+QSlider::sub-page:horizontal { background: palette(highlight); }
+QSlider::handle:horizontal { width: 10px; margin: -5px 0; background: palette(highlight); }
 )";
 
 const char kHelp[] = R"(  MOVE
@@ -162,6 +168,8 @@ const char kHelp[] = R"(  MOVE
   Ctrl+T Ctrl+W   new tab, close tab      Ctrl+Tab  next tab    Alt+1..9  tab 1..9
   Ctrl+wheel      zoom (over the files, or over the shell: each zooms on its own)
   Ctrl+= - 0      zoom in, out, back
+  Ctrl+click      in the shell: a link opens, a path shows here (file:12:3 works too)
+  :opacity 70     see the desktop through the window (also a slider on the menu)
   S               terminal here
   R  F5           refresh
   ?               this
@@ -255,6 +263,10 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   : QMainWindow(parent)
 {
   QSettings settings;
+  // An alpha channel from the start (it can't be added once the window
+  // exists), so the opacity setting can let the desktop through.
+  setAttribute(Qt::WA_TranslucentBackground);
+  m_opacity = qBound(0.3, settings.value("opacity", 1.0).toDouble(), 1.0);
   RowDelegate::setShowIcons(settings.value("icons", true).toBool());
   RowDelegate::setFields(settings.value("fields", int(RowDelegate::Size)).toInt());
   m_git = new GitStatus(this);
@@ -420,6 +432,29 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
 
   m_view->installEventFilter(this);
   m_view->viewport()->installEventFilter(this);
+
+  // "empty" over a folder with nothing to show, once it has had a moment
+  // to load (rows arrive asynchronously).
+  m_emptyNote = new QLabel(m_view->viewport());
+  m_emptyNote->setObjectName("emptyNote");
+  m_emptyNote->setAlignment(Qt::AlignCenter);
+  m_emptyNote->setAttribute(Qt::WA_TransparentForMouseEvents);
+  m_emptyNote->hide();
+  m_emptyTimer = new QTimer(this);
+  m_emptyTimer->setSingleShot(true);
+  m_emptyTimer->setInterval(250);
+  connect(m_emptyTimer, &QTimer::timeout, this, [this] {
+    if (m_view->model()->rowCount(m_view->rootIndex()) > 0)
+      return;
+    int hidden = 0;
+    if (!m_inArchive && !(m_model->filter() & QDir::Hidden))
+      hidden = int(QDir(m_currentDir).entryList(QDir::AllEntries | QDir::NoDotAndDotDot
+                                                | QDir::Hidden | QDir::System).size());
+    m_emptyNote->setText(hidden ? tr("empty, apart from %n hidden (zh shows them)", nullptr, hidden)
+                                : tr("empty"));
+    m_emptyNote->setGeometry(m_view->viewport()->rect());
+    m_emptyNote->show();
+  });
   // Ctrl+wheel anywhere over the window: the views would otherwise take
   // it as a scroll. Its own filter object, application-wide, so it never
   // sees the key events this window's filters handle.
@@ -445,10 +480,13 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   applyUiFont(m_uiPx);
   if (settings.contains("termPx"))
     m_term->setFontPixels(settings.value("termPx").toInt(), false);
+  m_term->setBackgroundAlpha(m_opacity);
+  RowDelegate::setBackgroundAlpha(m_opacity);
   connect(m_term, &TermView::zoomChanged, this, [](int px) { QSettings().setValue("termPx", px); });
 
   applyStyle();
-  setWindowIcon(QIcon::fromTheme(QStringLiteral("system-file-manager")));
+  setWindowIcon(QIcon::fromTheme(QStringLiteral("syn-shell"),
+                                  QIcon::fromTheme(QStringLiteral("system-file-manager"))));
   if (!restoreGeometry(settings.value("geometry").toByteArray()))
     resize(1100, 700);
 
@@ -797,8 +835,29 @@ void MainWindow::applyStyle()
 {
   // palette() references are resolved when the sheet is applied, so a
   // live theme switch needs the sheet set again to pick up new colours.
+  //
+  // Opacity: the window itself is the one layer painted in the window
+  // colour, at the chosen opacity (labwc shows the desktop through it,
+  // as foot's alpha does); everything that repeated that colour is
+  // transparent above it, so layers don't stack, and the panels in the
+  // base colour keep their tint at the same opacity. Menus and dialogs,
+  // separate windows, stay solid (the part after "QMenu {").
+  QString sheet = QString::fromLatin1(kStyle);
+  const int split = int(sheet.indexOf(QLatin1String("QMenu {")));
+  QString window = sheet.left(split);
+  const QString popups = sheet.mid(split);
+  auto rgba = [this](QPalette::ColorRole role) {
+    const QColor c = palette().color(role);
+    return QStringLiteral("rgba(%1, %2, %3, %4)").arg(c.red()).arg(c.green()).arg(c.blue())
+                                                  .arg(int(qRound(m_opacity * 255)));
+  };
+  window.replace(QLatin1String("QMainWindow, #central { background: palette(window); }"),
+                 QStringLiteral("QMainWindow { background: transparent; }\n#central { background: %1; }")
+                   .arg(rgba(QPalette::Window)));
+  window.replace(QLatin1String("background: palette(window)"), QLatin1String("background: transparent"));
+  window.replace(QLatin1String("background: palette(base)"), QStringLiteral("background: %1").arg(rgba(QPalette::Base)));
   setStyleSheet(QString());
-  setStyleSheet(QString::fromLatin1(kStyle));
+  setStyleSheet(window + popups);
 }
 
 // -------------------------------------------------------------- navigation
@@ -1412,6 +1471,13 @@ void MainWindow::runCommand(const QString &input)
       flash(tr("chmod needs a mode: :chmod 755, :chmod +x, :chmod g+w"), true);
     else
       changeMode(arg);
+  } else if (cmd == QLatin1String("opacity") || cmd == QLatin1String("alpha")) {
+    bool ok = false;
+    const double v = arg.toDouble(&ok);
+    if (!ok)
+      flash(tr("opacity takes a percentage: :opacity 70"), true);
+    else
+      setOpacity((v > 1.0 ? v / 100.0 : v));
   } else if (cmd == QLatin1String("du") || cmd == QLatin1String("sizes")) {
     measureFolders();
   } else if (cmd == QLatin1String("openwith")) {
@@ -1579,8 +1645,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
   if (watched == m_view && event->type() == QEvent::KeyPress)
     return handleKey(static_cast<QKeyEvent *>(event));
 
-  if (watched == m_view->viewport() && event->type() == QEvent::Resize)
+  if (watched == m_view->viewport() && event->type() == QEvent::Resize) {
     m_fieldHeader->update();
+    m_emptyNote->setGeometry(m_view->viewport()->rect());
+  }
 
   if (watched == m_view->viewport() && event->type() == QEvent::MouseButtonPress) {
     auto *me = static_cast<QMouseEvent *>(event);
@@ -1751,6 +1819,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
   }
 
   head(tr("VIEW"));
+  addOpacitySlider(&menu);
   menu.addAction(m_actShell);
   if (m_term->isRunning())
     menu.addAction(m_actDetachShell);
@@ -1809,6 +1878,13 @@ void MainWindow::updateInfo()
 {
   const QModelIndex root = m_view->rootIndex();
   const int n = m_view->model()->rowCount(root);
+  if (n == 0) {
+    if (!m_emptyNote->isVisible() && !m_emptyTimer->isActive())
+      m_emptyTimer->start();
+  } else {
+    m_emptyTimer->stop();
+    m_emptyNote->hide();
+  }
   const QModelIndex c = cursor();
   m_posSeg->setText(n ? QStringLiteral("%1/%2").arg(c.isValid() ? c.row() + 1 : 0).arg(n)
                       : tr("empty"));

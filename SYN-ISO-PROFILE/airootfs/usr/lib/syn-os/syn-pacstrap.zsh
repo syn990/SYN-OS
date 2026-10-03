@@ -90,9 +90,9 @@ pacstrapMain() {
   # a plain copy, same as every other live-ISO file this function deploys.
   # No build deps, no makepkg, no per-tool CPU-arch guessing on the target.
   #
-  # Each entry is "binary_path[:extra_file]" — extra_file (if present) is
-  # copied alongside the binary at the same relative destination path, for
-  # syn-shell's .desktop entry. Everything else has no extra file.
+  # Each entry is "binary_path[:extra_file...]" — each extra file (if any)
+  # is copied alongside the binary at the same relative destination path,
+  # for syn-shell's .desktop entry and icon. Everything else has none.
   local -a nativeTools
   nativeTools=(
     /usr/lib/syn-os/syn-audio
@@ -106,7 +106,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-sysmon
     /usr/lib/syn-os/syn-wallgen
     /usr/lib/syn-os/syn-uplink-dialpad
-    "/usr/bin/syn-shell:/usr/share/applications/syn-shell.desktop"
+    "/usr/bin/syn-shell:/usr/share/applications/syn-shell.desktop:/usr/share/icons/hicolor/scalable/apps/syn-shell.svg"
     # dislocker (BitLocker) — AUR-only upstream, vendored in
     # SYN-SOFTWARE/dislocker-src and built by the same loop. install
     # follows symlinks, so /usr/bin/dislocker and the soname land as
@@ -119,15 +119,17 @@ pacstrapMain() {
     /usr/lib/libdislocker.so.0.7
   )
   for entry in "${nativeTools[@]}"; do
-    local binPath="${entry%%:*}"
-    local extraPath="${entry#*:}"
-    [[ "$extraPath" == "$entry" ]] && extraPath=""
+    local -a parts=("${(@s/:/)entry}")
+    local binPath="${parts[1]}"
     local toolName="${binPath:t}"
 
     syn_ui::step "Installing $toolName"
     if [ -x "$binPath" ]; then
       install -Dm755 "$binPath" "${RootMountLocation}${binPath}"
-      [[ -n "$extraPath" ]] && install -Dm644 "$extraPath" "${RootMountLocation}${extraPath}"
+      local extraPath
+      for extraPath in "${(@)parts[2,-1]}"; do
+        [[ -f "$extraPath" ]] && install -Dm644 "$extraPath" "${RootMountLocation}${extraPath}"
+      done
       syn_ui::step_done "$toolName installed"
     else
       syn_ui::error "$toolName missing from the live ISO — it wasn't built at ISO-build time (see BUILD-ARCHISO.zsh output), so it won't be available on this install."

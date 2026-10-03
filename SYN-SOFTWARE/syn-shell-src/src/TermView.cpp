@@ -16,6 +16,9 @@
 #include <QMenu>
 #include <QPainter>
 #include <QProcess>
+#include <QDesktopServices>
+#include <QFileInfo>
+#include <QRegularExpression>
 #include <QUrl>
 #include <QVariantAnimation>
 
@@ -160,6 +163,12 @@ TermView::~TermView()
   m_sock->disconnect(this);
   m_sock->abort();
   vterm_free(m_vt);
+}
+
+void TermView::setBackgroundAlpha(double alpha)
+{
+  m_bgAlpha = alpha;
+  update();
 }
 
 void TermView::reloadColours()
@@ -440,7 +449,13 @@ bool TermView::isSelected(int line, int col) const
 void TermView::paintEvent(QPaintEvent *)
 {
   QPainter p(this);
-  p.fillRect(rect(), m_bg);
+  // Source, not over: replace what's there (the window's own background)
+  // so the opacity is the setting, not the setting twice.
+  QColor bg = m_bg;
+  bg.setAlphaF(float(m_bgAlpha));
+  p.setCompositionMode(QPainter::CompositionMode_Source);
+  p.fillRect(rect(), bg);
+  p.setCompositionMode(QPainter::CompositionMode_SourceOver);
   if (m_paintScale != 1.0) {
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     p.scale(m_paintScale, m_paintScale);
@@ -775,6 +790,10 @@ void TermView::mousePressEvent(QMouseEvent *e)
 {
   setFocus();
   const QPoint cell = cellAtPixel(e->position().toPoint());
+  // Ctrl+click: a link opens, a path shows in the browser.
+  if (e->button() == Qt::LeftButton && (e->modifiers() & Qt::ControlModifier) && !forwardMouse()
+      && openLinkAt(cell))
+    return;
   if (forwardMouse() && m_running) {
     const int button = e->button() == Qt::LeftButton ? 1 : e->button() == Qt::MiddleButton ? 2 : 3;
     vterm_mouse_move(m_vt, cell.y() - firstVisibleLine(), cell.x(), modifiers(e->modifiers()));
@@ -871,6 +890,63 @@ void TermView::wheelEvent(QWheelEvent *e)
   } else {
     scrollBy(notches * 3);
   }
+}
+
+// One line of the screen or scrollback as text; colAt[i] is the cell
+// column where character i sits (wide characters take two cells).
+QString TermView::lineText(int line, QVector<int> *colAt) const
+{
+  QString text;
+  for (int col = 0; col < m_cols; ++col) {
+    const VTermScreenCell c = cellAt(line, col);
+    if (c.chars[0] == uint32_t(-1))
+      continue;
+    const QString s = c.chars[0] == 0 ? QStringLiteral(" ")
+                                      : QString::fromUcs4(reinterpret_cast<const char32_t *>(&c.chars[0]), 1);
+    for (int k = 0; k < s.size(); ++k)
+      colAt->append(col);
+    text += s;
+  }
+  return text;
+}
+
+bool TermView::openLinkAt(const QPoint &cell)
+{
+  QVector<int> colAt;
+  const QString text = lineText(cell.y(), &colAt);
+  int i = int(colAt.indexOf(cell.x()));
+  if (i < 0 || text.at(i).isSpace())
+    return false;
+  // The word under the click, up to spaces, quotes and brackets.
+  static const QString stops = QStringLiteral(" \t\"'`<>()[]{}|");
+  int a = i, b = i;
+  while (a > 0 && !stops.contains(text.at(a - 1)))
+    --a;
+  while (b + 1 < text.size() && !stops.contains(text.at(b + 1)))
+    ++b;
+  QString word = text.mid(a, b - a + 1);
+  while (!word.isEmpty() && QStringLiteral(".,;!?").contains(word.back()))
+    word.chop(1);
+  if (word.isEmpty())
+    return false;
+
+  static const QRegularExpression url(QStringLiteral("^(https?|ftp|file)://\\S+$"));
+  if (url.match(word).hasMatch()) {
+    QDesktopServices::openUrl(QUrl(word));
+    return true;
+  }
+  // A path, maybe with a compiler's ":line:column" after it.
+  static const QRegularExpression position(QStringLiteral(":\\d+(:\\d+)?:?$"));
+  word.remove(position);
+  QString path = word;
+  if (path.startsWith(QLatin1String("~/")) || path == QLatin1String("~"))
+    path = QDir::homePath() + path.mid(1);
+  else if (!path.startsWith(QLatin1Char('/')))
+    path = m_cwd + QLatin1Char('/') + path;
+  if (!QFileInfo::exists(path))
+    return false;
+  emit pathClicked(QDir::cleanPath(path));
+  return true;
 }
 
 QString TermView::selectedText() const

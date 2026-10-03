@@ -225,6 +225,7 @@ private:
   void syncShell();
   void onShellCwd(const QString &dir);
   void onShellFinished(bool detached);
+  void onShellPathClicked(const QString &path);
 
   // Bulk rename (MainWindowRename.cpp): names edited in $EDITOR in the
   // shell area, applied in two passes so swaps work, one undo for all.
@@ -239,6 +240,8 @@ private:
   // Zoom of everything but the shell (the shell zooms itself)
   void zoomUi(int steps);
   void toggleField(int field);
+  void setOpacity(double opacity);
+  void addOpacitySlider(QMenu *menu);
   void applyUiFont(qreal px);
 
   QFileSystemModel *m_model;
@@ -343,6 +346,10 @@ private:
   int m_tempSlots = 0;
 
   int m_uiPx = 12;
+  double m_opacity = 1.0; // of the window's background; 1 is solid
+  bool m_quietShell = false; // navigating for the shell's sake: don't cd it
+  QLabel *m_emptyNote;
+  QTimer *m_emptyTimer;
   QVariantAnimation *m_uiZoomAnim;
   int m_uiWheelAcc = 0;
 };
