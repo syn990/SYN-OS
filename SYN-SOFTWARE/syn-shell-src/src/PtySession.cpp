@@ -21,6 +21,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <vector>
+
 namespace PtySession {
 
 namespace {
@@ -128,7 +130,8 @@ int connectTo(const QString &path)
 
 // Starts the user's shell on a new pty, with the integration for zsh or
 // bash. Returns the shell's pid; *master is the pty's master side.
-pid_t startShell(const QString &cwd, int rows, int cols, const QString &cdFile, int *master)
+pid_t startShell(const QString &cwd, int rows, int cols, const QString &cdFile, int *master,
+                 const QStringList &command)
 {
   QByteArray shell = qgetenv("SHELL");
   if (shell.isEmpty() || access(shell.constData(), X_OK) != 0)
@@ -160,6 +163,17 @@ pid_t startShell(const QString &cwd, int rows, int cols, const QString &cdFile, 
     (void)!chdir(getenv("HOME") ? getenv("HOME") : "/");
   setenv("TERM", "xterm-256color", 1);
   setenv("COLORTERM", "truecolor", 1);
+  if (!command.isEmpty()) {
+    QList<QByteArray> args;
+    for (const QString &a : command)
+      args << QFile::encodeName(a);
+    std::vector<char *> argv;
+    for (QByteArray &a : args)
+      argv.push_back(a.data());
+    argv.push_back(nullptr);
+    execvp(argv[0], argv.data());
+    _exit(127);
+  }
   setenv("SYN_SHELL", "1", 1);
   setenv("SYN_SHELL_CD_FILE", QFile::encodeName(cdFile).constData(), 1);
   if (name == "zsh") {
@@ -230,7 +244,8 @@ QString newSocketPath()
                           .arg(QString::number(quint32(random()), 36));
 }
 
-int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols)
+int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols,
+              const QStringList &command)
 {
   setsid();
   signal(SIGPIPE, SIG_IGN);
@@ -245,14 +260,15 @@ int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols)
     return 1;
   const QString cdFile = socketPath + QStringLiteral(".cd");
   int master = -1;
-  const pid_t shell = startShell(cwd, qMax(2, rows), qMax(2, cols), cdFile, &master);
+  const pid_t shell = startShell(cwd, qMax(2, rows), qMax(2, cols), cdFile, &master, command);
   if (shell < 0) {
     unlink(QFile::encodeName(socketPath).constData());
     return 1;
   }
   fcntl(master, F_SETFD, FD_CLOEXEC);
-  const bool zsh = QFileInfo(QString::fromLocal8Bit(qgetenv("SHELL"))).fileName()
-                   == QLatin1String("zsh");
+  const bool zsh = command.isEmpty()
+                   && QFileInfo(QString::fromLocal8Bit(qgetenv("SHELL"))).fileName()
+                        == QLatin1String("zsh");
 
   int client = -1;
   bool freshClient = false;

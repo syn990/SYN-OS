@@ -114,6 +114,12 @@ progress, the file it's on, its speed and how long is left, with a
 CANCEL for each; the JOBS button in the top strip opens it again later.
 Cancelling never leaves a half-copied file behind.
 
+To rename lots at once, mark them (or mark nothing, for the whole
+folder) and press `cW`. Their names open one per line in your text
+editor, right in the shell area. Change what you like, save and quit,
+check the list of changes it shows you, and they're all renamed. Swapping
+two names works, and `Ctrl+Z` puts every one back.
+
 When names already exist where you paste, you're asked once: replace
 them, keep both (the new one becomes "name (2)"), or skip them. Pasting
 a copy into the folder it came from makes "name (2)" straight away.

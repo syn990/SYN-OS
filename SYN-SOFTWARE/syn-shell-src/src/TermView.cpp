@@ -188,16 +188,18 @@ void TermView::reloadColours()
 
 // ------------------------------------------------------------- session
 
-void TermView::start(const QString &cwd)
+void TermView::start(const QString &cwd, const QStringList &command)
 {
   if (isRunning())
     return;
   resetTerminal();
   m_cwd = cwd;
   m_sockPath = PtySession::newSocketPath();
-  QProcess::startDetached(QCoreApplication::applicationFilePath(),
-                          {QStringLiteral("--pty-hold"), m_sockPath, cwd,
-                           QString::number(m_rows), QString::number(m_cols)});
+  QStringList args{QStringLiteral("--pty-hold"), m_sockPath, cwd,
+                   QString::number(m_rows), QString::number(m_cols)};
+  if (!command.isEmpty())
+    args << QStringLiteral("--") << command;
+  QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
   m_connectTries = 0;
   m_connectTimer.start();
 }

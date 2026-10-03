@@ -142,6 +142,7 @@ const char kHelp[] = R"(  MOVE
   yy  Ctrl+C      copy        dd  Ctrl+X   cut
   pp  Ctrl+V      paste       yp           copy path
   cw  F2          rename      dD  Delete   to the trash
+  cW              bulk rename: the marks (or the whole folder) in $EDITOR below
   Ctrl+Z          undo        Shift+Del    delete for good
   gt              the trash   :jobs        the jobs window
   F7              new folder
@@ -420,7 +421,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   // sees the key events this window's filters handle.
   qApp->installEventFilter(new WheelZoomFilter(this, [this](QWidget *w, QWheelEvent *e) {
     // The shell zooms itself; everything else in this window zooms here.
-    if (w->window() != this || w == m_term || m_term->isAncestorOf(w))
+    if (w->window() != this || w == m_termStack || m_termStack->isAncestorOf(w))
       return false;
     m_uiWheelAcc += e->angleDelta().y();
     while (qAbs(m_uiWheelAcc) >= 120) {
@@ -475,6 +476,7 @@ void MainWindow::buildActions()
   m_actCut       = act(tr("Cut"), "dd", [this] { yank(true); });
   m_actPaste     = act(tr("Paste"), "pp", [this] { paste(); });
   m_actRename    = act(tr("Rename"), "cw", [this] { renameCursor(); });
+  m_actBulkRename = act(tr("Bulk rename in the editor"), "cW", [this] { bulkRename(); });
   m_actDelete    = act(tr("Move to trash"), "dD", [this] { deleteTargets(); });
   m_actDeleteForever = act(tr("Delete permanently"), "Shift+Del", [this] { deletePermanently(); });
   m_actUndo      = act(tr("Undo"), "Ctrl+Z", [this] { undo(); });
@@ -600,6 +602,7 @@ void MainWindow::buildActions()
     {"pp", [this] { paste(); }},
     {"yp", [this] { copyPaths(); }},
     {"cw", [this] { renameCursor(); }},
+    {"cW", [this] { bulkRename(); }},
     {"dD", [this] { deleteTargets(); }},
     {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
@@ -1396,6 +1399,8 @@ void MainWindow::runCommand(const QString &input)
     deleteTargets();
   } else if (cmd == QLatin1String("delete!") || cmd == QLatin1String("rm!")) {
     deletePermanently();
+  } else if (cmd == QLatin1String("bulkrename") || cmd == QLatin1String("rename-all")) {
+    bulkRename();
   } else if (cmd == QLatin1String("emptytrash")) {
     emptyTrash();
   } else if (cmd == QLatin1String("undo")) {
@@ -1673,6 +1678,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actCut);
     menu.addAction(m_actPaste);
     menu.addAction(m_actRename);
+    menu.addAction(m_actBulkRename);
     if (inTrashView()) {
       head(tr("TRASH"));
       menu.addAction(m_actRestore);

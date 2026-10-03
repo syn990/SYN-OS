@@ -29,6 +29,7 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QStringList>
 
 namespace PtySession {
 
@@ -47,7 +48,10 @@ QString newSocketPath();
 
 // The two command-line modes of the syn-shell binary. Both return the
 // process exit status.
-int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols);
+// With a `command`, that runs on the pty instead of the user's shell
+// (bulk rename's editor), with no shell integration.
+int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols,
+              const QStringList &command = {});
 int runAttach(const QString &socketPath);
 
 } // namespace PtySession

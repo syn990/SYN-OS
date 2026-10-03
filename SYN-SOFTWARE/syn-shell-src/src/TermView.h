@@ -41,8 +41,9 @@ public:
   ~TermView() override;
 
   bool isRunning() const { return m_running || m_connectTimer.isActive(); }
-  // Starts a shell in `cwd` (no-op if one is running).
-  void start(const QString &cwd);
+  // Starts a shell in `cwd` (no-op if one is running), or `command`
+  // instead of a shell (bulk rename's editor).
+  void start(const QString &cwd, const QStringList &command = {});
   // Ask the shell to cd: done only if it's idle at a zsh prompt.
   void requestCd(const QString &dir);
   // Hands the running shell to a new foot window.

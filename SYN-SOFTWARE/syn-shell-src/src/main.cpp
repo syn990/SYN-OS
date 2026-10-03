@@ -48,9 +48,14 @@ int main(int argc, char *argv[])
   // The binary's two other jobs (see PtySession.h), before any GUI:
   //   --pty-hold SOCKET CWD ROWS COLS   hold a shell for the terminal area
   //   --attach SOCKET                   take that shell over, inside foot
-  if (argc == 6 && QByteArray(argv[1]) == "--pty-hold")
+  //   --pty-hold SOCKET CWD ROWS COLS -- PROGRAM ARGS   the same, a program
+  if (argc >= 6 && QByteArray(argv[1]) == "--pty-hold") {
+    QStringList command;
+    for (int i = 7; argc > 7 && QByteArray(argv[6]) == "--" && i < argc; ++i)
+      command << QString::fromLocal8Bit(argv[i]);
     return PtySession::runHolder(QString::fromLocal8Bit(argv[2]), QString::fromLocal8Bit(argv[3]),
-                                 atoi(argv[4]), atoi(argv[5]));
+                                 atoi(argv[4]), atoi(argv[5]), command);
+  }
   if (argc == 3 && QByteArray(argv[1]) == "--attach")
     return PtySession::runAttach(QString::fromLocal8Bit(argv[2]));
 

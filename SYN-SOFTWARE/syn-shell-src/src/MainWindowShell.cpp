@@ -29,6 +29,7 @@
 #include <QListView>
 #include <QSettings>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QToolButton>
 #include <QVariantAnimation>
 
@@ -36,21 +37,25 @@
 
 void MainWindow::buildShell()
 {
-  m_term = new TermView(this);
-  m_term->hide();
+  // The area holds the shell, and for a while a program instead
+  // (bulk rename's editor) on a second page.
+  m_termStack = new QStackedWidget(this);
+  m_term = new TermView(m_termStack);
+  m_termStack->addWidget(m_term);
+  m_termStack->hide();
 
   m_vsplit = new QSplitter(Qt::Vertical, this);
   m_vsplit->setObjectName("vsplit");
   m_vsplit->setChildrenCollapsible(false);
   m_vsplit->setHandleWidth(2);
   m_vsplit->addWidget(m_split);
-  m_vsplit->addWidget(m_term);
+  m_vsplit->addWidget(m_termStack);
   m_vsplit->setStretchFactor(0, 3);
   m_vsplit->setStretchFactor(1, 2);
   QSettings settings;
   if (!m_vsplit->restoreState(settings.value("vsplit").toByteArray()))
     m_vsplit->setSizes({420, 260});
-  m_term->hide(); // restoreState can show it; the shell starts on demand
+  m_termStack->hide(); // restoreState can show it; the shell starts on demand
 
   connect(m_term, &TermView::cwdChanged, this, &MainWindow::onShellCwd);
   connect(m_term, &TermView::finished, this, &MainWindow::onShellFinished);
@@ -61,7 +66,8 @@ void MainWindow::buildShell()
 
 void MainWindow::showShell(bool focus)
 {
-  m_term->show();
+  m_termStack->show();
+  m_termStack->setCurrentWidget(m_term);
   m_shellBtn->setChecked(true);
   if (!m_term->isRunning())
     m_term->start(m_currentDir);
@@ -72,14 +78,16 @@ void MainWindow::showShell(bool focus)
 void MainWindow::hideShell()
 {
   // Hidden, not ended: the shell keeps running and comes back as it was.
-  m_term->hide();
+  if (m_termStack->currentWidget() != m_term)
+    return; // an editor of ours is open in it: leave it to finish
+  m_termStack->hide();
   m_shellBtn->setChecked(false);
   m_view->setFocus();
 }
 
 void MainWindow::toggleShellPane()
 {
-  if (m_term->isVisible())
+  if (m_termStack->isVisible())
     hideShell();
   else
     showShell(true);
@@ -116,7 +124,8 @@ void MainWindow::onShellCwd(const QString &dir)
 void MainWindow::onShellFinished(bool detached)
 {
   const bool hadFocus = m_term->hasFocus();
-  m_term->hide();
+  if (m_termStack->currentWidget() == m_term)
+    m_termStack->hide();
   m_shellBtn->setChecked(false);
   if (hadFocus || detached)
     m_view->setFocus();
@@ -154,7 +163,7 @@ void MainWindow::applyUiFont(qreal px)
     return;
   centralWidget()->setFont(f);
   for (QWidget *w : centralWidget()->findChildren<QWidget *>())
-    if (w != m_term && !m_term->isAncestorOf(w))
+    if (w != m_termStack && !m_termStack->isAncestorOf(w))
       w->setFont(f);
 }
 

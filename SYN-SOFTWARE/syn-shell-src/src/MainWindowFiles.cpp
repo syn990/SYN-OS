@@ -406,12 +406,16 @@ void MainWindow::undo()
     break;
   }
   case UndoStep::Renamed: {
-    const FileJobs::Pair &p = step.pairs.first();
-    if (QFileInfo::exists(p.from) || !QDir().rename(p.to, p.from)) {
-      flash(tr("can't undo the %1: %2 is in the way or gone").arg(what, QFileInfo(p.from).fileName()), true);
+    FileJobs::Pairs back;
+    for (const FileJobs::Pair &p : step.pairs)
+      back << FileJobs::Pair{p.to, p.from};
+    const QString error = renameAll(back);
+    if (!error.isEmpty()) {
+      m_undo << step;
+      flash(tr("can't undo the %1: %2").arg(what, error), true);
       return;
     }
-    m_pendingPath = p.from;
+    m_pendingPath = back.first().to;
     tryPending();
     flash(tr("undid the %1").arg(what));
     break;

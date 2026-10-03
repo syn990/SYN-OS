@@ -211,6 +211,16 @@ private:
   void onShellCwd(const QString &dir);
   void onShellFinished(bool detached);
 
+  // Bulk rename (MainWindowRename.cpp): names edited in $EDITOR in the
+  // shell area, applied in two passes so swaps work, one undo for all.
+  void bulkRename();
+  void finishBulkRename();
+  static QString renameAll(const FileJobs::Pairs &pairs);
+  QString m_bulkDir;
+  QStringList m_bulkNames;
+  QString m_bulkFile;
+  bool m_bulkPaneWasOpen = false;
+
   // Zoom of everything but the shell (the shell zooms itself)
   void zoomUi(int steps);
   void toggleField(int field);
@@ -221,6 +231,8 @@ private:
   QSplitter *m_split;
   QSplitter *m_vsplit;   // the columns above, the shell area below
   TermView *m_term;
+  QStackedWidget *m_termStack;
+  TermView *m_task = nullptr; // a program in the shell area's place (bulk rename)
   QToolButton *m_shellBtn;
   QListView *m_parentView;
   QListView *m_view;
@@ -261,7 +273,7 @@ private:
   QAction *m_actExtract, *m_actExtractTo, *m_actCompress, *m_actOpenExternal;
   QAction *m_actShell, *m_actDetachShell, *m_actIcons;
   QAction *m_actUndo, *m_actDeleteForever, *m_actRestore, *m_actEmptyTrash, *m_actTrash;
-  QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab, *m_actGit;
+  QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab, *m_actGit, *m_actBulkRename;
   QList<QAction *> m_actFields;
 
   QString m_currentDir;
