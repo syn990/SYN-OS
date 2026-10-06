@@ -60,8 +60,12 @@ pacstrapMain() {
       fstabLine "$BootPart" /boot ${=bootFs}
     fi
     [ -n "${SwapDev:-}" ] && printf 'UUID=%s  none  swap  defaults  0 0\n' "$(blkid -s UUID -o value "$SwapDev")"
-    # The kernel filesystems, as the image's own fstab lists them
-    grep -E '^(proc|sysfs|devpts|tmpfs|devtmpfs|cgroup2)[[:space:]]' "$Source/etc/fstab"
+    # No kernel filesystems (/proc, /dev, /run, /dev/shm ...): runit's
+    # Stage 1 mounts them itself. Listed here they broke every layout
+    # with an initramfs: mkinitcpio mounts /dev and /run as "dev" and
+    # "run", mount --all took "devtmpfs" and "tmpfs" for other mounts and
+    # put a fresh /dev over Stage 1's, hiding /dev/shm and /dev/pts, and
+    # labwc couldn't allocate shared memory.
   } > "$target/etc/fstab"
   syn_ui::step_done "fstab written"
 
