@@ -53,5 +53,15 @@ QString newSocketPath();
 int runHolder(const QString &socketPath, const QString &cwd, int rows, int cols,
               const QStringList &command = {});
 int runAttach(const QString &socketPath);
+#ifdef Q_OS_WIN
+
+// Windows (PtySession_win.cpp): the shell the area runs, and what S and
+// :! open: PowerShell 7, else Windows PowerShell, else cmd.
+QString shellProgram();
+bool isPowerShell(const QString &program);
+// A command line for CreateProcess, each argument quoted the way
+// CommandLineToArgvW reads it back.
+QString commandLine(const QStringList &args);
+#endif
 
 } // namespace PtySession

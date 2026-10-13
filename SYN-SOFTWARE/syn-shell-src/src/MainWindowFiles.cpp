@@ -25,6 +25,9 @@
 #include "Jobs.h"
 #include "JobsWindow.h"
 #include "RowDelegate.h"
+#ifdef Q_OS_WIN
+#include "Win.h"
+#endif
 
 #include <QAction>
 #include <QApplication>
@@ -287,7 +290,13 @@ void MainWindow::paste()
     flash(tr("nothing to paste"), true);
     return;
   }
+#ifdef Q_OS_WIN
+  // A cut in Explorer says so with its drop effect.
+  const bool cut = mime->data(QByteArrayLiteral("x-special/gnome-copied-files")).startsWith("cut")
+                || Win::isCut(mime->data(Win::kDropEffectMime));
+#else
   const bool cut = mime->data(QByteArrayLiteral("x-special/gnome-copied-files")).startsWith("cut");
+#endif
   const QString dest = m_currentDir;
   const std::optional<FileJobs::Conflict> policy = FileOps::askTransfer(this, paths, dest, cut);
   if (!policy)
@@ -361,8 +370,14 @@ void MainWindow::deletePermanently()
                  if (!FileJobs::isInTrash(path))
                    continue;
                  const QFileInfo fi(path);
+#ifdef Q_OS_WIN
+                 // In the Recycle Bin the record is the $I file beside its $R.
+                 if (fi.fileName().startsWith(QLatin1String("$R"), Qt::CaseInsensitive))
+                   QFile::remove(fi.absolutePath() + QStringLiteral("/$I") + fi.fileName().mid(2));
+#else
                  QFile::remove(QFileInfo(fi.absolutePath()).absolutePath() + QStringLiteral("/info/")
                                + fi.fileName() + QStringLiteral(".trashinfo"));
+#endif
                }
                return out;
              },
@@ -400,8 +415,17 @@ void MainWindow::emptyTrash()
 
 void MainWindow::openTrash()
 {
+#ifdef Q_OS_WIN
+  // The system drive's bin, this user's folder of it; Windows makes it.
+  const QString files = FileJobs::homeTrash();
+  if (!QFileInfo(files).isDir()) {
+    flash(tr("the Recycle Bin is empty"));
+    return;
+  }
+#else
   const QString files = FileJobs::homeTrash() + QStringLiteral("/files");
   QDir().mkpath(files);
+#endif
   navigateTo(files);
 }
 

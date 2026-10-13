@@ -11,6 +11,9 @@ SYN-SOFTWARE/syn-shell-src/src/build/
 SYN-SOFTWARE/syn-shell-src/pkg/
 SYN-SOFTWARE/syn-shell-src/*.pkg.tar.zst
 SYN-SOFTWARE/syn-shell-src/*.pkg.tar.zst.sig
+SYN-SOFTWARE/syn-shell-src/build-windows/
+SYN-SOFTWARE/syn-shell-src/dist/
+SYN-SOFTWARE/syn-shell-src/dist.zip
 SYN-SOFTWARE/*/build/
 SYN-SOFTWARE/*-src-build/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-connect

@@ -111,8 +111,13 @@ void MainWindow::toggleShellFocus()
 void MainWindow::detachShell()
 {
   QString error;
+#ifdef Q_OS_WIN
+  if (!m_term->detachToFoot(&error))
+    flash(tr("shell to Windows Terminal: %1").arg(error), true);
+#else
   if (!m_term->detachToFoot(&error))
     flash(tr("shell to foot: %1").arg(error), true);
+#endif
 }
 
 void MainWindow::onShellPathClicked(const QString &path)
@@ -147,7 +152,11 @@ void MainWindow::onShellFinished(bool detached)
   m_shellBtn->setChecked(false);
   if (hadFocus || detached)
     m_view->setFocus();
+#ifdef Q_OS_WIN
+  flash(detached ? tr("shell moved to Windows Terminal; ` starts a new one here") : tr("shell ended"));
+#else
   flash(detached ? tr("shell moved to foot; ` starts a new one here") : tr("shell ended"));
+#endif
 }
 
 // ------------------------------------------------------------------- zoom

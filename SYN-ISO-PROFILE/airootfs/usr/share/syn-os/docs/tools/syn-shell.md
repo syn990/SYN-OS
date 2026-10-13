@@ -212,3 +212,49 @@ terminal. The next `` ` `` starts a fresh one here.
 `:touch NAME`, `:rename NAME`, `:extract [WHERE]`, `:compress NAME`,
 `:shell`, `:detach`, `:term`, and `:!command` to run something in foot
 here.
+
+## On Windows
+
+SYN-SHELL runs on Windows 10 and 11 too, built from the same source.
+Everything above works the same way, with Windows' own parts where
+Linux's aren't there:
+
+- The shell is PowerShell 7 (Windows PowerShell if 7 isn't installed,
+  cmd if neither is). It and the files follow each other as with zsh,
+  with one difference: Windows has no way to step in while you're
+  typing, so moving in the files moves the shell only while its prompt
+  is empty. A half-typed line, or something running, keeps it where it
+  is.
+- `Ctrl+Shift+D` sends the shell to a Windows Terminal window (a console
+  window if Windows Terminal isn't installed), and `S`, `:term` and `:!`
+  open one.
+- The trash is the Recycle Bin, the one Explorer uses. `gt` opens the
+  system drive's, with everything in it under its own name; something
+  deleted from another drive goes to that drive's bin, as in Explorer.
+  Restoring puts it back where it came from.
+- Open With (`O`) lists what Windows itself offers for that type of
+  file, its default first.
+- `gm` lists your drives to pick from, `gr` goes to the system drive, and
+  the path at the top starts at the drive (`C:`).
+- Copy and cut use the clipboard the way Explorer does, so you can copy
+  here and paste there, and the other way round.
+- Windows files have no permission bits, so `+x`, `-x` and `:chmod`
+  aren't there, and the bottom line has no owner.
+- Bulk rename (`cW`) opens `$EDITOR`, nano or vim if you have them, else
+  Windows' own `edit`.
+- The colours and font come from SYN-WIN: SYN-SHELL reads the theme its
+  bar is using (`SYN-WIN\shell` in your user folder, or the folder
+  `%SYN_WIN_SHELL%` names) and follows a theme switch straight away.
+  Without it, it keeps Windows' own colours.
+
+To build it, install MSYS2, then in its terminal:
+
+    pacman -S mingw-w64-ucrt-x86_64-{gcc,cmake,ninja,pkgconf,qt6-base,libarchive,libvterm,syntax-highlighting}
+
+and in PowerShell, in `SYN-SOFTWARE\syn-shell-src`:
+
+    .\build-windows.ps1
+
+Everything it needs ends up in `dist\` (`-Zip` packs that into a zip
+too): run `syn-shell.exe` from there. git, poppler (PDF previews) and
+ffmpeg (video and audio) are used if they're on your PATH.

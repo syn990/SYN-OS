@@ -1,0 +1,4 @@
+// syn-shell-attach's Windows resources: the same manifest and icon as
+// syn-shell's (see syn-shell.rc).
+1 24 "syn-shell.manifest"
+IDI_ICON1 ICON "syn-shell.ico"

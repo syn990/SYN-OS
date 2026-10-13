@@ -35,6 +35,9 @@
 
 #include <algorithm>
 #include <unistd.h>
+#ifdef Q_OS_WIN
+#include <QRegularExpression>
+#endif
 
 namespace {
 
@@ -54,6 +57,11 @@ QStringList editorCommand()
   for (const char *ed : {"nano", "nvim", "vim", "vi"})
     if (!QStandardPaths::findExecutable(QLatin1String(ed)).isEmpty())
       return {QLatin1String(ed)};
+#ifdef Q_OS_WIN
+  // Windows 11's own console editor, Microsoft Edit (Ctrl+S, Ctrl+Q).
+  if (!QStandardPaths::findExecutable(QStringLiteral("edit")).isEmpty())
+    return {QStringLiteral("edit")};
+#endif
   return {};
 }
 
@@ -62,6 +70,18 @@ QStringList editorCommand()
 QString MainWindow::renameAll(const FileJobs::Pairs &pairs)
 {
   QSet<QString> leaving;
+#ifdef Q_OS_WIN
+  // Names that differ only in case are one name on Windows: a.txt -> A.txt
+  // is a rename of the one file, not a clash with it.
+  for (const FileJobs::Pair &p : pairs)
+    leaving.insert(p.from.toLower());
+  for (const FileJobs::Pair &p : pairs) {
+    if (!lexists(p.from))
+      return tr("%1 isn't there any more").arg(QFileInfo(p.from).fileName());
+    if (lexists(p.to) && !leaving.contains(p.to.toLower()))
+      return tr("%1 already exists").arg(QFileInfo(p.to).fileName());
+  }
+#else
   for (const FileJobs::Pair &p : pairs)
     leaving.insert(p.from);
   for (const FileJobs::Pair &p : pairs) {
@@ -70,6 +90,7 @@ QString MainWindow::renameAll(const FileJobs::Pairs &pairs)
     if (lexists(p.to) && !leaving.contains(p.to))
       return tr("%1 already exists").arg(QFileInfo(p.to).fileName());
   }
+#endif
 
   // Pass one: every file to a name nothing else has.
   QList<QPair<QString, QString>> parked; // temporary -> original
@@ -195,11 +216,26 @@ void MainWindow::finishBulkRename()
       flash(tr("line %1 isn't a usable name (\"%2\"): nothing renamed").arg(i + 1).arg(to), true);
       return;
     }
+#ifdef Q_OS_WIN
+    // What Windows refuses in a name, and a name ending in a dot or space;
+    // and two that differ only in case are the same name.
+    static const QRegularExpression refused(QStringLiteral("[\\\\:*?\"<>|\\x01-\\x1f]|[. ]$"));
+    if (refused.match(to).hasMatch()) {
+      flash(tr("line %1 isn't a usable name (\"%2\"): nothing renamed").arg(i + 1).arg(to), true);
+      return;
+    }
+    if (finals.contains(to.toLower())) {
+      flash(tr("%1 appears twice: nothing renamed").arg(to), true);
+      return;
+    }
+    finals.insert(to.toLower());
+#else
     if (finals.contains(to)) {
       flash(tr("%1 appears twice: nothing renamed").arg(to), true);
       return;
     }
     finals.insert(to);
+#endif
     if (to != m_bulkNames[i])
       pairs << FileJobs::Pair{m_bulkDir + QLatin1Char('/') + m_bulkNames[i],
                               m_bulkDir + QLatin1Char('/') + to};

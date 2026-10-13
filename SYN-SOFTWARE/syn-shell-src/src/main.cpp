@@ -21,6 +21,13 @@
 
 #include "MainWindow.h"
 #include "PtySession.h"
+#ifdef Q_OS_WIN
+#include "Win.h"
+
+#include <QFileSystemWatcher>
+#include <QStyleFactory>
+#include <QTimer>
+#endif
 
 namespace {
 
@@ -64,6 +71,31 @@ int main(int argc, char *argv[])
   app.setOrganizationName("SYN-OS");
   EnglishPlurals plurals;
   app.installTranslator(&plurals);
+#ifdef Q_OS_WIN
+
+  // What qt6ct sets on SYN-OS: Fusion, Terminus, the active SYN theme's
+  // palette, here from SYN-WIN (see Win.h), again on a theme
+  // switch, which the window takes as qt6ct's (a palette change).
+  app.setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+  if (Win::hasTerminus())
+    app.setFont(Win::uiFont());
+  auto applyTheme = [] {
+    const QHash<QString, QColor> theme = Win::themeColours();
+    if (!theme.isEmpty())
+      QApplication::setPalette(Win::palette(theme));
+  };
+  applyTheme();
+  auto *themeWatch = new QFileSystemWatcher(Win::themeFiles(), &app);
+  auto *themeSettle = new QTimer(&app);
+  themeSettle->setSingleShot(true);
+  themeSettle->setInterval(200); // a switch rewrites several files
+  QObject::connect(themeWatch, &QFileSystemWatcher::fileChanged, themeSettle, [themeWatch, themeSettle] {
+    // A file rewritten by rename leaves the watch: put it back.
+    themeWatch->addPaths(Win::themeFiles());
+    themeSettle->start();
+  });
+  QObject::connect(themeSettle, &QTimer::timeout, &app, applyTheme);
+#endif
 
   // Settings kept under the old name (window size, columns, hidden
   // files) carry over once.
@@ -79,6 +111,9 @@ int main(int argc, char *argv[])
 
   MainWindow window(startPath);
   window.show();
+#ifdef Q_OS_WIN
+  Win::seeThrough(window.winId()); // so the opacity setting reaches the desktop
+#endif
 
   return app.exec();
 }

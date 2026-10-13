@@ -2,6 +2,11 @@
 #include "ArchiveModel.h"
 #include "SynIcons.h"
 #include "GitStatus.h"
+#ifdef Q_OS_WIN
+#include "FileJobs.h"
+
+#include <QHash>
+#endif
 
 #include <QAbstractItemView>
 #include <QDateTime>
@@ -178,6 +183,17 @@ void RowDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
         created = info.birthTime(); // statx; invalid where the filesystem keeps none
     }
     name = info.fileName().isEmpty() ? info.filePath() : info.fileName();
+#ifdef Q_OS_WIN
+    // In the Recycle Bin, a binned file by its own name, not its $R one.
+    if (name.startsWith(QLatin1String("$R")) && FileJobs::isInTrash(absPath)) {
+      static QHash<QString, QString> binned; // $R names are never reused
+      auto it = binned.constFind(absPath);
+      if (it == binned.constEnd())
+        it = binned.insert(absPath, QFileInfo(FileJobs::originalPath(absPath)).fileName());
+      if (!it.value().isEmpty())
+        name = it.value();
+    }
+#endif
     dir = info.isDir();
     link = info.isSymLink();
     linkTarget = link ? info.symLinkTarget() : QString();

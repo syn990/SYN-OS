@@ -11,8 +11,12 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 namespace FileJobs {
 
@@ -20,6 +24,98 @@ namespace {
 
 constexpr qint64 kChunk = 1 << 20;
 
+#ifdef Q_OS_WIN
+// What lstat tells Linux, from Windows: a symbolic link or a junction is
+// a link, never followed; any other reparse point (OneDrive's
+// placeholders, deduplicated files) is the file or folder it looks like.
+struct Entry
+{
+  bool exists = false;
+  bool dir = false;
+  bool link = false;
+  qint64 size = 0;
+};
+
+std::wstring native(const QString &path)
+{
+  return QDir::toNativeSeparators(path).toStdWString();
+}
+
+Entry entryOf(const QString &path)
+{
+  Entry e;
+  const std::wstring n = native(path);
+  WIN32_FILE_ATTRIBUTE_DATA a;
+  if (!GetFileAttributesExW(n.c_str(), GetFileExInfoStandard, &a))
+    return e;
+  e.exists = true;
+  e.dir = a.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+  e.size = qint64(a.nFileSizeHigh) << 32 | a.nFileSizeLow;
+  if (a.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+    WIN32_FIND_DATAW fd;
+    const HANDLE h = FindFirstFileW(n.c_str(), &fd);
+    if (h != INVALID_HANDLE_VALUE) {
+      FindClose(h);
+      e.link = fd.dwReserved0 == IO_REPARSE_TAG_SYMLINK || fd.dwReserved0 == IO_REPARSE_TAG_MOUNT_POINT;
+    }
+  }
+  return e;
+}
+
+bool lexists(const QString &path)
+{
+  return entryOf(path).exists;
+}
+
+bool isRealDir(const QString &path)
+{
+  const Entry e = entryOf(path);
+  return e.dir && !e.link;
+}
+
+// Windows' reasons as the errno values the moves below test for.
+int errnoOf(DWORD error)
+{
+  switch (error) {
+  case ERROR_NOT_SAME_DEVICE: return EXDEV;
+  case ERROR_ALREADY_EXISTS:
+  case ERROR_FILE_EXISTS: return EEXIST;
+  case ERROR_DIR_NOT_EMPTY: return ENOTEMPTY;
+  case ERROR_ACCESS_DENIED: return EACCES;
+  case ERROR_SHARING_VIOLATION:
+  case ERROR_LOCK_VIOLATION: return EBUSY;
+  case ERROR_FILE_NOT_FOUND:
+  case ERROR_PATH_NOT_FOUND: return ENOENT;
+  case ERROR_DISK_FULL:
+  case ERROR_HANDLE_DISK_FULL: return ENOSPC;
+  case ERROR_WRITE_PROTECT: return EROFS;
+  default: return EIO;
+  }
+}
+
+// rename(2)'s rules: no copying across drives (that's EXDEV, and a job
+// with progress), nothing replaced.
+int renameRaw(const QString &from, const QString &to)
+{
+  return MoveFileExW(native(from).c_str(), native(to).c_str(), 0) ? 0 : errnoOf(GetLastError());
+}
+
+// unlink(2) or rmdir(2), whichever the entry needs: a link to a folder is
+// removed as a folder on Windows, and a read-only file can't be deleted
+// until it isn't.
+bool removeEntry(const QString &path, QString *why)
+{
+  const std::wstring n = native(path);
+  const DWORD a = GetFileAttributesW(n.c_str());
+  if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_READONLY))
+    SetFileAttributesW(n.c_str(), a & ~DWORD(FILE_ATTRIBUTE_READONLY));
+  const bool ok = a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY)
+                    ? RemoveDirectoryW(n.c_str()) : DeleteFileW(n.c_str());
+  if (!ok && why)
+    *why = QString::fromLocal8Bit(strerror(errnoOf(GetLastError())));
+  return ok;
+}
+#else
 QByteArray enc(const QString &p)
 {
   return QFile::encodeName(p);
@@ -42,6 +138,7 @@ int renameRaw(const QString &from, const QString &to)
 {
   return ::rename(enc(from).constData(), enc(to).constData()) == 0 ? 0 : errno;
 }
+#endif
 
 // Bytes and entries under each path, symlinks not followed.
 qint64 sizeOf(Jobs::Progress &p, const QString &root, int *itemsOut = nullptr)
@@ -51,6 +148,18 @@ qint64 sizeOf(Jobs::Progress &p, const QString &root, int *itemsOut = nullptr)
   std::function<void(const QString &)> walk = [&](const QString &path) {
     if (p.cancel)
       return;
+#ifdef Q_OS_WIN
+    const Entry st = entryOf(path);
+    if (!st.exists)
+      return;
+    ++items;
+    if (!st.dir && !st.link)
+      bytes += st.size;
+    if (st.dir && !st.link)
+      for (const QString &name : QDir(path).entryList(QDir::AllEntries | QDir::NoDotAndDotDot
+                                                      | QDir::Hidden | QDir::System))
+        walk(path + QLatin1Char('/') + name);
+#else
     struct stat st;
     if (lstat(enc(path).constData(), &st) != 0)
       return;
@@ -61,6 +170,7 @@ qint64 sizeOf(Jobs::Progress &p, const QString &root, int *itemsOut = nullptr)
       for (const QString &name : QDir(path).entryList(QDir::AllEntries | QDir::NoDotAndDotDot
                                                       | QDir::Hidden | QDir::System))
         walk(path + QLatin1Char('/') + name);
+#endif
   };
   walk(root);
   if (itemsOut)
@@ -82,6 +192,20 @@ bool removeTree(Jobs::Progress &p, const QString &path)
   if (p.cancel)
     return false;
   bool ok = true;
+#ifdef Q_OS_WIN
+  if (isRealDir(path)) {
+    for (const QString &name : QDir(path).entryList(QDir::AllEntries | QDir::NoDotAndDotDot
+                                                    | QDir::Hidden | QDir::System))
+      ok = removeTree(p, path + QLatin1Char('/') + name) && ok;
+    if (p.cancel)
+      return false;
+  }
+  QString why;
+  if (!removeEntry(path, &why)) {
+    p.addError(QObject::tr("%1: could not remove (%2)").arg(path, why));
+    return false;
+  }
+#else
   if (isRealDir(path)) {
     for (const QString &name : QDir(path).entryList(QDir::AllEntries | QDir::NoDotAndDotDot
                                                     | QDir::Hidden | QDir::System))
@@ -96,6 +220,7 @@ bool removeTree(Jobs::Progress &p, const QString &path)
     p.addError(QObject::tr("%1: could not remove (%2)").arg(path, QString::fromLocal8Bit(strerror(errno))));
     return false;
   }
+#endif
   ++p.items;
   if (!p.bytes)
     p.done = p.items.load();
@@ -134,11 +259,21 @@ bool copyFileChunked(Jobs::Progress &p, const QString &src, const QString &dst)
     p.done += n;
   }
   out.close();
+#ifdef Q_OS_WIN
+  // The open file's own times and read-only flag: a QFileInfo would give
+  // a .lnk shortcut's target's.
+  const QDateTime modified = in.fileTime(QFileDevice::FileModificationTime);
+  QFile::setPermissions(dst, in.permissions());
+  QFile touch(dst);
+  if (touch.open(QIODevice::Append))
+    touch.setFileTime(modified, QFileDevice::FileModificationTime);
+#else
   const QFileInfo info(src);
   QFile::setPermissions(dst, info.permissions());
   QFile touch(dst);
   if (touch.open(QIODevice::Append))
     touch.setFileTime(info.lastModified(), QFileDevice::FileModificationTime);
+#endif
   return true;
 }
 
@@ -152,6 +287,29 @@ bool copyTree(Jobs::Progress &p, const QString &src, const QString &dst)
   p.setCurrent(src);
   const QFileInfo info(src);
   bool ok = true;
+#ifdef Q_OS_WIN
+  // From the entry itself: QFileInfo follows a .lnk shortcut to what it
+  // points at, and a shortcut is a plain file to copy.
+  const Entry e = entryOf(src);
+  if (e.link) {
+    if (lexists(dst))
+      removeEntry(dst, nullptr);
+    // The link's own target, not the resolved one: a relative link stays
+    // relative. A junction comes back as a symbolic link to the same
+    // folder. Windows lets only Developer Mode or an admin make one.
+    const QString target = info.isJunction() ? info.junctionTarget() : info.readSymLink();
+    DWORD flags = SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    if (e.dir)
+      flags |= SYMBOLIC_LINK_FLAG_DIRECTORY;
+    if (target.isEmpty()
+        || !CreateSymbolicLinkW(native(dst).c_str(), native(target).c_str(), flags)) {
+      p.addError(QObject::tr("%1: could not copy the link").arg(src));
+      ok = false;
+    }
+  } else if (e.dir) {
+    if (lexists(dst) && !isRealDir(dst))
+      removeEntry(dst, nullptr);
+#else
   if (info.isSymLink()) {
     if (lexists(dst))
       ::unlink(enc(dst).constData());
@@ -165,6 +323,7 @@ bool copyTree(Jobs::Progress &p, const QString &src, const QString &dst)
   } else if (info.isDir()) {
     if (lexists(dst) && !isRealDir(dst))
       ::unlink(enc(dst).constData());
+#endif
     if (!QDir().mkpath(dst)) {
       p.addError(QObject::tr("%1: could not create the folder").arg(dst));
       return false;
@@ -176,7 +335,11 @@ bool copyTree(Jobs::Progress &p, const QString &src, const QString &dst)
         return false;
     }
     QFile::setPermissions(dst, info.permissions());
+#ifdef Q_OS_WIN
+  } else if (e.exists) { // no devices, pipes or sockets among files here
+#else
   } else if (info.isFile()) {
+#endif
     if (isRealDir(dst)) {
       p.addError(QObject::tr("%1: a folder of that name is in the way").arg(dst));
       return false;
@@ -211,6 +374,9 @@ QString destinationFor(Jobs::Progress &p, const QString &src, const QString &des
   return dst;
 }
 
+// The freedesktop trash, from here to the end of the namespace and again
+// for trash() onwards; Windows has the Recycle Bin (FileJobs_win.cpp).
+#ifndef Q_OS_WIN
 QString trashFor(const QString &path)
 {
   // The home trash if it's on the same filesystem, else the drive's own.
@@ -225,6 +391,7 @@ QString trashFor(const QString &path)
     top.chop(1);
   return top + QStringLiteral("/.Trash-%1").arg(getuid());
 }
+#endif
 
 } // namespace
 
@@ -237,6 +404,7 @@ qint64 folderSize(Jobs::Progress &p, const QString &path, qint64 *items)
   return bytes;
 }
 
+#ifndef Q_OS_WIN
 QString homeTrash()
 {
   const QByteArray xdg = qgetenv("XDG_DATA_HOME");
@@ -271,6 +439,7 @@ QString originalPath(const QString &trashedFile)
   }
   return QString();
 }
+#endif
 
 QString freeName(const QString &path)
 {
@@ -311,8 +480,13 @@ Pairs copy(Jobs::Progress &p, const QStringList &sources, const QString &destDir
       p.done += sizeOf(p, src); // skipped: its share counts as done
       continue;
     }
+#ifdef Q_OS_WIN
+    if (replace && !isRealDir(dst) && isRealDir(src))
+      removeEntry(dst, nullptr);
+#else
     if (replace && !isRealDir(dst) && QFileInfo(src).isDir())
       ::unlink(enc(dst).constData());
+#endif
     if (copyTree(p, src, dst))
       out << Pair{src, dst};
   }
@@ -415,6 +589,7 @@ Pairs remove(Jobs::Progress &p, const QStringList &paths)
   return out;
 }
 
+#ifndef Q_OS_WIN
 Pairs trash(Jobs::Progress &p, const QStringList &paths)
 {
   Pairs out;
@@ -525,5 +700,6 @@ void emptyTrash(Jobs::Progress &p)
       all << dir + QLatin1Char('/') + sub + QLatin1Char('/') + name;
   remove(p, all);
 }
+#endif
 
 } // namespace FileJobs
