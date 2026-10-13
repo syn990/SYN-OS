@@ -29,10 +29,101 @@
 #include <QSet>
 #include <QUrl>
 
+#ifdef Q_OS_WIN
+#include <memory>
+#include <vector>
+
+#include <windows.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <shobjidl.h>
+#else
 #include <sys/stat.h>
+#endif
 
 namespace {
 
+#ifdef Q_OS_WIN
+// ---- open with (Windows) --------------------------------------------------
+
+// Windows' own Open with list for the file's extension: the handlers
+// Explorer offers (SHAssocEnumHandlers, the recommended ones), the
+// default first, each started the way Explorer starts it.
+struct App
+{
+  QString name;
+  std::shared_ptr<IAssocHandler> handler;
+};
+
+QList<App> appsFor(const QString &path)
+{
+  QList<App> apps;
+  const QString suffix = QFileInfo(path).suffix();
+  if (suffix.isEmpty())
+    return apps;
+  const std::wstring ext = (QLatin1Char('.') + suffix).toStdWString();
+  IEnumAssocHandlers *list = nullptr;
+  if (FAILED(SHAssocEnumHandlers(ext.c_str(), ASSOC_FILTER_RECOMMENDED, &list)) || !list)
+    return apps;
+  QSet<QString> seen;
+  IAssocHandler *h = nullptr;
+  ULONG got = 0;
+  while (list->Next(1, &h, &got) == S_OK && got == 1) {
+    std::shared_ptr<IAssocHandler> owned(h, [](IAssocHandler *p) { p->Release(); });
+    wchar_t *ui = nullptr;
+    if (FAILED(h->GetUIName(&ui)) || !ui)
+      continue;
+    const QString name = QString::fromWCharArray(ui);
+    CoTaskMemFree(ui);
+    if (seen.contains(name))
+      continue;
+    seen.insert(name);
+    apps << App{name, owned};
+  }
+  list->Release();
+  // The default by the name Explorer shows for it.
+  wchar_t def[512];
+  DWORD len = 512;
+  if (SUCCEEDED(AssocQueryStringW(ASSOCF_NONE, ASSOCSTR_FRIENDLYAPPNAME, ext.c_str(), nullptr, def, &len))) {
+    const QString name = QString::fromWCharArray(def);
+    for (int i = 0; i < apps.size(); ++i)
+      if (apps[i].name == name) {
+        apps.move(i, 0);
+        apps[0].name += QObject::tr("  [DEFAULT]");
+        break;
+      }
+  }
+  return apps;
+}
+
+// The files handed to the handler as the shell's own data object.
+bool launch(const App &app, const QStringList &files)
+{
+  std::vector<PIDLIST_ABSOLUTE> ids;
+  for (const QString &f : files) {
+    PIDLIST_ABSOLUTE id = nullptr;
+    if (SUCCEEDED(SHParseDisplayName(QDir::toNativeSeparators(f).toStdWString().c_str(), nullptr, &id, 0,
+                                     nullptr)))
+      ids.push_back(id);
+  }
+  bool ok = false;
+  IShellItemArray *items = nullptr;
+  if (!ids.empty()
+      && SUCCEEDED(SHCreateShellItemArrayFromIDLists(UINT(ids.size()),
+                                                     const_cast<PCIDLIST_ABSOLUTE_ARRAY>(ids.data()), &items))) {
+    IDataObject *data = nullptr;
+    if (SUCCEEDED(items->BindToHandler(nullptr, BHID_DataObject, IID_IDataObject,
+                                       reinterpret_cast<void **>(&data)))) {
+      ok = SUCCEEDED(app.handler->Invoke(data));
+      data->Release();
+    }
+    items->Release();
+  }
+  for (PIDLIST_ABSOLUTE id : ids)
+    CoTaskMemFree(id);
+  return ok;
+}
+#else
 // ---- permissions ----------------------------------------------------------
 
 // "755", "0644", or chmod's symbolic form: "+x", "u+w,go-r", "a=rX".
@@ -162,6 +253,7 @@ bool readApp(const QString &id, App *app)
   }
   return false;
 }
+#endif
 
 // Exec= split the way the desktop entry spec quotes it.
 QStringList splitExec(const QString &exec)
@@ -190,6 +282,7 @@ QStringList splitExec(const QString &exec)
   return out;
 }
 
+#ifndef Q_OS_WIN
 // Starts `app` on `files`: once with all of them for %F/%U, once each
 // for %f/%u, in foot if it's a terminal program.
 bool launch(const App &app, const QStringList &files)
@@ -268,9 +361,22 @@ QList<App> appsFor(const QString &path)
   }
   return apps;
 }
+#endif
 
 } // namespace
 
+#ifdef Q_OS_WIN
+void MainWindow::changeMode(const QString &)
+{
+  // No mode bits to set: Windows runs a file by its extension, and who
+  // may touch it is in its security settings, not a chmod.
+  flash(tr("chmod: Windows files have no permission bits"), true);
+}
+
+void MainWindow::undoModes(const FileJobs::Pairs &)
+{
+}
+#else
 void MainWindow::changeMode(const QString &spec)
 {
   if (refuseInArchive())
@@ -319,6 +425,7 @@ void MainWindow::undoModes(const FileJobs::Pairs &pairs)
   m_view->viewport()->update();
   updateInfo();
 }
+#endif
 
 void MainWindow::fillOpenWith(QMenu *menu)
 {

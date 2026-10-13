@@ -1,0 +1,6 @@
+// SYN-SHELL's Windows resources. Its manifest (resource 1 of type 24,
+// RT_MANIFEST), which makes UTF-8 the code page (see syn-shell.manifest),
+// and its icon, syn-shell.svg drawn at every size (syn-shell-ico.ps1);
+// IDI_ICON1 is the name Qt takes the window's icon from by default.
+1 24 "syn-shell.manifest"
+IDI_ICON1 ICON "syn-shell.ico"

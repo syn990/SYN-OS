@@ -33,6 +33,10 @@ public:
 
 protected:
   bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+#ifdef Q_OS_WIN
+  // The Recycle Bin's bookkeeping ($I records, desktop.ini) isn't listed.
+  bool filterAcceptsRow(int row, const QModelIndex &parent) const override;
+#endif
 
 private:
   QCollator m_collator;

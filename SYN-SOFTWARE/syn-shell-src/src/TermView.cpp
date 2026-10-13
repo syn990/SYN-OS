@@ -1,6 +1,11 @@
 #include "TermView.h"
 #include "PtySession.h"
 #include "Zoom.h"
+#ifdef Q_OS_WIN
+#include "Win.h"
+
+#include <QStandardPaths>
+#endif
 
 #include <QApplication>
 #include <QClipboard>
@@ -54,6 +59,11 @@ VTermColor rgb(const QColor &q)
 // writes for the active theme, so this pane and foot always agree.
 QHash<QString, QColor> footColours()
 {
+#ifdef Q_OS_WIN
+  // No foot: the same keys made from SYN-WIN's theme the way
+  // SYN-OS's foot template makes them.
+  return Win::terminalColours(Win::themeColours());
+#endif
   QHash<QString, QColor> out;
   QFile f(QDir::homePath() + QStringLiteral("/.config/foot/foot.ini"));
   if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -101,7 +111,11 @@ TermView::TermView(QWidget *parent)
   setAttribute(Qt::WA_OpaquePaintEvent);
   setCursor(Qt::IBeamCursor);
 
+#ifdef Q_OS_WIN
+  m_font = Win::fixedFont(); // Windows' fixed font is Courier New, not qt6ct's Terminus
+#else
   m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+#endif
   m_font.setStyleHint(QFont::Monospace);
   m_font.setFixedPitch(true);
   m_font.setKerning(false);
@@ -263,6 +277,23 @@ bool TermView::detachToFoot(QString *error)
   }
   m_detaching = true;
   const QString dir = m_cwd.isEmpty() ? QDir::homePath() : m_cwd;
+#ifdef Q_OS_WIN
+  // syn-shell-attach, which sits beside this, takes the shell over inside
+  // a new Windows Terminal window; without Windows Terminal, in a console
+  // window of its own.
+  const QString attach = QDir::toNativeSeparators(QCoreApplication::applicationDirPath()
+                                                  + QStringLiteral("/syn-shell-attach.exe"));
+  const QString wt = QStandardPaths::findExecutable(QStringLiteral("wt"));
+  if (!(!wt.isEmpty() && QProcess::startDetached(wt, {QStringLiteral("-w"), QStringLiteral("new"),
+                                                      QStringLiteral("-d"), QDir::toNativeSeparators(dir),
+                                                      attach, m_sockPath}))
+      && !QProcess::startDetached(attach, {m_sockPath}, dir)) {
+    m_detaching = false;
+    *error = tr("could not start Windows Terminal or syn-shell-attach");
+    return false;
+  }
+  return true;
+#endif
   if (!QProcess::startDetached(QStringLiteral("foot"),
                                {QStringLiteral("-D"), dir, QCoreApplication::applicationFilePath(),
                                 QStringLiteral("--attach"), m_sockPath})) {
@@ -384,8 +415,18 @@ int TermView::cbOsc(int command, VTermStringFragment frag, void *user)
     const QString url = QString::fromUtf8(self->m_osc);
     if (url.startsWith(QLatin1String("file://"))) {
       const int slash = url.indexOf(QLatin1Char('/'), 7);
+#ifdef Q_OS_WIN
+      // file://host/C:/Users or file://host///server/share: the slash
+      // after the host belongs to the URL, not to the drive or share.
+      QString path = slash < 0 ? QString()
+                               : QUrl::fromPercentEncoding(url.mid(slash).toUtf8());
+      static const QRegularExpression drive(QStringLiteral("^/([A-Za-z]:|//)"));
+      if (drive.match(path).hasMatch())
+        path.remove(0, 1);
+#else
       const QString path = slash < 0 ? QString()
                                      : QUrl::fromPercentEncoding(url.mid(slash).toUtf8());
+#endif
       if (!path.isEmpty() && path != self->m_cwd) {
         self->m_cwd = path;
         emit self->cwdChanged(path);
@@ -596,7 +637,11 @@ void TermView::zoomBy(int steps)
   // Steps from where an animation is heading, so quick notches add up.
   const int base = m_zoomAnim->state() == QAbstractAnimation::Running
                      ? qRound(m_zoomAnim->endValue().toReal()) : m_fontPx;
+#ifdef Q_OS_WIN
+  const int home = QFontInfo(Win::fixedFont()).pixelSize();
+#else
   const int home = QFontInfo(QFontDatabase::systemFont(QFontDatabase::FixedFont)).pixelSize();
+#endif
   setFontPixels(steps == 0 ? home : Zoom::step(base, steps), true);
 }
 
@@ -938,11 +983,20 @@ bool TermView::openLinkAt(const QPoint &cell)
   // A path, maybe with a compiler's ":line:column" after it.
   static const QRegularExpression position(QStringLiteral(":\\d+(:\\d+)?:?$"));
   word.remove(position);
+#ifdef Q_OS_WIN
+  // C:\src\main.c, .\main.c, //server/share/x: Windows' own forms.
+  QString path = QDir::fromNativeSeparators(word);
+  if (path.startsWith(QLatin1String("~/")) || path == QLatin1String("~"))
+    path = QDir::homePath() + path.mid(1);
+  else if (QDir::isRelativePath(path))
+    path = m_cwd + QLatin1Char('/') + path;
+#else
   QString path = word;
   if (path.startsWith(QLatin1String("~/")) || path == QLatin1String("~"))
     path = QDir::homePath() + path.mid(1);
   else if (!path.startsWith(QLatin1Char('/')))
     path = m_cwd + QLatin1Char('/') + path;
+#endif
   if (!QFileInfo::exists(path))
     return false;
   emit pathClicked(QDir::cleanPath(path));
@@ -1003,8 +1057,13 @@ void TermView::contextMenuEvent(QContextMenuEvent *e)
   menu.addAction(tr("Paste\tCtrl+Shift+V"), this, [this] {
     pasteText(QApplication::clipboard()->text());
   });
+#ifdef Q_OS_WIN
+  menu.addAction(tr("Detach to Windows Terminal\tCtrl+Shift+D"), this, &TermView::detachRequested)
+    ->setEnabled(m_running);
+#else
   menu.addAction(tr("Detach to foot\tCtrl+Shift+D"), this, &TermView::detachRequested)
     ->setEnabled(m_running);
+#endif
   menu.addAction(tr("Back to the files\tCtrl+`"), this, &TermView::toggleFocusRequested);
   menu.addAction(tr("Hide\t`"), this, &TermView::hideRequested);
   menu.exec(e->globalPos());

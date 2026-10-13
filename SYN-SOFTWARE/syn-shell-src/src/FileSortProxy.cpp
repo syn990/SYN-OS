@@ -1,4 +1,7 @@
 #include "FileSortProxy.h"
+#ifdef Q_OS_WIN
+#include "FileJobs.h"
+#endif
 
 FileSortProxy::FileSortProxy(QFileSystemModel *source, QObject *parent)
   : QSortFilterProxyModel(parent)
@@ -17,3 +20,14 @@ bool FileSortProxy::lessThan(const QModelIndex &left, const QModelIndex &right) 
     return leftDir;
   return m_collator.compare(fs()->fileName(left), fs()->fileName(right)) < 0;
 }
+#ifdef Q_OS_WIN
+
+bool FileSortProxy::filterAcceptsRow(int row, const QModelIndex &parent) const
+{
+  const QModelIndex idx = fs()->index(row, 0, parent);
+  const QString name = fs()->fileName(idx);
+  return !((name.startsWith(QLatin1String("$I"))
+            || name.compare(QLatin1String("desktop.ini"), Qt::CaseInsensitive) == 0)
+           && FileJobs::isInTrash(fs()->filePath(idx)));
+}
+#endif

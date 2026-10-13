@@ -10,6 +10,9 @@
 #include "RowDelegate.h"
 #include "TermView.h"
 #include "Zoom.h"
+#ifdef Q_OS_WIN
+#include "Win.h"
+#endif
 
 #include <QAction>
 #include <QApplication>
@@ -619,7 +622,11 @@ void MainWindow::buildActions()
   });
   m_actOpenExternal = act(tr("Open in default app"), "r", [this] { openExternal(); });
   m_actShell     = act(tr("Shell"), "`", [this] { toggleShellPane(); });
+#ifdef Q_OS_WIN
+  m_actDetachShell = act(tr("Shell to Windows Terminal"), "Ctrl+Shift+D", [this] { detachShell(); });
+#else
   m_actDetachShell = act(tr("Shell to foot"), "Ctrl+Shift+D", [this] { detachShell(); });
+#endif
 
   m_bindings = {
     {"j", [this] { moveCursor(1); }},
@@ -633,10 +640,23 @@ void MainWindow::buildActions()
     {"~", [this] { navigateTo(QDir::homePath()); }},
     {"gh", [this] { navigateTo(QDir::homePath()); }},
     {"gr", [this] { navigateTo(QDir::rootPath()); }},
+#ifdef Q_OS_WIN
+    {"gm", [this] {
+      // No one folder holds the drives here: every one that's ready, to pick.
+      QMenu menu(this);
+      for (const QString &root : Win::drives())
+        menu.addAction(Win::driveLabel(root) + QLatin1Char('\t') + usage(QStorageInfo(root)), this,
+                       [this, root] { navigateTo(root); });
+      const QModelIndex c = cursor();
+      const QPoint at = c.isValid() ? m_view->visualRect(c).bottomLeft() + QPoint(40, 0) : QPoint(40, 40);
+      menu.exec(m_view->viewport()->mapToGlobal(at));
+    }},
+#else
     {"gm", [this] {
       const QString media = QStringLiteral("/run/media/") + qEnvironmentVariable("USER");
       navigateTo(QFileInfo::exists(media) ? media : QStringLiteral("/mnt"));
     }},
+#endif
     {" ", [this] { toggleMark(); }},
     {"uv", [this] { clearMarks(); }},
     {"yy", [this] { yank(false); }},
@@ -1052,6 +1072,12 @@ void MainWindow::openCursor()
 
 void MainWindow::openTerminal(const QString &dir, const QString &command)
 {
+#ifdef Q_OS_WIN
+  QString error;
+  if (!Win::openTerminal(dir, command, &error))
+    flash(error, true);
+  return;
+#endif
   QStringList args{QStringLiteral("-D"), dir};
   if (!command.isEmpty())
     args << QStringLiteral("--hold") << QStringLiteral("sh") << QStringLiteral("-c") << command;
@@ -1074,6 +1100,19 @@ void MainWindow::rebuildCrumbs()
     crumbs.append({QStringLiteral("~"), home});
     base = home;
     rest = m_currentDir.mid(home.size());
+#ifdef Q_OS_WIN
+  } else if (m_currentDir.size() >= 2 && m_currentDir.at(1) == QLatin1Char(':')) {
+    // No one root: the trail starts at the drive, "C:".
+    crumbs.append({m_currentDir.left(2), m_currentDir.left(2) + QLatin1Char('/')});
+    base = m_currentDir.left(2);
+    rest = m_currentDir.mid(2);
+  } else if (m_currentDir.startsWith(QLatin1String("//"))) {
+    // A network share starts at //server/share.
+    const QString share = m_currentDir.section(QLatin1Char('/'), 0, 3);
+    crumbs.append({share, share});
+    base = share;
+    rest = m_currentDir.mid(share.size());
+#endif
   } else {
     crumbs.append({QStringLiteral("/"), QStringLiteral("/")});
     rest = m_currentDir;
@@ -1135,8 +1174,14 @@ void MainWindow::rebuildCrumbs()
 
 void MainWindow::beginPathEdit()
 {
+#ifdef Q_OS_WIN
+  // Every drive's root ends in a slash already, not only the system one.
+  m_pathEdit->setText(m_currentDir.endsWith(QLatin1Char('/')) ? m_currentDir
+                                                               : m_currentDir + QLatin1Char('/'));
+#else
   m_pathEdit->setText(m_currentDir == QDir::rootPath() ? m_currentDir
                                                         : m_currentDir + QLatin1Char('/'));
+#endif
   m_pathStack->setCurrentWidget(m_pathEdit);
   m_pathEdit->setFocus();
 }
@@ -1282,6 +1327,9 @@ void MainWindow::yank(bool cut)
       }
       mime->setUrls(urls);
       mime->setData(kCopiedFilesMime, marker);
+#ifdef Q_OS_WIN
+      mime->setData(Win::kDropEffectMime, Win::dropEffect(false));
+#endif
       mime->setText(paths.join(QLatin1Char('\n')));
       QApplication::clipboard()->setMimeData(mime);
       flash(tr("%n copied out, pp pastes", nullptr, paths.size()));
@@ -1303,6 +1351,10 @@ void MainWindow::yank(bool cut)
   }
   mime->setUrls(urls);
   mime->setData(kCopiedFilesMime, marker);
+#ifdef Q_OS_WIN
+  // And Explorer's, so it pastes there and back too.
+  mime->setData(Win::kDropEffectMime, Win::dropEffect(cut));
+#endif
   mime->setText(paths.join(QLatin1Char('\n')));
   QApplication::clipboard()->setMimeData(mime);
 
@@ -1767,6 +1819,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addAction(m_actPaste);
     menu.addAction(m_actRename);
     menu.addAction(m_actBulkRename);
+#ifndef Q_OS_WIN // Windows files have no execute bit: what runs is by extension
     if (!m_proxy->infoOf(idx).isDir()) {
       bool allExec = true;
       for (const QString &t : targets())
@@ -1774,6 +1827,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
       menu.addAction(allExec ? tr("Remove execute\t-x") : tr("Make executable\t+x"), this,
                      [this, allExec] { changeMode(allExec ? QStringLiteral("-x") : QStringLiteral("+x")); });
     }
+#endif
     if (inTrashView()) {
       head(tr("TRASH"));
       menu.addAction(m_actRestore);
@@ -1813,8 +1867,12 @@ void MainWindow::showContextMenu(const QPoint &pos)
   for (const QString &root : deviceRoots()) {
     if (root == QDir::rootPath())
       continue;
+#ifdef Q_OS_WIN
+    auto *a = menu.addAction(Win::driveLabel(root) + QLatin1Char('\t') + usage(QStorageInfo(root)));
+#else
     auto *a = menu.addAction(QFileInfo(root).fileName() + QLatin1Char('\t')
                              + usage(QStorageInfo(root)));
+#endif
     connect(a, &QAction::triggered, this, [this, root] { navigateTo(root); });
   }
 
@@ -1840,6 +1898,9 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
 QStringList MainWindow::deviceRoots() const
 {
+#ifdef Q_OS_WIN
+  return Win::drives(); // every drive letter that's ready
+#endif
   QStringList roots;
   for (const QStorageInfo &v : QStorageInfo::mountedVolumes()) {
     if (!v.isValid() || !v.isReady())
@@ -1864,8 +1925,14 @@ QString MainWindow::detailLine(const QString &path) const
                      : m_folderSizes.contains(key)
                        ? tr("%1 in %n item(s)", nullptr, int(m_folderItems.value(key))).arg(humanSize(m_folderSizes.value(key)))
                        : QStringLiteral("-");
+#ifdef Q_OS_WIN
+  // No owner and group without reading every file's security settings,
+  // which Qt leaves off on Windows for speed: just the rest.
+  QString line = permString(i) + QStringLiteral("  ") + size
+#else
   QString line = permString(i) + QStringLiteral("  ") + i.owner() + QLatin1Char(':') + i.group()
                + QStringLiteral("  ") + size
+#endif
                + QStringLiteral("  ")
                + i.lastModified().toString(QStringLiteral("yyyy-MM-dd HH:mm"))
                + QStringLiteral("  ") + (i.fileName().isEmpty() ? path : i.fileName());
@@ -1985,7 +2052,25 @@ void MainWindow::updatePreview()
 void MainWindow::showHelp()
 {
   m_previewTimer->stop();
+#ifdef Q_OS_WIN
+  // The same keys, with Windows' names where Linux's differ.
+  QString text = QString::fromUtf8(kHelp);
+  const struct { const char *from, *to; } words[] = {
+    {"enter a folder, xdg-open a file", "enter a folder, open a file in its app"},
+    {"/run/media  (mounted drives)", "pick a drive"},
+    {"  +x  -x          make executable, or not   :chmod 755 / :chmod g+w   (undoable)\n", ""},
+    {" (mpv, feh, ...)", ""},
+    {"to a foot window", "to a Windows Terminal window"},
+    {"idle at a prompt (zsh), keeping whatever you've typed on the line",
+     "idle at an empty prompt (PowerShell)"},
+  };
+  for (const auto &w : words)
+    text.replace(QString::fromUtf8(w.from), QString::fromUtf8(w.to));
+  text.replace(QStringLiteral("gr   /\n"), QStringLiteral("gr   ") + QDir::rootPath() + QLatin1Char('\n'));
+  m_preview->showText(tr("KEYS"), text);
+#else
   m_preview->showText(tr("KEYS"), QString::fromUtf8(kHelp));
+#endif
 }
 
 void MainWindow::flash(const QString &message, bool error)
