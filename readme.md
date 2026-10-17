@@ -4,18 +4,20 @@ A Linux desktop by William Hayward-Holland (Syntax990).
 
 ![SYN-OS desktop, LabWC menu open over Waybar](./Images/labwc-SYNOS-1.png)
 
-SYN-OS is its dotfiles and its applications: labwc, waybar, foot and mako configured as one desktop, 63 live themes, and a set of native tools written for it (syn-bar, syn-connect, syn-shell, syn-relay, syn-crypter, syn-wallgen and others, under [SYN-SOFTWARE](./SYN-SOFTWARE)). One answers file, `synos.conf`, drives the installer.
+SYN-OS is its dotfiles and its applications: labwc, waybar, foot and mako configured as one desktop, 63 live themes, and a set of native tools written for it (syn-bar, syn-connect, syn-shell, syn-hum, syn-relay, syn-crypter, syn-wallgen and others, under [SYN-SOFTWARE](./SYN-SOFTWARE)). One answers file, `synos.conf`, drives the installer.
 
-That layer sits on one of two bases, built from the same repository:
+## Arch or LFS
 
-| Stream | Base | Init | Packages | Builder |
-|---|---|---|---|---|
-| **Arch** | Arch Linux | systemd | pacman | `BUILD-ARCHISO.zsh`, `BUILD-ARCHISO1.zsh`, or the `syn-iso-builder` TUI, all around mkarchiso |
-| **LFS** | Linux From Scratch 13.1 multilib, compiled | runit | compiled recipes, plus Void Linux binaries through xbps | [`SYN-LFS/build.zsh`](./SYN-LFS/README.md) |
+The same desktop is built on one of two bases:
 
-Both produce a bootable ISO with a live session and the same installer: firmware detection, UEFI or BIOS, systemd-boot, rEFInd, GRUB or syslinux, LUKS2, LVM, and ext4, f2fs, btrfs or xfs.
+| | Arch | LFS |
+|---|---|---|
+| Base | Arch Linux | Linux From Scratch 13.1, compiled, with SYN-OS's own kernel |
+| Init | systemd | runit |
+| Packages | pacman | Void Linux's, through xbps, or compiled from source |
+| Build | minutes | hours, with 60 GB free |
 
-## How it fits together
+Both give a bootable ISO with a live session and the same installer: UEFI or BIOS, systemd-boot, rEFInd, GRUB or syslinux, LUKS2, LVM, and ext4, f2fs, btrfs or xfs.
 
 ![SYN-OS build and install pipeline](./Images/syn-os-build.png)
 
@@ -23,21 +25,27 @@ Source: [docs/diagrams/src/syn-os-build.dot](./docs/diagrams/src/syn-os-build.do
 
 ## Build an ISO
 
-Arch stream, on an Arch host:
+On an Arch Linux machine:
 
 ```bash
 git clone https://github.com/syn990/SYN-OS.git && cd SYN-OS
-sudo zsh ./BUILD-ARCHISO1.zsh
+zsh BUILD.zsh                  # what it can build
+zsh BUILD.zsh syn-os-arch      # SYN-OS on Arch
+zsh BUILD.zsh syn-os-lfs       # SYN-OS on LFS
 ```
 
-LFS stream, on an Arch host with about 60 GB free:
+Each name is a file in [SYN-EDITIONS](./SYN-EDITIONS):
 
-```bash
-git clone https://github.com/syn990/SYN-OS.git && cd SYN-OS/SYN-LFS
-./build.zsh host
-./build.zsh all        # resumes at the step that stopped
-./build.zsh isotest    # boots the ISO in QEMU with a blank disk
-```
+| Edition | Builds |
+|---|---|
+| `syn-os-arch` | SYN-OS on Arch Linux |
+| `syn-os-lfs` | SYN-OS on LFS, the desktop from Void's packages |
+| `syn-os-lfs-source` | SYN-OS on LFS, every desktop package compiled |
+| `arch-releng` | Arch's own installation ISO, unchanged |
+
+Before an LFS edition's first build, `zsh BUILD.zsh syn-os-lfs host` installs what it needs. If an LFS build stops, run it again and it carries on from the step that stopped. `zsh BUILD.zsh check NAME` says what a build would run and anything stopping it; `zsh BUILD.zsh status NAME` says how far one has got. To build it another way, copy an edition and change it.
+
+The ISO Builder (SYN-OS ISO Builder in the desktop menu) lists the same editions, with how far each has got, and builds the one you pick.
 
 ## Install
 

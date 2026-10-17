@@ -34,6 +34,7 @@ add_executable(syn-iso-builder
   src/syn_mount_cleanup.c
   src/syn_software_build.c
   src/syn_build_runner.c
+  src/syn_edition.c
   ${BARCORE_SRC}/syn_bar_notify.c
 )
 

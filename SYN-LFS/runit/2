@@ -8,4 +8,6 @@ PATH=/usr/bin:/usr/sbin
 # soft limit to. There's no PAM limits.conf to do it at login.
 ulimit -Hn 524288
 
-exec env - PATH=$PATH runsvdir -P /var/service 'log: ...........................................................................................................'
+# SVDIR: where `sv NAME` finds a service, for the run scripts of Void's
+# packages (sv check dbus), as Void has it; runit's own default is /service
+exec env - PATH=$PATH SVDIR=/var/service runsvdir -P /var/service 'log: ...........................................................................................................'

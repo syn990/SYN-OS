@@ -8,7 +8,11 @@
  *   (syn_build_runner.h: SYN-SOFTWARE compile loop, mount-safety
  *   cleanup, mkarchiso invocation, ISO archival) — mkarchiso/pacman/
  *   git/cmake stay real external tools, shelled out to directly, same
- *   as this repo's own established convention elsewhere.
+ *   as this repo's own established convention elsewhere. The one
+ *   exception is the editions (SYN-EDITIONS, listed on the home screen
+ *   since the LFS stream joined): they're read through BUILD.zsh, and an
+ *   LFS one is built by it, since SYN-LFS/build.zsh has no counterpart
+ *   here (see syn_edition.h).
  *
  *   Everything past startup lives in one persistent home screen
  *   (syn_tui_dashboard_run(), in syn_tui_dashboard.c) — Target/Repo

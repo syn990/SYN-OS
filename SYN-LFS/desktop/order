@@ -341,6 +341,7 @@ syn-audio
 syn-connect
 syn-wallgen
 syn-sysmon
+syn-hum
 syn-relay
 libvterm
 syntax-highlighting

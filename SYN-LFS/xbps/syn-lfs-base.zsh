@@ -14,28 +14,39 @@
 #   are met. Every shared library in ROOT is declared too.
 #
 #   Runs on the build host, as root, with the image mounted at ROOT. Needs
-#   Void's static xbps in $XBPS; build.zsh void sets both up.
+#   Void's static xbps in $XBPS, and takes Void's repositories from $REPOS
+#   (default: current); build.zsh void sets them up.
 # ------------------------------------------------------------------------------
 setopt err_exit pipe_fail
 ROOT=${1:?usage: syn-lfs-base.zsh ROOT PKG...}; shift
 (( $# )) || { print "usage: syn-lfs-base.zsh ROOT PKG..."; exit 1 }
 XBPS=${XBPS:?set XBPS to the static xbps bin directory (build.zsh void does)}
-REPO=https://repo-default.voidlinux.org/current
+REPOS=(${=REPOS:-https://repo-default.voidlinux.org/current})
 LOCAL=$ROOT/var/lib/syn-os/xbps-local
 W=$(mktemp -d); trap 'rm -rf -- "$W"' EXIT
-Q=($XBPS/xbps-query.static -R --repository=$REPO -r $ROOT)
+Q=($XBPS/xbps-query.static -R ${REPOS/#/--repository=} -r $ROOT)
 
 # Every shared library the base has: by file name, and by the SONAME inside
 # it (xbps matches on either; lvm2's dmeventd plugins are installed as
 # NAME.so with the SONAME NAME.so.2.03 inside, in /usr/lib/device-mapper)
 {
-	find $ROOT/usr/lib $ROOT/usr/lib/qt6 -maxdepth 1 \( -name '*.so.*' -o -name '*.so' \) | sed 's|.*/||'
+	find $ROOT/usr/lib $ROOT/usr/lib/qt6(N) -maxdepth 1 \( -name '*.so.*' -o -name '*.so' \) | sed 's|.*/||'
 	find $ROOT/usr/lib -maxdepth 2 -type f -name '*.so*' ! -path '*/python*' -exec readelf -d {} + 2>/dev/null |
 		sed -n 's/.*Library soname: \[\(.*\)\]/\1/p' || true
 } | sort -u > $W/sonames
 # Qt's private-API tag, which Void's Qt modules require by exact version
-qtv=$(ls $ROOT/usr/lib/libQt6Core.so.6.* 2>/dev/null | sed -n 's/.*libQt6Core\.so\.//p' | head -1)
+# (only with a Qt the desktop built; Void's own Qt brings its tag itself)
+qtv=($ROOT/usr/lib/libQt6Core.so.6.*(N))
+qtv=${${qtv[1]:t}#libQt6Core.so.}
 [[ -n $qtv ]] && print "libQt_6_PRIVATE_API.$qtv" >> $W/sonames
+# The 32-bit ones apart (the multilib base's /usr/lib32): Void's -32bit
+# packages have the same library names as the 64-bit ones, so a base with
+# only the 64-bit library must not count as having theirs
+{
+	find $ROOT/usr/lib32 -maxdepth 1 \( -name '*.so.*' -o -name '*.so' \) 2>/dev/null | sed 's|.*/||'
+	find $ROOT/usr/lib32 -maxdepth 1 -type f -name '*.so*' -exec readelf -d {} + 2>/dev/null |
+		sed -n 's/.*Library soname: \[\(.*\)\]/\1/p' || true
+} | sort -u > $W/sonames32
 
 # The dependency chains of the PKGs and of every Void package already
 # installed (their needs must stay claimed, or they break the next install)
@@ -52,11 +63,16 @@ while read d; do
 	grep -qxF -- $d $W/installed && continue
 	have=0
 	shl=(${(f)"$($Q -p shlib-provides $d 2>/dev/null)"})
-	if (( ${#shl} )); then
+	if [[ $d == perl-* ]]; then
+		# Void's perl modules: the base's perl is another version, which looks
+		# for modules only in its own versioned directories, never in Void's
+		have=1
+	elif (( ${#shl} )); then
 		# Half its libraries or more: the rest are optional add-ons the LFS
 		# build left out (harfbuzz-cairo, gnutls-dane). libjpeg-turbo is
 		# Void's: its libjpeg.so.8 goes in next to the base's libjpeg.so.62
-		n=0; for s in $shl; do grep -qxF $s $W/sonames && n=$((n + 1)); done
+		have_libs=$W/sonames; [[ $d == *-32bit ]] && have_libs=$W/sonames32
+		n=0; for s in $shl; do grep -qxF $s $have_libs && n=$((n + 1)); done
 		(( n * 2 >= ${#shl} )) && [[ $d != libjpeg-turbo ]] && have=1
 	else
 		files=(${(f)"$($Q -f $d 2>/dev/null | sed 's/ -> .*//' | grep -E '^/usr/(bin|lib|share|libexec)/' || true)"})
@@ -67,8 +83,10 @@ while read d; do
 	(( have )) && { $Q -p pkgver $d; $Q -p provides $d 2>/dev/null | grep -v '^cmd:\|^pc:' || true } >> $W/provides
 done < $W/deps
 # glibc, the base files and the interpreters LFS builds are always the
-# base's (perl's library sits outside /usr/lib, so the check above misses it)
-for b in glibc base-files perl python3 bash; do $Q -p pkgver $b >> $W/provides; done
+# base's (perl's library sits outside /usr/lib, so the check above misses
+# it), and zsh, which build.zsh's zsh step puts in the base: Void's zsh
+# plugins depend on Void's zsh, which would replace it
+for b in glibc base-files perl python3 bash zsh; do $Q -p pkgver $b >> $W/provides; done
 sort -u -o $W/provides $W/provides
 print "$(wc -l < $W/deps) packages in the chains; the base provides $(wc -l < $W/provides)"
 
@@ -88,9 +106,9 @@ $XBPS/xbps-rindex.static -a $LOCAL/syn-lfs-base-$v.x86_64.xbps >/dev/null
 # Void and Arch link /usr/lib64 to lib, and their binaries' rpaths use it
 # (Audacity looks for its own libraries in $ORIGIN/../lib64/audacity)
 [[ -e $ROOT/usr/lib64 ]] || ln -s lib $ROOT/usr/lib64
-# Void's QtWebEngine puts its helper in qt6/libexec; the base's Qt (like
-# Arch's) looks in qt6/ itself
-[[ -e $ROOT/usr/lib/qt6/QtWebEngineProcess ]] ||
+# Void's QtWebEngine puts its helper in qt6/libexec; a Qt the desktop built
+# (like Arch's) looks in qt6/ itself. With Void's Qt there's none yet
+[[ -d $ROOT/usr/lib/qt6 && ! -e $ROOT/usr/lib/qt6/QtWebEngineProcess ]] &&
 	ln -sf libexec/QtWebEngineProcess $ROOT/usr/lib/qt6/QtWebEngineProcess
 
 install -d $ROOT/etc/xbps.d $ROOT/var/db/xbps/keys
@@ -99,6 +117,6 @@ cat > $ROOT/etc/xbps.d/10-syn-os.conf << EOF2
 # the local repository, tells xbps what the base already provides, so it
 # never installs Void's copies of those (syn-lfs-base.zsh writes it)
 repository=/var/lib/syn-os/xbps-local
-repository=$REPO
+${(F)${(@)REPOS/#/repository=}}
 EOF2
 print "syn-lfs-base-$v written to $LOCAL"

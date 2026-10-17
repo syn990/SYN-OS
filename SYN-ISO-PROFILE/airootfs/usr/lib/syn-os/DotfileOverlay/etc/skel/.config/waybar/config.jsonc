@@ -23,6 +23,7 @@
     "network",
     "backlight",
     "pulseaudio",
+    "custom/hum",
     "custom/cpu",
     "custom/mem",
     "temperature",
@@ -162,6 +163,35 @@
     "return-type": "json",
     "format": "{}",
     "exec": "/usr/lib/syn-os/syn-bar --agent-serving"
+  },
+
+  // The acoustic monitor's button (syn-hum): its style's icon (a satellite
+  // dish for uplink, a phone for phreak, a hooded figure for hacker, a
+  // square wave for harmonic, an anchor for deep, a record for techno, a
+  // chip for bytebeat), dim
+  // while it's off and lit while it's listening, its style and the last
+  // few sounds in the tooltip.
+  // Click turns it on or off; syn-hum sends waybar SIGRTMIN+8 whenever
+  // that changes, so the button follows at once rather than at the next
+  // interval. Right-click watches the signals it plays. Style and volume
+  // live in Preferences > Desktop > Acoustic Monitor.
+  "custom/hum": {
+    "return-type": "json",
+    "format": "{icon}",
+    "format-icons": {
+      "uplink": "",
+      "phreak": "",
+      "hacker": "",
+      "harmonic": "",
+      "deep": "",
+      "techno": "",
+      "bytebeat": ""
+    },
+    "exec": "/usr/lib/syn-os/syn-hum status --json",
+    "interval": 5,
+    "signal": 8,
+    "on-click": "/usr/lib/syn-os/syn-hum toggle",
+    "on-click-right": "foot -e /usr/lib/syn-os/syn-hum watch"
   },
 
   "custom/cpu": {

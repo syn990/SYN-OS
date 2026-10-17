@@ -10,7 +10,9 @@
 //
 //   Keyboard first, with ranger's keys (hjkl, gg/G, yy/dd/pp, cw, dD,
 //   space to mark, / and :); every action is also on the labwc-style
-//   right-click menu, which prints the key next to it. No toolbar.
+//   right-click menu, which prints the key next to it. No toolbar, only
+//   the field bar under the tabs (MainWindowSort.cpp): a box per field
+//   and the sort order, for the mouse; zb hides it.
 //
 //   The cursor (current index) and the marks (the selection) are kept
 //   apart, as in ranger: moving never touches the marks, and an action
@@ -47,6 +49,8 @@
 class ArchiveSession;
 class QAbstractItemModel;
 class QAction;
+class QCheckBox;
+class QMenu;
 class QProcess;
 class QVariantAnimation;
 class QFileSystemModel;
@@ -240,6 +244,15 @@ private:
   // Zoom of everything but the shell (the shell zooms itself)
   void zoomUi(int steps);
   void toggleField(int field);
+
+  // The field bar and the sort order (MainWindowSort.cpp)
+  void buildSortActions();
+  QWidget *buildFieldBar();
+  void updateFieldBar(); // grey the boxes whose field has no room
+  void fitFields();      // widen the middle column for the fields that are on
+  void setSort(int key, bool reversed); // SortOrder::Key
+  void sortByTitle(int field);          // a FieldHeader click; 0 for NAME
+  void updateSortUi();
   void setOpacity(double opacity);
   void addOpacitySlider(QMenu *menu);
   void applyUiFont(qreal px);
@@ -293,6 +306,12 @@ private:
   QAction *m_actUndo, *m_actDeleteForever, *m_actRestore, *m_actEmptyTrash, *m_actTrash;
   QAction *m_actNewTab, *m_actOpenInTab, *m_actCloseTab, *m_actGit, *m_actBulkRename;
   QList<QAction *> m_actFields;
+  QList<QAction *> m_actSorts;
+  QAction *m_actFieldBar;
+  QMenu *m_sortMenu;
+  QWidget *m_fieldBar;
+  QList<QCheckBox *> m_fieldBoxes;
+  QToolButton *m_sortBtn = nullptr;
 
   QString m_currentDir;
   QStringList m_back;

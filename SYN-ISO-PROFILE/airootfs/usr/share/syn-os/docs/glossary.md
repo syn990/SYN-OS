@@ -414,6 +414,7 @@ Covered in depth in their own pages, listed here for the map:
 | syn-connect | `/usr/lib/syn-os/syn-connect` | [Connectivity](./tools/syn-connect.md) |
 | syn-relay | `/usr/lib/syn-os/syn-relay` | [Remote machines](./tools/syn-relay.md) |
 | syn-sysmon | `/usr/lib/syn-os/syn-sysmon` | [System monitor & logs](./tools/syn-sysmon.md) |
+| syn-hum | `/usr/lib/syn-os/syn-hum` | [The acoustic monitor](./tools/syn-hum.md) |
 | syn-audio | `/usr/lib/syn-os/syn-audio` | [Audio mixer](./tools/audio.md) |
 | syn-shell | `/usr/bin/syn-shell` | [SYN-SHELL](./tools/syn-shell.md) |
 | syn-crypter (native) | `/usr/lib/syn-os/syn-crypter` | [Encryption](./tools/syn-crypter.md) |

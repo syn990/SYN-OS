@@ -1,21 +1,35 @@
 # SYN-OS on runit
 
-SYN-OS built from source, with apps from Void: Linux From Scratch as the base, runit as PID 1 and zsh in the base, then the SYN desktop (labwc, waybar, foot, the SYN tools), Wi-Fi, sound, surf and Steam, all compiled here. The big applications (Falkon, LibreOffice, mpv, Chromium, Kdenlive, Wine and the rest) are Void Linux's binary packages installed on top with xbps. The result is a disk image and an installer ISO.
+SYN-OS on its own base: Linux From Scratch, runit as PID 1, zsh, and a kernel of its own, all compiled here. On top goes the SYN desktop (labwc, waybar, foot, the SYN tools), Wi-Fi, sound, surf and Steam, one of two ways, chosen by `SYN_OS_PACKAGES`:
+
+- `xbps`: Void Linux's binary packages, installed with xbps. Only SYN-OS's own tools and the few things Void lacks are compiled. This is the `syn-os-lfs` edition.
+- `source` (the default): every desktop package compiled here from BLFS-pinned recipes, with the big applications (Falkon, LibreOffice, mpv, Chromium, Kdenlive, Wine and the rest) from Void on top. This is `syn-os-lfs-source`.
+
+The result is a disk image and an installer ISO.
 
 Everything lands in a sparse 100G disk image (`SYN_OS_IMGSIZE` changes it; `grow` enlarges an existing one) under `~/SYN-OS-build` (`SYN_OS_WORK` moves it). Nothing on the build machine's disks or bootloader is touched.
 
 ## Build it
 
-On an Arch machine with 16G+ of RAM and 60G free:
+On an Arch machine with 16G+ of RAM and 60G free, through the repo's editions (`../SYN-EDITIONS`, see `../BUILD.zsh`):
 
 ```
 git clone https://github.com/syn990/SYN-OS.git
-cd SYN-OS/SYN-LFS
-./build.zsh host     # packages, doas, jhalfs (once per machine)
-./build.zsh all      # the lot: LFS, the desktop, the ISO
+cd SYN-OS
+zsh BUILD.zsh syn-os-lfs host     # packages, doas, jhalfs (once per machine)
+zsh BUILD.zsh check syn-os-lfs    # what would run, and anything in the way
+zsh BUILD.zsh syn-os-lfs          # the lot: LFS, the desktop, the ISO
 ```
 
-`all` takes the best part of a day, most of it in LLVM, Qt and WebKitGTK. It records each finished step in `~/SYN-OS-build/build.state` and logs to `build.log`, so if a step fails you fix it and run `all` again: it carries on from there. `desktop` does the same per package, and `desktop NAME` rebuilds one. Every package it compiles is also kept in `~/SYN-OS-build/pkgcache`, so a later build with the same recipe unpacks it instead of compiling again.
+or straight through this directory's builder, which the editions run:
+
+```
+cd SYN-OS/SYN-LFS
+./build.zsh host
+SYN_OS_PACKAGES=xbps SYN_OS_WORK=~/SYN-OS-build-xbps ./build.zsh all
+```
+
+A work directory is built one way: `all` refuses to switch one from `source` to `xbps`, so each edition has its own, and only one build runs in it at a time. With `xbps`, `all` took 3 hours 20 minutes on a 6-core machine with 16G, the first time on 2026-10-08: the LFS base 146 minutes, Void's packages 20 (3.9 GB downloaded, 1,248 packages), the rest of the desktop under a minute, the kernel again 18, the ISO 11 (4.9 GB), with 30G of disk used in all. With `source`, it takes the best part of a day, most of it in LLVM, Qt and WebKitGTK. It records each finished step in `~/SYN-OS-build/build.state` and logs to `build.log`, so if a step fails you fix it and run `all` again: it carries on from there. `desktop` does the same per package, and `desktop NAME` rebuilds one. Every package it compiles is also kept in `~/SYN-OS-build/pkgcache`, so a later build with the same recipe unpacks it instead of compiling again.
 
 Then boot it:
 
@@ -68,9 +82,13 @@ Sources are downloaded on the host into `~/SYN-OS-build/sources/desktop` and the
 
 ## Void's packages
 
-`build.zsh void` (after `desktop`) installs `xbps/packages.txt` from Void Linux's repository onto the base, with their dependencies. Void is a runit distribution, so its packages expect what this system has, and their runit services land in `/etc/sv` like the base's own (off until enabled).
+`build.zsh void` installs `xbps/packages.txt` from Void Linux's repositories onto the base, with their dependencies, and with `SYN_OS_PACKAGES=xbps` the desktop as well, `xbps/desktop.txt`: the same desktop as `desktop/order`, by the same categories and profiles, naming only what SYN-OS uses. With `xbps`, `void` runs before `desktop`, and `desktop` then builds only `xbps/order`: SYN-OS's own tools against Void's `-devel` packages, `cpu-microcode` (built into the kernel), doas and swaylock without PAM as the base has them, `wlr-protocols`, Terminus with Nerd glyphs and Bitstream Vera (Void has no packages for those three), and `syn-void`. All four of Void's repositories are used: `nonfree` has Steam, `multilib` the 32-bit libraries it runs on. Void is a runit distribution, so its packages expect what this system has, and their runit services land in `/etc/sv` like the base's own (off until enabled).
 
 xbps only knows what it installed, so `xbps/syn-lfs-base.zsh` writes `syn-lfs-base`, an empty package that tells it what the LFS base already provides: every Void package in the chains whose libraries are mostly present, at Void's own version, and every shared library on the system. xbps then installs only what's missing and never replaces the base. The step stops before installing anything whose alternatives would replace a base file (Void's busybox would take over `sh` and `awk`). The base matches what Void's binaries expect: Mesa on libglvnd, `/usr/lib64` linking to `lib`, and QtWebEngine's helper where the base's Qt looks for it.
+
+Three things are always the base's: glibc, the interpreters (perl, python3, bash) and zsh. Void's Perl modules are claimed too and never installed, since the base's Perl is another version that only looks in its own versioned directories. Python is the same 3.14 on both, so Void's Python modules work. Anything else that brings its own copy of a file the base already has (Void's elfutils `libelf`, which is the same version) is listed in the work directory's `void-replaced.txt`; xbps replaces those without asking.
+
+`desktop/pkgs/syn-void` fits Void's packages to SYN-OS, doing what the `desktop/order` recipes of the same packages did besides compiling them. Each Void service keeps its own run script, which names Void's binaries. Its logger is `vlogger`, which on Void goes to syslog; here `desktop/files/vlogger` sends it through svlogd to `/var/log/sv/NAME`, where syn-sysmon reads it. seatd keeps SYN's run script (the seat goes to the `video` group, not Void's `_seatd`), and so does qemu-ga (it stays down without its virtio port). An xbps.d `noextract` keeps an update from putting Void's back. runit's stage 2 sets `SVDIR=/var/service` for Void's `sv check dbus`, and stage 1 makes `/run/runit`, where Void's services keep their supervise state. Bitmap fonts are allowed (Terminus is one), the console font is linked where the base's `setfont` looks, and surf runs with `GDK_BACKEND=x11`.
 
 xbps is in the running system too, so `xbps-install` and `xbps-install -Su` work there. The base's `/usr/sbin` and `/lib64` are links to `bin` and `usr/lib`, as on Arch and Void: their programs, udev rules and mkinitcpio name `/usr/bin` paths, and an initramfs merges the two. After changing the LFS side, run `build.zsh void` again so `syn-lfs-base` is written anew.
 
@@ -80,7 +98,7 @@ runit is PID 1, and there's no logind, so:
 
 - Stage 1 (`runit/1`) mounts the kernel filesystems, coldplugs udev, checks and mounts fstab, sets up zram from `synos.conf`'s `ZramPercent` and `ZramMaxMiB` (the job systemd's zram-generator does on Arch), makes `/run/user/<uid>`, and loads the console keymap and font. The kernel sets the clock from the RTC itself; there is no hwclock at boot, which waited 10 s for a clock tick under QEMU.
 - seatd hands labwc the seat. Users in `video` can start a session.
-- D-Bus, seatd, iwd, dhcpcd and ntpd are services; sshd and bluetoothd are installed but switched off. Preferences > Software > Services toggles any of them. Each service logs through svlogd to `/var/log/sv/NAME`.
+- D-Bus, seatd, iwd, dhcpcd and ntpd (`isc-ntpd` with Void's packages) are services; sshd and bluetoothd are installed but switched off. Preferences > Software > Services toggles any of them. Each service logs through svlogd to `/var/log/sv/NAME`.
 - dhcpcd configures every interface; the book's static `ifconfig.*` files are removed.
 - PipeWire, WirePlumber and pipewire-pulse start from labwc's autostart, since there are no user units.
 - mako and syn-connect use basu for sd-bus.
@@ -114,5 +132,5 @@ From there it is the Arch edition's installer, the same files from `SYN-ISO-PROF
 Decided 2026-09-28, in this order:
 
 1. `build.zsh all` from an empty machine produces a working installer ISO. A run is in progress; every stop is a bug in this tree, fixed here.
-2. The desktop stack comes from Void, not from recipes. Built from source stays: the LFS base, the kernel, runit and zsh, and SYN's own tools (`syn-*`). Everything else (Mesa, wlroots, labwc, waybar, GTK, Qt, WebKitGTK, PipeWire, fonts, the applications) moves from `desktop/order` to `xbps/packages.txt`. A build then takes LFS's hours plus minutes of xbps, and 300 recipes stop needing upkeep. The known risk is a Void package overlapping what the base provides (device-mapper did); `syn-lfs-base.zsh` is where that is handled.
+2. ~~The desktop stack comes from Void, not from recipes.~~ Done as `SYN_OS_PACKAGES=xbps` (the `syn-os-lfs` edition), 2026-10-08: from an empty work directory to an ISO that boots to the SYN desktop in QEMU, every service up under runit, in 3 hours 20 minutes. What compiles is the base, the kernel, runit, zsh and `xbps/order`'s 21 recipes. Before the desktop comes from Void by default everywhere, it wants an install from that ISO and a session on real hardware.
 3. Untested layouts of the installer: mbr-syslinux and mbr-grub (need a BIOS VM), f2fs/btrfs/xfs roots, rEFInd.

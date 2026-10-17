@@ -14,7 +14,9 @@
 #
 #   SYN_PROFILE (full or minimal, default full) is a profile from `order`:
 #   the categories it builds, with `# [category]` headers there putting
-#   the recipes under them in a category.
+#   the recipes under them in a category. SYN_ORDER names another order
+#   file (../xbps/order: what still compiles with Void's packages); `list`
+#   reads any file laid out the same way (../xbps/desktop.txt).
 #
 #   A recipe sets v (version), src (one "url checksum [filename]" string
 #   per file, the first one gets unpacked, the rest sit next to it for
@@ -35,6 +37,7 @@ LOGS=/var/log/syn-os
 # when the recipe is unchanged. build.zsh keeps CACHE outside the image
 FILES=/var/lib/syn-os/files
 CACHE=${SYN_CACHE:-/var/cache/syn-os/pkgs}
+ORDER=${SYN_ORDER:-$HERE/order}
 
 # Recipe names in build order, filtered to the categories of $SYN_PROFILE
 # (default full). `order` declares each profile as `profile NAME cat...`
@@ -46,7 +49,7 @@ recipes() {
 		/^#/ || /^[[:space:]]*$/ { next }
 		{ if (cat in want) print }
 		END { if (!found) { print "no profile called " prof " in order" > "/dev/stderr"; exit 1 } }
-	' "$HERE/order"
+	' "$ORDER"
 }
 
 load() {

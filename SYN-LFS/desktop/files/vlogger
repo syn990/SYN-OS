@@ -1,0 +1,10 @@
+#!/bin/zsh -f
+# vlogger for Void's services on SYN-OS (installed by desktop/pkgs/syn-void).
+# A Void service's log/run is `exec vlogger -t NAME -p FACILITY`, which on
+# Void hands its output to syslog. Here it goes to svlogd in /var/log/sv/NAME,
+# as SYN's own services' does (svc in desktop/lib.zsh), where syn-sysmon's
+# Logs view reads it. With no -t, NAME is the service's, as Void's does it
+zparseopts -D -E -- t:=tag p:=facility f:=file i s S
+name=${tag[2]:-${PWD:h:t}}
+install -d -m755 /var/log/sv/$name
+exec svlogd -tt /var/log/sv/$name

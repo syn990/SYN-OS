@@ -1,0 +1,170 @@
+# The SYN desktop as Void's binary packages, for SYN_OS_PACKAGES=xbps: what
+# desktop/order compiles, by the same categories, installed by `build.zsh
+# void` onto our LFS base and kernel. Only what SYN-OS uses is named; xbps
+# brings each one's dependencies, and syn-lfs-base (syn-lfs-base.zsh) stops
+# it bringing what the base already has. xbps/order is what still compiles.
+#
+# A profile is the set of categories it installs, as in desktop/order.
+profile full    baseCore netAndServices shellAndCLI desktopStack fontsI18n appsMedia synOS
+profile minimal baseCore netAndServices shellAndCLI desktopStack fontsI18n synOS
+
+# [baseCore] Base tools and libraries (the CA store: p11-kit and make-ca)
+ca-certificates
+curl
+dbus
+nano
+dosfstools
+libarchive
+libxcrypt-compat
+
+# [shellAndCLI] Command-line and system tools (what .zshrc and the SYN scripts call)
+git
+openssh
+ntp
+tree
+xdg-utils
+btop
+zsh-autosuggestions
+zsh-syntax-highlighting
+zsh-completions
+fzf
+ripgrep
+fd
+bat
+zoxide
+glow
+
+# [desktopStack] Mesa (the same drivers desktop/order builds), Vulkan, seat
+mesa-dri
+mesa-vulkan-radeon
+mesa-vulkan-intel
+mesa-vulkan-lavapipe
+vulkan-loader
+seatd
+
+# [desktopStack] Audio: PipeWire as the server, libpulse for its clients
+pipewire
+wireplumber
+bluez
+pamixer
+
+# [netAndServices] Video: FFmpeg for screen recording and syn-relay, SDL for syn-relay's viewer
+ffmpeg6
+SDL2
+
+# [netAndServices] Network
+iwd
+dhcpcd
+openvpn
+
+# [baseCore] Firmware (CPU microcode is xbps/order's: it's built into the kernel)
+wireless-regdb
+linux-firmware
+sof-firmware
+qemu-ga
+sof-tools
+
+# [shellAndCLI] Disks, filesystems and the system tools the installer and SYN-SHARE use
+lvm2
+cryptsetup
+xfsprogs
+btrfs-progs
+f2fs-tools
+ntfs-3g
+fuse3
+fuse
+fuse-sshfs
+parted
+dnsmasq
+hostapd
+calc
+hexedit
+lshw
+fakeroot
+yt-dlp
+android-tools
+
+# [desktopStack] Xwayland, so X11 programs run (the Steam client is one)
+xorg-server-xwayland
+
+# [desktopStack] Qt 6, for syn-shell
+qt6-wayland
+qt6-svg
+qt6ct
+kvantum
+FeatherPad
+
+# [desktopStack] The desktop: labwc, waybar and the Wayland tools SYN-OS uses
+labwc
+foot
+fuzzel
+swaybg
+wmenu
+rofi
+grim
+slurp
+wlr-randr
+mako
+libnotify
+Waybar
+wf-recorder
+waypipe
+brightnessctl
+graphviz
+adwaita-icon-theme
+feh
+
+# [fontsI18n] Fonts (Terminus with Nerd glyphs and Bitstream Vera are xbps/order's)
+terminus-font
+dejavu-fonts-ttf
+liberation-fonts-ttf
+font-awesome6
+noto-fonts-emoji
+noto-fonts-ttf
+noto-fonts-cjk
+
+# [appsMedia] surf, the browser
+surf
+
+# [appsMedia] The rest of syn-packages.zsh
+gimp
+vlc
+obs
+openra
+binwalk
+
+# [appsMedia] Steam and the 32-bit graphics, sound and font libraries it runs
+# on. Not glibc, libgcc, libstdc++, zlib and the like: the multilib base
+# has its own, newer (a package named here would replace the base's)
+steam
+libdrm-32bit
+libglvnd-32bit
+mesa-dri-32bit
+mesa-vulkan-radeon-32bit
+mesa-vulkan-intel-32bit
+vulkan-loader-32bit
+libpipewire-32bit
+alsa-lib-32bit
+freetype-32bit
+fontconfig-32bit
+nss-32bit
+xrandr
+
+# [synOS] The headers and tools SYN-OS's own tools (xbps/order) compile
+# against: Void packages its headers separately, the base has its own
+cmake
+wayland-devel
+wayland-protocols
+libxkbcommon-devel
+pulseaudio-devel
+ffmpeg6-devel
+SDL2-devel
+qt6-base-devel
+libarchive-devel
+libvterm-devel
+kf6-syntax-highlighting-devel
+libpng-devel
+basu-devel
+# and the two built here instead of taken from Void (see xbps/order)
+cairo-devel
+gdk-pixbuf-devel

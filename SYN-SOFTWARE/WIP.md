@@ -22,7 +22,6 @@ and a `CMakeLists.txt` that builds that.
 | [syn-dashcam-wip](syn-dashcam-wip/README.md) | Flight recorder for slowdowns: always holds the last 60 seconds, keeps them when you press a key |
 | [syn-boot-wip](syn-boot-wip/README.md) | Boot timeline for runit, which has no `systemd-analyze` |
 | [syn-lag-wip](syn-lag-wip/README.md) | Keypress-to-frame latency per app, measured |
-| [syn-hum-wip](syn-hum-wip/README.md) | The machine as sound: CPU, network, disk and errors as a quiet continuous soundscape through syn-bar-core |
 | [syn-fsn-wip](syn-fsn-wip/README.md) | The file system as a 3D picture you turn, zoom and click through: size, type, age and recent changes at a glance |
 
 ## Shared work they're waiting on

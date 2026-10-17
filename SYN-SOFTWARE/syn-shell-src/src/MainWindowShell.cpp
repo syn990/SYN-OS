@@ -192,6 +192,7 @@ void MainWindow::applyUiFont(qreal px)
   for (QWidget *w : centralWidget()->findChildren<QWidget *>())
     if (w != m_termStack && !m_termStack->isAncestorOf(w))
       w->setFont(f);
+  updateFieldBar(); // the columns are wider or narrower in the new size
 }
 
 // ----------------------------------------------------------------- fields
@@ -206,6 +207,9 @@ void MainWindow::toggleField(int field)
   m_fieldHeader->setVisible(fields & ~RowDelegate::Size);
   m_fieldHeader->update();
   m_view->viewport()->update();
+  if (fields & field)
+    fitFields();
+  updateFieldBar();
   QSettings().setValue("fields", fields);
 
   QStringList on;

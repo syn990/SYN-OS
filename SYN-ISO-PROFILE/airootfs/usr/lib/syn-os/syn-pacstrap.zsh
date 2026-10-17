@@ -104,6 +104,7 @@ pacstrapMain() {
     /usr/lib/syn-os/syn-relay
     /usr/lib/syn-os/syn-connect
     /usr/lib/syn-os/syn-sysmon
+    /usr/lib/syn-os/syn-hum
     /usr/lib/syn-os/syn-wallgen
     /usr/lib/syn-os/syn-uplink-dialpad
     "/usr/bin/syn-shell:/usr/share/applications/syn-shell.desktop:/usr/share/icons/hicolor/scalable/apps/syn-shell.svg"

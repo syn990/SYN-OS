@@ -46,6 +46,7 @@ add_executable(syn-shell
   src/MainWindowMedia.cpp
   src/MainWindowRename.cpp
   src/MainWindowShell.cpp
+  src/MainWindowSort.cpp
   src/MainWindowTabs.cpp
   src/MainWindowTools.cpp
   src/FileOps.cpp
@@ -69,6 +70,8 @@ add_executable(syn-shell
   src/Preview.h
   src/RowDelegate.cpp
   src/RowDelegate.h
+  src/SortOrder.cpp
+  src/SortOrder.h
   src/SynIcons.cpp
   src/SynIcons.h
   src/TermView.cpp

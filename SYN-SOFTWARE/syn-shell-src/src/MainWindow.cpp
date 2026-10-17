@@ -6,6 +6,7 @@
 #include "Jobs.h"
 #include "JobsWindow.h"
 #include "FileSortProxy.h"
+#include "SortOrder.h"
 #include "Preview.h"
 #include "RowDelegate.h"
 #include "TermView.h"
@@ -95,6 +96,24 @@ QScrollArea#jobScroll { background: palette(window); border: none; }
   padding: 2px 6px; margin: 4px 0 4px 4px;
 }
 
+#fieldBar { background: palette(window); border-bottom: 1px solid palette(button); }
+#fieldBar QCheckBox { color: palette(text); padding: 2px 12px 2px 6px; spacing: 6px; }
+#fieldBar QCheckBox:hover { color: palette(highlight); }
+#fieldBar QCheckBox::indicator {
+  width: 0.7em; height: 0.7em; border: 2px solid palette(highlight); background: transparent;
+}
+#fieldBar QCheckBox::indicator:checked { background: palette(highlight); }
+#fieldBar QCheckBox[squeezed="true"] { color: palette(mid); }
+#fieldBar QCheckBox[squeezed="true"]::indicator { border-color: palette(mid); }
+#fieldBar QCheckBox[squeezed="true"]::indicator:checked { background: palette(mid); }
+#fieldBar QLabel#fieldBarTitle { color: palette(highlight); font-weight: bold; padding: 0 6px; }
+#fieldBar QToolButton {
+  background: palette(button); color: palette(text); border: none;
+  padding: 2px 9px; margin: 3px 0;
+}
+#fieldBar QToolButton:hover { background: palette(light); }
+#fieldBar QToolButton::menu-indicator { image: none; width: 0; }
+
 QListView { background: palette(window); border: none; outline: 0; }
 QListView#parentPane { background: palette(base); }
 QSplitter::handle { background: palette(button); }
@@ -167,6 +186,10 @@ const char kHelp[] = R"(  MOVE
                   (left letter staged, right one not); a dot: changes inside
   zp zo zs        permissions, owner, size columns on / off
   zm zc           modified, created columns on / off
+                  (or tick them on the bar along the top; zb hides the bar)
+  on os om oc     sort by name, size, modified, created
+  oN oS oM oC     the same, the other way round     or   turn the sort round
+                  (or SORT on the bar, or click a column's title)
   Ctrl+L          type a path
   Ctrl+T Ctrl+W   new tab, close tab      Ctrl+Tab  next tab    Alt+1..9  tab 1..9
   Ctrl+wheel      zoom (over the files, or over the shell: each zooms on its own)
@@ -272,6 +295,8 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   m_opacity = qBound(0.3, settings.value("opacity", 1.0).toDouble(), 1.0);
   RowDelegate::setShowIcons(settings.value("icons", true).toBool());
   RowDelegate::setFields(settings.value("fields", int(RowDelegate::Size)).toInt());
+  SortOrder::set(SortOrder::fromId(settings.value("sort").toString()),
+                 settings.value("sortReversed", false).toBool());
   m_git = new GitStatus(this);
   m_git->setEnabled(settings.value("git", true).toBool());
   RowDelegate::setGit(m_git);
@@ -284,6 +309,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
                      | (settings.value("showHidden", false).toBool() ? QDir::Hidden
                                                                        : QDir::Filters()));
   m_proxy = new FileSortProxy(m_model, this);
+  m_proxy->setFolderSizes(&m_folderSizes);
 
   auto makeView = [this](const char *name) {
     auto *v = new QListView(this);
@@ -306,6 +332,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   static_cast<RowDelegate *>(m_view->itemDelegate())->setDetailed(true);
   m_fieldHeader = new FieldHeader(m_view, this);
   m_fieldHeader->setVisible(RowDelegate::fields() & ~RowDelegate::Size);
+  m_fieldHeader->onTitleClicked = [this](int field) { sortByTitle(field); };
   auto *center = new QWidget(this);
   auto *centerLayout = new QVBoxLayout(center);
   centerLayout->setContentsMargins(0, 0, 0, 0);
@@ -337,6 +364,7 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   layout->setSpacing(0);
   layout->addWidget(buildHeader());
   layout->addWidget(buildTabBar());
+  layout->addWidget(buildFieldBar());
   buildShell();
   layout->addWidget(m_vsplit, 1);
   layout->addWidget(buildFooter());
@@ -690,6 +718,7 @@ void MainWindow::buildActions()
     {"r", [this] { openExternal(); }},
     {"`", [this] { toggleShellPane(); }},
   };
+  buildSortActions();
 }
 
 QWidget *MainWindow::buildHeader()
@@ -1699,6 +1728,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 
   if (watched == m_view->viewport() && event->type() == QEvent::Resize) {
     m_fieldHeader->update();
+    updateFieldBar();
     m_emptyNote->setGeometry(m_view->viewport()->rect());
   }
 
@@ -1886,6 +1916,8 @@ void MainWindow::showContextMenu(const QPoint &pos)
   menu.addAction(m_actGit);
   QMenu *fieldsMenu = menu.addMenu(tr("Fields"));
   fieldsMenu->addActions(m_actFields);
+  menu.addMenu(m_sortMenu);
+  menu.addAction(m_actFieldBar);
   if (!m_inArchive)
     menu.addAction(tr("Folder sizes\tdu"), this, &MainWindow::measureFolders);
   menu.addAction(m_actRefresh);

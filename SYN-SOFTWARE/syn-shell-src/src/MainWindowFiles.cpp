@@ -21,6 +21,7 @@
 #include "FileJobs.h"
 #include "FileOps.h"
 #include "FileSortProxy.h"
+#include "SortOrder.h"
 #include "GitStatus.h"
 #include "Jobs.h"
 #include "JobsWindow.h"
@@ -205,6 +206,8 @@ void MainWindow::measureFolders()
                }
                job.summary = tr("%n folder(s) measured, %1 in all", nullptr, int(out->bytes.size()))
                                .arg(humanSize(total));
+               if (SortOrder::key() == SortOrder::Size)
+                 m_proxy->invalidate(); // the folders now have sizes to sort by
                m_view->viewport()->update();
                updateInfo();
              });

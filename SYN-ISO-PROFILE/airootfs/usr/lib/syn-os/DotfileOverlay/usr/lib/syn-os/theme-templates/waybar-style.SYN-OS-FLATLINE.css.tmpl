@@ -40,12 +40,12 @@ window#waybar.hidden { opacity: 0.2; }
 #taskbar button.active { background: inherit; box-shadow: none; color: @syn_accent; }
 #taskbar button.urgent { background: inherit; color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
 
-#workspaces, #clock, #battery, #custom-cpu, #custom-mem, #temperature, #custom-disk,
+#workspaces, #clock, #battery, #custom-hum, #custom-cpu, #custom-mem, #temperature, #custom-disk,
 #network, #pulseaudio, #backlight, #custom-vpn, #custom-ssh, #custom-synshare, #custom-power {
   padding: 0 10px;
 }
 
-#clock:hover, #battery:hover, #custom-cpu:hover, #custom-mem:hover, #network:hover, #pulseaudio:hover,
+#clock:hover, #battery:hover, #custom-hum:hover, #custom-cpu:hover, #custom-mem:hover, #network:hover, #pulseaudio:hover,
 #custom-disk:hover, #temperature:hover, #custom-synshare:hover, #custom-power:hover {
   color: @syn_accent;
 }
@@ -78,3 +78,9 @@ window#waybar.hidden { opacity: 0.2; }
 
 #custom-recording { color: @syn_urgent; animation: blink-text 1s steps(2) infinite alternate; }
 @keyframes blink-text { to { color: @syn_text; } }
+
+/* custom/hum, the acoustic monitor's button: boxed like its neighbours
+   (it's in their groups above), its icon dim while it's off and the
+   accent while it's listening */
+#custom-hum.off { color: @syn_accent_dim; }
+#custom-hum.on { color: @syn_accent; }

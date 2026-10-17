@@ -5,6 +5,8 @@
 SYN-ISO-PROFILE/airootfs/root
 WORKDIR/
 .syn-build/
+.syncache/
+ISO_OUTPUT/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/pkgcache/
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-os-base/PKGBUILD
 SYN-SOFTWARE/syn-shell-src/src/build/
@@ -26,6 +28,7 @@ SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-audio
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-iso-builder
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-relay
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-sysmon
+SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-hum
 SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/syn-wallgen
 SYN-ISO-PROFILE/airootfs/usr/bin/syn-shell
 SYN-ISO-PROFILE/airootfs/usr/bin/syn-filemanager

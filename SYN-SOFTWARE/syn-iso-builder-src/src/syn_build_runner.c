@@ -264,8 +264,11 @@ static void strip_ansi(const char *in, char *out, size_t out_len) {
 }
 
 /* ---- Step 2/6: mkarchiso itself ----------------------------------------
- * This whole tool runs as root (see main.c's re-exec under doas at
- * startup) — no doas here, just a direct exec. stdout+stderr are
+ * stream_on_pty() runs it, and anything else long enough to want the
+ * same live panel (an LFS edition's BUILD.zsh, see
+ * syn_build_run_streamed()). This whole tool runs as root (see main.c's
+ * re-exec under doas at startup) — no doas here, just a direct exec, or
+ * a drop to the real user first when asked. stdout+stderr are
  * attached to a pty (forkpty()), not a plain pipe — mkarchiso/pacman/
  * pacstrap detect whether they're on a real terminal and suppress their
  * own \r-redrawn progress/hash-check bars over a pipe (and even where
@@ -289,8 +292,7 @@ static void strip_ansi(const char *in, char *out, size_t out_len) {
  * in-place progress redraw still surfaces as a discrete update instead
  * of being buffered forever waiting for a '\n' that a redrawing bar
  * never sends. */
-static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
-	const char *profile_dir, const emit_ctx *ctx) {
+static bool stream_on_pty(char *const argv[], bool as_real_user, const emit_ctx *ctx) {
 	struct winsize ws;
 	struct winsize *ws_ptr = NULL;
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) {
@@ -303,8 +305,15 @@ static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
 		return false;
 	}
 	if (pid == 0) {
-		execlp("mkarchiso", "mkarchiso", "-v", "-w", scratch_dir,
-			"-o", output_dir, profile_dir, (char *)NULL);
+		/* An LFS edition's build runs as the user who started this tool
+		 * (see syn_become_real_user()); refusing to exec beats running
+		 * it as root by accident */
+		if (as_real_user && !syn_become_real_user()) {
+			fprintf(stderr, "syn-iso-builder: can't tell which user to run %s as "
+				"(no DOAS_USER or SUDO_USER): run it yourself\n", argv[0]);
+			_exit(126);
+		}
+		execvp(argv[0], argv);
 		_exit(127);
 	}
 
@@ -326,6 +335,12 @@ static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
 	 * single \r. The eventual real \n (or EOF) always commits the true
 	 * final state as a permanent line, same as before. */
 	struct timespec last_provisional = {0, 0};
+	/* A pty ends every line with \r\n (its ONLCR output setting turns
+	 * each \n into \r\n), so a \r on its own means nothing yet: the next
+	 * byte says whether it ended a line (\n) or rewinds one to redraw it
+	 * (anything else). Treating every \r as a redraw emptied each line
+	 * just before its \n, and lines never reached the panel */
+	bool pending_cr = false;
 	for (;;) {
 		/* select() with a short timeout instead of a plain blocking
 		 * read() — mkarchiso/pacstrap can go quiet for a while (a slow
@@ -364,6 +379,31 @@ static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
 		}
 		for (ssize_t i = 0; i < n; i++) {
 			char c = chunk[i];
+			if (pending_cr) {
+				pending_cr = false;
+				if (c != '\n') {
+					/* Carriage return, not a line end — a progress bar
+					 * redrawing in place sends \r then overwrites from
+					 * column 0. Push whatever this redraw left behind to
+					 * the caller's provisional-line display (rate-limited
+					 * below) before rewinding — the eventual real \n (or
+					 * EOF) commits the true final state as a permanent line
+					 * same as before. */
+					if (line_len > 0 && ctx->on_provisional) {
+						struct timespec now;
+						clock_gettime(CLOCK_MONOTONIC, &now);
+						double elapsed = (double)(now.tv_sec - last_provisional.tv_sec)
+							+ (double)(now.tv_nsec - last_provisional.tv_nsec) / 1e9;
+						if (elapsed >= 0.2) {
+							line[line_len] = '\0';
+							strip_ansi(line, clean, sizeof(clean));
+							ctx->on_provisional(clean, ctx->userdata);
+							last_provisional = now;
+						}
+					}
+					line_len = 0;
+				}
+			}
 			if (c == '\n') {
 				/* Real end of a line — flush whatever's been
 				 * accumulated (possibly redrawn several times via \r
@@ -375,26 +415,7 @@ static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
 					line_len = 0;
 				}
 			} else if (c == '\r') {
-				/* Carriage return, not a line end — a progress bar
-				 * redrawing in place sends \r then overwrites from
-				 * column 0. Push whatever this redraw left behind to
-				 * the caller's provisional-line display (rate-limited
-				 * below) before rewinding — the eventual real \n (or
-				 * EOF) commits the true final state as a permanent line
-				 * same as before. */
-				if (line_len > 0 && ctx->on_provisional) {
-					struct timespec now;
-					clock_gettime(CLOCK_MONOTONIC, &now);
-					double elapsed = (double)(now.tv_sec - last_provisional.tv_sec)
-						+ (double)(now.tv_nsec - last_provisional.tv_nsec) / 1e9;
-					if (elapsed >= 0.2) {
-						line[line_len] = '\0';
-						strip_ansi(line, clean, sizeof(clean));
-						ctx->on_provisional(clean, ctx->userdata);
-						last_provisional = now;
-					}
-				}
-				line_len = 0;
+				pending_cr = true;
 			} else if (line_len < sizeof(line) - 1) {
 				line[line_len++] = c;
 			}
@@ -410,6 +431,20 @@ static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
 	int status;
 	waitpid(pid, &status, 0);
 	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
+static bool run_mkarchiso(const char *scratch_dir, const char *output_dir,
+	const char *profile_dir, const emit_ctx *ctx) {
+	char *argv[] = {"mkarchiso", "-v", "-w", (char *)scratch_dir,
+		"-o", (char *)output_dir, (char *)profile_dir, NULL};
+	return stream_on_pty(argv, false, ctx);
+}
+
+bool syn_build_run_streamed(char *const argv[], bool as_real_user,
+	syn_build_line_cb on_line, syn_build_idle_cb on_idle,
+	syn_build_provisional_cb on_provisional, void *userdata) {
+	emit_ctx ctx = {on_line, on_idle, on_provisional, userdata};
+	return stream_on_pty(argv, as_real_user, &ctx);
 }
 
 /* ---- Step 7: archive the finished ISO ----------------------------------

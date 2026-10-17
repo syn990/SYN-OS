@@ -45,6 +45,16 @@ void syn_build_paths_init(syn_build_paths *out);
  * this instead. */
 const char *syn_resolve_real_home(void);
 
+/* For a child process about to exec something that must run as the
+ * real invoking user rather than root (an LFS edition's build, which
+ * calls doas itself and keeps its files under that user's $HOME — see
+ * syn_edition.h): drops to that user ($DOAS_USER/$SUDO_USER, as
+ * syn_resolve_real_home() finds them) with their groups, and sets HOME,
+ * USER and LOGNAME to theirs. Already unprivileged: nothing to do, true.
+ * Root with no invoking user to drop to, or a failed drop: false, and
+ * the caller must not exec. */
+bool syn_become_real_user(void);
+
 /* Takes an exclusive flock() on a lockfile under paths->root, held for
  * the life of the process (released automatically on exit/crash — no
  * separate cleanup needed, unlike a plain pidfile that can go stale).

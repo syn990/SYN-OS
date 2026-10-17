@@ -21,6 +21,9 @@ mountpoint -q /proc || mount -t proc -o nosuid,noexec,nodev proc /proc
 mountpoint -q /sys  || mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
 mountpoint -q /run  || mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
 mkdir -p /run/lock && chmod 1777 /run/lock
+# Void's services keep their supervise state in /run/runit (their
+# supervise is a link there; runsv makes the directory it names)
+mkdir -p /run/runit
 mountpoint -q /dev  || mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev
 # The /proc-backed device links devtmpfs does not make (the udev bootscript
 # does): bash process substitution and anything opening /dev/stdin need them

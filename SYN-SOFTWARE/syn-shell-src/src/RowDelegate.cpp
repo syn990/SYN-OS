@@ -7,8 +7,10 @@
 
 #include <QHash>
 #endif
+#include "SortOrder.h"
 
 #include <QAbstractItemView>
+#include <QMouseEvent>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QFileSystemModel>
@@ -105,27 +107,46 @@ int RowDelegate::nameStart(int rowHeight)
   return textStart(QRect(0, 0, 1, rowHeight));
 }
 
+namespace {
+
+// Widths from the widest thing each can hold, so every row lines up.
+int chars(const QFontMetrics &fm, int n)
+{
+  return fm.horizontalAdvance(QString(n, QLatin1Char('M')));
+}
+
+QList<RowDelegate::Column> allColumns(const QFontMetrics &fm)
+{
+  return {
+    {RowDelegate::Permissions, QObject::tr("PERMS"), 0, chars(fm, 10)},
+    {RowDelegate::Owner, QObject::tr("OWNER"), 0, chars(fm, 9)},
+    {RowDelegate::Size, QObject::tr("SIZE"), 0, chars(fm, 5)},
+    {RowDelegate::Modified, QObject::tr("MODIFIED"), 0, chars(fm, 16)},
+    {RowDelegate::Created, QObject::tr("CREATED"), 0, chars(fm, 16)},
+  };
+}
+
+// Room for the fields in `shown`, gaps included, plus the least the name keeps.
+int fieldsWidth(const QFontMetrics &fm, const QList<RowDelegate::Column> &all, int shown)
+{
+  int total = chars(fm, 10);
+  for (const RowDelegate::Column &c : all)
+    if (shown & c.field)
+      total += c.width + chars(fm, 2);
+  return total;
+}
+
+} // namespace
+
 QList<RowDelegate::Column> RowDelegate::columns(const QFontMetrics &fm, int rowWidth, int start)
 {
-  // Widths from the widest thing each can hold, so every row lines up.
-  auto chars = [&fm](int n) { return fm.horizontalAdvance(QString(n, QLatin1Char('M'))); };
-  const QList<Column> all = {
-    {Permissions, QObject::tr("PERMS"), 0, chars(10)},
-    {Owner, QObject::tr("OWNER"), 0, chars(9)},
-    {Size, QObject::tr("SIZE"), 0, chars(5)},
-    {Modified, QObject::tr("MODIFIED"), 0, chars(16)},
-    {Created, QObject::tr("CREATED"), 0, chars(16)},
-  };
-  const int gap = chars(2);
+  const QList<Column> all = allColumns(fm);
+  const int gap = chars(fm, 2);
   const int right = rowWidth - 8;
   int shown = g_fields;
   // Too narrow: these go first, in this order, so the name keeps room.
   for (Field f : {Owner, Created, Permissions, Modified, Size}) {
-    int total = 0;
-    for (const Column &c : all)
-      if (shown & c.field)
-        total += c.width + gap;
-    if (start + chars(10) + total <= right)
+    if (start + fieldsWidth(fm, all, shown) <= right)
       break;
     shown &= ~f;
   }
@@ -140,6 +161,11 @@ QList<RowDelegate::Column> RowDelegate::columns(const QFontMetrics &fm, int rowW
     x -= gap;
   }
   return out;
+}
+
+int RowDelegate::neededWidth(const QFontMetrics &fm, int start)
+{
+  return start + fieldsWidth(fm, allColumns(fm), g_fields) + 8;
 }
 
 bool RowDelegate::showIcons()
@@ -395,6 +421,7 @@ FieldHeader::FieldHeader(QAbstractItemView *view, QWidget *parent)
   : QWidget(parent), m_view(view)
 {
   setObjectName("fieldHeader");
+  setMouseTracking(true);
 }
 
 QSize FieldHeader::sizeHint() const
@@ -402,27 +429,84 @@ QSize FieldHeader::sizeHint() const
   return QSize(100, fontMetrics().height() + 6);
 }
 
-void FieldHeader::paintEvent(QPaintEvent *)
+QList<FieldHeader::Title> FieldHeader::titles() const
 {
   // The same layout the rows use, against the same width (the view's
   // viewport, so a scrollbar is allowed for) and the same row height.
+  const QFontMetrics fm(font());
+  const int rowHeight = fm.height() + 6;
+  const int start = RowDelegate::nameStart(rowHeight);
+  const int width = m_view->viewport()->width();
+  const QList<RowDelegate::Column> cols = RowDelegate::columns(fm, width, start);
+  const int nameEnd = cols.isEmpty() ? width : cols.first().left - fm.horizontalAdvance(QStringLiteral("  "));
+  QList<Title> out;
+  out << Title{0, tr("NAME"), QRect(start, 0, nameEnd - start, height()), Qt::AlignLeft};
+  for (const RowDelegate::Column &c : cols)
+    out << Title{c.field, c.title, QRect(c.left, 0, c.width, height()),
+                 c.field == RowDelegate::Size ? Qt::AlignRight : Qt::AlignLeft};
+  return out;
+}
+
+namespace {
+
+// The sort key a title stands for, or -1 for one that doesn't sort.
+int sortKeyFor(int field)
+{
+  switch (field) {
+  case 0: return SortOrder::Name;
+  case RowDelegate::Size: return SortOrder::Size;
+  case RowDelegate::Modified: return SortOrder::Modified;
+  case RowDelegate::Created: return SortOrder::Created;
+  }
+  return -1;
+}
+
+} // namespace
+
+int FieldHeader::sortableAt(const QPoint &pos) const
+{
+  const QFontMetrics fm(font());
+  for (const Title &t : titles()) {
+    // Only the words themselves, not the whole column under them.
+    const int w = fm.horizontalAdvance(t.text) + fm.horizontalAdvance(QStringLiteral(" ↓"));
+    const QRect hit = t.align & Qt::AlignRight ? QRect(t.rect.right() - w, 0, w, height())
+                                                 : QRect(t.rect.left(), 0, w, height());
+    if (hit.contains(pos) && sortKeyFor(t.field) >= 0)
+      return t.field;
+  }
+  return -1;
+}
+
+void FieldHeader::mousePressEvent(QMouseEvent *event)
+{
+  const int field = event->button() == Qt::LeftButton ? sortableAt(event->pos()) : -1;
+  if (field >= 0 && onTitleClicked)
+    onTitleClicked(field);
+}
+
+void FieldHeader::mouseMoveEvent(QMouseEvent *event)
+{
+  setCursor(sortableAt(event->pos()) >= 0 ? Qt::PointingHandCursor : Qt::ArrowCursor);
+}
+
+void FieldHeader::paintEvent(QPaintEvent *)
+{
   QPainter p(this);
   QColor base = palette().color(QPalette::Base);
   base.setAlphaF(float(g_backgroundAlpha));
   p.setCompositionMode(QPainter::CompositionMode_Source);
   p.fillRect(rect(), base);
   p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-  const QFontMetrics fm(font());
-  const int rowHeight = fm.height() + 6;
-  const int start = RowDelegate::nameStart(rowHeight);
   p.setPen(palette().color(QPalette::Highlight));
   QFont bold = font();
   bold.setBold(true);
   p.setFont(bold);
-  const QRect row(0, 0, m_view->viewport()->width(), height());
-  p.drawText(row.adjusted(start, 0, 0, 0), Qt::AlignVCenter | Qt::AlignLeft, tr("NAME"));
-  for (const RowDelegate::Column &c : RowDelegate::columns(fm, row.width(), start))
-    p.drawText(QRect(c.left, 0, c.width, height()),
-               Qt::AlignVCenter | (c.field == RowDelegate::Size ? Qt::AlignRight : Qt::AlignLeft),
-               c.title);
+  const QString arrow = SortOrder::ascending(SortOrder::key(), SortOrder::reversed())
+                          ? QStringLiteral("↑") : QStringLiteral("↓");
+  for (const Title &t : titles()) {
+    QString text = t.text;
+    if (sortKeyFor(t.field) == SortOrder::key())
+      text = t.align & Qt::AlignRight ? arrow + QLatin1Char(' ') + text : text + QLatin1Char(' ') + arrow;
+    p.drawText(t.rect, Qt::AlignVCenter | t.align, text);
+  }
 }

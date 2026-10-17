@@ -37,6 +37,18 @@ The upside of doing it this way: if you don't like what `FAIL` sounds
 like, there's exactly one file to edit, and every tool that plays `FAIL`
 changes with it. Nothing else needs to be rebuilt.
 
+## The acoustic monitor's voice
+
+The one sound that isn't a single tone is the [acoustic
+monitor](./syn-hum.md). syn-hum sends the machine's levels here ten times
+a second as a `HUM` line (each core, memory pressure, network, disk, and
+whether a log error or a new connection just happened), and syn-bar-core
+plays them, in the style the line names, on a thread of its own with one
+audio stream that's only open while the lines keep coming. If they stop,
+the sound fades out within two seconds. `HUM-OFF` fades it now,
+`HUM-TOUR` plays every sound of a style for `syn-hum test`, and
+`HUM-HEARD` lists the last few sounds for the bar's tooltip.
+
 ## Watching for relay activity
 
 syn-bar-core also keeps an eye on SYN-RELAY. It reads the state files

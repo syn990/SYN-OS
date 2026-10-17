@@ -51,4 +51,18 @@ target_include_directories(syn-bar-core PRIVATE
 )
 target_link_libraries(syn-bar-core PRIVATE ${WAYLAND_CLIENT_LIBRARIES} m)
 
+# The acoustic monitor's voice (syn_bar_hum.c, driven by syn-hum) plays
+# through PulseAudio's simple API on a thread of its own. Built when
+# libpulse-simple is there; without it syn-bar-core is as it was and HUM
+# lines get the same "{}" any unknown request does.
+pkg_check_modules(PULSE_SIMPLE libpulse-simple)
+if(PULSE_SIMPLE_FOUND)
+  find_package(Threads REQUIRED)
+  target_sources(syn-bar-core PRIVATE src/syn_bar_hum.c)
+  target_compile_definitions(syn-bar-core PRIVATE SYN_BAR_HUM=1)
+  target_include_directories(syn-bar-core PRIVATE ${PULSE_SIMPLE_INCLUDE_DIRS})
+  target_compile_options(syn-bar-core PRIVATE ${PULSE_SIMPLE_CFLAGS_OTHER})
+  target_link_libraries(syn-bar-core PRIVATE ${PULSE_SIMPLE_LIBRARIES} Threads::Threads)
+endif()
+
 install(TARGETS syn-bar-core RUNTIME DESTINATION lib/syn-os)

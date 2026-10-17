@@ -42,9 +42,10 @@ documents, keys and the rest (a disc for disk images, a box for
 packages). `zi` turns them off for plain `ls -F` style names.
 
 The middle column can show more about each file, each switched on or
-off on its own, with titles over them so you can tell them apart. Your
-choice is remembered, and the right-click menu has the same switches
-under Fields.
+off on its own, with titles over them so you can tell them apart. The
+bar under the path has a box for each: tick it and the column appears.
+Your choice is remembered, and the right-click menu has the same
+switches under Fields, or use the keys:
 
 | Key | Field |
 |---|---|
@@ -59,8 +60,26 @@ the right-click menu) measures every folder here, or just the marked
 ones, in the background, and fills the sizes in; the bottom line then
 says how much is inside, and in how many files.
 
-If the column gets too narrow for all of them, owner and created step
-aside first so names keep enough room.
+Ticking one the middle column has no room for widens the column into
+the preview. If it still can't fit, owner and created step aside first
+so names keep enough room, and their boxes on the bar go grey until
+there's space (drag the column wider, or zoom out).
+
+SORT, at the right of the same bar, picks the order: name (A to Z),
+size (biggest first), date modified or date created (newest first),
+each either way round. Clicking a column's title sorts by it too, and
+clicking it again turns it round; an arrow marks the one in use.
+Folders always stay at the top. The order is remembered, and works
+inside archives as well (they keep no created date, so that one goes
+by name there).
+
+| Key | Sort |
+|---|---|
+| `on` `os` `om` `oc` | By name, size, modified, created |
+| `oN` `oS` `oM` `oC` | The same, the other way round |
+| `or` | Turn the order round |
+
+`zb` hides the bar, if you'd rather drive it all from the keys.
 
 The Opacity slider on the right-click menu (or `:opacity 70`) lets the
 desktop show through the window the way foot's does: only the

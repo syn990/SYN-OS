@@ -15,6 +15,7 @@
 #include "syn_git_history.h"
 #include "syn_git_extract.h"
 #include "syn_build_paths.h"
+#include "syn_edition.h"
 
 #include <ncurses.h>
 #include <stdio.h>
@@ -257,6 +258,54 @@ static bool resolve_browse_history(syn_build_paths *paths, syn_build_target *tar
 	return true;
 }
 
+/* An edition (SYN-EDITIONS/NAME.conf, see syn_edition.h): every way
+ * there is of building SYN-OS, so they're listed on the home screen
+ * itself, each with how far its build has got. An Arch one resolves to
+ * its Profile, built here exactly like the current tree's; an LFS one,
+ * or an Arch one with LayerStrat=none, is BUILD.zsh's to build
+ * (launch_edition_build()). Their states are read when the screen opens
+ * and after each build, not on every redraw: reading them runs
+ * BUILD.zsh. */
+static bool is_lfs_edition(const syn_build_target *target) {
+	return target->kind == SYN_TARGET_EDITION && strcmp(target->detail.edition.base, "lfs") == 0;
+}
+
+/* LFS, or Arch with LayerStrat=none: BUILD.zsh builds it, not the
+ * native pipeline (which would add SYN-SOFTWARE to the profile) */
+static bool built_by_build_zsh(const syn_build_target *target) {
+	return is_lfs_edition(target)
+		|| (target->kind == SYN_TARGET_EDITION && strcmp(target->detail.edition.layer, "none") == 0);
+}
+
+static void target_from_edition(const char *repo_root, const syn_edition *e, syn_build_target *target) {
+	char today[16];
+	time_t now = time(NULL);
+	struct tm tm_buf;
+	localtime_r(&now, &tm_buf);
+	strftime(today, sizeof(today), "%Y-%m-%d", &tm_buf);
+
+	memset(target, 0, sizeof(*target));
+	target->kind = SYN_TARGET_EDITION;
+	target->detail.edition = *e;
+	snprintf(target->target_label, sizeof(target->target_label), "Edition %s: %s", e->name, e->summary);
+	if (strcmp(e->base, "lfs") == 0) {
+		snprintf(target->build_id, sizeof(target->build_id), "%s", e->name);
+	} else if (strcmp(e->layer, "none") == 0) {
+		/* where BUILD.zsh's arch_plain() works */
+		snprintf(target->build_id, sizeof(target->build_id), "%s", e->name);
+		snprintf(target->detail.edition.work_dir, sizeof(target->detail.edition.work_dir),
+			"%s/.syncache/plain-%s", repo_root, e->name);
+	} else {
+		if (e->profile[0] == '/') {
+			snprintf(target->profile_dir, sizeof(target->profile_dir), "%s", e->profile);
+		} else {
+			snprintf(target->profile_dir, sizeof(target->profile_dir), "%s/%s", repo_root, e->profile);
+		}
+		/* NAME-DATE.iso, which `BUILD.zsh status` counts as this edition's */
+		snprintf(target->build_id, sizeof(target->build_id), "%s-%s", e->name, today);
+	}
+}
+
 /* Opens the source-type picker; on a real choice, runs that source's
  * resolution flow. Returns true (and fills `target`) only when a
  * target was actually (re)selected — cancelling anywhere leaves
@@ -266,7 +315,8 @@ static bool resolve_browse_history(syn_build_paths *paths, syn_build_target *tar
  * simple fucking builder that does profile.sh or a commit yo or a
  * local main." Named historical builds and custom repo URLs were
  * dropped, not hidden — see removed resolve_named_build()/
- * resolve_custom_repo() and syn_manifest.c/h. */
+ * resolve_custom_repo() and syn_manifest.c/h. Editions aren't here:
+ * they're picked straight from the home screen's list. */
 static bool pick_target(const char *repo_root, syn_build_paths *paths, syn_build_target *target) {
 	const char *items[] = {
 		"Current working tree",
@@ -457,9 +507,95 @@ static void launch_build(const syn_build_target *target, syn_build_paths *paths,
 	show_build_result(ok, target, final_iso_path, out_dir);
 }
 
+/* An edition BUILD.zsh builds (built_by_build_zsh()): it checks it, then
+ * runs it, in the same live panel as an Arch build, as the real user
+ * (BUILD.zsh and build.zsh call doas themselves, and keep their files
+ * under that user's $HOME). An LFS one runs SYN-LFS/build.zsh's steps
+ * from the first one not done yet: hours on a first build; leaving this
+ * screen stops it like any build here, and launching it again carries
+ * on from the step that stopped. The panel can't take a password, so it
+ * only starts when doas doesn't ask. */
+static void launch_edition_build(syn_build_target *target, const char *repo_root) {
+	/* Every step done: a launch would build nothing, so it says so rather
+	 * than report the old ISO as a build */
+	const syn_edition_state *st = &target->detail.edition.state;
+	if (is_lfs_edition(target) && st->steps > 0 && st->next[0] == '\0' && !st->unrecorded) {
+		char body[96];
+		snprintf(body, sizeof(body), "Nothing to build: all %d steps are done already.", st->steps);
+		syn_tui_message("Already built", body);
+		return;
+	}
+	if (!syn_edition_doas_ready()) {
+		syn_tui_message("doas asks for a password",
+			"Build this one in a terminal: zsh BUILD.zsh <edition>");
+		return;
+	}
+	syn_tui_buildlog *log = syn_tui_buildlog_open("Build Output");
+	char line[300];
+	snprintf(line, sizeof(line), "--- syn-iso-builder: zsh BUILD.zsh %s ---", target->detail.edition.name);
+	syn_tui_buildlog_append(log, line);
+	syn_tui_buildlog_append(log, "");
+
+	char build_zsh[1200];
+	snprintf(build_zsh, sizeof(build_zsh), "%s/BUILD.zsh", repo_root);
+	char *argv[] = {"zsh", build_zsh, target->detail.edition.name, NULL};
+	toast("SYN-OS ISO Builder", "Build starting…");
+	bool ok = syn_build_run_streamed(argv, true, append_log_line, redraw_log_on_idle, update_provisional_line, log);
+	toast("SYN-OS ISO Builder", ok ? "Build finished successfully." : "Build failed — see log above.");
+	syn_tui_buildlog_close(log);
+
+	/* The ISO is the newest BUILD.zsh status now reports: an LFS one in
+	 * its work directory, a LayerStrat=none one in .syncache/isos */
+	syn_edition_read_state(repo_root, &target->detail.edition);
+	char where[1200];
+	if (is_lfs_edition(target)) {
+		snprintf(where, sizeof(where), "%s", target->detail.edition.work_dir);
+	} else {
+		snprintf(where, sizeof(where), "%s/.syncache/isos", repo_root);
+	}
+	show_build_result(ok, target, ok ? target->detail.edition.state.newest_iso : "", where);
+}
+
+/* An edition's state in a few words, for its row and the Target panel:
+ * "13/13 steps, ISO 4.88 GB, 2026-10-08" or "no ISO yet" */
+static void edition_state_text(const syn_edition *e, char *out, size_t out_len) {
+	const syn_edition_state *st = &e->state;
+	char steps[96] = "";
+	if (strcmp(e->base, "lfs") == 0) {
+		if (st->unrecorded) {
+			snprintf(steps, sizeof(steps), "steps not recorded, ");
+		} else if (st->steps > 0 && st->next[0] == '\0') {
+			snprintf(steps, sizeof(steps), "%d/%d steps, ", st->done, st->steps);
+		} else if (st->steps > 0) {
+			snprintf(steps, sizeof(steps), "%d/%d steps, next %s, ", st->done, st->steps, st->next);
+		}
+	}
+	if (st->newest_iso[0]) {
+		char size[32];
+		format_size((off_t)st->newest_size, size, sizeof(size));
+		snprintf(out, out_len, "%sISO %s, %.10s", steps, size, st->newest_when);
+	} else {
+		snprintf(out, out_len, "%sno ISO yet", steps);
+	}
+}
+
+/* What Launch does with an edition, for the line under the list */
+static void edition_runs_text(const syn_edition *e, char *out, size_t out_len) {
+	if (strcmp(e->base, "lfs") == 0) {
+		snprintf(out, out_len, "BUILD.zsh builds it: SYN-LFS/build.zsh, %s, in %s",
+			strcmp(e->packages, "xbps") == 0 ? "the desktop from Void's xbps packages" : "the desktop compiled from source",
+			e->work_dir);
+	} else if (strcmp(e->layer, "none") == 0) {
+		snprintf(out, out_len, "BUILD.zsh builds it: mkarchiso on a copy of %s, no SYN layer", e->profile);
+	} else {
+		snprintf(out, out_len, "Built here: %s plus SYN-SOFTWARE, through this tool's Arch pipeline", e->profile);
+	}
+}
+
 /* ---- The home screen itself ------------------------------------------- */
 
 typedef enum {
+	ROW_EDITIONS, /* the list; which one is edition_cursor */
 	ROW_TARGET,
 	ROW_SCRATCH,
 	ROW_OUTPUT,
@@ -493,9 +629,38 @@ static bool pick_output(char *out_dir, size_t out_dir_len, char *out_name, size_
 	return true;
 }
 
+/* Rows the cursor passes over: the list when there are no editions,
+ * Scratch and Output where the target doesn't use them */
+static bool row_skipped(dashboard_row row, int edition_count, bool tmpfs_available, bool by_build_zsh) {
+	return (row == ROW_EDITIONS && edition_count == 0)
+		|| (row == ROW_SCRATCH && (!tmpfs_available || by_build_zsh))
+		|| (row == ROW_OUTPUT && by_build_zsh);
+}
+
+/* After a build, or when the list is read again: the target, if it's an
+ * edition, takes the state (and settings) the list now has for it */
+static void sync_target_edition(syn_build_target *target, const syn_edition *editions, int count) {
+	if (target->kind != SYN_TARGET_EDITION) {
+		return;
+	}
+	for (int i = 0; i < count; i++) {
+		if (strcmp(editions[i].name, target->detail.edition.name) == 0) {
+			target->detail.edition.state = editions[i].state;
+			return;
+		}
+	}
+}
+
 void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_repo_source repo_source) {
 	syn_build_target target;
 	resolve_current_tree(repo_root, &target); /* sensible default — matches today's implicit "current tree" start */
+
+	/* Every SYN-EDITIONS file, with how far its build has got */
+	draw_status("Reading SYN-EDITIONS…");
+	syn_edition *editions = calloc(SYN_EDITION_MAX, sizeof(syn_edition));
+	int edition_count = editions ? syn_edition_list(repo_root, editions, SYN_EDITION_MAX) : 0;
+	int edition_cursor = 0;
+	int edition_top = 0; /* first one shown, when they don't all fit */
 
 	bool tmpfs_available = tmp_is_tmpfs();
 	bool use_tmpfs = tmpfs_available;
@@ -518,7 +683,7 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 	snprintf(out_name, sizeof(out_name), "%s", target.build_id);
 	bool out_name_customized = false;
 
-	dashboard_row cursor = ROW_TARGET;
+	dashboard_row cursor = edition_count > 0 ? ROW_EDITIONS : ROW_TARGET;
 	int rows, cols;
 
 	while (1) {
@@ -543,8 +708,7 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 		 * panels — direct user instruction: "I want a full menu with
 		 * two or three columns not list wiggly lists." Target | Repo &
 		 * Scratch | Output, all starting at the same row, each its own
-		 * vertical slice of the screen. */
-		int y = 1;
+		 * vertical slice of the screen, under the editions. */
 		int gap = 1;
 		int col_w = (cols - 4 - 2 * gap) / 3;
 		int col1_x = 2;
@@ -552,19 +716,93 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 		int col3_x = col2_x + col_w + gap;
 
 		int target_detail_lines;
+		/* by_build_zsh: the panels show a work directory (and an LFS one
+		 * its steps) instead of Scratch and Output, which only the native
+		 * pipeline uses */
+		bool by_build_zsh = built_by_build_zsh(&target);
+		bool lfs_steps = is_lfs_edition(&target);
 		switch (target.kind) {
-		case SYN_TARGET_COMMIT: target_detail_lines = 4; break; /* SHA, Subject, Author, Date */
-		default: target_detail_lines = 0; break;                /* current tree / local profile: label says it all */
+		case SYN_TARGET_COMMIT: target_detail_lines = 4; break;  /* SHA, Subject, Author, Date */
+		case SYN_TARGET_EDITION: target_detail_lines = 2; break; /* strategies, state */
+		default: target_detail_lines = 0; break;                 /* current tree / local profile: label says it all */
 		}
 		int target_panel_h = 3 + target_detail_lines;
 
-		int config_panel_h = 2 + (tmpfs_available ? 3 : 2) + 2;
+		int config_panel_h = 2 + ((tmpfs_available || by_build_zsh) ? 3 : 2) + 2;
 
 		int output_panel_h = 4;
 
 		int tallest = target_panel_h;
 		if (config_panel_h > tallest) tallest = config_panel_h;
 		if (output_panel_h > tallest) tallest = output_panel_h;
+
+		/* --- Editions: the whole width, above everything else ---
+		 * Its border, a header, the editions, what Launch would run
+		 * with the highlighted one, its border; as many editions as fit
+		 * above the panels, the actions and the status lines */
+		int shown = edition_count;
+		int room = rows - 10 - tallest;
+		if (room < 1) room = 1;
+		if (shown > room) shown = room;
+		if (edition_cursor < edition_top) edition_top = edition_cursor;
+		if (edition_cursor >= edition_top + shown) edition_top = edition_cursor - shown + 1;
+		if (edition_top > edition_count - shown) edition_top = edition_count - shown;
+		if (edition_top < 0) edition_top = 0;
+
+		int y = 1;
+		int list_w = cols - 4;
+		int list_h = edition_count > 0 ? shown + 4 : 3;
+		draw_panel(y, col1_x, list_h, list_w, "Editions: every way of building it (SYN-EDITIONS)");
+		{
+			int ly = y + 1;
+			int text_w = list_w - 7; /* after the frame and the target mark */
+			if (edition_count == 0) {
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(ly, col1_x + 2, "%.*s", list_w - 4, "No editions here: this repo has no SYN-EDITIONS, or BUILD.zsh couldn't read them");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+			} else {
+				/* Narrow: no Kernel and Layer (the Target panel has them),
+				 * so State still fits */
+				char line[1024];
+				bool wide = text_w >= 100;
+				int state_w = 44;
+				if (wide) {
+					snprintf(line, sizeof(line), "%-20s %-5s %-9s %-7s %-6s %-*s  %s",
+						"EDITION", "BASE", "PACKAGES", "KERNEL", "LAYER", state_w, "STATE", "SUMMARY");
+				} else {
+					snprintf(line, sizeof(line), "%-18s %-4s %-6s %s", "EDITION", "BASE", "PKGS", "STATE");
+				}
+				attron(COLOR_PAIR(COLOR_PAIR_DIM) | A_BOLD);
+				mvprintw(ly++, col1_x + 5, "%-*.*s", text_w, text_w, line);
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM) | A_BOLD);
+
+				for (int i = edition_top; i < edition_top + shown; i++) {
+					const syn_edition *e = &editions[i];
+					char state[160];
+					edition_state_text(e, state, sizeof(state));
+					if (wide) {
+						snprintf(line, sizeof(line), "%-20.20s %-5.5s %-9.9s %-7.7s %-6.6s %-*.*s  %s",
+							e->name, e->base, e->packages, e->kernel, e->layer, state_w, state_w, state, e->summary);
+					} else {
+						snprintf(line, sizeof(line), "%-18.18s %-4.4s %-6.6s %s", e->name, e->base, e->packages, state);
+					}
+					bool is_cursor = (cursor == ROW_EDITIONS && i == edition_cursor);
+					bool is_target = (target.kind == SYN_TARGET_EDITION && strcmp(target.detail.edition.name, e->name) == 0);
+					int color = is_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL;
+					attron(COLOR_PAIR(color) | ((is_cursor || is_target) ? A_BOLD : 0));
+					mvprintw(ly, col1_x + 2, "%s  %-*.*s", is_target ? "●" : " ", text_w, text_w, line);
+					attroff(COLOR_PAIR(color) | ((is_cursor || is_target) ? A_BOLD : 0));
+					ly++;
+				}
+
+				char runs[1400];
+				edition_runs_text(&editions[edition_cursor], runs, sizeof(runs));
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(ly, col1_x + 5, "%.*s", text_w, runs);
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+			}
+		}
+		y += list_h;
 
 		/* --- Column 1: Target --- */
 		draw_panel(y, col1_x, tallest, col_w, "Target");
@@ -584,6 +822,18 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 				mvprintw(ty++, col1_x + 2, "Date: %.*s", col_w - 10, target.detail.commit.date);
 				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
 				break;
+			case SYN_TARGET_EDITION: {
+				char strategies[96];
+				snprintf(strategies, sizeof(strategies), "Base: %s  Packages: %s  Kernel: %s",
+					target.detail.edition.base, target.detail.edition.packages, target.detail.edition.kernel);
+				char state[160];
+				edition_state_text(&target.detail.edition, state, sizeof(state));
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(ty++, col1_x + 2, "%.*s", col_w - 4, strategies);
+				mvprintw(ty++, col1_x + 2, "State: %.*s", col_w - 11, state);
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+				break;
+			}
 			default:
 				break;
 			}
@@ -602,12 +852,21 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 
 			/* Scratch: unchanged from the earlier per-session rework —
 			 * the proven < value > cyclable pattern, only shown as
-			 * choosable when tmpfs is genuinely available. */
+			 * choosable when tmpfs is genuinely available. An edition
+			 * BUILD.zsh builds has no scratch: its work directory holds
+			 * the image, sources and logs from one run to the next. */
 			bool scratch_has_cursor = (cursor == ROW_SCRATCH) && tmpfs_available;
 			attron(COLOR_PAIR(COLOR_PAIR_DIM));
-			mvprintw(cy++, col2_x + 2, "Scratch:");
+			mvprintw(cy++, col2_x + 2, by_build_zsh ? "Work dir (the edition's):" : "Scratch:");
 			attroff(COLOR_PAIR(COLOR_PAIR_DIM));
-			if (tmpfs_available) {
+			if (by_build_zsh) {
+				attron(COLOR_PAIR(COLOR_PAIR_NORMAL));
+				mvprintw(cy++, col2_x + 2, "%.*s", col_w - 4, target.detail.edition.work_dir);
+				attroff(COLOR_PAIR(COLOR_PAIR_NORMAL));
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(cy++, col2_x + 2, "%.*s", col_w - 4, "built by BUILD.zsh");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+			} else if (tmpfs_available) {
 				attron(COLOR_PAIR(scratch_has_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL) | (scratch_has_cursor ? A_BOLD : 0));
 				mvprintw(cy++, col2_x + 2, "%s%.*s%s",
 					scratch_has_cursor ? "< " : "  ",
@@ -632,22 +891,40 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 		{
 			int oy = y + 1;
 			bool output_has_cursor = (cursor == ROW_OUTPUT);
-			attron(COLOR_PAIR(COLOR_PAIR_DIM));
-			mvprintw(oy++, col3_x + 2, "Directory:");
-			attroff(COLOR_PAIR(COLOR_PAIR_DIM));
-			attron(COLOR_PAIR(output_has_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL) | (output_has_cursor ? A_BOLD : 0));
-			mvprintw(oy++, col3_x + 2, "%s%.*s%s",
-				output_has_cursor ? "< " : "  ", col_w - 6, out_dir, output_has_cursor ? " >" : "");
-			attroff(COLOR_PAIR(output_has_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL) | (output_has_cursor ? A_BOLD : 0));
-			attron(COLOR_PAIR(COLOR_PAIR_DIM));
-			mvprintw(oy++, col3_x + 2, "Filename:");
-			attroff(COLOR_PAIR(COLOR_PAIR_DIM));
-			attron(COLOR_PAIR(COLOR_PAIR_NORMAL));
-			mvprintw(oy++, col3_x + 2, "%.*s.iso", col_w - 8, out_name);
-			attroff(COLOR_PAIR(COLOR_PAIR_NORMAL));
+			const syn_edition_state *st = &target.detail.edition.state;
+			if (by_build_zsh) {
+				/* Where BUILD.zsh puts it; not a choice here */
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(oy++, col3_x + 2, "%s", lfs_steps ? "ISO (in the work dir):" : "ISO (in the repo):");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+				attron(COLOR_PAIR(COLOR_PAIR_NORMAL));
+				mvprintw(oy++, col3_x + 2, "%.*s", col_w - 4,
+					lfs_steps ? "syn-os-<date>.iso" : ".syncache/isos/<edition>-<date>.iso");
+				attroff(COLOR_PAIR(COLOR_PAIR_NORMAL));
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(oy++, col3_x + 2, "Newest:");
+				const char *slash = strrchr(st->newest_iso, '/');
+				mvprintw(oy++, col3_x + 2, "%.*s", col_w - 4,
+					st->newest_iso[0] ? (slash ? slash + 1 : st->newest_iso) : "none yet");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+			} else {
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(oy++, col3_x + 2, "Directory:");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+				attron(COLOR_PAIR(output_has_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL) | (output_has_cursor ? A_BOLD : 0));
+				mvprintw(oy++, col3_x + 2, "%s%.*s%s",
+					output_has_cursor ? "< " : "  ", col_w - 6, out_dir, output_has_cursor ? " >" : "");
+				attroff(COLOR_PAIR(output_has_cursor ? COLOR_PAIR_SELECTED : COLOR_PAIR_NORMAL) | (output_has_cursor ? A_BOLD : 0));
+				attron(COLOR_PAIR(COLOR_PAIR_DIM));
+				mvprintw(oy++, col3_x + 2, "Filename:");
+				attroff(COLOR_PAIR(COLOR_PAIR_DIM));
+				attron(COLOR_PAIR(COLOR_PAIR_NORMAL));
+				mvprintw(oy++, col3_x + 2, "%.*s.iso", col_w - 8, out_name);
+				attroff(COLOR_PAIR(COLOR_PAIR_NORMAL));
+			}
 		}
 
-		y += tallest + 2;
+		y += tallest + 1;
 
 		/* Action rows stay outside any panel — visually distinct as
 		 * "you're done configuring, do it" rather than another fact. */
@@ -661,36 +938,58 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 			attroff(COLOR_PAIR(color) | (is_cursor ? A_BOLD : 0));
 		}
 
-		draw_statusbar(rows, cols,
-			"Up/Down move between fields (jumps across columns)   Enter/Left/Right change or open   Esc/q on Quit to exit");
+		draw_statusbar(rows, cols, cursor == ROW_EDITIONS
+			? "Up/Down move   Enter makes it the target (●)   r re-read editions   Esc/q on Quit to exit"
+			: "Up/Down move   Enter/Left/Right change or open   r re-read editions   Esc/q on Quit to exit");
 		refresh();
 
 		int ch = getch();
 		switch (ch) {
 		case KEY_UP:
 		case 'k':
+			if (cursor == ROW_EDITIONS && edition_cursor > 0) {
+				edition_cursor--;
+				break;
+			}
 			do {
 				cursor = (cursor - 1 + ROW_COUNT) % ROW_COUNT;
-			} while (cursor == ROW_SCRATCH && !tmpfs_available);
+			} while (row_skipped(cursor, edition_count, tmpfs_available, by_build_zsh));
+			if (cursor == ROW_EDITIONS) {
+				edition_cursor = edition_count - 1;
+			}
 			break;
 		case KEY_DOWN:
 		case 'j':
+			if (cursor == ROW_EDITIONS && edition_cursor < edition_count - 1) {
+				edition_cursor++;
+				break;
+			}
 			do {
 				cursor = (cursor + 1) % ROW_COUNT;
-			} while (cursor == ROW_SCRATCH && !tmpfs_available);
+			} while (row_skipped(cursor, edition_count, tmpfs_available, by_build_zsh));
+			if (cursor == ROW_EDITIONS) {
+				edition_cursor = 0;
+			}
+			break;
+		case 'r':
+			draw_status("Reading SYN-EDITIONS…");
+			edition_count = editions ? syn_edition_list(repo_root, editions, SYN_EDITION_MAX) : 0;
+			if (edition_cursor >= edition_count) edition_cursor = edition_count > 0 ? edition_count - 1 : 0;
+			if (cursor == ROW_EDITIONS && edition_count == 0) cursor = ROW_TARGET;
+			sync_target_edition(&target, editions, edition_count);
 			break;
 		case KEY_LEFT:
 		case KEY_RIGHT:
 		case 'h':
 		case 'l':
-			if (cursor == ROW_SCRATCH && tmpfs_available) {
+			if (cursor == ROW_SCRATCH && tmpfs_available && !by_build_zsh) {
 				use_tmpfs = !use_tmpfs;
 			} else if (cursor == ROW_TARGET) {
 				syn_build_target picked;
 				if (pick_target(repo_root, paths, &picked)) {
 					target = picked;
 				}
-			} else if (cursor == ROW_OUTPUT) {
+			} else if (cursor == ROW_OUTPUT && !by_build_zsh) {
 				if (pick_output(out_dir, sizeof(out_dir), out_name, sizeof(out_name))) {
 					out_name_customized = true;
 				}
@@ -699,11 +998,18 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 		case 27:
 		case 'q':
 			if (cursor == ROW_QUIT) {
+				free(editions);
 				return;
 			}
 			break;
 		case '\n':
 		case KEY_ENTER:
+			if (cursor == ROW_EDITIONS) {
+				/* That edition is the target; Launch is the next thing */
+				target_from_edition(repo_root, &editions[edition_cursor], &target);
+				cursor = ROW_LAUNCH;
+				break;
+			}
 			if (cursor == ROW_TARGET) {
 				syn_build_target picked;
 				if (pick_target(repo_root, paths, &picked)) {
@@ -711,21 +1017,31 @@ void syn_tui_dashboard_run(syn_build_paths *paths, const char *repo_root, syn_re
 				}
 				break;
 			}
-			if (cursor == ROW_SCRATCH && tmpfs_available) {
+			if (cursor == ROW_SCRATCH && tmpfs_available && !by_build_zsh) {
 				use_tmpfs = !use_tmpfs;
 				break;
 			}
-			if (cursor == ROW_OUTPUT) {
+			if (cursor == ROW_OUTPUT && !by_build_zsh) {
 				if (pick_output(out_dir, sizeof(out_dir), out_name, sizeof(out_name))) {
 					out_name_customized = true;
 				}
 				break;
 			}
 			if (cursor == ROW_LAUNCH) {
-				launch_build(&target, paths, repo_root, out_dir, out_name);
+				if (by_build_zsh) {
+					launch_edition_build(&target, repo_root);
+				} else {
+					launch_build(&target, paths, repo_root, out_dir, out_name);
+				}
+				/* A build changes what the editions' states say */
+				for (int i = 0; i < edition_count; i++) {
+					syn_edition_read_state(repo_root, &editions[i]);
+				}
+				sync_target_edition(&target, editions, edition_count);
 				break;
 			}
 			if (cursor == ROW_QUIT) {
+				free(editions);
 				return;
 			}
 			break;

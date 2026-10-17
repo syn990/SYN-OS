@@ -4,8 +4,11 @@
  *   Author     : William Hayward-Holland (Syntax990)
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
+#define _DEFAULT_SOURCE /* initgroups() */
+
 #include "syn_build_paths.h"
 
+#include <grp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>
@@ -33,6 +36,32 @@ const char *syn_resolve_real_home(void) {
 	}
 	const char *home = getenv("HOME");
 	return home ? home : "";
+}
+
+bool syn_become_real_user(void) {
+	if (geteuid() != 0) {
+		return true;
+	}
+	const char *invoking_user = getenv("DOAS_USER");
+	if (!invoking_user || invoking_user[0] == '\0') {
+		invoking_user = getenv("SUDO_USER");
+	}
+	if (!invoking_user || invoking_user[0] == '\0') {
+		return false;
+	}
+	struct passwd *pw = getpwnam(invoking_user);
+	if (!pw || pw->pw_uid == 0) {
+		return false;
+	}
+	/* Groups first, then gid, then uid: once the uid is dropped there's no
+	 * permission left to change the other two */
+	if (initgroups(pw->pw_name, pw->pw_gid) != 0 || setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
+		return false;
+	}
+	setenv("HOME", pw->pw_dir, 1);
+	setenv("USER", pw->pw_name, 1);
+	setenv("LOGNAME", pw->pw_name, 1);
+	return true;
 }
 
 /* Build state (multi-GB scratch trees, pacstrap output, finished ISOs)

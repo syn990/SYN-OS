@@ -1,0 +1,44 @@
+# Build order for SYN_OS_PACKAGES=xbps: the recipes (desktop/pkgs/NAME) that
+# still compile when the desktop's packages are Void's (xbps/desktop.txt,
+# installed by `build.zsh void` before these run). SYN-OS's own tools, and
+# the few things Void doesn't package or packages differently. Categories
+# and profiles as in desktop/order.
+profile full    baseCore desktopStack fontsI18n synOS
+profile minimal baseCore desktopStack fontsI18n synOS
+
+# [baseCore] Intel's and AMD's microcode, where `kernel` builds it in from
+cpu-microcode
+
+# [baseCore] doas and swaylock without PAM, as the base has it: Void's builds
+# need PAM for the passwords they check
+opendoas
+
+# [desktopStack]
+swaylock
+# wlroots' protocol XML (syn-bar-core's), which Void doesn't package
+wlr-protocols
+
+# [fontsI18n] Void packages these only as part of every Nerd Font, or not at all
+font-terminus-nerd
+font-bitstream-vera
+
+# [synOS] Void's packages fitted to SYN-OS: their services under runit
+syn-void
+
+# [synOS] SYN-OS's own tools, built from SYN-SOFTWARE in this repo
+syn-bar-core
+syn-bar
+syn-bar-notify
+syn-audio
+syn-connect
+syn-wallgen
+syn-sysmon
+syn-hum
+syn-relay
+syn-shell
+
+# [synOS] SYN-OS config on top (needs everything above)
+syn-desktop
+syn-installer
+syn-crypter
+syn-uplink-dialpad

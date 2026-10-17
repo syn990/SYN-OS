@@ -26,6 +26,8 @@
  *   Author     : William Hayward-Holland (Syntax990)
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
+#define _GNU_SOURCE /* memfd_create(), which glibc declares only for GNU code */
+
 #include "cmd_host.h"
 #include "ext-image-capture-source-v1-client-protocol.h"
 #include "ext-image-copy-capture-v1-client-protocol.h"

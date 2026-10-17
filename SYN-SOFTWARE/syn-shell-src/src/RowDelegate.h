@@ -6,7 +6,8 @@
 //   "@" plus their target, executables "*", dotfiles dimmed, file size
 //   right-aligned. The middle column's rows can show more fields, each
 //   switchable (permissions, owner, size, modified, created), as aligned
-//   columns at the right, with FieldHeader naming them above the view.
+//   columns at the right, with FieldHeader naming them above the view
+//   (a click on NAME, SIZE, MODIFIED or CREATED sorts by it).
 //   The view's current index (the cursor) gets the solid
 //   accent bar; selected rows are marks, shown as a bar in the left
 //   gutter, the way ranger keeps the cursor and its marks apart.
@@ -23,6 +24,8 @@
 #include <QList>
 #include <QStyledItemDelegate>
 #include <QWidget>
+
+#include <functional>
 
 class GitStatus;
 class QAbstractItemView;
@@ -72,23 +75,41 @@ public:
   // right edge; the least wanted drop out first when the name would get
   // too little room. FieldHeader lays its titles out with the same call.
   static QList<Column> columns(const QFontMetrics &fm, int rowWidth, int nameStart);
+  // How wide a row has to be for every switched-on field to fit.
+  static int neededWidth(const QFontMetrics &fm, int nameStart);
   static int nameStart(int rowHeight);
 
 private:
   bool m_detailed = false;
 };
 
-// The titles over a detailed view's field columns.
+// The titles over a detailed view's field columns. The sorted one has an
+// arrow; clicking a sortable one calls onTitleClicked with its field, 0
+// for NAME.
 class FieldHeader : public QWidget
 {
 public:
   FieldHeader(QAbstractItemView *view, QWidget *parent = nullptr);
   QSize sizeHint() const override;
 
+  std::function<void(int field)> onTitleClicked;
+
 protected:
   void paintEvent(QPaintEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+  struct Title
+  {
+    int field; // 0 for NAME
+    QString text;
+    QRect rect;
+    Qt::Alignment align;
+  };
+  QList<Title> titles() const;
+  int sortableAt(const QPoint &pos) const; // its field, or -1
+
   QAbstractItemView *m_view;
 };
 

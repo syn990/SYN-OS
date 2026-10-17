@@ -14,7 +14,15 @@
 #   jhalfs chroot (via bin/sudo -> doas).
 #   On top of that base, desktop/ builds the SYN desktop (labwc, waybar,
 #   iwd, PipeWire, Xwayland, surf, Steam) from BLFS-pinned sources, see
-#   desktop/syn-pkg.zsh.
+#   desktop/syn-pkg.zsh, or takes it from Void's binary packages:
+#
+#   SYN_OS_PACKAGES says where the desktop's packages come from:
+#     source  (the default) every recipe in desktop/order compiled here;
+#             `void` then adds the apps in xbps/packages.txt
+#     xbps    Void's binary packages, xbps/desktop.txt, on our base and
+#             kernel: `void` installs them first, then `desktop` compiles
+#             only xbps/order (SYN-OS's own tools, and what Void lacks)
+#   A work directory is built one way; `all` refuses to switch it.
 #
 #   Usage: build.zsh <step>
 #     host       install what the build needs on an Arch host, and jhalfs
@@ -42,12 +50,15 @@
 #     boot       boot the image in QEMU (serial console on this terminal)
 #     gui        boot it with a virtio GPU, input and sound, for the desktop
 #                (SYN_OS_QEMU adds QEMU arguments, e.g. a USB Wi-Fi stick)
-#     void       install xbps/packages.txt from Void's repo onto the base (after
-#                desktop): apps come ready-built, see xbps/syn-lfs-base.zsh
+#     void       install Void's binary packages onto the base: xbps/packages.txt,
+#                and with SYN_OS_PACKAGES=xbps the desktop, xbps/desktop.txt
+#                (see xbps/syn-lfs-base.zsh). Base files they replace are
+#                listed in the work directory's void-replaced.txt
 #     iso        make the installer ISO from the image (see iso/)
 #     isotest    boot the ISO in QEMU with a blank disk to install onto; the
 #                disk is deleted when QEMU exits (isotest keep: keep it,
 #                then isotest disk boots it)
+#     steps      the steps `all` runs, in order
 # ------------------------------------------------------------------------------
 setopt err_exit pipe_fail
 
@@ -79,6 +90,18 @@ ZSH_MD5=5c8305ba85166838ef062c5e7b245820
 CMDLINE="root=PARTLABEL=synroot rootwait rw console=ttyS0 console=tty0"
 OVMF=/usr/share/edk2/x64
 LFS_MIRROR=https://ftp.osuosl.org/pub/lfs/lfs-packages
+
+# Where the desktop's packages come from (see the top): the recipes the
+# desktop step compiles, and the order `all` runs the steps in. Void's
+# packages go in before the desktop step, which compiles against them
+PKGS=${SYN_OS_PACKAGES:-source}
+case $PKGS in
+	source) ORDER=desktop/order
+		STEPS=(image kernel configure build zsh runit fetch desktop void kernel2 rekernel esp iso) ;;
+	xbps)   ORDER=xbps/order
+		STEPS=(image kernel configure build zsh runit fetch void desktop kernel2 rekernel esp iso) ;;
+	*) print "SYN_OS_PACKAGES=$PKGS: source or xbps"; exit 1 ;;
+esac
 
 loopdev() { losetup -j $IMG | cut -d: -f1 | head -1 }
 
@@ -347,7 +370,37 @@ step_rekernel() {
 }
 
 step_fetch() {
-	SYN_PROFILE=${SYN_OS_PROFILE:-full} zsh $HERE/desktop/syn-pkg.zsh fetch $SRC/desktop
+	SYN_PROFILE=${SYN_OS_PROFILE:-full} SYN_ORDER=$HERE/$ORDER zsh $HERE/desktop/syn-pkg.zsh fetch $SRC/desktop
+}
+
+# /lib64 and /usr/sbin as Arch and Void have them, before anything of
+# Void's or the desktop's goes in
+merge_usr() {
+	# /lib64 a link to usr/lib. The book makes a directory holding a link
+	# to the loader; mkinitcpio then never copies the loader into an
+	# initramfs, and nothing dynamic in it can start
+	[[ -L $MNT/lib64 ]] || { doas rm -rf $MNT/lib64; doas ln -s usr/lib $MNT/lib64; }
+	# /usr/sbin likewise a link to bin. The book installs into a real sbin;
+	# Void's programs, udev rules and mkinitcpio name /usr/bin paths, and an
+	# initramfs merges the two, where a file linked from one into the other
+	# becomes a loop. Files move to bin once (bin's copy wins a clash), links
+	# back into bin are dropped
+	[[ -L $MNT/usr/sbin ]] && return
+	local f n
+	for f in $MNT/usr/sbin/*(N); do
+		n=${f:t}
+		if [[ -L $f && $(readlink $f) == ../bin/$n ]]; then doas rm $f
+		elif [[ -L $f && $(readlink $f) == ../bin/* ]]; then
+			# udevd -> ../bin/udevadm, modprobe -> ../bin/kmod: the name moves, as
+			# a link beside its target
+			[[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]] ||
+				doas ln -s ${$(readlink $f)#../bin/} $MNT/usr/bin/$n
+			doas rm $f
+		elif [[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]]; then doas rm -r $f
+		else doas mv $f $MNT/usr/bin/$n
+		fi
+	done
+	doas rmdir $MNT/usr/sbin && doas ln -s bin $MNT/usr/sbin
 }
 
 # The chroot sees the fetched sources at /sources/syn-desktop and this
@@ -355,32 +408,10 @@ step_fetch() {
 step_desktop() {
 	[[ -d $SRC/desktop ]] || { print "run: fetch"; exit 1 }
 	[[ -x $MNT/usr/bin/zsh ]] || { print "run: zsh"; exit 1 }
-	# /lib64 as Arch and Void have it, a link to usr/lib. The book makes a
-	# directory holding a link to the loader; mkinitcpio then never copies
-	# the loader into an initramfs, and nothing dynamic in it can start
-	[[ -L $MNT/lib64 ]] || { doas rm -rf $MNT/lib64; doas ln -s usr/lib $MNT/lib64; }
-	# /usr/sbin likewise a link to bin, as Arch and Void have it. The book
-	# installs into a real sbin; Void's programs, udev rules and mkinitcpio
-	# name /usr/bin paths, and an initramfs merges the two, where a file
-	# linked from one into the other becomes a loop. Files move to bin once
-	# (bin's copy wins a clash), links back into bin are dropped
-	if [[ ! -L $MNT/usr/sbin ]]; then
-		local f n
-		for f in $MNT/usr/sbin/*(N); do
-			n=${f:t}
-			if [[ -L $f && $(readlink $f) == ../bin/$n ]]; then doas rm $f
-			elif [[ -L $f && $(readlink $f) == ../bin/* ]]; then
-				# udevd -> ../bin/udevadm, modprobe -> ../bin/kmod: the name moves, as
-				# a link beside its target
-				[[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]] ||
-					doas ln -s ${$(readlink $f)#../bin/} $MNT/usr/bin/$n
-				doas rm $f
-			elif [[ -e $MNT/usr/bin/$n || -L $MNT/usr/bin/$n ]]; then doas rm -r $f
-			else doas mv $f $MNT/usr/bin/$n
-			fi
-		done
-		doas rmdir $MNT/usr/sbin && doas ln -s bin $MNT/usr/sbin
-	fi
+	local db=($MNT/var/db/xbps/pkgdb-*.plist(N))
+	[[ $PKGS == source ]] || (( $#db )) ||
+		{ print "run: void (with SYN_OS_PACKAGES=xbps, Void's packages go in first)"; exit 1 }
+	merge_usr
 	chroot_up
 	# Built packages live outside the image (desktop/syn-pkg.zsh reuses them)
 	mkdir -p $W/pkgcache
@@ -390,7 +421,7 @@ step_desktop() {
 	doas mount --bind $HERE:h $MNT/usr/src/SYN-OS
 	doas mount -o remount,bind,ro $MNT/usr/src/SYN-OS
 	local rc=0
-	in_chroot /usr/bin/env SYN_PROFILE=${SYN_OS_PROFILE:-full} \
+	in_chroot /usr/bin/env SYN_PROFILE=${SYN_OS_PROFILE:-full} SYN_ORDER=/usr/src/SYN-OS/SYN-LFS/$ORDER \
 		/usr/bin/zsh /usr/src/SYN-OS/SYN-LFS/desktop/syn-pkg.zsh build /sources/syn-desktop "$@" || rc=$?
 	doas umount $MNT/usr/src/SYN-OS $MNT/sources/syn-desktop $MNT/var/cache/syn-os/pkgs
 	chroot_down
@@ -427,13 +458,19 @@ step_esp() {
 	print "installed ${kernel[1]:t} as EFI/BOOT/BOOTX64.EFI"
 }
 
-# Void's binary packages on the LFS base: xbps/packages.txt, with their
-# dependencies. xbps goes into the image too, so the running system can
-# update and add packages itself. syn-lfs-base (xbps/syn-lfs-base.zsh)
-# tells xbps what the base already provides, so it installs only what's
-# missing. A package whose alternatives would replace a base file (Void's
-# busybox takes over sh and awk) stops the step before anything installs
+# Void's binary packages on the LFS base: xbps/packages.txt, and with
+# SYN_OS_PACKAGES=xbps xbps/desktop.txt (the profile's categories of it),
+# with their dependencies. xbps goes into the image too, so the running
+# system can update and add packages itself. syn-lfs-base
+# (xbps/syn-lfs-base.zsh) tells xbps what the base already provides, so it
+# installs only what's missing. A package whose alternatives would replace
+# a base file (Void's busybox takes over sh and awk) stops the step before
+# anything installs; any other base file a package brings its own copy of
+# is listed in void-replaced.txt, as xbps replaces those without asking
 VOID_REPO=https://repo-default.voidlinux.org/current
+# All four of Void's repositories: nonfree has Steam, multilib the 32-bit
+# libraries it runs on
+VOID_REPOS=($VOID_REPO $VOID_REPO/nonfree $VOID_REPO/multilib $VOID_REPO/multilib/nonfree)
 XBPS_STATIC=xbps-static-static-0.60.4_1.x86_64-musl.tar.xz
 XBPS_SHA256=603b3c55e9cabd5af79b461b929b14e1556a443c97b5714d188681c2172d9e28
 # Whether xbps owns PATH in the image: listed in a package's files, or a
@@ -447,7 +484,10 @@ xbps_owned() {
 }
 step_void() {
 	[[ -d $MNT/usr/lib ]] || { print "run: mount"; exit 1 }
-	local x=$W/xbps pkgs=(${(f)"$(grep -v '^#' $HERE/xbps/packages.txt)"}) p l bad=()
+	local x=$W/xbps pkgs=(${(f)"$(grep -v '^#' $HERE/xbps/packages.txt)"}) p l f bad=() inst=() hits=()
+	[[ $PKGS == xbps ]] && pkgs+=(${(f)"$(SYN_ORDER=$HERE/xbps/desktop.txt SYN_PROFILE=${SYN_OS_PROFILE:-full} \
+		zsh $HERE/desktop/syn-pkg.zsh list)"})
+	merge_usr
 	[[ -f $SRC/$XBPS_STATIC ]] || curl -fL -o $SRC/$XBPS_STATIC https://repo-default.voidlinux.org/static/$XBPS_STATIC
 	[[ $(sha256sum < $SRC/$XBPS_STATIC | cut -d' ' -f1) == $XBPS_SHA256 ]] || { print "$XBPS_STATIC: bad checksum"; exit 1 }
 	mkdir -p $x && tar -xJf $SRC/$XBPS_STATIC -C $x
@@ -455,17 +495,20 @@ step_void() {
 	for p in $x/usr/bin/xbps-*.static; do doas ln -sf ${p:t} $MNT/usr/bin/${${p:t}%.static}; done
 	doas install -d $MNT/var/db/xbps/keys
 	doas install -m644 $x/var/db/xbps/keys/* $MNT/var/db/xbps/keys/
-	local X=(doas $x/usr/bin/xbps-install.static -r $MNT --repository=$MNT/var/lib/syn-os/xbps-local --repository=$VOID_REPO)
+	local R=(${VOID_REPOS/#/--repository=})
+	local X=(doas $x/usr/bin/xbps-install.static -r $MNT --repository=$MNT/var/lib/syn-os/xbps-local $R)
 	local Q=(doas $x/usr/bin/xbps-query.static -r $MNT)
-	doas $x/usr/bin/xbps-install.static -S -r $MNT --repository=$VOID_REPO > /dev/null
-	doas env XBPS=$x/usr/bin zsh $HERE/xbps/syn-lfs-base.zsh $MNT $pkgs
+	doas $x/usr/bin/xbps-install.static -S -r $MNT $R > /dev/null
+	doas env XBPS=$x/usr/bin REPOS="$VOID_REPOS" zsh $HERE/xbps/syn-lfs-base.zsh $MNT $pkgs
 	$X -y -u syn-lfs-base
 	local new=(); for p in $pkgs; do $Q -p pkgver $p > /dev/null 2>&1 || new+=$p; done
-	(( ${#new} )) || { print "all of xbps/packages.txt is installed"; return }
+	(( ${#new} )) || { print "every package asked for is installed"; return }
+	inst=(${(f)"$($X -n $new | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"})
+	print "${#new} packages asked for: ${#inst} to install with what they need"
 	# Alternatives of anything the transaction would install, against files
 	# the base already has that no xbps package owns
-	for p in ${(f)"$($X -n $new | awk '$2 == "install" {print $1}' | sed -E 's/-[^-]+_[0-9]+$//')"}; do
-		for l in ${(f)"$($Q -R --repository=$VOID_REPO -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
+	for p in $inst; do
+		for l in ${(f)"$($Q -R $R -p alternatives $p 2>/dev/null | grep ':/' | sed -E 's/^[[:space:]]+//; s/:.*//')"}; do
 			[[ $l == /* ]] || l=/usr/bin/$l
 			# lua and luac become links to Void's versioned interpreters (lua5.4
 			# is the same Lua the base builds); what the guard is for is sh and awk
@@ -474,7 +517,25 @@ step_void() {
 		done
 	done
 	(( ${#bad} )) && { print "these would replace base files:"; print -l $bad; exit 1 }
-	$X -y $new
+	# Every other file of theirs the base already has, unowned: which package
+	# brings it. Their file lists come from the repository, 16 at a time
+	export XQ="doas $x/usr/bin/xbps-query.static -r $MNT $R -R -f"
+	print -l $inst | xargs -P 16 -n 1 sh -c '$XQ "$1" 2>/dev/null | sed "s|^|$1 |"' sh |
+		sed 's/ -> .*//' > $W/void-files
+	while read -r p f; do
+		[[ -e $MNT$f || -L $MNT$f ]] && ! xbps_owned $f && hits+="$p $f"
+	done < $W/void-files
+	rm -f $W/void-files
+	print -l $hits > $W/void-replaced.txt
+	print "${#hits} base files get Void's copy instead (list: $W/void-replaced.txt)"
+	# Package scripts run chrooted into the image (Void's pycompile, its
+	# system accounts): with /dev, /proc and /dev/shm there, as every
+	# chroot step here has them. Without, Python's byte-compiling fails
+	local rc=0
+	chroot_up
+	$X -y $new || rc=$?
+	chroot_down
+	return $rc
 }
 
 step_umount() {
@@ -630,13 +691,28 @@ step_host() {
 # built twice; the second pass picks up the CPU microcode the desktop
 # installed, which is built into it
 step_all() {
-	local state=$W/build.state log=$W/build.log s cmd start
+	local state=$W/build.state log=$W/build.log s cmd start was lock
 	mkdir -p $W
-	local free=$(df --output=avail -BG $W | tail -1 | tr -dc 0-9)
-	(( free >= ${SYN_OS_MINFREE:-60} )) || { print "${free}G free in $W; a full build needs ${SYN_OS_MINFREE:-60}G (SYN_OS_MINFREE changes it)"; exit 1 }
+	# One build at a time in a work directory: a second would fight the
+	# first over the image and the chroot (BUILD.zsh check looks for this)
+	exec {lock}>$W/build.lock
+	flock -n $lock || { print "a build is already running in $W"; exit 1 }
+	# A work directory is built one way: switching would leave half of each
+	# desktop. One built before this was recorded is source
+	was=$(cat $W/build.packages 2>/dev/null) || true
+	[[ -z $was && -e $IMG ]] && was=source
+	[[ -z $was || $was == $PKGS ]] ||
+		{ print "$W is built with SYN_OS_PACKAGES=$was, not $PKGS: use another SYN_OS_WORK"; exit 1 }
+	print $PKGS > $W/build.packages
 	touch $state
-	for s in image kernel configure build zsh runit fetch desktop void kernel2 rekernel esp iso; do
-		grep -qx $s $state && continue
+	# Only steps still to run need the room: a finished build has none
+	local -a todo
+	for s in $STEPS; do
+		grep -qx $s $state || todo+=$s
+	done
+	local free=$(df --output=avail -BG $W | tail -1 | tr -dc 0-9)
+	(( ! $#todo || free >= ${SYN_OS_MINFREE:-60} )) || { print "${free}G free in $W; a full build needs ${SYN_OS_MINFREE:-60}G (SYN_OS_MINFREE changes it)"; exit 1 }
+	for s in $todo; do
 		cmd=${s%2}
 		[[ $cmd == image && -e $IMG ]] && cmd=mount
 		[[ $cmd != (image|fetch) && -e $IMG ]] && step_mount > /dev/null
@@ -650,8 +726,10 @@ step_all() {
 			return 1
 		fi
 	done
-	print "== finished. Boot the ISO with: $0 isotest"
+	print "== finished. Boot the ISO with: SYN_OS_WORK=$W zsh $HERE/build.zsh isotest"
 }
+
+step_steps() { print -l $STEPS }
 
 (( $+functions[step_$1] )) || { sed -n '/^#   Usage/,/^# ---/p' $0; exit 1 }
 step_$1 "${@:2}"

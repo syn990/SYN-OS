@@ -1,0 +1,63 @@
+# Void's packages fitted to SYN-OS, for SYN_OS_PACKAGES=xbps: what the
+# desktop/order recipes of the same packages do besides compiling them,
+# where Void's builds don't already (its fusermount3 is setuid, its Steam
+# rules give controllers to the input group, its dbus makes a machine ID).
+# No source: it runs after `build.zsh void` installed xbps/desktop.txt
+v=local
+always=1
+build() {
+	# Services: Void's own run scripts, which name Void's binaries, logging
+	# through vlogger, which here is svlogd into /var/log/sv/NAME like every
+	# SYN service (Void's sends it to syslog). Enabled as desktop/order's
+	# recipes enable theirs; sshd and bluetoothd are there to switch on
+	install -m755 "$SYN_FILES/vlogger" /usr/bin/vlogger
+	local s
+	for s in dbus iwd dhcpcd isc-ntpd; do
+		[ -d /etc/sv/$s ] || { print "no /etc/sv/$s: is xbps/desktop.txt installed (build.zsh void)?"; return 1; }
+		ln -sfn /etc/sv/$s /var/service/$s
+	done
+	# seatd and qemu-ga keep SYN's run scripts: seatd hands the seat to the
+	# video group (Void's to _seatd), qemu-ga stays down where there's no
+	# port to talk on. noextract stops an xbps update putting Void's back
+	svc seatd
+	svc qemu-ga
+	cat > /etc/xbps.d/20-syn-os-keep.conf << "EOF"
+# SYN-OS: files of Void's packages that SYN-OS replaces, which xbps then
+# never extracts again (desktop/pkgs/syn-void)
+noextract=/etc/sv/seatd/run
+noextract=/etc/sv/seatd/log/run
+noextract=/etc/sv/qemu-ga/run
+noextract=/etc/sv/qemu-ga/log/run
+EOF
+
+	# sshd: no root logins (it's off until switched on)
+	grep -q '^PermitRootLogin no' /etc/ssh/sshd_config ||
+		echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+	# dbus's machine ID, where things outside dbus look for it
+	[ -e /etc/machine-id ] || ln -sf /var/lib/dbus/machine-id /etc/machine-id
+	# The LFS bootscripts' network config: dhcpcd and iwd do it here
+	rm -f /etc/sysconfig/ifconfig.*(N)
+
+	# Bitmap fonts allowed, as fontconfig is built for desktop/order: Terminus,
+	# which every SYN config names, is one. Void turns them off
+	ln -sf /usr/share/fontconfig/conf.avail/70-yes-bitmaps.conf /etc/fonts/conf.d/
+	# The console font (ter-v16n, /etc/sysconfig/console): Void keeps it
+	# under kbd/, the base's setfont looks in /usr/share/consolefonts
+	install -d /usr/share/consolefonts
+	for s in /usr/share/kbd/consolefonts/ter-*; do
+		ln -sf ../kbd/consolefonts/${s:t} /usr/share/consolefonts/
+	done
+	# Adwaita as the cursor for every program that asks for the default one
+	install -d /usr/share/icons/default
+	printf '[Icon Theme]\nInherits=Adwaita\n' > /usr/share/icons/default/index.theme
+	# PipeWire is the sound server: libpulse must never start a pulseaudio
+	install -d /etc/pulse/client.conf.d
+	echo 'autospawn = no' > /etc/pulse/client.conf.d/syn-os.conf
+	# Proton and big games map more memory areas than the kernel's default
+	grep -q '^vm.max_map_count' /etc/sysctl.conf 2>/dev/null ||
+		echo 'vm.max_map_count = 1048576' >> /etc/sysctl.conf
+	# surf is an X11 program: GTK must not pick Wayland for its window (the
+	# surf recipe patches this in, Void's surf takes it from the environment)
+	sed 's|^Exec=surf|Exec=env GDK_BACKEND=x11 surf|' "$SYN_FILES/surf.desktop" \
+		> /usr/share/applications/surf.desktop
+}

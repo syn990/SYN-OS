@@ -38,6 +38,9 @@
 #include "syn_bar_tone.h"
 #include "syn_tone_vocab.h"
 #include "syn_stats.h"
+#ifdef SYN_BAR_HUM
+#include "syn_bar_hum.h"
+#endif
 
 typedef struct {
 	struct timespec next_due;
@@ -1085,7 +1088,8 @@ static void handle_one_client(int listen_fd) {
 	setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 	setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-	char request[64] = {0};
+	/* Room for a HUM line: a level per core, 16 of them, and the rest */
+	char request[512] = {0};
 	ssize_t n = read(client_fd, request, sizeof(request) - 1);
 	if (n <= 0) {
 		close(client_fd);
@@ -1176,6 +1180,23 @@ static void handle_one_client(int listen_fd) {
 			}
 		}
 		close(client_fd);
+#ifdef SYN_BAR_HUM
+	} else if (strncmp(request, "HUM ", 4) == 0) {
+		/* The acoustic monitor's levels, ten a second from syn-hum. The
+		 * voice plays on its own thread (syn_bar_hum.c), so this only
+		 * hands the line over and never waits on audio. No reply. */
+		syn_bar_hum_line(request);
+		close(client_fd);
+	} else if (strncmp(request, "HUM-OFF", 7) == 0) {
+		syn_bar_hum_off();
+		close(client_fd);
+	} else if (strncmp(request, "HUM-TOUR ", 9) == 0) {
+		syn_bar_hum_tour(request + 9);
+		close(client_fd);
+	} else if (strncmp(request, "HUM-HEARD", 9) == 0) {
+		syn_bar_hum_heard(client_fd);
+		close(client_fd);
+#endif
 	} else if (strncmp(request, "TONE-RAW ", 9) == 0) {
 		/* "TONE-RAW <hz1> <hz2> <seconds>\n" — the one escape hatch from
 		 * the named-meaning table above (see syn_bar_notify.h's own
@@ -1227,6 +1248,12 @@ int main(void) {
 	if (listen_fd < 0) {
 		return 1;
 	}
+
+#ifdef SYN_BAR_HUM
+	if (syn_bar_hum_start() < 0) {
+		fprintf(stderr, "syn-bar-core: acoustic monitor's thread didn't start, carrying on without it\n");
+	}
+#endif
 
 	int wayland_fd = wl_display_get_fd(display);
 

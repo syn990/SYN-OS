@@ -187,3 +187,8 @@ CONFIG_BTRFS_FS=y
 CONFIG_XFS_FS=y
 # efivarfs, for bootctl and efibootmgr to write boot entries
 CONFIG_EFIVAR_FS=y
+
+# --- syn-hum hears memory pressure in /proc/pressure/memory, which only
+# exists with pressure stall information built in (x86_64's defconfig
+# leaves it out); without it the acoustic monitor keeps memory silent
+CONFIG_PSI=y

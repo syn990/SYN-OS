@@ -1,4 +1,5 @@
 #include "ArchiveModel.h"
+#include "SortOrder.h"
 
 #include <QFileInfo>
 
@@ -8,6 +9,7 @@ ArchiveSortProxy::ArchiveSortProxy(QObject *parent)
   m_collator.setNumericMode(true);
   m_collator.setCaseSensitivity(Qt::CaseInsensitive);
   setRecursiveFilteringEnabled(false);
+  SortOrder::track(this);
 }
 
 void ArchiveSortProxy::setShowHidden(bool show)
@@ -22,7 +24,19 @@ bool ArchiveSortProxy::lessThan(const QModelIndex &left, const QModelIndex &righ
   const bool leftDir = left.data(EntryRole::IsDir).toBool();
   if (leftDir != right.data(EntryRole::IsDir).toBool())
     return leftDir;
-  return m_collator.compare(left.data().toString(), right.data().toString()) < 0;
+  auto value = [](const QModelIndex &idx) -> qint64 {
+    switch (SortOrder::key()) {
+    case SortOrder::Size: return idx.data(EntryRole::Size).toLongLong();
+    case SortOrder::Modified: return SortOrder::stamp(idx.data(EntryRole::MTime).toDateTime());
+    case SortOrder::Name:
+    case SortOrder::Created: break;
+    }
+    return 0;
+  };
+  if (SortOrder::key() != SortOrder::Name)
+    if (const int c = SortOrder::compare(value(left), value(right)))
+      return c < 0;
+  return SortOrder::nameBefore(m_collator.compare(left.data().toString(), right.data().toString()));
 }
 
 bool ArchiveSortProxy::filterAcceptsRow(int row, const QModelIndex &parent) const

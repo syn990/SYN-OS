@@ -30,6 +30,10 @@ Right side, left to right:
 - **Backlight.** Screen brightness. Scroll up or down to change it.
 - **Volume.** Click to open the audio mixer, middle-click to mute, scroll
   to adjust.
+- **Acoustic monitor.** Its style's icon (a satellite dish, a phone, a
+  hooded figure, a square wave or an anchor): dim while it's off, lit while it's listening. Click to turn it on or off, right-click to watch what it's
+  hearing, hover for its style and the last few sounds. See [The acoustic
+  monitor](./tools/syn-hum.md).
 - **CPU, memory, and temperature.** Each one turns yellow, then red, as
   usage climbs. Click any of them to open the system monitor straight to
   that view. See [System monitor & logs](./tools/syn-sysmon.md).

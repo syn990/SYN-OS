@@ -5,7 +5,8 @@
 //   columns can walk. Directories an archive only implies (a tar holding
 //   "a/b/c.txt" with no "a/" entry) are made up so every path has a
 //   parent to stand in. ArchiveSortProxy orders it like FileSortProxy
-//   orders the disk (folders first, natural names) and hides dotfiles
+//   orders the disk (folders first, then SortOrder's key; an archive keeps
+//   no creation time, so that one goes by name) and hides dotfiles
 //   when the disk view does.
 //
 //   SYN-OS     : The Syntax Operating System

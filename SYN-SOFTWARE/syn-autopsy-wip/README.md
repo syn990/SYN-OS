@@ -85,12 +85,3 @@ src/syn_autopsy_diff.c        compare against the baseline
 4. The timeline.
 5. `--root` mode.
 6. The baseline step in SYN-LFS's build, then `diff`.
-
-## Open questions
-
-- **Windows.** The same bundle from a Windows machine (event logs, Run
-  keys, scheduled tasks, services, Defender detections) belongs in
-  SYN-WIN as PowerShell, writing the same layout, so one `timeline` reads
-  both.
-- **Pulling from another machine** over SYN-RELAY waits until relay has
-  authentication (see `../WIP.md`).

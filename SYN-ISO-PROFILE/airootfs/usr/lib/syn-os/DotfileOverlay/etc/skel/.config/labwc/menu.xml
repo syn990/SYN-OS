@@ -285,7 +285,7 @@
 
     <menu id="preferences-menu" label="Preferences">
       <!-- Desktop settings: live, cosmetic/hardware controls you tune to
-           taste. Each of Audio/Display/Themes/Default Apps is a real dynamic
+           taste. Each of Audio/Display/Themes/Default Apps/Acoustic Monitor is a real dynamic
            pipe-menu (queries pactl/wlr-randr/theme dir/mimeapps live),
            not a static list.
            Real nested submenu now instead of a separator label, so it
@@ -306,6 +306,12 @@
         <menu id="defaults-pipe"
               label="Default Apps"
               execute="/usr/lib/syn-os/syn-pipe-defaults.zsh" />
+
+        <!-- The acoustic monitor (syn-hum): on/off, style and volume.
+             The waybar HUM button turns it on and off too. -->
+        <menu id="hum-pipe"
+              label="Acoustic Monitor"
+              execute="/usr/lib/syn-os/syn-pipe-hum.zsh" />
 
         <item label="Toggle Bar Position">
           <action name="Execute" command="/usr/lib/syn-os/syn-bar-toggle-position.zsh" />

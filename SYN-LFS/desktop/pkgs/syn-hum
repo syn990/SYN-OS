@@ -1,0 +1,6 @@
+# SYN-OS syn-hum: the acoustic monitor (waybar's HUM button), played by syn-bar-core
+v=local
+always=1
+build() {
+	syn_tool syn-hum
+}

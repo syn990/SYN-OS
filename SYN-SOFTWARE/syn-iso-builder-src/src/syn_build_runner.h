@@ -19,6 +19,7 @@
 #define SYN_BUILD_RUNNER_H
 
 #include "syn_build_paths.h"
+#include "syn_edition.h"
 
 #include <stdbool.h>
 
@@ -32,6 +33,7 @@ typedef enum {
 	SYN_TARGET_CURRENT_TREE,
 	SYN_TARGET_COMMIT,
 	SYN_TARGET_LOCAL_PROFILE,
+	SYN_TARGET_EDITION, /* a SYN-EDITIONS file, see syn_edition.h */
 } syn_target_kind;
 
 /* Everything needed to run one build — filled by whichever resolve_*()
@@ -65,6 +67,10 @@ typedef struct {
 		struct {
 			char repo_root[1024];
 		} current_tree;
+		/* An Arch edition builds its Profile here like any profile
+		 * (profile_dir above); an LFS one, or an Arch one with
+		 * LayerStrat=none, is BUILD.zsh's to build (profile_dir is "") */
+		syn_edition edition;
 	} detail;
 } syn_build_target;
 
@@ -125,5 +131,16 @@ bool syn_build_run(const syn_build_target *target, const syn_build_paths *paths,
 	const char *repo_root, const char *out_dir, const char *out_name,
 	syn_build_line_cb on_line, syn_build_idle_cb on_idle,
 	syn_build_provisional_cb on_provisional, void *userdata, char *final_iso_path_out);
+
+/* Runs argv (looked up on PATH) on a pty of its own and streams its
+ * output through the same callbacks as syn_build_run() — the loop
+ * mkarchiso runs in (see run_mkarchiso() in syn_build_runner.c), for any
+ * other long command. With `as_real_user`, the child first drops from
+ * root to the user who started this tool (syn_become_real_user()).
+ * Nothing can be typed into it: a command that asks a question waits
+ * forever. Returns true if it exited 0. */
+bool syn_build_run_streamed(char *const argv[], bool as_real_user,
+	syn_build_line_cb on_line, syn_build_idle_cb on_idle,
+	syn_build_provisional_cb on_provisional, void *userdata);
 
 #endif
