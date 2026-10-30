@@ -31,9 +31,33 @@ double syn_hum_volume_gain(const char *word) {
 	return -1.0;
 }
 
+int syn_hum_conf_muted(const syn_hum_conf *c, const char *id) {
+	for (int i = 0; i < c->mute_count; i++) {
+		if (!strcmp(c->mute[i], id)) return 1;
+	}
+	return 0;
+}
+
+int syn_hum_conf_mute(syn_hum_conf *c, const char *id, int on) {
+	for (int i = 0; i < c->mute_count; i++) {
+		if (strcmp(c->mute[i], id)) continue;
+		if (on) {
+			memmove(c->mute[i], c->mute[i + 1], sizeof(c->mute[0]) * (size_t)(c->mute_count - i - 1));
+			c->mute_count--;
+		}
+		return 0;
+	}
+	if (on) return 0;
+	if (c->mute_count >= SYN_HUM_MUTE_MAX) return -1;
+	snprintf(c->mute[c->mute_count++], sizeof(c->mute[0]), "%s", id);
+	return 0;
+}
+
 void syn_hum_conf_load(syn_hum_conf *c) {
 	c->style = SYN_HUM_UPLINK;
 	snprintf(c->volume, sizeof(c->volume), "normal");
+	c->crew = 1;
+	c->mute_count = 0;
 
 	char dir[PATH_MAX - 16], path[PATH_MAX];
 	conf_dir(dir, sizeof(dir));
@@ -48,6 +72,10 @@ void syn_hum_conf_load(syn_hum_conf *c) {
 			c->style = syn_hum_style_find(value);
 		} else if (!strcmp(key, "volume") && syn_hum_volume_gain(value) > 0.0) {
 			snprintf(c->volume, sizeof(c->volume), "%s", value);
+		} else if (!strcmp(key, "crew")) {
+			c->crew = strcmp(value, "off") != 0;
+		} else if (!strcmp(key, "mute")) {
+			syn_hum_conf_mute(c, value, 0);
 		}
 	}
 	fclose(f);
@@ -66,9 +94,12 @@ int syn_hum_conf_save(const syn_hum_conf *c) {
 	        "# (Preferences > Desktop > Acoustic Monitor) or with `syn-hum set`.\n"
 	        "# style: " SYN_HUM_STYLE_LIST "\n"
 	        "# (`syn-hum styles` says what each plays). volume: quiet, normal or loud.\n"
+	        "# crew: on or off, the crew's bed (techno); mute ID leaves one member out.\n"
 	        "style %s\n"
-	        "volume %s\n",
-	        SYN_HUM_STYLES[c->style].name, c->volume);
+	        "volume %s\n"
+	        "crew %s\n",
+	        SYN_HUM_STYLES[c->style].name, c->volume, c->crew ? "on" : "off");
+	for (int i = 0; i < c->mute_count; i++) fprintf(f, "mute %s\n", c->mute[i]);
 	if (fclose(f) != 0) {
 		unlink(tmp);
 		return -1;

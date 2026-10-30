@@ -20,6 +20,7 @@
 #define _GNU_SOURCE
 #include "syn_bar_notify.h"
 #include "syn_hum_conf.h"
+#include "syn_hum_crew.h"
 #include "syn_hum_map.h"
 #include "syn_hum_sample.h"
 #include "syn_hum_send.h"
@@ -62,6 +63,8 @@ static void print_usage(const char *argv0) {
 		"  styles            every style, and what each signal sounds like in it\n"
 		"  set style NAME    " SYN_HUM_STYLE_LIST "\n"
 		"  set volume LEVEL  quiet, normal or loud\n"
+		"  set crew on|off   the crew's bed (SYN-CASTER's crew, in techno)\n"
+		"  set crew ID on|off  one member in or out of it\n"
 		"  test [STYLE]      every sound of a style in turn, each named as it plays\n"
 		"  watch             print the signals ten times a second, sending nothing (Ctrl+C stops)\n",
 		argv0);
@@ -121,7 +124,7 @@ static void bar_refresh(void) {
  * `sig` is that second's ten samples added up: levels times their
  * seconds, so dividing by the seconds gives the second's average, and
  * the counts as they are. */
-static void write_state(const syn_hum_signals *sig, const syn_hum_steps *st) {
+static void write_state(const syn_hum_signals *sig, const syn_hum_steps *st, const syn_hum_crew *crew) {
 	char path[PATH_MAX], tmp[PATH_MAX + 8];
 	runtime_path("syn-hum.state", path, sizeof(path));
 	snprintf(tmp, sizeof(tmp), "%s.new", path);
@@ -141,6 +144,11 @@ static void write_state(const syn_hum_signals *sig, const syn_hum_steps *st) {
 		fprintf(f, ", waiting for a CPU %.1f%%, on IO %.1f%%", sig->cpu_wait / secs * 100.0, sig->io_wait / secs * 100.0);
 	}
 	fputc('\n', f);
+	if (crew->count || crew->talk) {
+		char words[512];
+		syn_hum_crew_words(crew, words, sizeof(words));
+		fprintf(f, "%s\n", words);
+	}
 	if (fclose(f) == 0) rename(tmp, path);
 }
 
@@ -168,6 +176,8 @@ static int daemon_loop(void) {
 
 	int core_there = 1;
 	long tick = 0;
+	syn_hum_crew crew;
+	memset(&crew, 0, sizeof(crew));
 	syn_hum_signals second; /* the samples since the state was last written, added up */
 	memset(&second, 0, sizeof(second));
 	struct timespec next;
@@ -182,8 +192,10 @@ static int daemon_loop(void) {
 		if (reload) {
 			reload = 0;
 			syn_hum_conf_load(&conf);
-			fprintf(stderr, "syn-hum: now %s, %s\n", SYN_HUM_STYLES[conf.style].name, conf.volume);
+			crew.seen.tv_sec = crew.seen.tv_nsec = 0; /* the mutes may have changed: read the crew again */
+			fprintf(stderr, "syn-hum: now %s, %s, crew %s\n", SYN_HUM_STYLES[conf.style].name, conf.volume, conf.crew ? "on" : "off");
 		}
+		syn_hum_crew_read(&crew, &conf);
 
 		syn_hum_signals sig;
 		syn_hum_steps st;
@@ -199,11 +211,12 @@ static int daemon_loop(void) {
 		second.spawns += sig.spawns;
 		second.switches += sig.switches;
 		if (++tick % 10 == 0) {
-			write_state(&second, &st);
+			write_state(&second, &st, &crew);
 			memset(&second, 0, sizeof(second));
 		}
-		char line[512];
-		if (syn_hum_steps_line(&st, SYN_HUM_STYLES[conf.style].name, syn_hum_volume_gain(conf.volume), line, sizeof(line)) > 0) {
+		char line[1024];
+		int n = syn_hum_steps_line(&st, SYN_HUM_STYLES[conf.style].name, syn_hum_volume_gain(conf.volume), line, sizeof(line));
+		if (n > 0 && syn_hum_crew_keys(&crew, line + n, sizeof(line) - (size_t)n) >= 0) {
 			/* syn-bar-core may come and go (a theme switch restarts the
 			 * bar); say so once each way rather than every tenth second */
 			int there = syn_hum_send(line) == 0;
@@ -366,6 +379,13 @@ static int cmd_set(int argc, char **argv) {
 			return 1;
 		}
 		snprintf(conf.volume, sizeof(conf.volume), "%s", argv[3]);
+	} else if (!strcmp(argv[2], "crew") && argc == 4 && (!strcmp(argv[3], "on") || !strcmp(argv[3], "off"))) {
+		conf.crew = !strcmp(argv[3], "on");
+	} else if (!strcmp(argv[2], "crew") && argc == 5 && (!strcmp(argv[4], "on") || !strcmp(argv[4], "off"))) {
+		if (strlen(argv[3]) >= sizeof(conf.mute[0]) || syn_hum_conf_mute(&conf, argv[3], !strcmp(argv[4], "on")) != 0) {
+			fprintf(stderr, "syn-hum: can't mute '%s': a name of 15 letters at most, %d muted at most\n", argv[3], SYN_HUM_MUTE_MAX);
+			return 1;
+		}
 	} else {
 		print_usage(argv[0]);
 		return 1;

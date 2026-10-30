@@ -1088,8 +1088,9 @@ static void handle_one_client(int listen_fd) {
 	setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 	setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-	/* Room for a HUM line: a level per core, 16 of them, and the rest */
-	char request[512] = {0};
+	/* Room for a HUM line: a level per core, 16 of them, the crew's eight
+	 * members, and the rest */
+	char request[1024] = {0};
 	ssize_t n = read(client_fd, request, sizeof(request) - 1);
 	if (n <= 0) {
 		close(client_fd);

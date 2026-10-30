@@ -48,6 +48,8 @@
 #define LIMIT_DB -14.0           /* and no single click or bell's attack gets past this */
 #define SIXTEENTH (RATE * 60 / 128 / 4) /* techno's grid: a sixteenth at 128 bpm, 5625 samples */
 #define GRAINS 24                /* techno's dust and sparks, at once */
+#define MAX_CREW 8               /* crew members with a bed of their own (the crew= key) */
+#define DUCK_DB -10.0            /* the whole hum, while anyone talks (talk=1) */
 
 /* ---- the steps: one HUM line ----------------------------------------- */
 
@@ -58,7 +60,18 @@ typedef struct {
 	int error, inbound;    /* one-off figures */
 	int spawn, sched;      /* processes started, context switches */
 	int cpu_wait, io_wait; /* tasks waiting for a CPU, on IO */
+	/* the crew: who is doing what (crew=ID:STATE+P,...), and whether
+	 * anyone is talking (talk=1). Written by SYN-CASTER, passed on by
+	 * syn-hum without the members hum.conf mutes. */
+	int crew_count;
+	struct {
+		char id[16];
+		int state, priority; /* CREW_*, and the ticket's P1-P5 (0 none) */
+	} crew[MAX_CREW];
+	int talk;
 } hum_steps;
+
+enum { CREW_IDLE, CREW_WAITING, CREW_WORKING, CREW_TALKING };
 
 /* ---- randomness and levels ------------------------------------------- */
 
@@ -259,10 +272,10 @@ typedef struct {
 } segment;
 
 #define MAX_SEGMENTS 96
-#define MAX_EVENTS 24
+#define MAX_EVENTS 32 /* the groove's four layers and the crew's eight beside the rest */
 
 /* Event types, so one that mustn't overlap itself can be refused */
-enum { EV_PING, EV_READOUT, EV_NET, EV_DISK, EV_ERROR, EV_INBOUND, EV_LINK, EV_MEMORY, EV_RUMBLE, EV_ATMOS = 10, EV_HOLD = 20 };
+enum { EV_PING, EV_READOUT, EV_NET, EV_DISK, EV_ERROR, EV_INBOUND, EV_LINK, EV_MEMORY, EV_RUMBLE, EV_ATMOS = 10, EV_HOLD = 20, EV_CREW = 40 };
 
 typedef struct {
 	int active, type;
@@ -325,6 +338,9 @@ typedef struct {
 	double dust_rate, spark_rate;           /* grains a second */
 	int hot_wait, spawn_was, io_said;       /* techno: ticks tasks have waited for a CPU; what's been said */
 	int crush_hold, crush_mask;             /* bytebeat: what memory pressure leaves of t and the bytes */
+	double duck;                            /* the whole hum's gain: 1, or DUCK_DB while anyone talks */
+	char crew_was[MAX_CREW][16];            /* the crew as last said, so a change is heard once */
+	int crew_was_state[MAX_CREW], crew_was_count;
 	/* phreak: the two calls, left and right */
 	phone_line line[2];
 	/* hacker: the air; deep: the hull */
@@ -877,6 +893,84 @@ static void techno_rumble(hum_synth *s) {
 		seg_gap(e, sixteenths(1));
 		seg_add(e, (segment){.kind = SEG_NOISE, .f1 = 45.0, .f2 = 160.0, .seconds = sixteenths(3) - (b == 3 ? 0.11 : 0.0),
 		                     .amp = db(-36.0), .fade = 0.12});
+	}
+}
+
+/* techno, the crew: each member has a voice of their own, made from
+ * their name so it's the same every time and nobody needs a table: a
+ * note on the scale, a rhythm (3 to 6 hits of the bar's sixteen, spread
+ * evenly the way a Euclidean rhythm is, and turned), and a place across
+ * the room. FNV-1a, the hash, is small and spreads short names well. */
+static uint32_t crew_hash(const char *id) {
+	uint32_t h = 2166136261u;
+	for (const unsigned char *p = (const unsigned char *)id; *p; p++) h = (h ^ *p) * 16777619u;
+	return h;
+}
+
+static double crew_pan(const char *id) {
+	return -0.7 + 1.4 * (double)(crew_hash(id) >> 8 & 7) / 7.0;
+}
+
+/* Hit `i` of the bar, of `hits` spread evenly over sixteen, turned by `turn` */
+static int crew_hit(int i, int hits, int turn) {
+	int j = (i + turn) % 16;
+	return (j * hits) % 16 < hits;
+}
+
+/* A member at work: a bar of plucks on their note, in their rhythm,
+ * coming in on the bar like the groove's layers and ending as short as
+ * they do, so it carries on bar after bar while they work. A higher
+ * priority is louder and brighter, with two more hits; talking, they play
+ * it an octave up, so you hear who it is under the duck. Waiting, a soft
+ * bell on their note every other bar, a heartbeat. */
+static void crew_bed(hum_synth *s, int k) {
+	const char *id = s->steps.crew[k].id;
+	int state = s->steps.crew[k].state, p = s->steps.crew[k].priority;
+	event *e = event_new(s, EV_CREW + k, 1, crew_pan(id));
+	if (!e) return;
+	uint32_t h = crew_hash(id);
+	double note = TECHNO_SCALE[h % 10];
+	int rank = p >= 1 && p <= 5 ? 5 - p : 0; /* P1 4 ... P5 0, none 0 */
+	if (state == CREW_WAITING) {
+		metal(e, note / 2.0, 2.0, 1.2, sixteenths(4), 0.45, -38.0);
+		seg_gap(e, sixteenths(28) - 0.11);
+		return;
+	}
+	if (state == CREW_TALKING) note *= 2.0;
+	int hits = 3 + (int)(h >> 4 & 3) + (rank >= 3 ? 2 : 0), turn = (int)(h >> 12 & 15);
+	double amp = -36.0 + 1.5 * rank, cutoff = 700.0 + 350.0 * rank;
+	for (int i = 0; i < 16; i++) {
+		double len = sixteenths(1) - (i == 15 ? 0.11 : 0.0);
+		if (crew_hit(i, hits, turn)) {
+			seg_add(e, (segment){.kind = SEG_PLUCK, .f1 = note, .seconds = len, .amp = db(amp), .fade = 0.003,
+			                     .cutoff = cutoff, .decay = 0.07});
+		} else {
+			seg_gap(e, len);
+		}
+	}
+}
+
+/* Once a tick in techno: each member's bed again as the last ends, and a
+ * change of who is doing what said once, for the tooltip */
+static void crew_tick(hum_synth *s) {
+	static const char *const words[] = {"idle", "waiting", "working", "talking"};
+	const hum_steps *st = &s->steps;
+	for (int k = 0; k < st->crew_count; k++) {
+		int was = -1;
+		for (int j = 0; j < s->crew_was_count; j++) {
+			if (!strcmp(s->crew_was[j], st->crew[k].id)) was = s->crew_was_state[j];
+		}
+		if (was != st->crew[k].state && (was >= 0 || st->crew[k].state != CREW_IDLE)) {
+			char line[64];
+			snprintf(line, sizeof(line), "crew: %s %s", st->crew[k].id, words[st->crew[k].state & 3]);
+			say(s, line);
+		}
+		if (st->crew[k].state != CREW_IDLE && !event_playing(s, EV_CREW + k)) crew_bed(s, k);
+	}
+	s->crew_was_count = st->crew_count;
+	for (int k = 0; k < st->crew_count; k++) {
+		snprintf(s->crew_was[k], sizeof(s->crew_was[k]), "%s", st->crew[k].id);
+		s->crew_was_state[k] = st->crew[k].state;
 	}
 }
 
@@ -1478,6 +1572,7 @@ static void synth_init(hum_synth *s, int style, double volume) {
 	s->echo_fb = ROOMS[style].echo_feedback;
 	s->crush_hold = 1;
 	s->crush_mask = 0xFF;
+	s->duck = 1.0;
 	line_init(&s->line[0], 0);
 	line_init(&s->line[1], 7); /* the two calls step their noise at different times */
 	/* Freeverb's delay lengths, tuned at 44.1 kHz, the right side 23
@@ -1570,6 +1665,7 @@ static void hold_tick(hum_synth *s) {
 			if (!event_playing(s, EV_HOLD + layer)) techno_layer(s, layer);
 		}
 		if (s->hot_wait >= HOLD_TICKS && !event_playing(s, EV_RUMBLE)) techno_rumble(s);
+		crew_tick(s);
 	} else {
 		for (int i = 0; i < s->steps.core_count; i++) {
 			if (s->hot[i] >= HOLD_TICKS && !event_playing(s, EV_HOLD + i)) ev_hold_core(s, i);
@@ -1757,6 +1853,7 @@ static void synth_render(hum_synth *s, int16_t *out, int frames) {
 	const double lp120 = 1.0 - exp(-TAU * 120.0 / RATE);
 	const double hull_norm = 1.0 / sqrt(lp120 / (2.0 - lp120) / 3.0);
 	const double limit_release = 1.0 - exp(-1.0 / (0.06 * RATE));
+	const double duck_down = 1.0 - exp(-1.0 / (0.08 * RATE)), duck_up = 1.0 - exp(-1.0 / (0.8 * RATE));
 
 	for (int f = 0; f < frames; f++) {
 		if (s->up == 0) {
@@ -1823,8 +1920,12 @@ static void synth_render(hum_synth *s, int16_t *out, int frames) {
 
 		/* the ceiling: past -22 dBFS everything is pressed down 4:1, so a
 		 * pile of sounds under heavy load stays a pile of quiet sounds */
-		l *= s->volume;
-		r *= s->volume;
+		/* someone talking: the whole hum drops 10 dB in about 80 ms, and
+		 * comes back over about 0.8 s once they've stopped */
+		double duck_to = s->steps.talk ? db(DUCK_DB) : 1.0;
+		s->duck += (duck_to < s->duck ? duck_down : duck_up) * (duck_to - s->duck);
+		l *= s->volume * s->duck;
+		r *= s->volume * s->duck;
 		double peak = fmax(fabs(l), fabs(r));
 		s->ceiling_env += (peak > s->ceiling_env ? attack : release) * (peak - s->ceiling_env);
 		if (s->ceiling_env > ceiling) {
@@ -1869,7 +1970,7 @@ void syn_bar_hum_line(const char *line) {
 	memset(&st, 0, sizeof(st));
 	int style = -1, error = 0, inbound = 0;
 	double volume = -1.0;
-	char buf[512];
+	char buf[1024];
 	snprintf(buf, sizeof(buf), "%s", line);
 	char *save = NULL;
 	for (char *tok = strtok_r(buf, " \t\r\n", &save); tok; tok = strtok_r(NULL, " \t\r\n", &save)) {
@@ -1899,6 +2000,27 @@ void syn_bar_hum_line(const char *line) {
 			st.cpu_wait = clamp_step(atoi(v));
 		} else if (!strcmp(tok, "iowait")) {
 			st.io_wait = clamp_step(atoi(v));
+		} else if (!strcmp(tok, "talk")) {
+			st.talk = atoi(v) > 0;
+		} else if (!strcmp(tok, "crew")) {
+			/* ID:SP, a comma between: S is i(dle), h (waiting, on hold),
+			 * w(orking) or t(alking), P the ticket's priority, 0 none */
+			for (const char *p = v; *p && st.crew_count < MAX_CREW;) {
+				const char *colon = strchr(p, ':'), *comma = strchr(p, ',');
+				if (!comma) comma = p + strlen(p);
+				if (colon && colon < comma && colon > p) {
+					size_t n = (size_t)(colon - p);
+					if (n >= sizeof(st.crew[0].id)) n = sizeof(st.crew[0].id) - 1;
+					memcpy(st.crew[st.crew_count].id, p, n);
+					st.crew[st.crew_count].id[n] = '\0';
+					const char *c = colon + 1;
+					st.crew[st.crew_count].state = *c == 'w' ? CREW_WORKING : *c == 'h' ? CREW_WAITING : *c == 't' ? CREW_TALKING : CREW_IDLE;
+					st.crew[st.crew_count].priority = c[0] && c[1] >= '0' && c[1] <= '9' ? c[1] - '0' : 0;
+					st.crew_count++;
+				}
+				if (!*comma) break;
+				p = comma + 1;
+			}
 		} else if (!strcmp(tok, "cores")) {
 			for (const char *p = v; *p && st.core_count < MAX_VOICES;) {
 				st.cores[st.core_count++] = clamp_step(atoi(p));
@@ -2068,6 +2190,24 @@ static void run_tour(hum_synth *s, pa_simple **pa, int16_t *buf) {
 				if (t % 8 == 2) ev_ping(s, t / 8 % cores, 8);
 				break;
 			case 12: {
+				/* the crew, a member at a time, then one of them talking */
+				static const char *const ids[3] = {"william2", "blackmesa", "overwatch"};
+				static const int states[3] = {CREW_WORKING, CREW_WORKING, CREW_WAITING}, ps[3] = {4, 1, 3};
+				int in = t < 40 ? 1 : t < 80 ? 2 : 3;
+				st.crew_count = 3;
+				for (int k = 0; k < 3; k++) {
+					snprintf(st.crew[k].id, sizeof(st.crew[k].id), "%s", ids[k]);
+					st.crew[k].state = k < in ? states[k] : CREW_IDLE;
+					st.crew[k].priority = ps[k];
+				}
+				if (t >= 120) {
+					st.crew[0].state = CREW_TALKING;
+					st.talk = 1;
+				}
+				synth_set(s, &st);
+				break;
+			}
+			case 13: {
 				static const int busy[] = {12, 15, 7, 14, 9, 13, 10, 15};
 				for (int i = 0; i < cores; i++) st.cores[i] = busy[i % 8];
 				st.fsk = 9;

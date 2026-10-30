@@ -27,20 +27,20 @@ enum {
 	SYN_HUM_OUT_IDLE, SYN_HUM_OUT_CPU, SYN_HUM_OUT_CPU_HELD, SYN_HUM_OUT_READOUT,
 	SYN_HUM_OUT_NET, SYN_HUM_OUT_NET_HELD, SYN_HUM_OUT_DISK, SYN_HUM_OUT_DISK_HELD,
 	SYN_HUM_OUT_MEMORY, SYN_HUM_OUT_ERROR, SYN_HUM_OUT_INBOUND, SYN_HUM_OUT_ATMOS,
-	SYN_HUM_OUT_OPS, SYN_HUM_OUT_WAIT,
+	SYN_HUM_OUT_OPS, SYN_HUM_OUT_WAIT, SYN_HUM_OUT_CREW,
 	SYN_HUM_OUT_COUNT
 };
 
 static const char *const SYN_HUM_OUT_NAMES[SYN_HUM_OUT_COUNT] = {
 	"idle", "cpu", "cpu, held 3 s", "readout", "network", "network, heavy",
 	"disk", "disk, heavy", "memory", "log error", "inbound", "atmosphere",
-	"operations", "waiting",
+	"operations", "waiting", "crew",
 };
 
 /* A style that doesn't play a signal leaves its line NULL: `syn-hum
  * styles` leaves it out and the tour skips it. Operations (processes
- * started, context switches) and waiting (CPU and IO pressure) are only
- * techno's so far. */
+ * started, context switches), waiting (CPU and IO pressure) and the crew
+ * (who of SYN-CASTER's crew is doing what) are only techno's so far. */
 static const struct {
 	const char *name, *summary;
 	int atmos_kinds;
@@ -131,6 +131,7 @@ static const struct {
 		"a dark pad, its chord set by total CPU: a bare fifth at rest, minor when working, a flat ninth when busy, a tritone cluster when saturated",
 		"sparks: a glint for each process started, a cloud of them during a build; the dust thickens as context switches climb",
 		"tasks waiting for a CPU bring a rumble under the beat; tasks waiting on IO make the echo hang longer",
+		"a bar of plucks per crew member at work, each on their own note and rhythm, louder and busier the higher their ticket's priority; a soft bell every other bar for one waiting; an octave up for the one talking, while the whole hum ducks 10 dB",
 	}},
 	{"bytebeat", "the machine as one-line formulas: windows onto t*(42&t>>10) and its kin, 8-bit at 8 kHz", 6, {
 		"silence",
@@ -169,6 +170,7 @@ static const struct {
 	{2.5, SYN_HUM_OUT_INBOUND, -1, NULL},
 	{12, SYN_HUM_OUT_OPS, -1, "processes starting, the scheduler getting busier"},
 	{10, SYN_HUM_OUT_WAIT, -1, "tasks waiting for a CPU, then on IO"},
+	{16, SYN_HUM_OUT_CREW, -1, "one member working, a second on a P1, a third waiting, then the first talking"},
 	{8, -1, -1, "a busy machine"},
 	{4, -1, -1, "back to idle"},
 };

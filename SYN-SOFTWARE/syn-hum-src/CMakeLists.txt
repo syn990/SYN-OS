@@ -36,6 +36,7 @@ add_executable(syn-hum
   src/syn_hum_sample.c
   src/syn_hum_map.c
   src/syn_hum_conf.c
+  src/syn_hum_crew.c
   src/syn_hum_send.c
   ${SYSMON_SRC}/syn_stats.c
   ${JOURNAL_SRC}
