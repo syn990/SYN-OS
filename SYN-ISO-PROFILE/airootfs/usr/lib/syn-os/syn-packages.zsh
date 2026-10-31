@@ -98,6 +98,7 @@ desktopStack=(
   swaylock            # Screen locker for Wayland/wlroots (bound to Super+L in rc.xml, also in the menu)
   fuzzel              # Application launcher for Wayland (bound to Super+A in rc.xml)
   rofi                # Window switcher, application launcher, and dmenu replacement
+  wl-clipboard        # wl-paste: the highlight and the clipboard, read by the bar's read-aloud button (syn-bar-speak)
   feh                 # Lightweight image viewer and background setter
   qt5ct               # Qt5 Configuration Utility
   qt6ct               # Qt6 Configuration Utility

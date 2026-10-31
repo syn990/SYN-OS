@@ -23,6 +23,7 @@
     "network",
     "backlight",
     "pulseaudio",
+    "custom/speak",
     "custom/hum",
     "custom/cpu",
     "custom/mem",
@@ -163,6 +164,29 @@
     "return-type": "json",
     "format": "{}",
     "exec": "/usr/lib/syn-os/syn-bar --agent-serving"
+  },
+
+  // The read-aloud button (syn-bar-speak): a Piper voice from the
+  // syn-speak store (Commander Data, Miki, GLaDOS, the VCTK bank, ...)
+  // reads what's highlighted on screen, or the clipboard when nothing is.
+  // Click reads it (a click while it's reading stops it), right-click
+  // picks the voice and pace, middle-click stops. Lit while it reads,
+  // dim when no voices are installed. syn-bar-speak sends SIGRTMIN+9
+  // whenever that changes.
+  "custom/speak": {
+    "return-type": "json",
+    "format": "{icon}",
+    "format-icons": {
+      "idle": "",
+      "speaking": "",
+      "none": ""
+    },
+    "exec": "/usr/lib/syn-os/syn-bar-speak.zsh status --json",
+    "interval": 30,
+    "signal": 9,
+    "on-click": "/usr/lib/syn-os/syn-bar-speak.zsh say",
+    "on-click-right": "/usr/lib/syn-os/syn-bar-speak.zsh menu",
+    "on-click-middle": "/usr/lib/syn-os/syn-bar-speak.zsh stop"
   },
 
   // The acoustic monitor's button (syn-hum): its style's icon (a satellite

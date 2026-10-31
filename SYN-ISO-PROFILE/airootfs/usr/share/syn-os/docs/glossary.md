@@ -415,6 +415,8 @@ Covered in depth in their own pages, listed here for the map:
 | syn-relay | `/usr/lib/syn-os/syn-relay` | [Remote machines](./tools/syn-relay.md) |
 | syn-sysmon | `/usr/lib/syn-os/syn-sysmon` | [System monitor & logs](./tools/syn-sysmon.md) |
 | syn-hum | `/usr/lib/syn-os/syn-hum` | [The acoustic monitor](./tools/syn-hum.md) |
+| syn-bar-speak | `/usr/lib/syn-os/syn-bar-speak.zsh` | [Read it aloud](./tools/syn-bar-speak.md) |
+| syn-speak | `/usr/lib/syn-os/syn-speak` | [Read it aloud](./tools/syn-bar-speak.md), the program behind the button; voices in `~/.local/share/syn-speak/voices` |
 | syn-audio | `/usr/lib/syn-os/syn-audio` | [Audio mixer](./tools/audio.md) |
 | syn-shell | `/usr/bin/syn-shell` | [SYN-SHELL](./tools/syn-shell.md) |
 | syn-crypter (native) | `/usr/lib/syn-os/syn-crypter` | [Encryption](./tools/syn-crypter.md) |

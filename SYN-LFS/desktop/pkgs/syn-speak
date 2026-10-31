@@ -1,0 +1,6 @@
+# SYN-OS syn-speak: Piper voices on sherpa-onnx, for the bar's read-aloud button. No voices: the button fetches them
+v=local
+always=1
+build() {
+	syn_tool syn-speak
+}

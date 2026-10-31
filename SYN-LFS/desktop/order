@@ -342,6 +342,7 @@ syn-connect
 syn-wallgen
 syn-sysmon
 syn-hum
+syn-speak
 syn-relay
 libvterm
 syntax-highlighting

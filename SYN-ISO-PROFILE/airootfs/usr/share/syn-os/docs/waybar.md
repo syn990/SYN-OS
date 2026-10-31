@@ -30,6 +30,10 @@ Right side, left to right:
 - **Backlight.** Screen brightness. Scroll up or down to change it.
 - **Volume.** Click to open the audio mixer, middle-click to mute, scroll
   to adjust.
+- **Read aloud.** A bullhorn. Click it and a Piper voice reads what's
+  highlighted, or the clipboard when nothing is; click again to stop.
+  Right-click to pick the voice and pace, or to get more voices (the
+  system ships with none). See [Read it aloud](./tools/syn-bar-speak.md).
 - **Acoustic monitor.** Its style's icon (a satellite dish, a phone, a
   hooded figure, a square wave or an anchor): dim while it's off, lit while it's listening. Click to turn it on or off, right-click to watch what it's
   hearing, hover for its style and the last few sounds. See [The acoustic
