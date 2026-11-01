@@ -153,9 +153,17 @@ from the gallery, your location, Busy, mute, VOX, ONLINE/OFFLINE, the SYN-OS ton
 foreground service keeps the channel playing with the screen off; the
 volume-down key can be the talk button.
 
+Who spoke is drawn as the web chat draws it (G228): each line's name in the
+speaker's colour, with a bar of that colour down its left edge. When the bot
+speaks for a crew member (protocol `as`), the line carries that member's name
+and colour, not the bot's. While a note plays, live or replayed, the speaker's
+portrait shows top right over the messages, with their name under it in their
+colour; it is fetched once per speaker with the `portrait` request, and a
+speaker with no picture gets their initials on their colour.
+
 ```
-apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.3.0.apk
-adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.3.0.apk
+apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.5.0.apk
+adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.5.0.apk
 ```
 
 The APK carries no secrets. On first start it asks for the server, the

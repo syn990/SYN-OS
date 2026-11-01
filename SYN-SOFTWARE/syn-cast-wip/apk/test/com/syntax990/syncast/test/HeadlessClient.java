@@ -267,7 +267,8 @@ public final class HeadlessClient implements Engine.Platform {
 	private static Map<String, Object> msgJson(History.Msg m) {
 		return Json.obj("id", (double) m.id, "kind", m.kind.name().toLowerCase(), "from", m.from, "for", m.forwho,
 			"out", m.out, "played", m.played, "partial", m.partial, "duration_ms", (double) m.durationMs,
-			"text", m.text, "w", (double) m.w, "h", (double) m.h, "lat", m.lat, "lon", m.lon, "sid", m.sid, "ts", (double) m.ts);
+			"text", m.text, "w", (double) m.w, "h", (double) m.h, "lat", m.lat, "lon", m.lon, "sid", m.sid, "ts", (double) m.ts,
+			"as", m.as, "name", m.name, "colour", m.colour);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -296,7 +297,14 @@ public final class HeadlessClient implements Engine.Platform {
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
 					"busy", v.busy, "speed", v.speed, "channels", chans, "bar", bar,
-					"played_samples", (double) pf.playPlayed()));
+					"played_samples", (double) pf.playPlayed(),
+					"rx_name", v.rxName == null ? "" : v.rxName, "rx_colour", v.rxColour, "rx_face", v.rxFace,
+					"rx_portrait", (double) (v.rxPortrait == null ? 0 : v.rxPortrait.length)));
+				break;
+			}
+			case "portrait": { /* G228: bytes held for a speaker; -1 not asked yet */
+				byte[] png = e.portrait(arg);
+				reply = Json.write(Json.obj("id", arg, "bytes", (double) (png == null ? -1 : png.length)));
 				break;
 			}
 			case "history": {

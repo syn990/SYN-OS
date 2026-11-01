@@ -29,10 +29,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -77,7 +81,7 @@ public final class Engine {
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY, PORTRAIT }
 
 	private static final class Pending {
 		int seq;
@@ -85,6 +89,7 @@ public final class Engine {
 		int channel;
 		long ref;
 		boolean invite;   /* HELLO: sent with the invite code */
+		String key = "";  /* PORTRAIT: whose */
 	}
 
 	private final class Session {
@@ -163,6 +168,7 @@ public final class Engine {
 		int channel;
 		long msgId;
 		String from;
+		String who = "", face = "", colour = "";   /* G228: shown while it plays: name, portrait key, colour */
 		List<byte[]> file;
 		int cursor;
 		Opus.Decoder dec;
@@ -202,6 +208,9 @@ public final class Engine {
 	private History.VoiceWriter txFile;
 	private int txLevel;
 
+	/* G228: portraits by member or character id, PNG bytes (empty: none), each asked for once per run */
+	private final Map<String, byte[]> portraits = new HashMap<>();
+	private final Set<String> portraitAsked = new HashSet<>();
 	private final Map<Long, long[]> imagesIn = new java.util.HashMap<>(); /* blob -> {channel, msgId, when} */
 	private byte[] imgFull, imgThumb;
 	private int imgW, imgH, imgChannel;
@@ -375,6 +384,7 @@ public final class Engine {
 			m.ts = ts;
 			m.from = from;
 			m.forwho = Json.str(l, "to");
+			speaker(m, l);
 			m.out = from.equalsIgnoreCase(me());
 			c.hist.addPast(m);
 			added++;
@@ -727,12 +737,13 @@ public final class Engine {
 				m.text = Json.str(o, "text");
 				m.from = from;
 				m.forwho = to;
+				speaker(m, o);
 				m.sid = Json.str(o, "message");
 				m.out = from.equalsIgnoreCase(me());
 				chan.get(ch).hist.add(m);
 				if (ch != active && !m.out) chan.get(ch).unread++;
 				if (!chan.get(ch).muted && !m.out) tone("ALERT");
-				if (!m.out) pf.notify(from + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
+				if (!m.out) pf.notify(m.who() + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
 			}
 			break;
 		case "pic":
@@ -744,6 +755,7 @@ public final class Engine {
 				m.h = (int) Json.lng(o, "height");
 				m.from = from;
 				m.forwho = to;
+				speaker(m, o);
 				chan.get(ch).hist.add(m);
 				imagesIn.put(Json.lng(o, "blob"), new long[] {ch, m.id, System.currentTimeMillis()});
 			}
@@ -758,6 +770,7 @@ public final class Engine {
 				m.text = Json.str(o, "address");
 				m.from = from;
 				m.forwho = to;
+				speaker(m, o);
 				m.sid = Json.str(o, "message");
 				chan.get(ch).hist.add(m);
 				tone("ALERT");
@@ -1037,6 +1050,21 @@ public final class Engine {
 		case PRESENCE:
 			if (!ok) pf.log("presence refused: " + err);
 			break;
+		case PORTRAIT: {
+			byte[] png = new byte[0];
+			String b64 = ok ? Json.str(o, "png") : "";
+			if (!b64.isEmpty()) {
+				try {
+					png = Base64.getDecoder().decode(b64);
+				} catch (IllegalArgumentException e) {
+					pf.log("portrait of " + p.key + ": not base64");
+				}
+			}
+			if (!ok) pf.log("portrait of " + p.key + " refused: " + err);
+			else pf.log("portrait of " + p.key + ": " + (png.length > 0 ? png.length + " bytes" : "none"));
+			portraits.put(p.key, png);
+			break;
+		}
 		}
 		changed();
 	}
@@ -1090,6 +1118,25 @@ public final class Engine {
 		}
 	}
 
+	/** G228: who a server line or event is from as people see it: the cast character speaking ("as"), its display
+	    name, and the colour the server draws the speaker in (else none, and the row is drawn plain) */
+	static void speaker(History.Msg m, Map<String, Object> o) {
+		m.as = Json.str(o, "as");
+		m.name = Json.str(o, "name");
+		String c = Json.str(o, "colour");
+		m.colour = c.matches("#[0-9a-fA-F]{6}") ? c : "";
+	}
+
+	/** G228: ask the server once for a speaker's portrait (an older server answers unknown_type: none) */
+	private void wantPortrait(Session ss, String key) {
+		if (key == null || key.isEmpty() || ss == null || ss.state != SState.ONLINE || !portraitAsked.add(key)) return;
+		int seq = ++ss.seq;
+		if (send(ss, Proto.portrait(seq, key))) {
+			addPending(ss, seq, PKind.PORTRAIT, -1, 0, false);
+			ss.pend.get(ss.pend.size() - 1).key = key;
+		} else portraitAsked.remove(key);
+	}
+
 	private void rxStart(Session ss, int ch, Map<String, Object> o, String from, String forwho) {
 		if (ch < 0) return;
 		if (rx.size() >= 16) {
@@ -1117,7 +1164,9 @@ public final class Engine {
 		m.partial = true;
 		m.from = from;
 		m.forwho = forwho;
+		speaker(m, o);
 		c.hist.add(m);
+		wantPortrait(ss, m.face());
 		r.msgId = m.id;
 		try {
 			r.file = new History.VoiceWriter(c.hist.voice(m.id), r.codec);
@@ -1131,6 +1180,9 @@ public final class Engine {
 			it.channel = ch;
 			it.msgId = m.id;
 			it.from = from;
+			it.who = m.who();
+			it.face = m.face();
+			it.colour = m.colour;
 			it.began = System.currentTimeMillis();
 			r.queued = true;
 			queue.add(it);
@@ -1564,6 +1616,10 @@ public final class Engine {
 		it.channel = channel;
 		it.msgId = msgId;
 		it.from = m.from;
+		it.who = m.who();
+		it.face = m.face();
+		it.colour = m.colour;
+		wantPortrait(sess.get(chan.get(channel).session), it.face);
 		try {
 			it.file = History.loadVoice(h.voice(msgId));
 		} catch (IOException e) {
@@ -1834,6 +1890,9 @@ public final class Engine {
 		public boolean txOpening;
 		/* on air */
 		public String rxName;
+		/** G228: the speaker's colour ("#rrggbb" or "") and portrait (PNG bytes, null while unknown or none) */
+		public String rxColour = "", rxFace = "";
+		public byte[] rxPortrait;
 		public boolean rxReplay;
 		public String rxChannel;
 		public int rxLevel;
@@ -1887,7 +1946,11 @@ public final class Engine {
 		}
 		if (playing) {
 			Item it = queue.get(0);
-			v.rxName = it.from;
+			v.rxName = it.who.isEmpty() ? it.from : it.who;
+			v.rxColour = it.colour;
+			v.rxFace = it.face.isEmpty() ? it.from : it.face;
+			byte[] png = portraits.get(v.rxFace);
+			v.rxPortrait = png != null && png.length > 0 ? png : null;
 			v.rxReplay = it.replay;
 			v.rxChannel = chan.get(it.channel).name;
 			v.rxLevel = pf.playLevel();
@@ -1898,6 +1961,11 @@ public final class Engine {
 	}
 
 	/** A copy of a channel's messages, newest last. */
+	/** G228: a speaker's portrait as fetched (null: not fetched yet; empty: the server has none). */
+	public synchronized byte[] portrait(String id) {
+		return portraits.get(id);
+	}
+
 	public synchronized List<History.Msg> history(int k) {
 		List<History.Msg> out = new ArrayList<>();
 		if (k < 0 || k >= chan.size()) return out;
@@ -1912,6 +1980,9 @@ public final class Engine {
 			c.from = m.from;
 			c.forwho = m.forwho;
 			c.sid = m.sid;
+			c.as = m.as;
+			c.name = m.name;
+			c.colour = m.colour;
 			c.text = m.text;
 			c.durationMs = m.durationMs;
 			c.w = m.w;

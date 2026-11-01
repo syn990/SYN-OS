@@ -12,6 +12,7 @@ package com.syntax990.syncast;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -68,6 +69,25 @@ final class Views {
 		if (p.measureText(s) <= w) return s;
 		int n = p.breakText(s, true, Math.max(0, w - p.measureText("…")), null);
 		return s.substring(0, n) + "…";
+	}
+
+	/** G228: a speaker's colour, "#rrggbb" from the server, or fallback when there is none. */
+	static int speaker(String hex, int fallback) {
+		if (hex == null || hex.length() != 7 || hex.charAt(0) != '#') return fallback;
+		try {
+			return 0xff000000 | Integer.parseInt(hex.substring(1), 16);
+		} catch (NumberFormatException e) {
+			return fallback;
+		}
+	}
+
+	/** G228: up to two initials of a name, for a speaker with no portrait. */
+	static String initials(String name) {
+		StringBuilder b = new StringBuilder();
+		for (String w : name.trim().split("[\\s._-]+")) {
+			if (!w.isEmpty() && b.length() < 2) b.append(Character.toUpperCase(w.charAt(0)));
+		}
+		return b.length() > 0 ? b.toString() : "?";
 	}
 
 	static void meter(Canvas cv, float x, float y, float w, float h, int level, int on, int off, Paint fill, float bar) {
@@ -176,7 +196,7 @@ final class Views {
 				text(cv, dur(v.txElapsed), x + meterW + pad, y, tp, pal.text);
 			} else if (v.rxName != null) {
 				x += text(cv, v.rxReplay ? "REPLAY " : "RX ", x, y, tp, pal.accent);
-				x += text(cv, fit(v.rxName, tp, W / 3f), x, y, tp, pal.text) + pad;
+				x += text(cv, fit(v.rxName, tp, W / 3f), x, y, tp, speaker(v.rxColour, pal.text)) + pad;
 				meter(cv, x, y + 3, meterW, tp.getFontSpacing() - 6, v.rxLevel, pal.accent, pal.accentDim, fill, dp(getContext(), 3));
 				text(cv, dur(v.rxElapsed), x + meterW + pad, y, tp, pal.text);
 			} else {
@@ -367,14 +387,18 @@ final class Views {
 			int W = getWidth(), H = getHeight();
 			float pad = dp(getContext(), 8);
 			int dimc = Palette.mix(pal.text, pal.bg, 45);
+			int who = m.out ? pal.accent : speaker(m.colour, pal.text);
 			if (onAir) {
 				cv.drawColor(pal.accentDim);
-				fill.setColor(pal.accent);
-				cv.drawRect(0, 0, dp(getContext(), 3), H, fill);
 			} else if (selected) {
 				cv.drawColor(pal.panelHover);
 			} else {
 				cv.drawColor(pal.bg);
+			}
+			/* G228: the speaker's colour down the left edge, as the web chat draws it; the accent while on air */
+			if (onAir || (!m.colour.isEmpty() && m.kind != History.Kind.EVENT)) {
+				fill.setColor(onAir ? pal.accent : who);
+				cv.drawRect(0, 0, dp(getContext(), 3), H, fill);
 			}
 			float y = pad / 2, x = pad;
 			x += text(cv, HHMM.format(new Date(m.ts)) + " ", x, y, dim, dimc);
@@ -382,7 +406,7 @@ final class Views {
 				text(cv, fit(m.text == null ? "" : m.text, dim, W - x - pad), x, y, dim, dimc);
 				return;
 			}
-			x += text(cv, fit(m.from, tp, W / 3f) + " ", x, y, tp, m.out ? pal.accent : pal.text);
+			x += text(cv, fit(m.out ? m.from : m.who(), tp, W / 3f) + " ", x, y, tp, who);
 			String s = summary();
 			int sc = (m.kind == History.Kind.VOICE && !m.played && !m.out) || !m.forwho.isEmpty() ? pal.urgent : pal.text;
 			text(cv, fit(s, tp, W - x - pad), x, y, tp, sc);
@@ -408,6 +432,79 @@ final class Views {
 					text(cv, m.partial ? "loading…" : "(no thumbnail)", ix, y, dim, dimc);
 				}
 			}
+		}
+	}
+
+	/* ---------- G228: the speaker's portrait, top right while a note plays ---------- */
+
+	static final class Portrait extends View {
+		Palette pal;
+		private final TextPaint big, small;
+		private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), pic = new Paint(Paint.FILTER_BITMAP_FLAG);
+		private String name = "";
+		private int colour;
+		private Bitmap bmp;
+		private byte[] shown;
+
+		Portrait(Context c, Palette pal) {
+			super(c);
+			this.pal = pal;
+			big = paint(c, 28, true);
+			small = paint(c, 11, true);
+			setVisibility(GONE);
+		}
+
+		/** Shows who is on air (name null: hides); the PNG is decoded once per speaker. */
+		void show(String name, String colour, byte[] png) {
+			if (name == null) {
+				if (getVisibility() != GONE) setVisibility(GONE);
+				return;
+			}
+			if (png != shown) {
+				shown = png;
+				bmp = png == null ? null : BitmapFactory.decodeByteArray(png, 0, png.length);
+			}
+			this.name = name;
+			this.colour = speaker(colour, pal.accent);
+			if (getVisibility() != VISIBLE) setVisibility(VISIBLE);
+			invalidate();
+		}
+
+		@Override
+		protected void onDraw(Canvas cv) {
+			int W = getWidth(), H = getHeight();
+			float b = dp(getContext(), 2), r = dp(getContext(), 6);
+			float cap = small.getFontSpacing() + dp(getContext(), 4);
+			RectF card = new RectF(b / 2, b / 2, W - b / 2, H - b / 2);
+			fill.setStyle(Paint.Style.FILL);
+			fill.setColor(pal.panel);
+			cv.drawRoundRect(card, r, r, fill);
+			RectF img = new RectF(b, b, W - b, H - cap);
+			if (bmp != null) {
+				float sw = bmp.getWidth(), sh = bmp.getHeight(), k = Math.max(img.width() / sw, img.height() / sh);
+				float cw = img.width() / k, ch = img.height() / k;
+				Rect src = new Rect((int) ((sw - cw) / 2), (int) ((sh - ch) / 2), (int) ((sw + cw) / 2), (int) ((sh + ch) / 2));
+				cv.save();
+				cv.clipRect(img);
+				cv.drawBitmap(bmp, src, img, pic);
+				cv.restore();
+			} else {
+				fill.setColor(Palette.mix(colour, pal.bg, 55));
+				cv.drawRect(img, fill);
+				String in = initials(name);
+				big.setColor(colour);
+				cv.drawText(in, img.centerX() - big.measureText(in) / 2, img.centerY() - (big.ascent() + big.descent()) / 2, big);
+			}
+			fill.setColor(colour);
+			cv.drawRect(b, H - cap, W - b, H - b, fill);
+			text(cv, fit(name, small, W - 2 * b - dp(getContext(), 4)),
+				Math.max(b + dp(getContext(), 2), (W - small.measureText(fit(name, small, W - 2 * b - dp(getContext(), 4)))) / 2),
+				H - cap + dp(getContext(), 2), small, pal.inkOn(colour));
+			fill.setStyle(Paint.Style.STROKE);
+			fill.setStrokeWidth(b);
+			fill.setColor(colour);
+			cv.drawRoundRect(card, r, r, fill);
+			fill.setStyle(Paint.Style.FILL);
 		}
 	}
 }

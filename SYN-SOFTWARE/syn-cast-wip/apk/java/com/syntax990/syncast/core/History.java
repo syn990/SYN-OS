@@ -36,7 +36,20 @@ public final class History {
 		public String from = "", forwho = "", text;
 		/** G193: the server's message id (the say/loc answer or event, or a history line): what a fetch is matched on */
 		public String sid = "";
+		/** G228: who spoke, as the server names them: the cast character ("as", the bot speaking for a crew member),
+		    its display name, and the speaker's colour ("#rrggbb", "" for none: drawn plain) */
+		public String as = "", name = "", colour = "";
 		public int durationMs, w, h;
+
+		/** the name a line is shown under: the character's display name, else its id, else the member */
+		public String who() {
+			return !name.isEmpty() ? name : !as.isEmpty() ? as : from;
+		}
+
+		/** whose portrait goes with the line: the character, else the member */
+		public String face() {
+			return !as.isEmpty() ? as : from;
+		}
 		public double lat, lon, acc;
 
 		Map<String, Object> toJson() {
@@ -47,6 +60,9 @@ public final class History {
 			m.put("from", from);
 			if (!forwho.isEmpty()) m.put("for", forwho);
 			if (sid != null && !sid.isEmpty()) m.put("sid", sid);
+			if (!as.isEmpty()) m.put("as", as);
+			if (!name.isEmpty()) m.put("name", name);
+			if (!colour.isEmpty()) m.put("colour", colour);
 			if (durationMs != 0) m.put("duration_ms", (double) durationMs);
 			if (w != 0) m.put("w", (double) w);
 			if (h != 0) m.put("h", (double) h);
@@ -75,6 +91,9 @@ public final class History {
 			m.from = Json.str(o, "from");
 			m.forwho = Json.str(o, "for");
 			m.sid = Json.str(o, "sid");
+			m.as = Json.str(o, "as");
+			m.name = Json.str(o, "name");
+			m.colour = Json.str(o, "colour");
 			m.durationMs = (int) Json.lng(o, "duration_ms");
 			m.w = (int) Json.lng(o, "w");
 			m.h = (int) Json.lng(o, "h");

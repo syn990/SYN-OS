@@ -207,6 +207,59 @@ def direct_messages(srv, jim, alice, dave):
     check("back to the room for the rest", int(jim.status()["active"]) == 0, jim.status())
 
 
+def speakers(srv, jim, root, packets):
+    """G228: a line or a note spoken for a character (the bot speaks for the whole crew as one member) carries as, the
+    character's name and colour; the APK keeps them on the line, names and colours whoever is talking, and fetches
+    the speaker's portrait once, for the top right corner while the note plays."""
+    from PIL import Image
+    data = srv.data
+    e2e.write_json(os.path.join(data, "members", "kirk", "member.json"),
+                   {"id": "kirk", "role": "cast", "services": [{"id": s} for s in ("chat", "radio", "messages", "channels")]})
+    e2e.write_json(os.path.join(data, "members", "data", "member.json"),
+                   {"id": "data", "name": "Commander Data", "colour": "#4fc3f7", "services": []})
+    png = os.path.join(data, "members", "data", "portrait.png")
+    Image.new("RGB", (64, 64), (79, 195, 247)).save(png)
+    kirk = e2e.Raw(srv, srv.token("kirk"), channels=["test"])
+    try:
+        probe = kirk.req("portrait", member="data")
+        if probe and probe.get("type") == "error" and probe.get("code") in ("unknown_type", "bad_request"):
+            print("G228: this server has no speaker tags or portraits yet (SYN-CASTER C227): skipped")
+            return
+        r = kirk.req("say", channel="test", text="Captain, the figures are in.", **{"as": "data"})
+        m = wait_for(lambda: jim.find(kind="text", text="Captain, the figures are in."), 6)
+        check("a line spoken for a character keeps who spoke on the APK: as, name and colour",
+              m and m.get("from") == "kirk" and m.get("as") == "data" and m.get("name") == "Commander Data"
+              and m.get("colour") == "#4fc3f7", (r, m))
+        wait_for(lambda: jim.status()["queue"] == 0 and jim.status()["talk"] == "idle", 8)
+        r = kirk.req("talk", channel="test", codec="opus", rate=16000, channels=1, frame_ms=20, **{"as": "data"})
+        sid = r.get("stream") if r else None
+        check("the cast member takes the floor as the character", r and r.get("type") == "ok" and sid, r)
+        seen = []
+        t0 = time.time()
+        for i, p in enumerate(packets):
+            kirk.ws.send(bytes([1]) + int(sid).to_bytes(4, "big") + i.to_bytes(4, "big") + p)
+            if i % 10 == 9:
+                seen.append(jim.status())
+            time.sleep(max(0, t0 + (i + 1) * 0.02 - time.time()))
+        r = kirk.req("over", stream=sid)
+        wait_for(lambda: (seen.append(jim.status()) or seen[-1]["queue"] == 0 and seen[-1]["talk"] == "idle"), 8)
+        on = [st for st in seen if st.get("rx_name")]
+        check("while the note plays the APK names the character, not the member who carried it",
+              on and all(st["rx_name"] == "Commander Data" and st["rx_face"] == "data" for st in on), on[:2])
+        check("in the character's colour", on and all(st["rx_colour"] == "#4fc3f7" for st in on), on[:2])
+        size = os.path.getsize(png)
+        check("and shows the portrait, fetched while it plays",
+              any(st["rx_portrait"] == size for st in on), [st.get("rx_portrait") for st in on])
+        got = json.loads(jim.cmd("portrait data"))
+        check("the portrait is held whole, PNG bytes as the server keeps them", got.get("bytes") == size, (got, size))
+        check("asked for once, however many notes", jim.log_count("portrait of data:") == 1, jim.log_count("portrait of data:"))
+        v = wait_for(lambda: jim.find(kind="voice", **{"from": "kirk"}), 4)
+        check("the note keeps the speaker on its line for replay and the list",
+              v and v.get("as") == "data" and v.get("name") == "Commander Data" and v.get("colour") == "#4fc3f7", v)
+    finally:
+        kirk.close()
+
+
 def decode(spt, out):
     subprocess.run([BIN, "decode", spt, out], capture_output=True)
     return e2e.wav_info(out)
@@ -253,6 +306,7 @@ def main():
         alice.ctl("say", wav)
         m = wait_for(lambda: (lambda v: v if v and not v["partial"] else None)(jim.find(kind="voice", **{"from": "alice"})), 8)
         check("desktop voice is stored by the APK", m and abs(m["duration_ms"] - 2040) <= 120, m)
+        alice_voice = m["id"] if m else None
         check("and played by it", wait_for(lambda: jim.played_seconds() >= 1.9, 6), jim.played_seconds())
         if m:
             dur, hz = decode(jim.spt("test", m["id"]), os.path.join(root, "jim-440.wav"))
@@ -312,6 +366,9 @@ def main():
         check("APK location reaches the desktop", m and abs(m["lat"] - 48.8584) < 1e-6 and m.get("text") == "Eiffel Tower", m)
         alice.ctl("loc", "51.5", "-0.12", "London")
         check("desktop location reaches the APK", wait_for(lambda: jim.find(kind="location", text="London")))
+
+        if alice_voice is not None:
+            speakers(srv, jim, root, e2e.spt_packets(jim.spt("test", alice_voice)))
 
         dave = e2e.Raw(srv, srv.token("dave"), channels=["test"])
         r = dave.req("say", to="jim", text="just for jim")
