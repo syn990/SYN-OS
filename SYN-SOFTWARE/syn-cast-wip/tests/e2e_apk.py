@@ -140,11 +140,13 @@ def rooms_bar(srv, jim):
     jim.cmd("swipe -1")
     jim.cmd("swipe -1")
     jim.cmd("swipe -1")
-    st = jim.status()
-    check("swiping back runs to the first tab and stops there", st["channels"][int(st["active"])]["name"] == st["bar"][0], st)
+
+    def on_tab(k):  # the swipes are queued on the engine's thread: read the status once they have applied
+        st = jim.status()
+        return st["channels"][int(st["active"])]["name"] == st["bar"][k]
+    check("swiping back runs to the first tab and stops there", wait_for(lambda: on_tab(0), 4), jim.status())
     jim.cmd("swipe 1")
-    st = jim.status()
-    check("and a swipe forward moves one tab", st["channels"][int(st["active"])]["name"] == st["bar"][1], (first, st))
+    check("and a swipe forward moves one tab", wait_for(lambda: on_tab(1), 4), (first, jim.status()))
     e2e.write_json(room, {"name": "G999 a ticket room", "kind": "invite", "owner": "alice", "members": ["frank"],
                           "closed": True})
     check("a closed ticket room leaves the bar by itself", wait_for(lambda: "g999" not in jim.status()["bar"], 12),
