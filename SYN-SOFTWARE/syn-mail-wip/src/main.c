@@ -1,0 +1,359 @@
+/* ------------------------------------------------------------------------
+ *   SYN-OS     : The Syntax Operating System
+ *   Component  : SYN-MAIL
+ *   Author     : William Hayward-Holland (Syntax990)
+ *   License    : MIT License
+ * ------------------------------------------------------------------------ */
+/* syn-mail: the command-line core (slice 1, G223). The window and the APK are built on these same modules. */
+#include "config.h"
+#include "imap.h"
+#include "mime.h"
+#include "msg.h"
+#include "net.h"
+#include "oauth.h"
+#include "secret.h"
+#include "smtp.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
+
+static void usage(void) {
+	fputs("usage: syn-mail [-v] COMMAND\n"
+	      "  add NAME ADDRESS --preset google|ionos [--display NAME]   add an account\n"
+	      "  password NAME                 store the account's password in the keyring (read from stdin)\n"
+	      "  login NAME [--no-browser]     Google: sign in once in the browser; the token goes to the keyring\n"
+	      "  list                          the accounts\n"
+	      "  check [NAME] [--last N]       sign in, count the inbox, list the last N (10)\n"
+	      "  read NAME N                   one message as text (N: sequence number from check)\n"
+	      "  send NAME TO SUBJECT          send the text on stdin from NAME to TO\n",
+		stderr);
+}
+
+static int load(Config *c) {
+	char err[256] = "";
+	if (config_load(c, err, sizeof err) != 0) {
+		fprintf(stderr, "syn-mail: %s\n", err);
+		return -1;
+	}
+	return 0;
+}
+
+static Account *find(Config *c, const char *name) {
+	Account *a = config_find(c, name);
+	if (!a) {
+		fprintf(stderr, "syn-mail: no account '%s' (see syn-mail list)\n", name);
+	}
+	return a;
+}
+
+static int cmd_add(int argc, char **argv) {
+	if (argc < 3) {
+		usage();
+		return 2;
+	}
+	const char *preset = NULL, *display = "";
+	for (int i = 3; i < argc; i++) {
+		if (!strcmp(argv[i], "--preset") && i + 1 < argc) preset = argv[++i];
+		else if (!strcmp(argv[i], "--display") && i + 1 < argc) display = argv[++i];
+		else { usage(); return 2; }
+	}
+	if (!preset) {
+		fputs("syn-mail: add needs --preset google or --preset ionos\n", stderr);
+		return 2;
+	}
+	if (!msg_addr_ok(argv[2]) || strlen(argv[1]) >= 64 || !argv[1][0]) {
+		fputs("syn-mail: a short name and a plain address are needed\n", stderr);
+		return 2;
+	}
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = config_find(&c, argv[1]);
+	if (!a) {
+		c.acc = realloc(c.acc, sizeof *c.acc * (size_t)(c.n + 1));
+		a = &c.acc[c.n++];
+	}
+	*a = (Account){0};
+	str_copy(a->name, sizeof a->name, argv[1]);
+	str_copy(a->address, sizeof a->address, argv[2]);
+	str_copy(a->display, sizeof a->display, display);
+	if (config_preset(a, preset) != 0) {
+		fprintf(stderr, "syn-mail: no preset '%s'\n", preset);
+		config_free(&c);
+		return 2;
+	}
+	char err[256] = "";
+	int rc = config_save(&c, err, sizeof err);
+	if (rc != 0) fprintf(stderr, "syn-mail: %s\n", err);
+	else printf("added %s (%s, %s)\n", a->name, preset, a->auth == AUTH_OAUTH ? "OAuth" : "password");
+	config_free(&c);
+	return rc ? 1 : 0;
+}
+
+static int cmd_password(int argc, char **argv) {
+	if (argc != 2) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	if (!a) { config_free(&c); return 1; }
+	struct termios old, raw;
+	int tty = isatty(0) && tcgetattr(0, &old) == 0;
+	if (tty) {
+		fprintf(stderr, "Password for %s: ", a->address);
+		raw = old;
+		raw.c_lflag &= ~(tcflag_t)ECHO;
+		tcsetattr(0, TCSAFLUSH, &raw);
+	}
+	char pw[512];
+	int got = fgets(pw, sizeof pw, stdin) != NULL;
+	if (tty) {
+		tcsetattr(0, TCSAFLUSH, &old);
+		fputc('\n', stderr);
+	}
+	int rc = 1;
+	if (got) {
+		pw[strcspn(pw, "\r\n")] = 0;
+		char err[256] = "";
+		if (!pw[0]) fputs("syn-mail: empty password, nothing stored\n", stderr);
+		else if (secret_set(a->name, "password", pw, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s\n", err);
+		else { printf("stored the password for %s in the keyring\n", a->name); rc = 0; }
+	}
+	explicit_bzero(pw, sizeof pw);
+	config_free(&c);
+	return rc;
+}
+
+static int cmd_login(int argc, char **argv) {
+	if (argc < 2) { usage(); return 2; }
+	int browser = !(argc > 2 && !strcmp(argv[2], "--no-browser"));
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	if (!a) { config_free(&c); return 1; }
+	int rc = 0;
+	if (a->auth != AUTH_OAUTH) {
+		fprintf(stderr, "syn-mail: %s signs in with a password: syn-mail password %s\n", a->name, a->name);
+		rc = 2;
+	} else {
+		char err[256] = "";
+		if (oauth_login(a, browser, 300, err, sizeof err) != 0) { fprintf(stderr, "syn-mail: %s\n", err); rc = 1; }
+		else printf("%s is signed in; the token is in the keyring\n", a->name);
+	}
+	config_free(&c);
+	return rc;
+}
+
+static int cmd_list(void) {
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	if (!c.n) printf("no accounts yet: syn-mail add NAME ADDRESS --preset google|ionos\n");
+	for (int i = 0; i < c.n; i++) {
+		Account *a = &c.acc[i];
+		printf("%-10s %-36s imap %s:%d  smtp %s:%d  %s\n", a->name, a->address, a->imap_host, a->imap_port, a->smtp_host,
+			a->smtp_port, a->auth == AUTH_OAUTH ? "oauth" : "password");
+	}
+	config_free(&c);
+	return 0;
+}
+
+static Imap *connect_in(const Account *a) {
+	char err[512] = "";
+	Imap *im = imap_open(a, err, sizeof err);
+	if (!im) {
+		fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+		return NULL;
+	}
+	if (imap_signin(im, a, err, sizeof err) != 0) {
+		fprintf(stderr, "syn-mail: %s\n", err);
+		imap_close(im);
+		return NULL;
+	}
+	return im;
+}
+
+/* "* 12 EXISTS" in the last command's responses */
+static long count_of(Imap *im, const char *what) {
+	for (int i = 0; i < im->nresp; i++) {
+		long v;
+		char w[16];
+		if (sscanf(im->resp[i].text, "* %ld %15s", &v, w) == 2 && !strcmp(w, what)) return v;
+	}
+	return -1;
+}
+
+static void one_line(Buf *b, size_t max) {
+	for (size_t i = 0; i < b->n; i++) {
+		if (b->p[i] == '\r' || b->p[i] == '\n' || b->p[i] == '\t') b->p[i] = ' ';
+	}
+	if (b->n > max) {
+		/* cut on a UTF-8 boundary */
+		size_t k = max;
+		while (k > 0 && ((unsigned char)b->p[k] & 0xc0) == 0x80) k--;
+		b->n = k;
+		b->p[k] = 0;
+	}
+}
+
+static int check_one(const Account *a, int last) {
+	Imap *im = connect_in(a);
+	if (!im) return 1;
+	int rc = 1;
+	if (imap_cmd(im, "EXAMINE INBOX") != 0) {
+		fprintf(stderr, "syn-mail: %s: EXAMINE INBOX: %s\n", a->name, im->status);
+		goto out;
+	}
+	long exists = count_of(im, "EXISTS");
+	long unseen = -1;
+	if (imap_cmd(im, "STATUS INBOX (UNSEEN)") == 0) {
+		for (int i = 0; i < im->nresp; i++) {
+			char *u = strstr(im->resp[i].text, "UNSEEN ");
+			if (u) unseen = strtol(u + 7, NULL, 10);
+		}
+	}
+	printf("%s <%s>: %ld in the inbox, %ld unread\n", a->name, a->address, exists, unseen);
+	if (exists > 0 && last > 0) {
+		long from = exists - last + 1 > 1 ? exists - last + 1 : 1;
+		if (imap_cmd(im, "FETCH %ld:%ld (FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])", from, exists) != 0) {
+			fprintf(stderr, "syn-mail: %s: FETCH: %s\n", a->name, im->status);
+			goto out;
+		}
+		for (int i = im->nresp - 1; i >= 0; i--) {
+			long seq;
+			char kind[8];
+			ImapResp *r = &im->resp[i];
+			if (sscanf(r->text, "* %ld %7s", &seq, kind) != 2 || strcmp(kind, "FETCH") || !r->lit.n) continue;
+			int seen = strstr(r->text, "\\Seen") != NULL;
+			Buf f = {0}, s = {0}, d = {0};
+			mime_header(r->lit.p, r->lit.n, "From", &f);
+			mime_header(r->lit.p, r->lit.n, "Subject", &s);
+			mime_header(r->lit.p, r->lit.n, "Date", &d);
+			one_line(&f, 40);
+			one_line(&s, 70);
+			one_line(&d, 31);
+			printf("%6ld %c %-31s  %-40s  %s\n", seq, seen ? ' ' : '*', d.p ? d.p : "", f.p ? f.p : "", s.p ? s.p : "");
+			buf_free(&f);
+			buf_free(&s);
+			buf_free(&d);
+		}
+	}
+	rc = 0;
+out:
+	imap_close(im);
+	return rc;
+}
+
+static int cmd_check(int argc, char **argv) {
+	const char *name = NULL;
+	int last = 10;
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "--last") && i + 1 < argc) last = atoi(argv[++i]);
+		else if (!name) name = argv[i];
+		else { usage(); return 2; }
+	}
+	if (last < 0 || last > 500) last = 10;
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	int rc = 0;
+	if (name) {
+		Account *a = find(&c, name);
+		rc = a ? check_one(a, last) : 1;
+	} else {
+		if (!c.n) fputs("syn-mail: no accounts yet\n", stderr), rc = 1;
+		for (int i = 0; i < c.n; i++) rc |= check_one(&c.acc[i], last);
+	}
+	config_free(&c);
+	return rc;
+}
+
+static int cmd_read(int argc, char **argv) {
+	if (argc != 3) { usage(); return 2; }
+	long seq = strtol(argv[2], NULL, 10);
+	if (seq < 1) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	Imap *im = a ? connect_in(a) : NULL;
+	int rc = 1;
+	if (im) {
+		if (imap_cmd(im, "EXAMINE INBOX") != 0 || imap_cmd(im, "FETCH %ld BODY.PEEK[]", seq) != 0) {
+			fprintf(stderr, "syn-mail: %s: %s\n", a->name, im->status);
+		} else {
+			for (int i = 0; i < im->nresp; i++) {
+				Buf *m = &im->resp[i].lit;
+				if (!m->n) continue;
+				static const char *hs[] = {"From", "To", "Date", "Subject"};
+				for (int h = 0; h < 4; h++) {
+					Buf v = {0};
+					if (mime_header(m->p, m->n, hs[h], &v) == 0 && v.p) printf("%s: %s\n", hs[h], v.p);
+					buf_free(&v);
+				}
+				Buf t = {0};
+				mime_text(m->p, m->n, &t);
+				printf("\n%s\n", t.p ? t.p : "");
+				buf_free(&t);
+				rc = 0;
+				break;
+			}
+			if (rc) fprintf(stderr, "syn-mail: %s: no message %ld\n", a->name, seq);
+		}
+		imap_close(im);
+	}
+	config_free(&c);
+	return rc;
+}
+
+static int cmd_send(int argc, char **argv) {
+	if (argc != 4) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	if (!a) { config_free(&c); return 1; }
+	if (!msg_addr_ok(argv[2])) {
+		fprintf(stderr, "syn-mail: not a plain address: %s\n", argv[2]);
+		config_free(&c);
+		return 2;
+	}
+	Buf body = {0};
+	char chunk[4096];
+	size_t r;
+	while ((r = fread(chunk, 1, sizeof chunk, stdin)) > 0) buf_put(&body, chunk, r);
+	char mid[160];
+	msg_id(a->address, mid, sizeof mid);
+	Buf m = {0};
+	int rc = 1;
+	if (msg_build(a->display, a->address, argv[2], argv[3], body.p ? body.p : "", mid, NULL, time(NULL), &m) != 0) {
+		fputs("syn-mail: the message could not be built\n", stderr);
+	} else {
+		char err[512] = "";
+		if (smtp_send(a, argv[2], m.p, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s\n", err);
+		else { printf("sent from %s to %s, %s\n", a->name, argv[2], mid); rc = 0; }
+	}
+	buf_free(&m);
+	buf_free(&body);
+	config_free(&c);
+	return rc;
+}
+
+int main(int argc, char **argv) {
+	int i = 1;
+	if (i < argc && !strcmp(argv[i], "-v")) {
+		net_trace = 1;
+		i++;
+	}
+	if (i >= argc) { usage(); return 2; }
+	const char *cmd = argv[i];
+	int n = argc - i;
+	char **v = argv + i;
+	if (!strcmp(cmd, "add")) return cmd_add(n, v);
+	if (!strcmp(cmd, "password")) return cmd_password(n, v);
+	if (!strcmp(cmd, "login")) return cmd_login(n, v);
+	if (!strcmp(cmd, "list")) return cmd_list();
+	if (!strcmp(cmd, "check")) return cmd_check(n, v);
+	if (!strcmp(cmd, "read")) return cmd_read(n, v);
+	if (!strcmp(cmd, "send")) return cmd_send(n, v);
+	usage();
+	return 2;
+}
