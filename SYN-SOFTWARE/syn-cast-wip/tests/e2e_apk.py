@@ -94,6 +94,17 @@ class Jim:
                 return m
         return None
 
+    def dm(self, peer):
+        """G193: the index of the direct-message tab with peer, or None"""
+        for k, c in enumerate(self.status()["channels"]):
+            if c.get("peer") == peer:
+                return k
+        return None
+
+    def dm_find(self, peer, **want):
+        k = self.dm(peer)
+        return None if k is None else self.find(k, **want)
+
     def voices(self, k=0, **want):
         return [v for v in self.history(k) if v["kind"] == "voice" and all(v.get(a) == b for a, b in want.items())]
 
@@ -151,6 +162,49 @@ def rooms_bar(srv, jim):
                           "closed": True})
     check("a closed ticket room leaves the bar by itself", wait_for(lambda: "g999" not in jim.status()["bar"], 12),
           jim.status())
+
+
+def direct_messages(srv, jim, alice, dave):
+    """G193: a direct message gets its own tab (@dave), /msg answers on it, and what was missed while away (a direct
+    message and a room's line) is fetched from the server's history on the way back, without doubling what was held."""
+    m = wait_for(lambda: jim.dm_find("dave", kind="text", text="just for jim"))
+    check("an incoming direct message gets its own tab, marked for jim", m and m["for"] == "jim", jim.status())
+    k = jim.dm("dave")
+    c = jim.status()["channels"][k] if k is not None else {}
+    check("the tab is the conversation dm-dave-jim, called @dave", c.get("name") == "dm-dave-jim" and c.get("title") == "@dave", c)
+    check("and the line is not in the room that was open", not jim.find(0, kind="text", text="just for jim"))
+    check("and the desktop doesn't get it", not alice.find("test", kind="text", text="just for jim"))
+    jim.cmd("input /msg dave hello dave, from the phone")
+    ev = dave.event("say", timeout=6, **{"from": "jim"})
+    check("/msg dave TEXT answers by direct message: dave gets it from jim, addressed to him",
+          ev and ev.get("to") == "dave" and ev.get("text") == "hello dave, from the phone" and not ev.get("channel"), ev)
+    mine = wait_for(lambda: (lambda x: x if x and x.get("sid") and not x.get("partial") else None)(
+        jim.dm_find("dave", out=True, text="hello dave, from the phone")), 4)
+    check("the phone keeps its copy on the @dave tab, confirmed with the server's message id", mine, jim.dm_find("dave", out=True))
+    st = jim.status()
+    check("and /msg went to that tab", st["channels"][int(st["active"])].get("peer") == "dave", st)
+    check("the rooms stay joined beside it", [c["state"] for c in st["channels"] if not c.get("peer")] == ["ONLINE", "ONLINE"], st)
+
+    jim.cmd("offline")
+    wait_for(lambda: jim.status()["channels"][0]["state"] == "OFFLINE", 5)
+    dave.req("say", to="jim", text="sent while jim was away")
+    alice.ctl("text", "the room carried on without jim")
+    wait_for(lambda: alice.find("test", kind="text", text="the room carried on without jim", out=True), 4)
+    time.sleep(1)
+    jim.cmd("online")
+    check("back online", wait_for(jim.online, 10), jim.status())
+    check("the direct message missed while away is fetched from the server's history",
+          wait_for(lambda: jim.dm_find("dave", kind="text", text="sent while jim was away"), 8), jim.history(jim.dm("dave") or 0))
+    got = wait_for(lambda: jim.find(0, kind="text", text="the room carried on without jim"), 8)
+    check("and so is the room's line, from alice, with its id", got and got["from"] == "alice" and got.get("sid"), got)
+    room = [x.get("text") for x in jim.history(0) if x["kind"] == "text"]
+    dm = [x.get("text") for x in jim.history(jim.dm("dave"))]
+    check("lines already held are not doubled by the fetch",
+          room.count("hello from the desktop") == 1 and room.count("hello from the phone") == 1
+          and dm.count("just for jim") == 1 and dm.count("hello dave, from the phone") == 1, (room, dm))
+    check("the room's missed line counts as unread on its tab", jim.status()["channels"][0]["unread"] >= 1, jim.status())
+    jim.cmd("channel 0")
+    check("back to the room for the rest", int(jim.status()["active"]) == 0, jim.status())
 
 
 def decode(spt, out):
@@ -261,9 +315,7 @@ def main():
 
         dave = e2e.Raw(srv, srv.token("dave"), channels=["test"])
         r = dave.req("say", to="jim", text="just for jim")
-        m = wait_for(lambda: jim.find(kind="text", text="just for jim"))
-        check("an incoming direct message is shown on the APK, marked for it", m and m["for"] == "jim", m)
-        check("and the desktop doesn't get it", not alice.find("test", kind="text", text="just for jim"))
+        direct_messages(srv, jim, alice, dave)
         dave.close()
 
         wait_for(lambda: jim.status()["queue"] == 0 and jim.status()["talk"] == "idle", 8)
@@ -314,7 +366,7 @@ def main():
 
         jim.cmd("channel 1")
         check("selecting another channel only aims what is sent; both stay joined",
-              wait_for(lambda: [c["state"] for c in jim.status()["channels"]] == ["ONLINE", "ONLINE"]
+              wait_for(lambda: [c["state"] for c in jim.status()["channels"] if not c.get("peer")] == ["ONLINE", "ONLINE"]
                        and jim.status()["active"] == 1, 4), jim.status())
 
         code = srv.invite("frank")

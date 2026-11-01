@@ -276,7 +276,7 @@ public final class MainActivity extends Activity {
 
 		col.addView(label("Sign in to SYN-CAST", pal.accent, 18));
 		col.addView(label("The crew's own radio. Paste the one-time invite code you were given; the member token it "
-			+ "earns stays on this phone. Everything you send goes to the whole selected channel.", pal.text, 13));
+			+ "earns stays on this phone. Everything you send goes to the whole selected room, or only to the member on a direct-message tab (@name).", pal.text, 13));
 		col.addView(label("SERVER", pal.accent, 12));
 		EditText server = field("wss://HOST:PORT/cast/v1", false);
 		server.setText(c.server);
@@ -770,7 +770,8 @@ public final class MainActivity extends Activity {
 		col.setBackgroundColor(pal.bg);
 		sv.addView(col);
 		col.addView(label("ROOMS: the tabs at the top are every room you belong to, ticket rooms included, opening "
-			+ "and closing by themselves. Swipe the messages to move between them; hold a tab to see who is inside.",
+			+ "and closing by themselves. Swipe the messages to move between them; hold a tab to see who is inside, and tap a name there "
+			+ "to message them. Direct messages get their own tab (@name); /msg NAME in the text box opens one.",
 			pal.text, 12));
 		CheckBox toggle = check(col, "Tap to start and stop talking (instead of hold)", c.pttToggle);
 		CheckBox auto = check(col, "Play incoming messages as they arrive", c.autoPlay);
@@ -838,15 +839,28 @@ public final class MainActivity extends Activity {
 		Engine.View v = svc.engine().snapshot();
 		if (k < 0 || k >= v.channels.size()) return;
 		Engine.ChannelView c = v.channels.get(k);
-		StringBuilder sb = new StringBuilder();
-		sb.append(c.ticket ? "Ticket room" : "Room").append(", ").append(c.users).append(c.users == 1 ? " inside" : " inside").append('\n');
-		if (c.who.isEmpty()) sb.append("\nNobody is in it now.");
-		for (String w : c.who) sb.append("\n  ").append(w);
-		new AlertDialog.Builder(this).setTitle(c.title == null || c.title.isEmpty() ? c.name : c.title).setMessage(sb.toString())
-			.setPositiveButton("GO IN", (d, w) -> {
-				svc.engine().selectChannel(k);
+		String head = (c.title == null || c.title.isEmpty() ? c.name : c.title) + "  ("
+			+ (!c.peer.isEmpty() ? "direct messages" : (c.ticket ? "ticket room, " : "room, ") + c.users + " inside") + ")";
+		/* G193: tap a name to open the direct messages with them */
+		List<String> names = new java.util.ArrayList<>();
+		for (String w : c.who) if (!w.equalsIgnoreCase(v.user)) names.add(w);
+		AlertDialog.Builder b = new AlertDialog.Builder(this).setTitle(head);
+		if (!c.peer.isEmpty()) {
+			b.setMessage("Only you and " + c.peer + " see these.");
+		} else if (names.isEmpty()) {
+			b.setMessage("Nobody else is in it now. Type /msg NAME to message anyone.");
+		} else {
+			List<String> items = new java.util.ArrayList<>();
+			for (String w : names) items.add("MESSAGE " + w);
+			b.setItems(items.toArray(new String[0]), (d, w) -> {
+				svc.engine().openDm(names.get(w));
 				thumbs.evictAll();
-			}).setNegativeButton("CLOSE", null).show();
+			});
+		}
+		b.setPositiveButton("GO IN", (d, w) -> {
+			svc.engine().selectChannel(k);
+			thumbs.evictAll();
+		}).setNegativeButton("CLOSE", null).show();
 	}
 
 	private CheckBox check(LinearLayout col, String text, boolean on) {

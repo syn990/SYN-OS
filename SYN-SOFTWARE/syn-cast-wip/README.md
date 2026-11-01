@@ -28,7 +28,8 @@ encoder settings came from the Zello Android app's channel side
   pitch kept. The server keeps every voice message too, as Ogg Opus.
 - **Text**: type and Enter. Everything you send goes to the whole selected
   channel. A direct message another member sends you arrives in the selected
-  channel, marked private.
+  channel, marked private. (The APK gives each direct conversation its own
+  tab, @name, and `/msg NAME [TEXT]` opens one; G193.)
 - **Pictures**: `/img FILE.jpg` sends one (one JPEG on the wire; the receiver
   cuts its own thumbnail); received ones show inline, Enter opens the full
   picture.
@@ -191,9 +192,10 @@ refused and revoked tokens. Before this folder becomes `syn-cast-src`
   install waits for the phone to be on the LAN for wireless ADB), then away
   through SYN-Link's cast stream and the off-network test with its date
   (step B).
-- `history`: the protocol layer builds and parses it (unit-tested), but the
-  clients do not yet fetch what they missed while away; local history holds
-  what each client heard. Needs server message ids in the local records.
+- `history`: the APK fetches what it missed (texts and locations) for every
+  room and direct message when it signs in, matched on the server's message
+  ids it now keeps (G193); voice and pictures missed while away stay on the
+  server. The desktop client does not fetch yet.
 - The server-side replay (`history` with `play`) is not used: replay is local,
   from the stored voice files.
 - labwc menu entry and a talk keybind, and the docs page.
