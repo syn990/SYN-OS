@@ -77,6 +77,13 @@ def xoauth2(b64):
     except Exception:
         return None
 
+def mailbox(arg):
+    # the first argument as a mailbox name; a broken quote is read as best it can, so a smuggled line still shows in the log
+    try:
+        return shlex.split(arg)[0] if arg else ""
+    except ValueError:
+        return arg.strip().strip('"')
+
 def imap(c):
     c.send("* OK stand-in IMAP ready\r\n")
     who, box = None, None
@@ -109,7 +116,7 @@ def imap(c):
         elif not who:
             c.send(tag + " BAD sign in first\r\n")
         elif cmd in ("EXAMINE", "SELECT"):
-            name = shlex.split(arg)[0] if arg else ""
+            name = mailbox(arg)
             if name.upper() == "INBOX":
                 name = "INBOX"
             if name not in FOLDERS or name == "[Gmail]":
@@ -126,7 +133,7 @@ def imap(c):
             out += "* LIST (\\HasNoChildren) \"/\" {9}\r\nLiteral/1\r\n"
             c.send(out + tag + " OK LIST done\r\n")
         elif cmd == "STATUS":
-            name = shlex.split(arg)[0]
+            name = mailbox(arg)
             name = "INBOX" if name.upper() == "INBOX" else name
             mb = FOLDERS.get(name, [])
             c.send("* STATUS %s (UNSEEN %d)\r\n%s OK STATUS done\r\n" % (name, sum(1 for s, _ in mb if not s), tag))

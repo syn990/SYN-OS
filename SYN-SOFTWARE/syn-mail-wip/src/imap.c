@@ -145,7 +145,12 @@ int imap_cmd(Imap *im, const char *fmt, ...) {
 	return rc;
 }
 
-void imap_quote(Buf *out, const char *s) {
+int imap_quote(Buf *out, const char *s) {
+	/* a quoted string may not carry CR or LF (RFC 3501 9, QUOTED-CHAR): one would end the command line and
+	   let the rest be read as a second command. NUL cannot be in a C string; the caller's length is the string. */
+	if (strpbrk(s, "\r\n")) {
+		return -1;
+	}
 	buf_puts(out, "\"");
 	for (; *s; s++) {
 		if (*s == '"' || *s == '\\') {
@@ -154,6 +159,7 @@ void imap_quote(Buf *out, const char *s) {
 		buf_put(out, s, 1);
 	}
 	buf_puts(out, "\"");
+	return 0;
 }
 
 Imap *imap_open(const Account *a, char *err, size_t errn) {
@@ -205,10 +211,15 @@ int imap_signin(Imap *im, const Account *a, char *err, size_t errn) {
 		}
 		Buf c = {0};
 		buf_puts(&c, "LOGIN ");
-		imap_quote(&c, a->address);
+		int bad = imap_quote(&c, a->address);
 		buf_puts(&c, " ");
-		imap_quote(&c, pw);
+		bad |= imap_quote(&c, pw);
 		secret_free(pw);
+		if (bad) {
+			buf_wipe(&c);
+			snprintf(err, errn, "the address or password for %s has a line break in it: refused, nothing sent", a->name);
+			return -1;
+		}
 		rc = imap_cmd(im, "%s", c.p);
 		buf_wipe(&c);
 	}
