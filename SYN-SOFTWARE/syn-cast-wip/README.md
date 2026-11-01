@@ -153,8 +153,8 @@ foreground service keeps the channel playing with the screen off; the
 volume-down key can be the talk button.
 
 ```
-apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.2.0.apk
-adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.2.0.apk
+apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.3.0.apk
+adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.3.0.apk
 ```
 
 The APK carries no secrets. On first start it asks for the server, the

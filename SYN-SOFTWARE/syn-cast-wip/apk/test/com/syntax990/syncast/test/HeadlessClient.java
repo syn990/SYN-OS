@@ -288,11 +288,14 @@ public final class HeadlessClient implements Engine.Platform {
 				List<Object> chans = new ArrayList<>();
 				for (Engine.ChannelView c : v.channels) {
 					chans.add(Json.obj("name", c.name, "online", c.online, "state", c.state, "users_online",
-						(double) c.users, "unread", (double) c.unread, "error", c.error));
+						(double) c.users, "unread", (double) c.unread, "error", c.error, "title", c.title,
+						"who", new ArrayList<Object>(c.who)));
 				}
+				List<Object> bar = new ArrayList<>(); /* G192: the rooms bar, left to right */
+				for (int k : v.order) bar.add(v.channels.get(k).name);
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
-					"busy", v.busy, "speed", v.speed, "channels", chans,
+					"busy", v.busy, "speed", v.speed, "channels", chans, "bar", bar,
 					"played_samples", (double) pf.playPlayed()));
 				break;
 			}
@@ -321,6 +324,7 @@ public final class HeadlessClient implements Engine.Platform {
 				break;
 			}
 			case "channel": e.selectChannel(Integer.parseInt(arg)); break;
+			case "swipe": e.selectStep(Integer.parseInt(arg)); break;
 			case "replay": e.replayLast(); break;
 			case "stop": e.stopPlayback(); break;
 			case "speed": e.cycleSpeed(); break;
