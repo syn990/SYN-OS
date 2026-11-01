@@ -40,19 +40,33 @@ static long literal_at_end(const Buf *l) {
 	return v;
 }
 
+/* The largest literal, and the largest whole response, the reader will hold. A server that announces more is refused
+ * before a byte of it is read, so a hostile or broken server cannot make the client allocate gigabytes. Gmail takes
+ * in at most 50 MB a message, base64 included, well under the limit. */
+#define IMAP_LITERAL_MAX ((long)64 << 20)
+
 /* one whole response (a line and any literals it announces) */
 static int read_resp(Imap *im, Buf *text, Buf *lit) {
 	Buf line = {0};
 	int first_lit = 1;
+	long total = 0;
 	for (;;) {
 		if (net_line(im->net, &line) != 0) {
 			buf_free(&line);
 			return -1;
 		}
 		buf_put(text, line.p, line.n);
+		total += (long)line.n;
 		long ln = literal_at_end(&line);
 		if (ln < 0) {
 			break;
+		}
+		if (ln > IMAP_LITERAL_MAX || total + ln > IMAP_LITERAL_MAX) {
+			/* the stream cannot be resynchronised without reading it, so the connection is given up */
+			snprintf(im->status, sizeof im->status, "the server sent a reply too large to read (%ld bytes; the limit is %ld MiB)",
+				total + ln, IMAP_LITERAL_MAX >> 20);
+			buf_free(&line);
+			return -2;
 		}
 		Buf tmp = {0};
 		if (net_bytes(im->net, (size_t)ln, first_lit ? lit : &tmp) != 0) {
@@ -61,6 +75,7 @@ static int read_resp(Imap *im, Buf *text, Buf *lit) {
 			return -1;
 		}
 		buf_free(&tmp);
+		total += ln;
 		first_lit = 0;
 	}
 	buf_free(&line);
@@ -85,12 +100,17 @@ static int vcmd(Imap *im, const char *cont, const char *fmt, va_list ap) {
 	int w = net_puts(im->net, c.p);
 	buf_wipe(&c);
 	if (w != 0) {
+		str_copy(im->status, sizeof im->status, "connection lost");
 		return -1;
 	}
 	size_t tl = strlen(tag);
 	for (;;) {
 		Buf text = {0}, lit = {0};
-		if (read_resp(im, &text, &lit) != 0) {
+		int rr = read_resp(im, &text, &lit);
+		if (rr != 0) {
+			if (rr == -1) {
+				str_copy(im->status, sizeof im->status, "connection lost");
+			}
 			buf_free(&text);
 			buf_free(&lit);
 			return -1;

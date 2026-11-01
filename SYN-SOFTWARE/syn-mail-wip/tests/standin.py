@@ -41,6 +41,17 @@ MAILBOX = [
                                  .encode("latin-1")).decode())),
 ]
 
+# the folders, by their IMAP names; "&AMk-t&AOk-" is "Été" in modified UTF-7, "[Gmail]" cannot be selected
+FOLDERS = {
+    "INBOX": MAILBOX,
+    "Sent": [(True, msg("From: Me <pw@example.test>\nTo: shop@example.test\nSubject: Where is my order\n"
+                        "Date: Sat, 31 Oct 2026 12:00:00 +0000", "Any news?"))],
+    "&AMk-t&AOk-": [],
+    "[Gmail]": [],
+    "Literal/1": [],
+}
+UID0 = {"INBOX": 100, "Sent": 500, "&AMk-t&AOk-": 0, "[Gmail]": 0, "Literal/1": 0}
+
 def ctx():
     c = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     c.load_cert_chain(os.path.join(D, "cert.pem"), os.path.join(D, "key.pem"))
@@ -68,7 +79,7 @@ def xoauth2(b64):
 
 def imap(c):
     c.send("* OK stand-in IMAP ready\r\n")
-    who = None
+    who, box = None, None
     while True:
         l = c.line()
         tag, _, rest = l.partition(" ")
@@ -97,33 +108,71 @@ def imap(c):
             c.send("* BYE\r\n" + tag + " OK LOGOUT\r\n"); return
         elif not who:
             c.send(tag + " BAD sign in first\r\n")
-        elif cmd == "EXAMINE":
-            c.send("* FLAGS (\\Seen)\r\n* %d EXISTS\r\n* 0 RECENT\r\n%s OK [READ-ONLY] EXAMINE done\r\n" % (len(MAILBOX), tag))
+        elif cmd in ("EXAMINE", "SELECT"):
+            name = shlex.split(arg)[0] if arg else ""
+            if name.upper() == "INBOX":
+                name = "INBOX"
+            if name not in FOLDERS or name == "[Gmail]":
+                c.send(tag + " NO [NONEXISTENT] no such mailbox\r\n"); continue
+            box = name; log("imap %s %s" % (cmd, name))
+            c.send("* FLAGS (\\Seen)\r\n* %d EXISTS\r\n* 0 RECENT\r\n%s OK [READ-ONLY] %s done\r\n" % (len(FOLDERS[box]), tag, cmd))
+        elif cmd == "LIST":
+            out = ""
+            for name in FOLDERS:
+                if name == "Literal/1":
+                    continue
+                flags = "\\Noselect \\HasChildren" if name == "[Gmail]" else "\\HasNoChildren"
+                out += '* LIST (%s) "/" "%s"\r\n' % (flags, name)
+            out += "* LIST (\\HasNoChildren) \"/\" {9}\r\nLiteral/1\r\n"
+            c.send(out + tag + " OK LIST done\r\n")
         elif cmd == "STATUS":
-            c.send("* STATUS INBOX (UNSEEN %d)\r\n%s OK STATUS done\r\n" % (sum(1 for s, _ in MAILBOX if not s), tag))
-        elif cmd == "FETCH":
+            name = shlex.split(arg)[0]
+            name = "INBOX" if name.upper() == "INBOX" else name
+            mb = FOLDERS.get(name, [])
+            c.send("* STATUS %s (UNSEEN %d)\r\n%s OK STATUS done\r\n" % (name, sum(1 for s, _ in mb if not s), tag))
+        elif cmd == "FETCH" or (cmd == "UID" and arg.upper().startswith("FETCH ")):
+            byuid = cmd == "UID"
+            if byuid:
+                arg = arg[6:]
+            if box is None:
+                c.send(tag + " BAD select a mailbox first\r\n"); continue
+            mb = FOLDERS[box]
             rng, _, what = arg.partition(" ")
             a, _, b = rng.partition(":")
             a, b = int(a), int(b or a)
+            if byuid and a == 666:
+                # a hostile server: announce a 4 GiB literal and send none of it; the client must refuse, not wait or allocate
+                log("imap UID FETCH 666 huge literal announced")
+                c.send("* 1 FETCH (UID 666 BODY[] {4294967296}\r\n"); continue
+            if "BODY[]" in what or "BODY.PEEK[]" in what:
+                log("imap %sFETCH %s %s" % ("UID " if byuid else "", rng, "PEEK" if "PEEK" in what else "BODY[] (marks read)"))
             out = b""
-            for i in range(a, b + 1):
-                if i < 1 or i > len(MAILBOX):
+            for i in range(1, len(mb) + 1):
+                uid = UID0[box] + i
+                if not (a <= (uid if byuid else i) <= b):
                     continue
-                seen, m = MAILBOX[i - 1]
+                seen, m = mb[i - 1]
+                items = b""
+                if "UID" in what or byuid:
+                    items += b"UID %d " % uid
+                if "FLAGS" in what:
+                    items += b"FLAGS (%s) " % (b"\\Seen" if seen else b"")
                 if "HEADER.FIELDS" in what:
+                    want = [w.lower().encode() for w in what.split("(", 2)[-1].split(")")[0].split()]
                     hdr = m.split(b"\r\n\r\n")[0] + b"\r\n\r\n"
                     keep, cur = [], False
                     for hl in hdr.split(b"\r\n"):
                         if hl[:1] in (b" ", b"\t"):
                             if cur: keep.append(hl)
                             continue
-                        cur = hl.split(b":")[0].lower() in (b"from", b"subject", b"date")
+                        cur = hl.split(b":")[0].lower() in want
                         if cur: keep.append(hl)
                     data = b"\r\n".join(keep) + b"\r\n\r\n"
-                    out += b"* %d FETCH (FLAGS (%s) BODY[HEADER.FIELDS (FROM SUBJECT DATE)] {%d}\r\n%s)\r\n" % (
-                        i, b"\\Seen" if seen else b"", len(data), data)
+                    fields = what.split("HEADER.FIELDS ", 1)[1].split(")")[0] + ")"
+                    items += b"BODY[HEADER.FIELDS %s] {%d}\r\n%s" % (fields.encode(), len(data), data)
                 else:
-                    out += b"* %d FETCH (BODY[] {%d}\r\n%s)\r\n" % (i, len(m), m)
+                    items += b"BODY[] {%d}\r\n%s" % (len(m), m)
+                out += b"* %d FETCH (%s)\r\n" % (i, items.rstrip(b" "))
             c.send(out + (tag + " OK FETCH done\r\n").encode())
         else:
             c.send(tag + " BAD unknown\r\n")

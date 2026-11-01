@@ -5,6 +5,7 @@
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
 /* syn-mail: the command-line core (slice 1, G223). The window and the APK are built on these same modules. */
+#include "box.h"
 #include "config.h"
 #include "imap.h"
 #include "mime.h"
@@ -13,7 +14,9 @@
 #include "oauth.h"
 #include "secret.h"
 #include "smtp.h"
+#include "ui.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +32,11 @@ static void usage(void) {
 	      "  list                          the accounts\n"
 	      "  check [NAME] [--last N]       sign in, count the inbox, list the last N (10)\n"
 	      "  read NAME N                   one message as text (N: sequence number from check)\n"
-	      "  send NAME TO SUBJECT          send the text on stdin from NAME to TO\n",
+	      "  send NAME TO SUBJECT          send the text on stdin from NAME to TO\n"
+	      "  folders NAME                  the account's folders\n"
+	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
+	      "  show NAME FOLDER UID          one message by UID as text\n"
+	      "  window [--shot FILE.png] [--size WxH]   the SYN-Mail window (--shot: draw once offscreen and save)\n",
 		stderr);
 }
 
@@ -337,6 +344,124 @@ static int cmd_send(int argc, char **argv) {
 	return rc;
 }
 
+static Imap *box_in(Config *c, const char *name, Account **ap) {
+	Account *a = find(c, name);
+	if (!a) return NULL;
+	char err[512];
+	Imap *im = box_connect(a, err, sizeof err);
+	if (!im) fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+	*ap = a;
+	return im;
+}
+
+static int cmd_folders(int argc, char **argv) {
+	if (argc != 2) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = NULL;
+	Imap *im = box_in(&c, argv[1], &a);
+	int rc = 1;
+	if (im) {
+		Folder *f;
+		int n;
+		char err[512];
+		if (box_folders(im, &f, &n, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+		else {
+			for (int i = 0; i < n; i++) printf("%s%s\t%s\n", f[i].name, f[i].noselect ? " (no messages)" : "", f[i].raw);
+			free(f);
+			rc = 0;
+		}
+		imap_close(im);
+	}
+	config_free(&c);
+	return rc;
+}
+
+/* s cut or padded to w columns, counted in characters rather than bytes, so accented names keep the columns */
+static void put_col(const char *s, int w) {
+	size_t n = strlen(s), i = 0;
+	int k = 0;
+	while (i < n && k < w) {
+		uint32_t cp;
+		size_t step = utf8_next(s + i, n - i, &cp);
+		fwrite(s + i, 1, step, stdout);
+		i += step;
+		k++;
+	}
+	for (; k < w; k++) putchar(' ');
+}
+
+static int cmd_headers(int argc, char **argv) {
+	const char *name = NULL, *folder = "INBOX";
+	long skip = 0;
+	int last = 20, pos = 0;
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "--skip") && i + 1 < argc) skip = atol(argv[++i]);
+		else if (!strcmp(argv[i], "--last") && i + 1 < argc) last = atoi(argv[++i]);
+		else if (pos == 0) name = argv[i], pos++;
+		else if (pos == 1) folder = argv[i], pos++;
+		else { usage(); return 2; }
+	}
+	if (!name || skip < 0 || last < 0 || last > 500) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = NULL;
+	Imap *im = box_in(&c, name, &a);
+	int rc = 1;
+	if (im) {
+		Page p;
+		char err[512];
+		if (box_page(im, folder, skip, last, &p, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+		else {
+			printf("%s %s: %ld messages, %ld unread\n", a->name, folder, p.exists, p.unseen);
+			for (int i = 0; i < p.n; i++) {
+				Header *h = &p.h[i];
+				printf("%8lu %c %-12s  ", h->uid, h->seen ? ' ' : '*', h->date);
+				put_col(h->from, 30);
+				printf("  %s\n", h->subject);
+			}
+			page_free(&p);
+			rc = 0;
+		}
+		imap_close(im);
+	}
+	config_free(&c);
+	return rc;
+}
+
+static int cmd_show(int argc, char **argv) {
+	if (argc != 4) { usage(); return 2; }
+	unsigned long uid = strtoul(argv[3], NULL, 10);
+	if (!uid) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = NULL;
+	Imap *im = box_in(&c, argv[1], &a);
+	int rc = 1;
+	if (im) {
+		Buf m = {0};
+		char err[512];
+		if (box_body(im, argv[2], uid, &m, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+		else {
+			static const char *hs[] = {"From", "To", "Date", "Subject"};
+			for (int h = 0; h < 4; h++) {
+				Buf v = {0};
+				if (mime_header(m.p, m.n, hs[h], &v) == 0 && v.p) printf("%s: %s\n", hs[h], v.p);
+				buf_free(&v);
+			}
+			Buf t = {0};
+			mime_text(m.p, m.n, &t);
+			printf("\n%s\n", t.p ? t.p : "");
+			buf_free(&t);
+			rc = 0;
+		}
+		buf_free(&m);
+		imap_close(im);
+	}
+	config_free(&c);
+	return rc;
+}
+
 int main(int argc, char **argv) {
 	int i = 1;
 	if (i < argc && !strcmp(argv[i], "-v")) {
@@ -354,6 +479,10 @@ int main(int argc, char **argv) {
 	if (!strcmp(cmd, "check")) return cmd_check(n, v);
 	if (!strcmp(cmd, "read")) return cmd_read(n, v);
 	if (!strcmp(cmd, "send")) return cmd_send(n, v);
+	if (!strcmp(cmd, "folders")) return cmd_folders(n, v);
+	if (!strcmp(cmd, "headers")) return cmd_headers(n, v);
+	if (!strcmp(cmd, "show")) return cmd_show(n, v);
+	if (!strcmp(cmd, "window")) return ui_main(n, v);
 	usage();
 	return 2;
 }
