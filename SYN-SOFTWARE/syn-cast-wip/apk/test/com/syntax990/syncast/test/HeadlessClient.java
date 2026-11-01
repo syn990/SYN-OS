@@ -267,7 +267,7 @@ public final class HeadlessClient implements Engine.Platform {
 	private static Map<String, Object> msgJson(History.Msg m) {
 		return Json.obj("id", (double) m.id, "kind", m.kind.name().toLowerCase(), "from", m.from, "for", m.forwho,
 			"out", m.out, "played", m.played, "partial", m.partial, "duration_ms", (double) m.durationMs,
-			"text", m.text, "w", (double) m.w, "h", (double) m.h, "lat", m.lat, "lon", m.lon);
+			"text", m.text, "w", (double) m.w, "h", (double) m.h, "lat", m.lat, "lon", m.lon, "sid", m.sid, "ts", (double) m.ts);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -289,7 +289,7 @@ public final class HeadlessClient implements Engine.Platform {
 				for (Engine.ChannelView c : v.channels) {
 					chans.add(Json.obj("name", c.name, "online", c.online, "state", c.state, "users_online",
 						(double) c.users, "unread", (double) c.unread, "error", c.error, "title", c.title,
-						"who", new ArrayList<Object>(c.who)));
+						"who", new ArrayList<Object>(c.who), "peer", c.peer));
 				}
 				List<Object> bar = new ArrayList<>(); /* G192: the rooms bar, left to right */
 				for (int k : v.order) bar.add(v.channels.get(k).name);
@@ -306,6 +306,8 @@ public final class HeadlessClient implements Engine.Platform {
 				break;
 			}
 			case "text": e.sendText(arg); break;
+			case "input": e.input(arg); break;   /* G193: the text box as typed, /msg NAME [TEXT] included */
+			case "dm": e.openDm(arg); break;
 			case "ptt":
 				if (arg.equals("down")) e.pttDown();
 				else if (arg.equals("up")) e.pttUp();

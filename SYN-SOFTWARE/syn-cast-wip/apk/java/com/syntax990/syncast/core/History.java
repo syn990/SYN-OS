@@ -34,6 +34,8 @@ public final class History {
 		public Kind kind = Kind.EVENT;
 		public boolean out, played, partial;
 		public String from = "", forwho = "", text;
+		/** G193: the server's message id (the say/loc answer or event, or a history line): what a fetch is matched on */
+		public String sid = "";
 		public int durationMs, w, h;
 		public double lat, lon, acc;
 
@@ -44,6 +46,7 @@ public final class History {
 			if (partial) m.put("partial", true);
 			m.put("from", from);
 			if (!forwho.isEmpty()) m.put("for", forwho);
+			if (sid != null && !sid.isEmpty()) m.put("sid", sid);
 			if (durationMs != 0) m.put("duration_ms", (double) durationMs);
 			if (w != 0) m.put("w", (double) w);
 			if (h != 0) m.put("h", (double) h);
@@ -71,6 +74,7 @@ public final class History {
 			m.partial = Json.bool(o, "partial");
 			m.from = Json.str(o, "from");
 			m.forwho = Json.str(o, "for");
+			m.sid = Json.str(o, "sid");
 			m.durationMs = (int) Json.lng(o, "duration_ms");
 			m.w = (int) Json.lng(o, "w");
 			m.h = (int) Json.lng(o, "h");
@@ -120,6 +124,8 @@ public final class History {
 			}
 		}
 		for (Msg m : msgs) m.partial = false; /* cut off by a crash: as complete as it gets */
+		/* G193: lines fetched from the server are appended to the file but belong earlier: shown in time order */
+		msgs.sort((a, b) -> Long.compare(a.ts, b.ts));
 		if (lines > msgs.size() + msgs.size() / 2 + 64) rewrite();
 		else index = new OutputStreamWriter(new FileOutputStream(f, true), StandardCharsets.UTF_8);
 	}
@@ -158,6 +164,33 @@ public final class History {
 		}
 		msgs.add(m);
 		append(m);
+		return m;
+	}
+
+	/** G193: a message with this server id is held already. */
+	public synchronized boolean hasSid(String sid) {
+		if (sid == null || sid.isEmpty()) return false;
+		for (int k = msgs.size() - 1; k >= 0; k--) if (sid.equals(msgs.get(k).sid)) return true;
+		return false;
+	}
+
+	/** G193: a text line heard live before server ids were kept (no sid): the same sender and words within 10 minutes. */
+	public synchronized Msg sameText(String from, String text, long ts) {
+		for (int k = msgs.size() - 1; k >= 0; k--) {
+			Msg m = msgs.get(k);
+			if (m.kind != Kind.TEXT || (m.sid != null && !m.sid.isEmpty()) || m.text == null) continue;
+			if (m.from.equalsIgnoreCase(from) && m.text.equals(text) && Math.abs(m.ts - ts) < 600000) return m;
+		}
+		return null;
+	}
+
+	/** G193: a message fetched from the server, missed while away: put in its place by time, not at the end. */
+	public synchronized Msg addPast(Msg m) {
+		add(m);
+		msgs.remove(msgs.size() - 1);
+		int at = msgs.size();
+		while (at > 0 && msgs.get(at - 1).ts > m.ts) at--;
+		msgs.add(at, m);
 		return m;
 	}
 

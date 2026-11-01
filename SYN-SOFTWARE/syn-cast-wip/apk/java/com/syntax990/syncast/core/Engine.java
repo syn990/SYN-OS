@@ -71,12 +71,13 @@ public final class Engine {
 	private static final int FEED_AHEAD = Opus.RATE / 2;
 	private static final int HELD_MAX = 50;
 	private static final long KICK_WINDOW_MS = 120000;
+	private static final int HISTORY_FETCH = 50;   /* G193: lines asked for per conversation on sign-in */
 
 	/* ---------- state ---------- */
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY }
 
 	private static final class Pending {
 		int seq;
@@ -114,6 +115,9 @@ public final class Engine {
 		   (its history stays on the phone) */
 		public String title = "";
 		boolean gone;
+		/* G193: a direct-message conversation (dm-A-B) has the other member here; a room has "" */
+		public String peer = "";
+		boolean fetched;   /* the server's history asked for since this session signed in */
 		public final List<String> who = new ArrayList<>(); /* members online in it, by name */
 		public int unread;
 		public String error = "";
@@ -270,11 +274,159 @@ public final class Engine {
 		return chan.size() - 1;
 	}
 
+	/** G193: a direct-message conversation's id, dm-A-B with the two member ids sorted (the server's own name). */
+	static String dmName(String a, String b) {
+		String x = a.toLowerCase(Locale.ROOT), y = b.toLowerCase(Locale.ROOT);
+		return x.compareTo(y) <= 0 ? "dm-" + x + "-" + y : "dm-" + y + "-" + x;
+	}
+
+	/** A member id the server takes: lower case letters, digits, _ and . (no -, so dm-A-B reads back). */
+	static boolean memberOk(String id) {
+		if (id == null || id.isEmpty() || id.length() > 64) return false;
+		for (char c : id.toCharArray()) {
+			if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '.')) return false;
+		}
+		return true;
+	}
+
+	/** G193: the tab of direct messages with this member, made when the first one comes or is opened. -1 when it cannot be. */
+	private int dmChannel(String peer) {
+		String p = peer.toLowerCase(Locale.ROOT);
+		for (int k = 0; k < chan.size(); k++) if (chan.get(k).peer.equals(p)) return k;
+		if (!memberOk(p) || p.equalsIgnoreCase(me())) return -1;
+		int ch = channelAdd(dmName(me(), p));
+		if (ch < 0) return -1;
+		Channel c = chan.get(ch);
+		c.peer = p;
+		c.title = "@" + p;
+		Session ss = sess.get(c.session);
+		c.online = ss.state == SState.ONLINE;
+		if (c.online) fetchHistory(ss, ch);
+		return ch;
+	}
+
+	/** G193: the direct-message tabs kept on the phone from before (their history folders), back after a restart. */
+	private void dmRestore() {
+		String mine = cfg.member.toLowerCase(Locale.ROOT);
+		File[] dirs = dataDir.listFiles();
+		if (mine.isEmpty() || dirs == null) return;
+		java.util.Arrays.sort(dirs);
+		for (File d : dirs) {
+			String[] w = d.getName().split("-");
+			if (!d.isDirectory() || w.length != 3 || !w[0].equals("dm")) continue;
+			String peer = w[1].equals(mine) ? w[2] : w[2].equals(mine) ? w[1] : "";
+			if (memberOk(peer)) dmChannel(peer);
+		}
+	}
+
+	/** What a frame is addressed to: a room by its channel, a direct message by the member. */
+	private static String toChannel(Channel c) {
+		return c.peer.isEmpty() ? c.name : null;
+	}
+
+	private static String toMember(Channel c) {
+		return c.peer.isEmpty() ? null : c.peer;
+	}
+
+	/** G193: ask the server for the last lines of a room or a direct-message conversation (what was missed while away). */
+	private void fetchHistory(Session ss, int ch) {
+		Channel c = chan.get(ch);
+		if (c.fetched || ss.state != SState.ONLINE) return;
+		int seq = ++ss.seq;
+		if (send(ss, Proto.history(seq, toChannel(c), toMember(c), HISTORY_FETCH, null))) {
+			c.fetched = true;
+			addPending(ss, seq, PKind.HISTORY, ch, 0, false);
+		}
+	}
+
+	/** G193: the server's lines merged into the phone's own history: texts and locations it does not hold yet, in time order. */
+	private void mergeHistory(int ch, Object messages) {
+		if (!(messages instanceof List) || ch < 0 || ch >= chan.size()) return;
+		Channel c = chan.get(ch);
+		int added = 0, unseen = 0;
+		for (Object v : (List<?>) messages) {
+			if (!(v instanceof Map)) continue;
+			@SuppressWarnings("unchecked")
+			Map<String, Object> l = (Map<String, Object>) v;
+			String sid = Json.str(l, "id"), kind = Json.str(l, "kind"), from = Json.str(l, "from");
+			if (sid.isEmpty() || c.hist.hasSid(sid)) continue;
+			long ts = isoMs(Json.str(l, "at"));
+			History.Msg m = new History.Msg();
+			if (kind.equals("text")) {
+				m.kind = History.Kind.TEXT;
+				m.text = Json.str(l, "text");
+				History.Msg had = c.hist.sameText(from, m.text, ts);
+				if (had != null) {
+					/* heard live before ids were kept: the same line, now with its id */
+					had.sid = sid;
+					c.hist.commit(had);
+					continue;
+				}
+			} else if (kind.equals("loc")) {
+				m.kind = History.Kind.LOCATION;
+				m.lat = Json.num(l, "lat");
+				m.lon = Json.num(l, "lon");
+				m.acc = Json.num(l, "accuracy");
+				m.text = Json.str(l, "address");
+			} else {
+				continue; /* voice and pictures need their files: what was missed of them stays on the server */
+			}
+			m.sid = sid;
+			m.ts = ts;
+			m.from = from;
+			m.forwho = Json.str(l, "to");
+			m.out = from.equalsIgnoreCase(me());
+			c.hist.addPast(m);
+			added++;
+			if (!m.out) unseen++;
+		}
+		if (added > 0) {
+			if (ch != active) c.unread += unseen;
+			pf.log("history: " + added + " line" + (added == 1 ? "" : "s") + " fetched for " + c.name);
+		}
+	}
+
+	/** An ISO time (2026-10-31T02:40:12Z) in ms; now when it cannot be read. */
+	static long isoMs(String at) {
+		try {
+			return java.time.Instant.parse(at).toEpochMilli();
+		} catch (RuntimeException e) {
+			try {
+				return java.time.OffsetDateTime.parse(at).toInstant().toEpochMilli();
+			} catch (RuntimeException e2) {
+				return System.currentTimeMillis();
+			}
+		}
+	}
+
+	/** G193: open the direct messages with a member (a held tab's name, or /msg NAME) and go to them. */
+	public void openDm(String peer) {
+		post(() -> {
+			String p = peer == null ? "" : peer.trim().toLowerCase(Locale.ROOT);
+			if (p.startsWith("@")) p = p.substring(1);
+			if (p.equalsIgnoreCase(me())) {
+				toast("that is you");
+				return;
+			}
+			int ch = dmChannel(p);
+			if (ch < 0) {
+				toast("no member " + peer + " to message");
+				return;
+			}
+			if (tx == Tx.IDLE) {
+				active = ch;
+				chan.get(ch).unread = 0;
+			}
+			changed();
+		});
+	}
+
 	public void start() {
 		post(() -> {
 			dataDir.mkdirs();
 			sess.add(new Session(0));
 			for (String name : cfg.channels) channelAdd(name);
+			dmRestore();
 			if (mayConnect()) connect(sess.get(0));
 			pf.captureVox(vox);
 			changed();
@@ -450,7 +602,7 @@ public final class Engine {
 		List<String> names = null;
 		if (!cfg.channels.isEmpty()) {
 			names = new ArrayList<>();
-			for (int k : ss.chans) names.add(chan.get(k).name);
+			for (int k : ss.chans) if (chan.get(k).peer.isEmpty()) names.add(chan.get(k).name);
 		}
 		boolean invite = !cfg.invite.isEmpty();
 		int seq = ++ss.seq;
@@ -482,6 +634,7 @@ public final class Engine {
 		for (int k : ss.chans) {
 			Channel c = chan.get(k);
 			c.online = false;
+			c.fetched = false;
 			c.who.clear();
 			if (wasOnline) event(k, "connection lost: " + ss.error);
 			if (tx != Tx.IDLE && txChannel == k) txAbort("connection lost");
@@ -528,12 +681,15 @@ public final class Engine {
 
 	/* ---------- incoming ---------- */
 
-	/** Where an event belongs: its channel, or for a direct message (no channel, "to" is this member) the selected one. */
+	/** Where an event belongs: its channel, or for a direct message (no channel, "to" set) the tab of direct messages
+	    with the other member (G193): the sender, or the receiver when it is this member's own line from another device. */
 	private int eventChannel(Session ss, Map<String, Object> o) {
 		String chName = Json.str(o, "channel");
 		if (!chName.isEmpty()) return channelIn(ss, chName);
-		if (!Json.str(o, "to").isEmpty() && !chan.isEmpty()) return active;
-		return -1;
+		String to = Json.str(o, "to"), from = Json.str(o, "from");
+		if (to.isEmpty()) return -1;
+		String peer = from.isEmpty() || from.equalsIgnoreCase(me()) ? to : from;
+		return dmChannel(peer);
 	}
 
 	private void onJson(Session ss, String text) {
@@ -571,10 +727,12 @@ public final class Engine {
 				m.text = Json.str(o, "text");
 				m.from = from;
 				m.forwho = to;
+				m.sid = Json.str(o, "message");
+				m.out = from.equalsIgnoreCase(me());
 				chan.get(ch).hist.add(m);
-				if (ch != active) chan.get(ch).unread++;
-				if (!chan.get(ch).muted) tone("ALERT");
-				pf.notify(from + (to.isEmpty() ? " in " : " (private) in ") + chan.get(ch).name, m.text);
+				if (ch != active && !m.out) chan.get(ch).unread++;
+				if (!chan.get(ch).muted && !m.out) tone("ALERT");
+				if (!m.out) pf.notify(from + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
 			}
 			break;
 		case "pic":
@@ -600,6 +758,7 @@ public final class Engine {
 				m.text = Json.str(o, "address");
 				m.from = from;
 				m.forwho = to;
+				m.sid = Json.str(o, "message");
 				chan.get(ch).hist.add(m);
 				tone("ALERT");
 			}
@@ -652,6 +811,7 @@ public final class Engine {
 			int ch = -1;
 			for (int k = 0; k < chan.size(); k++) if (chan.get(k).name.equalsIgnoreCase(id)) ch = k;
 			if (ch < 0) {
+				if (id.startsWith("dm-")) continue;
 				ch = channelAdd(id);
 				if (ch < 0) continue;
 				event(ch, "room opened");
@@ -669,9 +829,11 @@ public final class Engine {
 				c.who.clear();
 				for (Object w : (List<?>) online) if (w instanceof String) c.who.add((String) w);
 			}
+			if (c.online) fetchHistory(ss, ch);
 		}
 		for (int k : ss.chans) {
 			Channel c = chan.get(k);
+			if (!c.peer.isEmpty()) continue; /* G193: a direct-message tab is the phone's, never in the rooms list */
 			if (!listed.contains(c.name.toLowerCase(Locale.ROOT)) && !c.gone) {
 				c.gone = true;
 				c.online = false;
@@ -788,6 +950,25 @@ public final class Engine {
 					}
 				}
 				helloChannels(ss, o);
+				/* G193: the direct-message tabs ride on the session; a DM waiting gets its tab; each joined
+				   conversation asks the server for what was missed */
+				if (o.get("held") instanceof List) {
+					for (Object h : (List<?>) o.get("held")) {
+						if (h instanceof Map) {
+							@SuppressWarnings("unchecked")
+							Map<String, Object> hm = (Map<String, Object>) h;
+							dmChannel(Json.str(hm, "with"));
+						}
+					}
+				}
+				for (int k : ss.chans) {
+					Channel c = chan.get(k);
+					if (!c.peer.isEmpty()) {
+						c.online = true;
+						c.gone = false;
+					}
+					if (c.online) fetchHistory(ss, k);
+				}
 				int rseq = ++ss.seq;
 				if (send(ss, Proto.rooms(rseq))) addPending(ss, rseq, PKind.ROOMS, -1, 0, false);
 				int held = 0;
@@ -834,6 +1015,7 @@ public final class Engine {
 			History.Msg m = chan.get(p.channel).hist.find(p.ref);
 			if (m != null) {
 				m.partial = false;
+				if (ok) m.sid = Json.str(o, "message");
 				chan.get(p.channel).hist.commit(m);
 			}
 			if (!ok) {
@@ -847,6 +1029,10 @@ public final class Engine {
 			break;
 		case ROOMS:
 			if (ok) applyRooms(ss, o.get("rooms"));
+			break;
+		case HISTORY:
+			if (ok) mergeHistory(p.channel, o.get("messages"));
+			else pf.log("history refused for " + chan.get(p.channel).name + ": " + err);
 			break;
 		case PRESENCE:
 			if (!ok) pf.log("presence refused: " + err);
@@ -1083,7 +1269,7 @@ public final class Engine {
 		if (playing && queue.get(0).replay) stopPlaybackNow();
 		Session ss = sess.get(c.session);
 		int seq = ++ss.seq;
-		if (!send(ss, Proto.talk(seq, c.name, null, Proto.PTT))) {
+		if (!send(ss, Proto.talk(seq, toChannel(c), toMember(c), Proto.PTT))) {
 			tone("FAIL");
 			toast("not connected");
 			return false;
@@ -1270,7 +1456,7 @@ public final class Engine {
 			}
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.say(seq, c.name, null, text))) return;
+			if (!send(ss, Proto.say(seq, toChannel(c), toMember(c), text))) return;
 			History.Msg m = new History.Msg();
 			m.kind = History.Kind.TEXT;
 			m.out = m.partial = true;
@@ -1288,7 +1474,7 @@ public final class Engine {
 			if (c == null) return;
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.loc(seq, c.name, null, lat, lon, acc, address))) return;
+			if (!send(ss, Proto.loc(seq, toChannel(c), toMember(c), lat, lon, acc, address))) return;
 			History.Msg m = new History.Msg();
 			m.kind = History.Kind.LOCATION;
 			m.out = m.partial = true;
@@ -1314,7 +1500,7 @@ public final class Engine {
 			}
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.pic(seq, c.name, null, "image/jpeg", w, h, full.length))) return;
+			if (!send(ss, Proto.pic(seq, toChannel(c), toMember(c), "image/jpeg", w, h, full.length))) return;
 			imgFull = full;
 			imgThumb = thumb;
 			imgW = w;
@@ -1431,6 +1617,7 @@ public final class Engine {
 		for (Rx r : new ArrayList<>(rx)) rxEnd(r);
 		for (int k : ss.chans) {
 			chan.get(k).online = false;
+			chan.get(k).fetched = false;
 			chan.get(k).who.clear();
 		}
 		ss.kicked = false;
@@ -1547,6 +1734,17 @@ public final class Engine {
 		case "mute": toggleMute(); break;
 		case "vox": toggleVox(); break;
 		case "speed": cycleSpeed(); break;
+		case "msg": {
+			/* G193: /msg NAME opens the direct messages with NAME; /msg NAME TEXT sends it there too */
+			String[] p = arg.trim().split("\\s+", 2);
+			if (p[0].isEmpty()) {
+				post(() -> toast("usage: /msg NAME [TEXT]"));
+				break;
+			}
+			openDm(p[0]);
+			if (p.length > 1) sendText(p[1]);
+			break;
+		}
 		case "loc": {
 			String[] p = arg.split("\\s+", 3);
 			try {
@@ -1557,7 +1755,7 @@ public final class Engine {
 			break;
 		}
 		default:
-			post(() -> toast("/replay  /busy  /mute  /vox  /speed  /loc LAT LON [ADDRESS]"));
+			post(() -> toast("/msg NAME [TEXT]  /replay  /busy  /mute  /vox  /speed  /loc LAT LON [ADDRESS]"));
 		}
 	}
 
@@ -1614,6 +1812,8 @@ public final class Engine {
 		public String title;
 		public List<String> who = new ArrayList<>();
 		public boolean ticket;
+		/** G193: a direct-message tab: the other member ("" for a room) */
+		public String peer = "";
 	}
 
 	public static final class View {
@@ -1668,6 +1868,7 @@ public final class Engine {
 			cv.title = Rooms.title(c.name, c.title);
 			cv.who.addAll(c.who);
 			cv.ticket = isTicketRoom(c.name);
+			cv.peer = c.peer;
 			cv.unread = c.unread;
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;
@@ -1710,6 +1911,7 @@ public final class Engine {
 			c.partial = m.partial;
 			c.from = m.from;
 			c.forwho = m.forwho;
+			c.sid = m.sid;
 			c.text = m.text;
 			c.durationMs = m.durationMs;
 			c.w = m.w;
