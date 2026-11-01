@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Dependencies
         run: |
-          pacman -Syu --noconfirm --needed git cmake pkgconf python wayland libxkbcommon fcft pixman libpulse \
+          pacman -Syu --noconfirm --needed git cmake pkgconf python wayland libxkbcommon fcft tllist wayland-protocols pixman libpulse \
             opus rnnoise libjpeg-turbo jansson openssl ncurses
       - uses: actions/checkout@v4
       - name: Build
