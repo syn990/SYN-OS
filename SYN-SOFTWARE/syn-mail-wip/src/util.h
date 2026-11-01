@@ -7,6 +7,7 @@
 #ifndef SYN_MAIL_UTIL_H
 #define SYN_MAIL_UTIL_H
 #include <stddef.h>
+#include <stdint.h>
 
 /* a growable byte buffer, always NUL-terminated */
 typedef struct {
@@ -27,4 +28,8 @@ long b64_decode(const char *in, size_t n, Buf *out);
 
 void str_copy(char *dst, size_t n, const char *src);
 int str_ieq_prefix(const char *s, const char *prefix);
+
+/* one code point from s (n bytes left); returns the bytes used, 0 at the end; bad bytes give U+FFFD and 1 */
+size_t utf8_next(const char *s, size_t n, uint32_t *cp);
+void utf8_put(Buf *b, uint32_t cp);
 #endif

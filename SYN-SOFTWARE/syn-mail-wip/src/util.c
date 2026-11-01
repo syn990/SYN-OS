@@ -123,3 +123,40 @@ void str_copy(char *dst, size_t n, const char *src) {
 int str_ieq_prefix(const char *s, const char *prefix) {
 	return strncasecmp(s, prefix, strlen(prefix)) == 0;
 }
+
+size_t utf8_next(const char *s, size_t n, uint32_t *cp) {
+	const unsigned char *u = (const unsigned char *)s;
+	if (n == 0) {
+		*cp = 0;
+		return 0;
+	}
+	if (u[0] < 0x80) {
+		*cp = u[0];
+		return 1;
+	}
+	int len = (u[0] & 0xE0) == 0xC0 ? 2 : (u[0] & 0xF0) == 0xE0 ? 3 : (u[0] & 0xF8) == 0xF0 ? 4 : 0;
+	if (len == 0 || (size_t)len > n) {
+		*cp = 0xFFFD;
+		return 1;
+	}
+	uint32_t c = u[0] & (0xFF >> (len + 1));
+	for (int i = 1; i < len; i++) {
+		if ((u[i] & 0xC0) != 0x80) {
+			*cp = 0xFFFD;
+			return 1;
+		}
+		c = (c << 6) | (u[i] & 0x3F);
+	}
+	*cp = c;
+	return (size_t)len;
+}
+
+void utf8_put(Buf *b, uint32_t c) {
+	char o[4];
+	size_t n;
+	if (c < 0x80) { o[0] = (char)c; n = 1; }
+	else if (c < 0x800) { o[0] = (char)(0xC0 | c >> 6); o[1] = (char)(0x80 | (c & 0x3F)); n = 2; }
+	else if (c < 0x10000) { o[0] = (char)(0xE0 | c >> 12); o[1] = (char)(0x80 | ((c >> 6) & 0x3F)); o[2] = (char)(0x80 | (c & 0x3F)); n = 3; }
+	else { o[0] = (char)(0xF0 | c >> 18); o[1] = (char)(0x80 | ((c >> 12) & 0x3F)); o[2] = (char)(0x80 | ((c >> 6) & 0x3F)); o[3] = (char)(0x80 | (c & 0x3F)); n = 4; }
+	buf_put(b, o, n);
+}

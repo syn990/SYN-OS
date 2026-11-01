@@ -152,6 +152,55 @@ O=$("$BIN" check pw 2>&1); r=$?
 [ $r -ne 0 ] && ok "TLS: a certificate for another name is refused" || no "TLS: a certificate for another name is refused" "$O"
 sed -i 's/"127.0.0.1"/"localhost"/g' "$SYN_MAIL_CONFIG"
 
+# 6b. folders, pages and the window (slice 2): read-only, nothing marked read
+O=$("$BIN" folders pw 2>&1); r=$?
+[ $r -eq 0 ] && has "folders lists the Inbox first" "$(printf '%s\n' "$O" | sed -n 1p)" "Inbox	INBOX" || no "folders lists the Inbox first" "$O"
+has "folders decodes modified UTF-7" "$O" "Été	&AMk-t&AOk-"
+has "folders marks a folder that holds no messages" "$O" "[Gmail] (no messages)"
+has "folders reads a name sent as a literal" "$O" "Literal/1"
+O=$("$BIN" headers pw 2>&1); r=$?
+[ $r -eq 0 ] && has "headers counts the folder" "$O" "pw INBOX: 3 messages, 2 unread" || no "headers counts the folder" "$O"
+has "headers lists by UID, newest first, unread marked" "$(printf '%s\n' "$O" | sed -n 2p)" "     103 * "
+has "headers splits the sender's name from the address" "$O" "Café Club                       Café réunion"
+has "headers decodes the subject" "$O" "Grüße aus Berlin"
+O=$("$BIN" headers pw INBOX --skip 1 --last 1 2>&1)
+has "headers pages back with --skip" "$O" "     102 * "
+hasnt "headers --last 1 shows one row" "$O" "     103"
+O=$("$BIN" headers pw Sent 2>&1)
+has "headers reads another folder" "$O" "Where is my order"
+O=$("$BIN" show pw INBOX 102 2>&1); r=$?
+[ $r -eq 0 ] && has "show reads a message by UID" "$O" "Your café order is on its way" || no "show reads a message by UID" "$O"
+O=$("$BIN" show pw INBOX 999 2>&1); r=$?
+[ $r -ne 0 ] && ok "show of a missing UID fails" || no "show of a missing UID fails" "$O"
+S0=$(date +%s)
+O=$(timeout 20 "$BIN" show pw INBOX 666 2>&1); r=$?
+S1=$(date +%s)
+[ $r -ne 0 ] && [ $r -ne 124 ] && has "show refuses a reply too large to read" "$O" "too large to read" || no "show refuses a reply too large to read" "$O (exit $r)"
+[ $((S1 - S0)) -lt 10 ] && ok "the refusal is at once, nothing of it read" || no "the refusal is at once, nothing of it read" "$((S1 - S0)) s"
+has "the server did announce the huge reply" "$(cat "$T/log")" "imap UID FETCH 666 huge literal announced"
+O=$("$BIN" headers pw '[Gmail]' 2>&1); r=$?
+[ $r -ne 0 ] && ok "headers of a folder that holds no messages fails" || no "headers of a folder that holds no messages fails" "$O"
+: >"$T/draw"
+O=$(SYN_MAIL_DRAWLOG="$T/draw" WAYLAND_DISPLAY= "$BIN" window --shot "$T/shot.png" --size 1280x800 2>&1); r=$?
+[ $r -eq 0 ] && ok "window --shot draws without a compositor" || no "window --shot draws without a compositor" "$O"
+P=$(python3 -c 'import struct,sys; d=open(sys.argv[1],"rb").read(24); print(d[:8]==b"\x89PNG\r\n\x1a\n", *struct.unpack(">II", d[16:24]))' "$T/shot.png" 2>&1)
+has "the shot is a 1280x800 PNG" "$P" "True 1280 800"
+[ -n "$SYN_MAIL_SHOT_OUT" ] && cp "$T/shot.png" "$T/shot2.png" "$SYN_MAIL_SHOT_OUT"/ 2>/dev/null
+D=$(cat "$T/draw")
+has "the window shows the folders" "$D" "Été"
+has "the window lists the inbox" "$D" "Your order"
+has "the window shows the sender's name" "$D" "Chip Shop"
+has "the window opens the newest message" "$D" "Grüße aus Berlin"
+has "the window shows its text" "$D" "Fish & chips"
+has "the window counts the folder" "$D" "3 messages, 2 unread"
+has "the window counts the other account's inbox" "$D" "oa 2 unread"
+O=$(SYN_MAIL_DRAWLOG="$T/draw2" WAYLAND_DISPLAY= "$BIN" window --shot "$T/shot2.png" --open 2 2>&1)
+has "window --open 2 reads the second message" "$(cat "$T/draw2" 2>/dev/null)" "Your café order is on its way"
+O=$(WAYLAND_DISPLAY=nowhere-$$ "$BIN" window 2>&1); r=$?
+[ $r -ne 0 ] && has "window without a desktop says so" "$O" "no Wayland display" || no "window without a desktop says so" "$O"
+hasnt "nothing was ever marked read" "$(cat "$T/log")" "marks read"
+has "bodies were fetched with PEEK" "$(cat "$T/log")" "imap UID FETCH 103 PEEK"
+
 # 7. sending: AUTH PLAIN and XOAUTH2, the message as built, header injection, bad recipients
 printf 'Hello,\n.leading dot line\nCafé.\n' | "$BIN" send pw to@example.test 'Résumé
 Bcc: evil@example.test' >"$T/o" 2>&1; r=$?
