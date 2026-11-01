@@ -246,7 +246,7 @@ final class Views {
 			int bg = pal.panel, fg = pal.text, edge = pal.accent;
 			String label, sub = "";
 			Engine.Talk st = v == null ? Engine.Talk.DISABLED : v.talk;
-			String dest = v == null || v.channels.isEmpty() ? "" : v.channels.get(v.active).name;
+			String dest = v == null || v.channels.isEmpty() ? "" : v.channels.get(v.active).title; /* G227: the tab's words (Lobby), never the raw id (ops) */
 			switch (st) {
 			case DISABLED:
 				bg = pal.bg;

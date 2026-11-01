@@ -1880,7 +1880,7 @@ public final class Engine {
 		else if (chan.isEmpty() || !chan.get(active).online) v.talk = Talk.DISABLED;
 		else v.talk = Talk.IDLE;
 		if (tx != Tx.IDLE) {
-			v.txDest = chan.get(txChannel).name;
+			v.txDest = Rooms.title(chan.get(txChannel).name, chan.get(txChannel).title);
 			v.txElapsed = System.currentTimeMillis() - txStarted;
 			v.txLevel = Math.max(txLevel, pf.captureLevel());
 			v.txOpening = tx == Tx.STARTING;
