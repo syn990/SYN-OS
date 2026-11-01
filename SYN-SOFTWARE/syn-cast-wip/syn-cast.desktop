@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SYN-CAST
+GenericName=Push-to-talk
+Comment=Talk on SYN-CAST channels
+Exec=syn-cast
+Terminal=false
+Categories=Network;Chat;AudioVideo;
+Keywords=syn-cast;walkie-talkie;radio;ptt;

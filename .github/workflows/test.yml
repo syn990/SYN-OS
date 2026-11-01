@@ -1,0 +1,41 @@
+# The merge gate for SYN-CAST (SYN-SOFTWARE/syn-cast-wip): builds the desktop client on Arch and runs its ctest.
+# The crew's land.sh and `job ci` read the check named `test` on a commit. The e2e test needs a protocol v1 server
+# (syn-caster or SYN-CASTER's castd_ref.py), which is private, so here it exits 77 and ctest marks it skipped;
+# it is run on the PC before a merge.
+name: test
+
+on:
+  push:
+    paths:
+      - 'SYN-SOFTWARE/syn-cast-wip/**'
+      - 'SYN-SOFTWARE/syn-bar-core-src/**'
+      - 'SYN-SOFTWARE/syn-crypter-src/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    paths:
+      - 'SYN-SOFTWARE/syn-cast-wip/**'
+      - 'SYN-SOFTWARE/syn-bar-core-src/**'
+      - 'SYN-SOFTWARE/syn-crypter-src/**'
+      - '.github/workflows/test.yml'
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    timeout-minutes: 20
+    steps:
+      - name: Dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git cmake pkgconf python wayland libxkbcommon fcft tllist wayland-protocols pixman libpulse \
+            opus rnnoise libjpeg-turbo jansson openssl ncurses
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          cmake -S SYN-SOFTWARE/syn-cast-wip -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j"$(nproc)"
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

@@ -1,0 +1,31 @@
+# Maintainer: William Hayward-Holland (Syntax990)
+pkgname=syn-cast
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="SYN-OS push-to-talk on SYN-CAST channels: a native Wayland walkie-talkie speaking SYN-CAST protocol v1"
+arch=('x86_64')
+url="https://github.com/Syntax990/SYN-OS"
+license=('MIT')
+depends=('wayland' 'libxkbcommon' 'fcft' 'pixman' 'libpulse' 'opus' 'rnnoise' 'libjpeg-turbo'
+         'jansson' 'openssl' 'ncurses' 'terminus-font')
+makedepends=('cmake' 'wayland-protocols' 'tllist')
+optdepends=('libnotify: desktop notifications for texts while the window is in the background'
+            'xdg-utils: open received images and locations')
+source=()
+sha256sums=()
+
+_projdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+build() {
+  cmake -B "$srcdir/build" -S "$_projdir" \
+    -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$srcdir/build"
+}
+
+check() {
+  "$srcdir/build/proto_test"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build" --prefix /usr
+}
