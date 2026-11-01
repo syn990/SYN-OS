@@ -2,7 +2,7 @@
 pkgname=syn-cast
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="SYN-OS push-to-talk for Zello channels — a native Wayland walkie-talkie over the Zello Channel API"
+pkgdesc="SYN-OS push-to-talk on SYN-CAST channels: a native Wayland walkie-talkie speaking SYN-CAST protocol v1"
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')

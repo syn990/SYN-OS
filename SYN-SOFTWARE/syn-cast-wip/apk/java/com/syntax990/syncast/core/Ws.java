@@ -1,8 +1,10 @@
 /* ------------------------------------------------------------------------
  *   A WebSocket client (RFC 6455) over TLS (wss://) or plain TCP (ws://,
- *   for the stand-in server in tests). connect() blocks; after it, a
- *   reader thread hands each message to the listener, and send() may be
- *   called from any thread (writes are serialised).
+ *   for a test server on loopback). connect() blocks; after it, a reader
+ *   thread hands each message to the listener, and send() may be called
+ *   from any thread (writes are serialised). With a pinned certificate
+ *   (PEM text) that certificate alone is trusted and the host name is not
+ *   checked against it; without one the system store and the name decide.
  *
  *   SYN-OS     : The Syntax Operating System
  *   Component  : SYN-CAST-APK
@@ -11,6 +13,7 @@
  * ------------------------------------------------------------------------ */
 package com.syntax990.syncast.core;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -20,15 +23,20 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.Base64;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 public final class Ws {
 	public static final int TEXT = 1, BINARY = 2, CLOSE = 8, PING = 9, PONG = 10;
@@ -46,6 +54,7 @@ public final class Ws {
 	private final InputStream in;
 	private final OutputStream out;
 	private volatile boolean closed;
+	private volatile int closeCode;
 	private volatile long lastRx = System.currentTimeMillis();
 	private Thread reader;
 
@@ -56,6 +65,31 @@ public final class Ws {
 	}
 
 	public static Ws connect(String url, int timeoutMs) throws IOException {
+		return connect(url, "", timeoutMs);
+	}
+
+	/** A socket factory trusting only the pinned certificate(s) in pem. */
+	private static SSLSocketFactory pinned(String pem) throws IOException {
+		try {
+			CertificateFactory cf = CertificateFactory.getInstance("X.509");
+			KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+			ks.load(null, null);
+			int n = 0;
+			for (Certificate c : cf.generateCertificates(new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII)))) {
+				ks.setCertificateEntry("pin" + n++, c);
+			}
+			if (n == 0) throw new IOException("no certificate in the pinned PEM");
+			TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			tmf.init(ks);
+			SSLContext ctx = SSLContext.getInstance("TLS");
+			ctx.init(null, tmf.getTrustManagers(), null);
+			return ctx.getSocketFactory();
+		} catch (java.security.GeneralSecurityException e) {
+			throw new IOException("pinned certificate: " + e.getMessage(), e);
+		}
+	}
+
+	public static Ws connect(String url, String certPem, int timeoutMs) throws IOException {
 		URI u = URI.create(url);
 		boolean tls = "wss".equals(u.getScheme());
 		if (!tls && !"ws".equals(u.getScheme())) throw new IOException("not a ws:// or wss:// URL: " + url);
@@ -70,15 +104,19 @@ public final class Ws {
 		raw.setSoTimeout(timeoutMs);
 		Socket s = raw;
 		if (tls) {
-			SSLSocket ssl = (SSLSocket) ((SSLSocketFactory) SSLSocketFactory.getDefault()).createSocket(raw, host, port, true);
+			boolean pin = certPem != null && !certPem.trim().isEmpty();
+			SSLSocketFactory sf = pin ? pinned(certPem) : (SSLSocketFactory) SSLSocketFactory.getDefault();
+			SSLSocket ssl = (SSLSocket) sf.createSocket(raw, host, port, true);
 			SSLParameters p = ssl.getSSLParameters();
-			p.setEndpointIdentificationAlgorithm("HTTPS");
+			if (!pin) p.setEndpointIdentificationAlgorithm("HTTPS");
 			ssl.setSSLParameters(p);
 			ssl.startHandshake();
-			HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
-			if (!hv.verify(host, ssl.getSession())) {
-				ssl.close();
-				throw new IOException("TLS certificate does not match " + host);
+			if (!pin) {
+				HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+				if (!hv.verify(host, ssl.getSession())) {
+					ssl.close();
+					throw new IOException("TLS certificate does not match " + host);
+				}
 			}
 			s = ssl;
 		}
@@ -185,10 +223,9 @@ public final class Ws {
 				case PONG:
 					break;
 				case CLOSE: {
-					int code = data.length >= 2 ? ((data[0] & 0xFF) << 8) | (data[1] & 0xFF) : 0;
+					closeCode = data.length >= 2 ? ((data[0] & 0xFF) << 8) | (data[1] & 0xFF) : 0;
 					send(CLOSE, data.length >= 2 ? new byte[] {data[0], data[1]} : new byte[0], null);
-					/* 3003 is Zello's "another client signed in with this account" */
-					why = code == 3003 ? "kicked" : "closed by the server";
+					why = "closed by the server";
 					return;
 				}
 				case 0:
@@ -270,6 +307,11 @@ public final class Ws {
 
 	public long lastRx() {
 		return lastRx;
+	}
+
+	/** The peer's close frame code (4003 replaced, 4001 refused, 4004 revoked), 0 when there was none. */
+	public int closeCode() {
+		return closeCode;
 	}
 
 	public boolean isClosed() {

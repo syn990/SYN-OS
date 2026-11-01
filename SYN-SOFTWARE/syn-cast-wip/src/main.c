@@ -1,8 +1,7 @@
 /* ------------------------------------------------------------------------
- *   syn-cast: a push-to-talk client for Zello channels, built for SYN-OS
- *   from what the Zello Android app (7.19.2) does, over the public Zello
- *   Channel API. docs/REV-zello-7.19.2.md has what was learned from the
- *   APK and where.
+ *   syn-cast: push-to-talk on SYN-CAST channels, for SYN-OS. It speaks
+ *   SYN-CAST protocol v1 (SYN-CASTER's docs/cast-protocol.md) to the
+ *   crew's own server; nothing here touches Zello.
  *
  *   syn-cast                    the window
  *   syn-cast --headless         no window (the control socket still works)
@@ -31,7 +30,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define VERSION "0.1.0"
+#define VERSION SYN_CAST_VERSION
 
 static volatile sig_atomic_t got_signal;
 
@@ -42,7 +41,7 @@ static void on_signal(int sig) {
 
 static void usage(FILE *f) {
 	fprintf(f,
-		"syn-cast %s: push-to-talk on Zello channels, for SYN-OS\n\n"
+		"syn-cast %s: push-to-talk on SYN-CAST channels, for SYN-OS\n\n"
 		"  syn-cast                    open the window\n"
 		"  syn-cast --headless         run without a window\n"
 		"  syn-cast setup              write ~/.config/syn-cast/config.json\n"
@@ -193,53 +192,37 @@ static int setup(void) {
 		return 1;
 	}
 	printf("syn-cast setup: %s\n\n", c.path);
-	printf("Zello Friends & Family accounts sign in through the Channel API with a\n"
-		"developer issuer and private key (https://developers.zello.com/keys).\n\n");
+	printf("SYN-CAST signs in to the crew's own server with a member token. The first time, paste\n"
+		"the one-time invite code the crew gave you (syn-caster cast invite MEMBER); the token it\n"
+		"earns is kept here and used from then on.\n\n");
 
-	/* SYN-ZELLO already has the developer key on this machine */
-	char zpath[1024], zkey[1024];
-	expand_home("~/.config/syn-caster/crew/config.json", zpath, sizeof zpath);
-	expand_home("~/.config/syn-caster/crew/zello-key.pem", zkey, sizeof zkey);
-	json_error_t jerr;
-	json_t *z = json_load_file(zpath, 0, &jerr);
-	const char *ziss = z ? json_string_value(json_object_get(z, "issuer")) : NULL;
-	if (!c.issuer[0] && ziss && access(zkey, R_OK) == 0) {
-		char yn[8];
-		ask("Use SYN-ZELLO's developer key and issuer? [Y/n] ", yn, sizeof yn, false);
-		if (yn[0] != 'n' && yn[0] != 'N') {
-			str_copy(c.issuer, sizeof c.issuer, ziss);
-			str_copy(c.key_path, sizeof c.key_path, zkey);
-		}
+	char buf[2048], v[512];
+	snprintf(buf, sizeof buf, "Server (wss://HOST:PORT%s)%s%s%s: ", ZP_PATH, c.server[0] ? " [" : "", c.server,
+		c.server[0] ? "]" : "");
+	ask(buf, v, sizeof v, false);
+	if (v[0]) {
+		str_copy(c.server, sizeof c.server, v);
 	}
-	json_decref(z);
-
-	char buf[512];
-	if (!c.issuer[0]) {
-		ask("Developer issuer: ", c.issuer, sizeof c.issuer, false);
-		ask("Developer private key (PEM path): ", buf, sizeof buf, false);
-		expand_home(buf, c.key_path, sizeof c.key_path);
+	if (c.server[0] && !strstr(c.server, "/cast/")) {
+		/* the host alone was given: the path is always the same */
+		size_t n = strlen(c.server);
+		if (n && c.server[n - 1] == '/') c.server[n - 1] = 0;
+		strncat(c.server, ZP_PATH, sizeof c.server - strlen(c.server) - 1);
 	}
-	snprintf(buf, sizeof buf, "Zello username%s%s%s: ", c.username[0] ? " [" : "", c.username,
-		c.username[0] ? "]" : "");
-	char v[256];
-	for (;;) {
-		ask(buf, v, sizeof v, false);
-		if (v[0]) str_copy(c.username, sizeof c.username, v);
-		if (!config_is_bot_account(c.username)) {
-			break;
-		}
-		/* one session per Zello account: this one would knock the crew off */
-		printf("%s is SYN-CASTER's account; Zello allows one session per account, so using it here\n"
-			"would sign the crew out. Use your own account.\n", c.username);
-		c.username[0] = 0;
-		if (feof(stdin)) {
-			return 1;
-		}
+	snprintf(buf, sizeof buf, "Invite code%s: ", c.token[0] ? " (empty keeps the token you have)" : "");
+	ask(buf, v, sizeof v, false);
+	if (v[0]) {
+		str_copy(c.invite, sizeof c.invite, v);
+		c.token[0] = 0;
 	}
-	ask("Password (not shown): ", v, sizeof v, true);
-	if (v[0]) str_copy(c.password, sizeof c.password, v);
-	snprintf(buf, sizeof buf, "Channels, comma separated%s%s%s: ", c.n_channels ? " [" : "",
-		c.n_channels ? c.channels[0] : "", c.n_channels ? "...]" : "");
+	snprintf(buf, sizeof buf, "The server's certificate, PEM path, for a self-signed server%s%s%s: ",
+		c.cert_path[0] ? " [" : " (empty: the system's trust store)", c.cert_path, c.cert_path[0] ? "]" : "");
+	ask(buf, v, sizeof v, false);
+	if (v[0]) {
+		expand_home(v, c.cert_path, sizeof c.cert_path);
+	}
+	snprintf(buf, sizeof buf, "Channels, comma separated (empty: every channel you belong to)%s%s%s: ",
+		c.n_channels ? " [" : "", c.n_channels ? c.channels[0] : "", c.n_channels ? "...]" : "");
 	char list[1024];
 	ask(buf, list, sizeof list, false);
 	if (list[0]) {
@@ -251,8 +234,8 @@ static int setup(void) {
 			if (*tok) str_copy(c.channels[c.n_channels++], sizeof c.channels[0], tok);
 		}
 	}
-	if (!c.username[0] || !c.n_channels) {
-		fprintf(stderr, "a username and at least one channel are needed\n");
+	if (!c.server[0] || (!c.invite[0] && !c.token[0])) {
+		fprintf(stderr, "a server and an invite code (or a token) are needed\n");
 		return 1;
 	}
 	if (config_save_account(&c) != 0) {

@@ -7,7 +7,7 @@
  *   echo cancelling and noise suppression), plus the platform
  *   NoiseSuppressor when asked; opened only while talking, or all the time
  *   with VOX. Speech is brought up to a steady level (core/Gain), then the
- *   frames go through libopus with the Zello app's settings.
+ *   frames go through libopus with the settings the Zello app's REV found.
  *   Tones: the SYN-OS tone vocabulary (syn-bar-core's syn_tone_vocab.h),
  *   synthesised here.
  *

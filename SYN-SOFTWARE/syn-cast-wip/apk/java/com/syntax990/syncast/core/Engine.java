@@ -1,19 +1,19 @@
 /* ------------------------------------------------------------------------
- *   The core, a Java port of the desktop's app.c: sessions with backoff and
- *   refresh tokens, the talk button (IDLE, CONNECTING, SENDING, RECEIVING,
- *   DISABLED, as the Zello app's TalkButtonState), incoming streams with
- *   loss marks, the playback queue, history, texts, images and locations.
+ *   The core, a Java port of the desktop's app.c: one session with backoff
+ *   speaking SYN-CAST protocol v1 (hello with the member token or an invite
+ *   code, talk/over, say, pic, loc, presence), the talk button (IDLE,
+ *   CONNECTING, SENDING, RECEIVING, DISABLED), incoming streams with loss
+ *   marks, the playback queue, history, texts, pictures and locations.
  *
- *   One session, one channel: Zello allows one session per account and a
- *   Friends & Family logon joins one channel, so selecting another channel
- *   moves the session there. The OFFLINE switch closes it and keeps the
- *   account. If another client signs in with it, this one takes it straight
- *   back once (the Zello app doesn't fight back); a second time within two
- *   minutes it goes offline instead of fighting.
+ *   One session carries every channel: hello joins them all at once, and
+ *   the selected channel is where what you send goes. The OFFLINE switch
+ *   closes the session and keeps the token. If another session of this
+ *   member and device replaces this one (close 4003), it takes the place
+ *   straight back once; a second time within two minutes it goes offline
+ *   instead of fighting.
  *
- *   Everything sent goes to the whole channel (the Channel API's "for"
- *   reaches only someone in the same channel, so it isn't offered);
- *   private messages that arrive are shown.
+ *   Everything sent goes to the whole selected channel; a direct message
+ *   that arrives for this member is shown there, marked private.
  *
  *   Everything runs on one loop thread; socket readers, the capture thread
  *   and the UI only post to it. The UI reads state through snapshot().
@@ -28,7 +28,6 @@ package com.syntax990.syncast.core;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +54,8 @@ public final class Engine {
 		void captureVox(boolean on);
 		int captureLevel();
 		void tone(String meaning);
+		/** A small JPEG cut from a received picture (JPEG, PNG or WebP bytes), or null to show the picture itself. */
+		byte[] thumbnail(byte[] picture);
 		void notify(String title, String text);
 		boolean focused();
 		void changed();
@@ -64,7 +65,7 @@ public final class Engine {
 	public enum Talk { IDLE, CONNECTING, SENDING, RECEIVING, DISABLED }
 
 	private static final int PING_EVERY_MS = 25000;
-	/* Zello pings every 30 s; the tests shorten this with -Dsyncast.deadAfterMs */
+	/* the server pings every 20 s; the tests shorten this with -Dsyncast.deadAfterMs */
 	private static final long DEAD_AFTER_MS = Long.getLong("syncast.deadAfterMs", 70000L);
 	private static final int LIVE_PREBUFFER_PACKETS = 3, LIVE_PREBUFFER_MS = 400;
 	private static final int FEED_AHEAD = Opus.RATE / 2;
@@ -75,14 +76,14 @@ public final class Engine {
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { LOGON, START, TEXT, IMAGE, LOCATION }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE }
 
 	private static final class Pending {
 		int seq;
 		PKind kind;
 		int channel;
 		long ref;
-		boolean refresh;
+		boolean invite;   /* HELLO: sent with the invite code */
 	}
 
 	private final class Session {
@@ -91,13 +92,12 @@ public final class Engine {
 		SState state = SState.OFF;
 		Ws ws;
 		int seq;
-		String refreshToken = "";
 		long retryAt, lastRx, lastPing;
 		int backoffMs;
 		String error = "";
 		boolean wasOnline;
 		boolean refused;   /* sign-in refused: no retries until the account is fixed */
-		boolean kicked;    /* another client signed in with this account */
+		boolean kicked;    /* another session of this member and device replaced this one */
 		long lastKick;
 		final List<Pending> pend = new ArrayList<>();
 
@@ -109,8 +109,9 @@ public final class Engine {
 	public static final class Channel {
 		public final String name;
 		int session;
-		public boolean online, imagesOk, textingOk, locationsOk, muted;
-		public int usersOnline, unread;
+		public boolean online, muted;
+		public final List<String> who = new ArrayList<>(); /* members online in it, by name */
+		public int unread;
 		public String error = "";
 		final History hist;
 
@@ -118,12 +119,28 @@ public final class Engine {
 			this.name = name;
 			this.hist = hist;
 		}
+
+		boolean add(String member) {
+			for (String w : who) if (w.equalsIgnoreCase(member)) return false;
+			who.add(member);
+			return true;
+		}
+
+		boolean remove(String member) {
+			for (int i = 0; i < who.size(); i++) {
+				if (who.get(i).equalsIgnoreCase(member)) {
+					who.remove(i);
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 	private static final class Rx {
 		int session, channel;
 		long streamId, lastPid = -1;
-		String from, forwho;
+		String from, forwho;   /* forwho: this member, on a direct message */
 		Proto.Codec codec;
 		long msgId;
 		History.VoiceWriter file;
@@ -150,7 +167,9 @@ public final class Engine {
 
 	private final Config cfg;
 	private final File dataDir;
+	private final File cfgFile;
 	private final Platform pf;
+	private String member = "";   /* who the server says we are (the hello answer) */
 	private final List<Session> sess = new ArrayList<>();
 	private final List<Channel> chan = new ArrayList<>();
 	private int active;
@@ -166,21 +185,18 @@ public final class Engine {
 	private long toastUntil;
 	private long historyVersion;
 	private String authError;
-	private PrivateKey key;
 
 	private Tx tx = Tx.IDLE;
-	private boolean txReleased, txEndSeen, txVox;
+	private boolean txReleased, txEndSeen, txVox, txServerOver;
 	private int txChannel, txStartSeq;
 	private long txStreamId, txMsgId, txStarted;
 	private final List<byte[]> txHeld = new ArrayList<>();
 	private History.VoiceWriter txFile;
 	private int txLevel;
 
-	private final Map<Long, long[]> imagesIn = new java.util.HashMap<>(); /* message_id -> {channel, msgId, when} */
+	private final Map<Long, long[]> imagesIn = new java.util.HashMap<>(); /* blob -> {channel, msgId, when} */
 	private byte[] imgFull, imgThumb;
 	private int imgW, imgH, imgChannel;
-	private final long[][] recentStreams = new long[32][]; /* {streamId, channel, msgId} for transcriptions */
-	private int recentNext;
 
 	private final ScheduledExecutorService loop = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "syncast-engine");
@@ -194,11 +210,14 @@ public final class Engine {
 	});
 	private volatile boolean stopped;
 
-	public Engine(Config cfg, File dataDir, Platform pf) {
+	/** cfgFile may be null: the token an invite earns is then kept for this run only. */
+	public Engine(Config cfg, File dataDir, File cfgFile, Platform pf) {
 		this.cfg = cfg;
 		this.dataDir = dataDir;
+		this.cfgFile = cfgFile;
 		this.pf = pf;
 		this.vox = cfg.vox;
+		this.member = cfg.member;
 	}
 
 	/* ---------- the loop ---------- */
@@ -232,29 +251,26 @@ public final class Engine {
 		}, ms, TimeUnit.MILLISECONDS);
 	}
 
+	/** A channel opened and carried by the one session. -1 when it cannot be. */
+	private int channelAdd(String name) {
+		if (chan.size() >= 64) return -1;
+		try {
+			History h = new History(dataDir, name);
+			h.prune(cfg.historyDays, (long) cfg.historyMb << 20);
+			chan.add(new Channel(name, h));
+		} catch (IOException e) {
+			pf.log("history for " + name + ": " + e.getMessage());
+			return -1;
+		}
+		sess.get(0).chans.add(chan.size() - 1);
+		return chan.size() - 1;
+	}
+
 	public void start() {
 		post(() -> {
 			dataDir.mkdirs();
-			for (String name : cfg.channels) {
-				try {
-					History h = new History(dataDir, name);
-					h.prune(cfg.historyDays, (long) cfg.historyMb << 20);
-					chan.add(new Channel(name, h));
-				} catch (IOException e) {
-					pf.log("history for " + name + ": " + e.getMessage());
-				}
-			}
-			if (!chan.isEmpty()) {
-				sess.add(new Session(0));
-				sess.get(0).chans.add(active);
-			}
-			if (!cfg.issuer.isEmpty() && !cfg.keyPem.isEmpty()) {
-				try {
-					key = Jwt.parsePem(cfg.keyPem);
-				} catch (Exception e) {
-					for (Session ss : sess) ss.error = "developer key: " + e.getMessage();
-				}
-			}
+			sess.add(new Session(0));
+			for (String name : cfg.channels) channelAdd(name);
 			if (mayConnect()) connect(sess.get(0));
 			pf.captureVox(vox);
 			changed();
@@ -299,7 +315,7 @@ public final class Engine {
 	}
 
 	private String me() {
-		return cfg.username.isEmpty() ? "you" : cfg.username;
+		return !member.isEmpty() ? member : !cfg.member.isEmpty() ? cfg.member : "you";
 	}
 
 	private History.Msg event(int ch, String text) {
@@ -331,13 +347,13 @@ public final class Engine {
 		return true;
 	}
 
-	private void addPending(Session ss, int seq, PKind k, int channel, long ref, boolean refresh) {
+	private void addPending(Session ss, int seq, PKind k, int channel, long ref, boolean invite) {
 		Pending p = new Pending();
 		p.seq = seq;
 		p.kind = k;
 		p.channel = channel;
 		p.ref = ref;
-		p.refresh = refresh;
+		p.invite = invite;
 		ss.pend.add(p);
 		if (ss.pend.size() > 64) ss.pend.remove(0); /* the oldest reply is long overdue */
 	}
@@ -358,10 +374,10 @@ public final class Engine {
 
 	private void connect(Session ss) {
 		ss.state = SState.CONNECTING;
-		final String url = cfg.server;
+		final String url = cfg.server, pem = cfg.certPem;
 		connector.execute(() -> {
 			try {
-				Ws w = Ws.connect(url, 10000);
+				Ws w = Ws.connect(url, pem, 10000);
 				post(() -> connected(ss, w));
 			} catch (IOException e) {
 				String why = e.getMessage() != null ? e.getMessage() : e.toString();
@@ -409,37 +425,33 @@ public final class Engine {
 			public void onClosed(Ws ws, String why) {
 				post(() -> {
 					if (ss.ws != ws) return;
-					boolean kicked = "kicked".equals(why);
-					if (kicked) ss.kicked = true;
-					drop(ss, kicked ? "signed in elsewhere" : why);
+					int code = ws.closeCode();
+					if (code == 4003) {
+						ss.kicked = true; /* a newer session of this member and device */
+						drop(ss, "replaced by another session");
+					} else if (code == 4001 || code == 4004) {
+						ss.refused = true;
+						drop(ss, code == 4004 ? "token revoked" : "token refused");
+					} else {
+						drop(ss, why);
+					}
 				});
 			}
 		});
-		logon(ss);
+		hello(ss);
 	}
 
-	private void logon(Session ss) {
-		boolean useRefresh = !ss.refreshToken.isEmpty();
-		String token = null;
-		if (!useRefresh) {
-			if (!cfg.authToken.isEmpty()) {
-				token = cfg.authToken;
-			} else if (key != null) {
-				try {
-					token = Jwt.mint(key, cfg.issuer, 120);
-				} catch (Exception e) {
-					ss.error = "token: " + e.getMessage();
-					drop(ss, ss.error);
-					return;
-				}
-			}
+	/** hello: an invite code the first time (the answer carries the token to keep), the token after. */
+	private void hello(Session ss) {
+		List<String> names = null;
+		if (!cfg.channels.isEmpty()) {
+			names = new ArrayList<>();
+			for (int k : ss.chans) names.add(chan.get(k).name);
 		}
-		List<String> names = new ArrayList<>();
-		for (int k : ss.chans) names.add(chan.get(k).name);
+		boolean invite = !cfg.invite.isEmpty();
 		int seq = ++ss.seq;
-		addPending(ss, seq, PKind.LOGON, -1, 0, useRefresh);
-		send(ss, Proto.logon(seq, token, useRefresh ? ss.refreshToken : null, cfg.username, cfg.password, names,
-			cfg.transcriptions));
+		addPending(ss, seq, PKind.HELLO, -1, 0, invite);
+		send(ss, Proto.hello(seq, cfg.token, cfg.invite, cfg.device, names));
 		ss.state = SState.LOGON;
 	}
 
@@ -452,7 +464,7 @@ public final class Engine {
 		}
 		if (why != null && !why.isEmpty()) ss.error = why;
 		for (Pending p : ss.pend) {
-			if ((p.kind == PKind.TEXT || p.kind == PKind.LOCATION) && p.channel >= 0) {
+			if ((p.kind == PKind.SAY || p.kind == PKind.LOC) && p.channel >= 0) {
 				History.Msg m = chan.get(p.channel).hist.find(p.ref);
 				if (m != null && m.partial) {
 					m.partial = false;
@@ -460,13 +472,13 @@ public final class Engine {
 					event(p.channel, "not delivered (connection lost)");
 				}
 			}
-			if (p.kind == PKind.IMAGE) imgFull = imgThumb = null;
+			if (p.kind == PKind.PIC) imgFull = imgThumb = null;
 		}
 		ss.pend.clear();
 		for (int k : ss.chans) {
 			Channel c = chan.get(k);
 			c.online = false;
-			c.usersOnline = 0;
+			c.who.clear();
 			if (wasOnline) event(k, "connection lost: " + ss.error);
 			if (tx != Tx.IDLE && txChannel == k) txAbort("connection lost");
 		}
@@ -482,18 +494,18 @@ public final class Engine {
 			ss.kicked = false;
 			long now = System.currentTimeMillis();
 			if (ss.lastKick != 0 && now - ss.lastKick < KICK_WINDOW_MS) {
-				/* kicked twice in a row: another client keeps taking it, so give way */
+				/* replaced twice in a row: another SYN-CAST keeps taking this device's place, so give way */
 				ss.lastKick = 0;
 				ss.state = SState.OFF;
 				offline = true;
-				ss.error = "another client keeps signing in as " + cfg.username;
-				for (int k : ss.chans) event(k, "signed in elsewhere: went offline");
-				toast("another client is using " + cfg.username + ": SYN-CAST went offline");
+				ss.error = "another " + cfg.device + " session keeps replacing this one";
+				for (int k : ss.chans) event(k, "replaced by another session: went offline");
+				toast("another SYN-CAST is signed in as " + me() + " on this device: went offline");
 				return;
 			}
 			ss.lastKick = now;
 			ss.backoffMs = 0;
-			pf.log("another client signed in as " + cfg.username + ": taking the account back");
+			pf.log("another session replaced this one as " + me() + "/" + cfg.device + ": taking the place back");
 		}
 		if (ss.refused) {
 			ss.state = SState.OFF;
@@ -512,59 +524,56 @@ public final class Engine {
 
 	/* ---------- incoming ---------- */
 
+	/** Where an event belongs: its channel, or for a direct message (no channel, "to" is this member) the selected one. */
+	private int eventChannel(Session ss, Map<String, Object> o) {
+		String chName = Json.str(o, "channel");
+		if (!chName.isEmpty()) return channelIn(ss, chName);
+		if (!Json.str(o, "to").isEmpty() && !chan.isEmpty()) return active;
+		return -1;
+	}
+
 	private void onJson(Session ss, String text) {
 		Map<String, Object> o = Json.object(text);
 		if (o == null) return;
-		String cmd = Json.str(o, "command");
-		String chName = Json.str(o, "channel");
-		int ch = !chName.isEmpty() || ss.chans.size() == 1 ? channelIn(ss, chName) : -1;
-		String from = Json.str(o, "from"), forwho = Json.str(o, "for");
-		if (cmd.isEmpty()) {
-			if (o.containsKey("seq")) onReply(ss, o);
+		String type = Json.str(o, "type");
+		if (type.equals("ok") || type.equals("error")) {
+			if (o.get("seq") instanceof Double) onReply(ss, o);
+			else onServerError(ss, o);
 			return;
 		}
-		switch (cmd) {
-		case "on_channel_status":
-			if (ch >= 0) {
-				Channel c = chan.get(ch);
-				boolean was = c.online;
-				c.online = "online".equals(Json.str(o, "status"));
-				c.usersOnline = (int) Json.lng(o, "users_online");
-				c.imagesOk = Json.bool(o, "images_supported");
-				c.textingOk = Json.bool(o, "texting_supported");
-				c.locationsOk = Json.bool(o, "locations_supported");
-				c.error = Json.str(o, "error");
-				if (c.online && !was) {
-					event(ch, "connected, " + c.usersOnline + " online");
-					if (ss.wasOnline) tone("SUCCESS");
-					ss.wasOnline = true;
-				} else if (!c.online && was) {
-					event(ch, "channel offline" + (c.error.isEmpty() ? "" : ": " + c.error));
-				}
-			}
+		int ch = eventChannel(ss, o);
+		String from = Json.str(o, "from"), to = Json.str(o, "to");
+		switch (type) {
+		case "talk":
+			rxStart(ss, ch, o, from, to);
 			break;
-		case "on_stream_start":
-			rxStart(ss, ch, o, from, forwho);
-			break;
-		case "on_stream_stop":
+		case "over": {
+			long stream = Json.lng(o, "stream");
 			for (Rx r : new ArrayList<>(rx)) {
-				if (r.session == ss.idx && r.streamId == Json.lng(o, "stream_id")) rxEnd(r);
+				if (r.session == ss.idx && r.streamId == stream) rxEnd(r);
+			}
+			if (tx == Tx.SENDING && txStreamId == stream && !Json.bool(o, "replay")) {
+				/* the server ended our floor (a stall, the 5 minutes, a flood) */
+				txServerOver = true;
+				String why = Json.str(o, "reason");
+				txAbort(why.isEmpty() ? "ended by the server" : why);
 			}
 			break;
-		case "on_text_message":
+		}
+		case "say":
 			if (ch >= 0) {
 				History.Msg m = new History.Msg();
 				m.kind = History.Kind.TEXT;
 				m.text = Json.str(o, "text");
 				m.from = from;
-				m.forwho = forwho;
+				m.forwho = to;
 				chan.get(ch).hist.add(m);
 				if (ch != active) chan.get(ch).unread++;
 				if (!chan.get(ch).muted) tone("ALERT");
-				pf.notify(from + (forwho.isEmpty() ? " in " : " (private) in ") + chan.get(ch).name, m.text);
+				pf.notify(from + (to.isEmpty() ? " in " : " (private) in ") + chan.get(ch).name, m.text);
 			}
 			break;
-		case "on_image":
+		case "pic":
 			if (ch >= 0) {
 				History.Msg m = new History.Msg();
 				m.kind = History.Kind.IMAGE;
@@ -572,44 +581,34 @@ public final class Engine {
 				m.w = (int) Json.lng(o, "width");
 				m.h = (int) Json.lng(o, "height");
 				m.from = from;
-				m.forwho = forwho;
+				m.forwho = to;
 				chan.get(ch).hist.add(m);
-				imagesIn.put(Json.lng(o, "message_id"), new long[] {ch, m.id, System.currentTimeMillis()});
+				imagesIn.put(Json.lng(o, "blob"), new long[] {ch, m.id, System.currentTimeMillis()});
 			}
 			break;
-		case "on_location":
+		case "loc":
 			if (ch >= 0) {
 				History.Msg m = new History.Msg();
 				m.kind = History.Kind.LOCATION;
-				m.lat = Json.num(o, "latitude");
-				m.lon = Json.num(o, "longitude");
+				m.lat = Json.num(o, "lat");
+				m.lon = Json.num(o, "lon");
 				m.acc = Json.num(o, "accuracy");
-				String addr = Json.str(o, "formatted_address");
-				m.text = addr.isEmpty() ? Json.str(o, "rgl") : addr;
+				m.text = Json.str(o, "address");
 				m.from = from;
-				m.forwho = forwho;
+				m.forwho = to;
 				chan.get(ch).hist.add(m);
 				tone("ALERT");
 			}
 			break;
-		case "on_transcription":
-			for (long[] r : recentStreams) {
-				if (r != null && r[0] == Json.lng(o, "stream_id")) {
-					History.Msg m = chan.get((int) r[1]).hist.find(r[2]);
-					if (m != null) {
-						m.text = Json.str(o, "text");
-						chan.get((int) r[1]).hist.commit(m);
-					}
-				}
-			}
+		case "join":
+			if (ch >= 0 && chan.get(ch).add(Json.str(o, "member"))) event(ch, Json.str(o, "member") + " joined");
 			break;
-		case "on_error":
-			toast("server: " + Json.str(o, "error"));
-			if ("server closed connection".equals(Json.str(o, "error"))) drop(ss, Json.str(o, "error"));
-			else if ("kicked".equals(Json.str(o, "error"))) {
-				ss.kicked = true;
-				drop(ss, "signed in elsewhere");
-			}
+		case "leave":
+			if (ch >= 0 && chan.get(ch).remove(Json.str(o, "member"))) event(ch, Json.str(o, "member") + " left");
+			break;
+		case "presence":
+			pf.log(Json.str(o, "member") + " is " + Json.str(o, "status")
+				+ (Json.str(o, "text").isEmpty() ? "" : ": " + Json.str(o, "text")));
 			break;
 		default:
 			break;
@@ -617,51 +616,157 @@ public final class Engine {
 		changed();
 	}
 
+	/** An error with no seq: the server's own word (a revoked token, a frame before hello, a bad packet). */
+	private void onServerError(Session ss, Map<String, Object> o) {
+		String code = Json.str(o, "code"), text = Json.str(o, "text");
+		if (code.equals("revoked")) {
+			ss.refused = true;
+			drop(ss, "token revoked");
+		} else if (code.equals("not_logged_in")) {
+			drop(ss, "not signed in");
+		} else {
+			toast("server: " + (text.isEmpty() ? code : text));
+		}
+	}
+
+	/** The channels the hello answer joined (and any it named that the config did not), with who is in them. */
+	private void helloChannels(Session ss, Map<String, Object> o) {
+		Object chans = o.get("channels");
+		if (chans instanceof List) {
+			for (Object v : (List<?>) chans) {
+				if (!(v instanceof Map)) continue;
+				@SuppressWarnings("unchecked")
+				Map<String, Object> zc = (Map<String, Object>) v;
+				String id = Json.str(zc, "channel");
+				int ch = -1;
+				for (int k = 0; k < chan.size(); k++) if (chan.get(k).name.equalsIgnoreCase(id)) ch = k;
+				if (ch < 0) ch = channelAdd(id);
+				if (ch < 0) continue;
+				Channel c = chan.get(ch);
+				boolean was = c.online;
+				c.online = true;
+				c.who.clear();
+				Object online = zc.get("online");
+				if (online instanceof List) {
+					for (Object w : (List<?>) online) if (w instanceof String) c.who.add((String) w);
+				}
+				c.error = "";
+				if (!was) event(ch, "connected, " + c.who.size() + " online");
+			}
+		}
+		Object refused = o.get("refused");
+		if (refused instanceof List) {
+			for (Object v : (List<?>) refused) {
+				if (!(v instanceof Map)) continue;
+				@SuppressWarnings("unchecked")
+				Map<String, Object> r = (Map<String, Object>) v;
+				int ch = channelIn(ss, Json.str(r, "channel"));
+				if (ch >= 0) {
+					chan.get(ch).error = Json.str(r, "code");
+					event(ch, "not joined: " + Json.str(r, "code"));
+				}
+			}
+		}
+		if (ss.wasOnline) tone("SUCCESS");
+		ss.wasOnline = true;
+	}
+
 	private void onReply(Session ss, Map<String, Object> o) {
 		Pending p = takePending(ss, (int) Json.lng(o, "seq"));
 		if (p == null) return;
-		boolean ok = Json.bool(o, "success");
-		String err = Json.str(o, "error");
+		boolean ok = "ok".equals(Json.str(o, "type"));
+		String code = Json.str(o, "code");
+		String err = Json.str(o, "text");
+		if (!ok && err.isEmpty()) err = code.isEmpty() ? "refused" : code;
 		switch (p.kind) {
-		case LOGON:
+		case HELLO:
 			if (ok) {
 				ss.state = SState.ONLINE;
 				ss.backoffMs = 0;
 				ss.error = "";
-				String rt = Json.str(o, "refresh_token");
-				if (!rt.isEmpty()) ss.refreshToken = rt;
-				pf.log("signed in as " + cfg.username);
-			} else {
-				String why = "sign-in refused: " + (err.isEmpty() ? "unknown" : err);
-				if (p.refresh) {
-					ss.refreshToken = ""; /* stale: the next try mints a token */
-					drop(ss, why);
-				} else {
-					/* a wrong password, username or key: retrying only risks a lockout */
-					authError = err.isEmpty() ? "unknown" : err;
-					ss.refused = true;
-					drop(ss, why);
+				authError = null;
+				boolean save = false;
+				String who = Json.str(o, "member");
+				if (!who.isEmpty()) {
+					member = who;
+					if (!who.equals(cfg.member)) {
+						cfg.member = who;
+						save = true;
+					}
 				}
+				String tok = Json.str(o, "token");
+				if (!tok.isEmpty()) {
+					/* the invite is spent: from now on the token signs in */
+					cfg.token = tok;
+					cfg.invite = "";
+					save = true;
+					pf.log("invite accepted: member token " + Json.str(o, "token_id") + " kept");
+				}
+				if (save && cfgFile != null) {
+					try {
+						cfg.save(cfgFile);
+					} catch (IOException e) {
+						pf.log("cannot write " + cfgFile + ": the token would be lost on the next start");
+					}
+				}
+				helloChannels(ss, o);
+				int held = 0;
+				if (o.get("held") instanceof List) {
+					for (Object h : (List<?>) o.get("held")) {
+						if (h instanceof Map) {
+							@SuppressWarnings("unchecked")
+							Map<String, Object> hm = (Map<String, Object>) h;
+							held += (int) Json.lng(hm, "count");
+						}
+					}
+				}
+				if (held > 0) toast(held + " direct message" + (held == 1 ? "" : "s") + " waiting for you");
+				pf.log("hello: " + me() + ", session " + Json.str(o, "session"));
+			} else {
+				String why = "sign-in refused: " + err;
+				if (Proto.tokenRefused(code)) {
+					/* a bad or spent invite, a revoked or expired token: retrying cannot help */
+					authError = err;
+					ss.refused = true;
+					if (p.invite && !cfg.invite.isEmpty()) {
+						cfg.invite = "";
+						if (cfgFile != null) {
+							try {
+								cfg.save(cfgFile);
+							} catch (IOException ignored) {
+							}
+						}
+					}
+				}
+				drop(ss, why);
 			}
 			break;
-		case START:
-			txStarted(ss, p.seq, ok, Json.lng(o, "stream_id"), err);
+		case TALK:
+			txStarted(ss, p.seq, ok, Json.lng(o, "stream"), code, err, Json.str(o, "talker"));
 			break;
-		case TEXT:
-		case LOCATION: {
+		case OVER:
+			if (ok && !Json.str(o, "message").isEmpty()) {
+				pf.log("voice message " + Json.str(o, "message") + " saved by the server, " + Json.lng(o, "ms") + " ms");
+			}
+			break;
+		case SAY:
+		case LOC: {
 			History.Msg m = chan.get(p.channel).hist.find(p.ref);
 			if (m != null) {
 				m.partial = false;
 				chan.get(p.channel).hist.commit(m);
 			}
 			if (!ok) {
-				event(p.channel, "not delivered: " + (err.isEmpty() ? "refused" : err));
+				event(p.channel, "not delivered: " + err);
 				tone("FAIL");
 			}
 			break;
 		}
-		case IMAGE:
-			imageSent(ss, ok, Json.lng(o, "image_id"), err);
+		case PIC:
+			imageSent(ss, ok, Json.lng(o, "upload"), err);
+			break;
+		case PRESENCE:
+			if (!ok) pf.log("presence refused: " + err);
 			break;
 		}
 		changed();
@@ -669,44 +774,49 @@ public final class Engine {
 
 	private void onBinaryFrame(Session ss, byte[] d) {
 		if (d.length < Proto.HDR) return;
-		int type = d[0];
-		long id = Proto.be32(d, 1), sub = Proto.be32(d, 5);
+		int kind = d[0];
+		long id = Proto.be32(d, 1), seq = Proto.be32(d, 5);
 		byte[] data = new byte[d.length - Proto.HDR];
 		System.arraycopy(d, Proto.HDR, data, 0, data.length);
-		if (type == Proto.BIN_AUDIO) {
+		if (kind == Proto.BIN_AUDIO) {
 			for (Rx r : rx) {
 				if (r.ended || r.session != ss.idx || r.streamId != id) continue;
-				if (r.lastPid >= 0 && sub > r.lastPid + 1 && sub - r.lastPid <= 25) {
+				if (r.lastPid >= 0 && seq > r.lastPid + 1 && seq - r.lastPid <= 25) {
 					/* lost packets: marked so playback covers them with FEC/PLC */
-					for (long k = r.lastPid + 1; k < sub; k++) {
+					for (long k = r.lastPid + 1; k < seq; k++) {
 						r.pkts.add(new byte[0]);
 						if (r.file != null) r.file.write(null);
 					}
 				}
-				r.lastPid = sub;
+				r.lastPid = seq;
 				r.pkts.add(data);
 				if (r.file != null) r.file.write(data);
 				return;
 			}
-		} else if (type == Proto.BIN_IMAGE) {
+		} else if (kind == Proto.BIN_PIC) {
+			/* the picture itself, one frame after its pic event: stored whole; the thumbnail is the platform's to cut */
 			long[] in = imagesIn.get(id);
 			if (in == null) return;
 			History h = chan.get((int) in[0]).hist;
-			try (FileOutputStream f = new FileOutputStream(h.image(in[1], sub == Proto.IMAGE_THUMB))) {
+			try (FileOutputStream f = new FileOutputStream(h.image(in[1], false))) {
 				f.write(data);
 			} catch (IOException e) {
 				pf.log("image: " + e.getMessage());
 			}
-			if (sub == Proto.IMAGE_FULL) {
-				History.Msg m = h.find(in[1]);
-				if (m != null) {
-					m.partial = false;
-					h.commit(m);
-					pf.notify(chan.get((int) in[0]).name, m.from + " sent an image");
-				}
-				tone("ALERT");
-				imagesIn.remove(id);
+			byte[] thumb = pf.thumbnail(data);
+			try (FileOutputStream f = new FileOutputStream(h.image(in[1], true))) {
+				f.write(thumb != null ? thumb : data);
+			} catch (IOException e) {
+				pf.log("thumbnail: " + e.getMessage());
 			}
+			History.Msg m = h.find(in[1]);
+			if (m != null) {
+				m.partial = false;
+				h.commit(m);
+				pf.notify(chan.get((int) in[0]).name, m.from + " sent a picture");
+			}
+			tone("ALERT");
+			imagesIn.remove(id);
 			changed();
 		}
 	}
@@ -727,11 +837,10 @@ public final class Engine {
 		Rx r = new Rx();
 		r.session = ss.idx;
 		r.channel = ch;
-		r.streamId = Json.lng(o, "stream_id");
+		r.streamId = Json.lng(o, "stream");
 		r.from = from;
 		r.forwho = forwho;
-		r.codec = Proto.Codec.decode(Json.str(o, "codec_header"));
-		if (r.codec == null) r.codec = new Proto.Codec(16000, 1, 60);
+		r.codec = Proto.Codec.of(o);
 		r.started = System.currentTimeMillis();
 		Channel c = chan.get(ch);
 		History.Msg m = new History.Msg();
@@ -746,8 +855,6 @@ public final class Engine {
 		} catch (IOException e) {
 			pf.log("voice file: " + e.getMessage());
 		}
-		recentStreams[recentNext] = new long[] {r.streamId, ch, m.id};
-		recentNext = (recentNext + 1) % recentStreams.length;
 		rx.add(r);
 		if (cfg.autoPlay && !busy && !c.muted) {
 			Item it = new Item();
@@ -893,12 +1000,12 @@ public final class Engine {
 		if (playing && queue.get(0).replay) stopPlaybackNow();
 		Session ss = sess.get(c.session);
 		int seq = ++ss.seq;
-		if (!send(ss, Proto.startStream(seq, c.name, null, Proto.PTT))) {
+		if (!send(ss, Proto.talk(seq, c.name, null, Proto.PTT))) {
 			tone("FAIL");
 			toast("not connected");
 			return false;
 		}
-		addPending(ss, seq, PKind.START, active, 0, false);
+		addPending(ss, seq, PKind.TALK, active, 0, false);
 		tx = Tx.STARTING;
 		txChannel = active;
 		txStartSeq = seq;
@@ -920,7 +1027,7 @@ public final class Engine {
 		if (txFile != null) txFile.close();
 		txFile = null;
 		tx = Tx.IDLE;
-		txReleased = txEndSeen = txVox = false;
+		txReleased = txEndSeen = txVox = txServerOver = false;
 		txLevel = 0;
 		changed();
 	}
@@ -929,7 +1036,10 @@ public final class Engine {
 		Channel c = chan.get(txChannel);
 		if (tx == Tx.SENDING) {
 			Session ss = sess.get(c.session);
-			send(ss, Proto.stopStream(++ss.seq, c.name, txStreamId));
+			if (!txServerOver) {
+				int seq = ++ss.seq;
+				if (send(ss, Proto.over(seq, txStreamId))) addPending(ss, seq, PKind.OVER, txChannel, txMsgId, false);
+			}
 			History.Msg m = c.hist.find(txMsgId);
 			if (m != null) {
 				m.partial = false;
@@ -947,17 +1057,17 @@ public final class Engine {
 		txFinish();
 	}
 
-	private void txStarted(Session ss, int seq, boolean ok, long streamId, String err) {
+	private void txStarted(Session ss, int seq, boolean ok, long streamId, String code, String err, String talker) {
 		if (tx != Tx.STARTING || seq != txStartSeq) {
 			if (ok && streamId != 0) {
 				/* the button was given up on before the server answered */
-				send(ss, Proto.stopStream(++ss.seq, chan.get(tx == Tx.IDLE ? active : txChannel).name, streamId));
+				send(ss, Proto.over(++ss.seq, streamId));
 			}
 			return;
 		}
 		if (!ok) {
 			tone("FAIL");
-			toast("cannot talk: " + (err.isEmpty() ? "refused" : err));
+			toast("cannot talk: " + (code.equals("busy") && !talker.isEmpty() ? talker + " is talking" : err));
 			if (!txReleased && !txVox) pf.captureEnd();
 			txReset();
 			return;
@@ -1071,20 +1181,20 @@ public final class Engine {
 		post(() -> {
 			Channel c = ready();
 			if (c == null || text.trim().isEmpty()) return;
-			if (text.length() > 30000) {
-				toast("text longer than the 30 KB the API takes");
+			if (text.length() > Proto.TEXT_MAX) {
+				toast("text longer than the " + Proto.TEXT_MAX + " characters a message takes");
 				return;
 			}
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.sendText(seq, c.name, null, text))) return;
+			if (!send(ss, Proto.say(seq, c.name, null, text))) return;
 			History.Msg m = new History.Msg();
 			m.kind = History.Kind.TEXT;
 			m.out = m.partial = true;
 			m.text = text;
 			m.from = me();
 			c.hist.add(m);
-			addPending(ss, seq, PKind.TEXT, active, m.id, false);
+			addPending(ss, seq, PKind.SAY, active, m.id, false);
 			changed();
 		});
 	}
@@ -1095,7 +1205,7 @@ public final class Engine {
 			if (c == null) return;
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.sendLocation(seq, c.name, null, lat, lon, acc, address))) return;
+			if (!send(ss, Proto.loc(seq, c.name, null, lat, lon, acc, address))) return;
 			History.Msg m = new History.Msg();
 			m.kind = History.Kind.LOCATION;
 			m.out = m.partial = true;
@@ -1105,7 +1215,7 @@ public final class Engine {
 			m.text = address == null ? "" : address;
 			m.from = me();
 			c.hist.add(m);
-			addPending(ss, seq, PKind.LOCATION, active, m.id, false);
+			addPending(ss, seq, PKind.LOC, active, m.id, false);
 			changed();
 		});
 	}
@@ -1121,21 +1231,21 @@ public final class Engine {
 			}
 			Session ss = sess.get(c.session);
 			int seq = ++ss.seq;
-			if (!send(ss, Proto.sendImage(seq, c.name, null, w, h, thumb.length, full.length))) return;
+			if (!send(ss, Proto.pic(seq, c.name, null, "image/jpeg", w, h, full.length))) return;
 			imgFull = full;
 			imgThumb = thumb;
 			imgW = w;
 			imgH = h;
 			imgChannel = active;
-			addPending(ss, seq, PKind.IMAGE, active, 0, false);
+			addPending(ss, seq, PKind.PIC, active, 0, false);
 		});
 	}
 
-	private void imageSent(Session ss, boolean ok, long imageId, String err) {
+	/** The pic answer reserved an upload: the picture goes as one binary frame (kind 2, the upload's id). */
+	private void imageSent(Session ss, boolean ok, long upload, String err) {
 		if (imgFull == null) return;
-		if (ok && imageId != 0) {
-			sendBin(ss, Proto.binHeader(Proto.BIN_IMAGE, imageId, Proto.IMAGE_THUMB), imgThumb);
-			sendBin(ss, Proto.binHeader(Proto.BIN_IMAGE, imageId, Proto.IMAGE_FULL), imgFull);
+		if (ok && upload != 0) {
+			sendBin(ss, Proto.binHeader(Proto.BIN_PIC, upload, 0), imgFull);
 			History h = chan.get(imgChannel).hist;
 			History.Msg m = new History.Msg();
 			m.kind = History.Kind.IMAGE;
@@ -1225,20 +1335,20 @@ public final class Engine {
 			w.close();
 		}
 		for (Pending p : ss.pend) {
-			if ((p.kind == PKind.TEXT || p.kind == PKind.LOCATION) && p.channel >= 0) {
+			if ((p.kind == PKind.SAY || p.kind == PKind.LOC) && p.channel >= 0) {
 				History.Msg m = chan.get(p.channel).hist.find(p.ref);
 				if (m != null && m.partial) {
 					m.partial = false;
 					chan.get(p.channel).hist.commit(m);
 				}
 			}
-			if (p.kind == PKind.IMAGE) imgFull = imgThumb = null;
+			if (p.kind == PKind.PIC) imgFull = imgThumb = null;
 		}
 		ss.pend.clear();
 		for (Rx r : new ArrayList<>(rx)) rxEnd(r);
 		for (int k : ss.chans) {
 			chan.get(k).online = false;
-			chan.get(k).usersOnline = 0;
+			chan.get(k).who.clear();
 		}
 		ss.kicked = false;
 		ss.backoffMs = 0;
@@ -1254,7 +1364,7 @@ public final class Engine {
 			ss.error = "";
 			if (off) {
 				leave();
-				toast("offline: the account is free for another client");
+				toast("offline");
 			} else {
 				ss.lastKick = 0;
 				if (mayConnect()) connect(ss);
@@ -1263,18 +1373,10 @@ public final class Engine {
 		});
 	}
 
+	/** Every channel is joined already: selecting one only aims what is sent. */
 	public void selectChannel(int k) {
 		post(() -> {
 			if (k < 0 || k >= chan.size() || tx != Tx.IDLE) return;
-			if (k != active && !sess.isEmpty()) {
-				/* join the other channel on the same session */
-				Session ss = sess.get(0);
-				leave();
-				ss.chans.clear();
-				ss.chans.add(k);
-				ss.error = "";
-				if (mayConnect()) connect(ss);
-			}
 			active = k;
 			chan.get(k).unread = 0;
 			changed();
@@ -1292,6 +1394,11 @@ public final class Engine {
 		post(() -> {
 			busy = !busy;
 			toast(busy ? "Busy: incoming voice is kept, not played" : "Available");
+			if (!sess.isEmpty() && sess.get(0).state == SState.ONLINE) {
+				Session ss = sess.get(0);
+				int seq = ++ss.seq;
+				if (send(ss, Proto.presence(seq, busy ? "busy" : "online", null))) addPending(ss, seq, PKind.PRESENCE, -1, 0, false);
+			}
 			if (!busy) {
 				/* play the messages queued while busy, in order */
 				for (int i = busyQ.size() - 1; i >= 0; i--) {
@@ -1429,14 +1536,14 @@ public final class Engine {
 		public int rxLevel;
 		public long rxElapsed, playingMsgId = -1;
 		public long historyVersion;
-		/** Zello refused the account: "invalid password" and the like */
+		/** the server refused the token or invite: "bad token", "the token has expired" and the like */
 		public String authError;
 	}
 
 	public synchronized View snapshot() {
 		View v = new View();
 		v.configured = cfg.hasAccount();
-		v.user = cfg.username;
+		v.user = me().equals("you") ? "" : me();
 		v.server = cfg.server;
 		v.toast = toast;
 		v.active = active;
@@ -1453,7 +1560,7 @@ public final class Engine {
 			cv.name = c.name;
 			cv.online = c.online;
 			cv.muted = c.muted;
-			cv.users = c.usersOnline;
+			cv.users = c.who.size();
 			cv.unread = c.unread;
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;

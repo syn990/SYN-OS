@@ -4,14 +4,13 @@
  *   (ui.c) and the control socket (ctl.c) only call the app_* actions and
  *   read this state; neither touches the network or audio directly.
  *
- *   One session, one channel: Zello allows one session per account, and a
- *   Friends & Family logon joins one channel, so selecting another channel
- *   moves the session there. An OFFLINE switch closes it and keeps the
- *   account.
+ *   One session carries every channel: SYN-CAST protocol v1's hello joins
+ *   them all at once, and the selected channel is where what you send
+ *   goes. An OFFLINE switch closes the session and keeps the token.
  *
- *   Everything sent goes to the whole channel. The Channel API's "for"
- *   reaches only someone in the same channel, never a true one-to-one, so
- *   SYN-CAST doesn't offer it; private messages that arrive are shown.
+ *   Everything sent goes to the whole selected channel. A direct message
+ *   that arrives for this member is shown in the selected channel, marked
+ *   private.
  *
  *   The talk button has the five states the phone app's TalkButtonState
  *   has: IDLE, CONNECTING (pressed, waiting for the server to open the
@@ -35,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define SYN_CAST_VERSION "0.2.0"
 #define MAX_SESSIONS CFG_MAX_CHANNELS
 #define MAX_RX 16
 #define MAX_QUEUE 32
@@ -43,7 +43,7 @@
 
 typedef enum { SS_OFF, SS_CONNECTING, SS_LOGON, SS_ONLINE, SS_RETRY } sess_state;
 typedef enum { TB_IDLE, TB_CONNECTING, TB_SENDING, TB_RECEIVING, TB_DISABLED } talk_state;
-typedef enum { P_NONE, P_LOGON, P_START, P_TEXT, P_IMAGE, P_LOCATION } pend_kind;
+typedef enum { P_NONE, P_HELLO, P_TALK, P_OVER, P_SAY, P_PIC, P_LOC, P_PRESENCE } pend_kind;
 
 /* A growable list of opus packets; length 0 marks a lost one. */
 typedef struct {
@@ -67,7 +67,6 @@ typedef struct {
 	ws *conn;
 	uint64_t cookie;
 	int seq;
-	char refresh_token[1024];
 	int64_t retry_at;
 	int backoff_ms;
 	int64_t last_rx, last_ping;
@@ -81,8 +80,8 @@ typedef struct {
 	int n_chans;
 	bool was_online;
 	bool refused;   /* sign-in refused: no retries until the account is fixed */
-	/* another client signed in with this account. The first time, this one
-	 * takes it straight back (the Zello app doesn't fight back); kicked again
+	/* another session of this member and device replaced this one (close
+	 * 4003). The first time, this one takes it straight back; replaced again
 	 * within KICK_WINDOW_MS, something is fighting, so it goes offline */
 	bool kicked;
 	int64_t last_kick;
@@ -92,8 +91,8 @@ typedef struct {
 	char name[128];
 	int session;
 	bool online;
-	int users_online;
-	bool images_ok, texting_ok, locations_ok;
+	char who[ZP_ONLINE_MAX][64]; /* members online in it, by name (join and leave keep it) */
+	int users_online;            /* their count (may exceed ZP_ONLINE_MAX) */
 	char error[160];
 	history hist;
 	int unread;
@@ -104,7 +103,7 @@ typedef struct {
 	bool used;
 	int session, channel;
 	uint32_t stream_id;
-	char from[64], forwho[64];
+	char from[64], forwho[64]; /* forwho: this member, on a direct message */
 	zp_codec codec;
 	uint64_t msg_id;
 	hv_writer file;
@@ -140,6 +139,7 @@ typedef struct {
 	bool released;       /* the button is up; waiting for the last packets */
 	bool end_seen;       /* capture (or the file) has finished */
 	bool vox;            /* opened by voice, not by the button */
+	bool server_over;    /* the server ended the floor (stall, long, flood): no over to send */
 	int channel;
 	int start_seq;
 	uint32_t stream_id;
@@ -157,7 +157,7 @@ typedef struct {
 } tx_state;
 
 typedef struct {
-	uint32_t message_id;
+	uint32_t blob;       /* the binary frame's id */
 	int channel;
 	uint64_t msg_id;
 	int64_t when;
@@ -167,6 +167,7 @@ typedef struct {
 
 typedef struct {
 	config cfg;
+	char member[128];         /* who the server says we are (the hello answer) */
 	session sess[MAX_SESSIONS];
 	int n_sess;
 	channel chan[CFG_MAX_CHANNELS];

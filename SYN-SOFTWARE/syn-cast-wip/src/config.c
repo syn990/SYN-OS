@@ -32,7 +32,7 @@ const char *config_default_path(char *out, int cap) {
 
 static void defaults(config *c) {
 	memset(c, 0, sizeof *c);
-	str_copy(c->server, sizeof c->server, "wss://zello.io/ws");
+	str_copy(c->device, sizeof c->device, "window");
 	c->auto_play = true;
 	c->noise_suppression = true;
 	c->vox_threshold = 0.85;
@@ -98,20 +98,20 @@ int config_load(config *c, char *err, int errn) {
 	}
 	struct stat st;
 	if (stat(c->path, &st) == 0 && (st.st_mode & 077)) {
-		LOG("%s is readable by others (mode %o); it holds a password, chmod 600 it",
+		LOG("%s is readable by others (mode %o); it holds the member token, chmod 600 it",
 			c->path, st.st_mode & 0777);
 	}
 
 	s(o, "server", c->server, sizeof c->server);
-	s(o, "username", c->username, sizeof c->username);
-	s(o, "password", c->password, sizeof c->password);
-	s(o, "issuer", c->issuer, sizeof c->issuer);
-	char key[1024] = "";
-	s(o, "key", key, sizeof key);
-	if (key[0]) {
-		expand_home(key, c->key_path, sizeof c->key_path);
+	s(o, "member", c->member, sizeof c->member);
+	s(o, "token", c->token, sizeof c->token);
+	s(o, "invite", c->invite, sizeof c->invite);
+	s(o, "device", c->device, sizeof c->device);
+	char cert[1024] = "";
+	s(o, "cert", cert, sizeof cert);
+	if (cert[0]) {
+		expand_home(cert, c->cert_path, sizeof c->cert_path);
 	}
-	s(o, "auth_token", c->auth_token, sizeof c->auth_token);
 
 	json_t *chans = json_object_get(o, "channels");
 	if (json_is_array(chans)) {
@@ -139,7 +139,6 @@ int config_load(config *c, char *err, int errn) {
 	n(o, "mic_gain_db", &c->mic_gain_db);
 	n(o, "play_gain_db", &c->play_gain_db);
 	i(o, "max_talk_seconds", &c->max_talk_seconds);
-	b(o, "transcriptions", &c->transcriptions);
 	b(o, "notify", &c->notify);
 	b(o, "tones", &c->tones);
 	i(o, "history_days", &c->history_days);
@@ -154,6 +153,7 @@ int config_load(config *c, char *err, int errn) {
 	}
 	json_decref(o);
 
+	if (!c->device[0]) str_copy(c->device, sizeof c->device, "window");
 	if (c->max_talk_seconds < 5) c->max_talk_seconds = 5;
 	if (c->vox_threshold <= 0 || c->vox_threshold >= 1) c->vox_threshold = 0.85;
 	if (c->width < 480) c->width = 480;
@@ -161,29 +161,8 @@ int config_load(config *c, char *err, int errn) {
 	return 0;
 }
 
-const char *config_bot_username(char *out, int cap) {
-	char path[1024];
-	expand_home("~/.config/syn-caster/crew/config.json", path, sizeof path);
-	out[0] = 0;
-	json_error_t jerr;
-	json_t *o = json_load_file(path, 0, &jerr);
-	json_t *u = json_object_get(o, "username");
-	if (json_is_string(u)) {
-		str_copy(out, (size_t)cap, json_string_value(u));
-	}
-	json_decref(o);
-	return out;
-}
-
-bool config_is_bot_account(const char *username) {
-	char bot[128];
-	config_bot_username(bot, sizeof bot);
-	return bot[0] && username && strcasecmp(bot, username) == 0;
-}
-
 bool config_has_account(const config *c) {
-	return c->n_channels > 0 && c->server[0] &&
-		(c->auth_token[0] || (c->issuer[0] && c->key_path[0]));
+	return c->server[0] && (c->token[0] || c->invite[0]);
 }
 
 int config_save_account(const config *c) {
@@ -194,13 +173,20 @@ int config_save_account(const config *c) {
 		o = json_object();
 	}
 	json_object_set_new(o, "server", json_string(c->server));
-	json_object_set_new(o, "username", json_string(c->username));
-	json_object_set_new(o, "password", json_string(c->password));
-	if (c->issuer[0]) {
-		json_object_set_new(o, "issuer", json_string(c->issuer));
+	if (c->member[0]) {
+		json_object_set_new(o, "member", json_string(c->member));
 	}
-	if (c->key_path[0]) {
-		json_object_set_new(o, "key", json_string(c->key_path));
+	if (c->token[0]) {
+		json_object_set_new(o, "token", json_string(c->token));
+	}
+	if (c->invite[0]) {
+		json_object_set_new(o, "invite", json_string(c->invite));
+	} else {
+		json_object_del(o, "invite");
+	}
+	json_object_set_new(o, "device", json_string(c->device));
+	if (c->cert_path[0]) {
+		json_object_set_new(o, "cert", json_string(c->cert_path));
 	}
 	json_t *arr = json_array();
 	for (int k = 0; k < c->n_channels; k++) {

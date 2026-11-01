@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- SYN-CAST-APK: push-to-talk on Zello channels, the Android rewrite of SYN-CAST -->
+<!-- SYN-CAST-APK: push-to-talk on SYN-CAST channels, the Android rewrite of SYN-CAST -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.syntax990.syncast">
 

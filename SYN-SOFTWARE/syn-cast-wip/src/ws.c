@@ -177,7 +177,7 @@ static bool reserve(uint8_t **buf, size_t *cap, size_t need) {
 	return true;
 }
 
-ws *ws_connect(const char *url, char *err, size_t errn) {
+ws *ws_connect(const char *url, const char *cert, char *err, size_t errn) {
 	ws_url u;
 	if (parse_url(url, &u) != 0) {
 		snprintf(err, errn, "not a ws:// or wss:// URL: %s", url);
@@ -192,11 +192,23 @@ ws *ws_connect(const char *url, char *err, size_t errn) {
 	if (u.tls) {
 		w->ctx = SSL_CTX_new(TLS_client_method());
 		SSL_CTX_set_min_proto_version(w->ctx, TLS1_2_VERSION);
-		SSL_CTX_set_default_verify_paths(w->ctx);
+		bool pinned = cert && *cert;
+		if (pinned) {
+			/* the server's own certificate is the only trust anchor */
+			if (SSL_CTX_load_verify_locations(w->ctx, cert, NULL) != 1) {
+				snprintf(err, errn, "cannot read the pinned certificate %s", cert);
+				ws_free(w);
+				return NULL;
+			}
+		} else {
+			SSL_CTX_set_default_verify_paths(w->ctx);
+		}
 		SSL_CTX_set_verify(w->ctx, SSL_VERIFY_PEER, NULL);
 		w->ssl = SSL_new(w->ctx);
 		SSL_set_tlsext_host_name(w->ssl, u.host);
-		SSL_set1_host(w->ssl, u.host);
+		if (!pinned) {
+			SSL_set1_host(w->ssl, u.host);
+		}
 		SSL_set_fd(w->ssl, w->fd);
 		if (SSL_connect(w->ssl) != 1) {
 			unsigned long e = ERR_get_error();
@@ -286,6 +298,7 @@ ws *ws_connect(const char *url, char *err, size_t errn) {
 
 typedef struct {
 	char url[512];
+	char cert[1024];
 	int notify_fd;
 	uint64_t cookie;
 } connect_job;
@@ -294,7 +307,7 @@ static void *connect_thread(void *arg) {
 	connect_job *job = arg;
 	ws_connect_result *res = calloc(1, sizeof *res);
 	res->cookie = job->cookie;
-	res->conn = ws_connect(job->url, res->err, sizeof res->err);
+	res->conn = ws_connect(job->url, job->cert, res->err, sizeof res->err);
 	if (write(job->notify_fd, &res, sizeof res) != sizeof res) {
 		ws_free(res->conn);
 		free(res);
@@ -303,9 +316,10 @@ static void *connect_thread(void *arg) {
 	return NULL;
 }
 
-int ws_connect_async(const char *url, int notify_fd, uint64_t cookie) {
+int ws_connect_async(const char *url, const char *cert, int notify_fd, uint64_t cookie) {
 	connect_job *job = calloc(1, sizeof *job);
 	str_copy(job->url, sizeof job->url, url);
+	str_copy(job->cert, sizeof job->cert, cert ? cert : "");
 	job->notify_fd = notify_fd;
 	job->cookie = cookie;
 	pthread_t t;

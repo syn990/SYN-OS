@@ -4,18 +4,15 @@
 #   libopus + JNI glue (NDK, per ABI) -> aapt2 -> javac -> d8 -> zipalign
 #   -> apksigner.
 #
-#     SYN-CAST-APK-<ver>-personal.apk  the one to install: carries the
-#                                      developer issuer and key from
-#                                      ~/.config/syn-caster/crew (revoke the key at
-#                                      developers.zello.com if it ever leaks)
-#     SYN-CAST-APK-<ver>.apk           with --shareable too: no secrets, sign
-#                                      in with a pasted or loaded key
+#     SYN-CAST-APK-<ver>.apk   no secrets inside: a member signs in with the
+#                              one-time invite code the crew gives them
+#                              (syn-caster cast invite MEMBER), and the token
+#                              it earns stays on the phone
 #
-#   Both are signed with ~/.config/syn-cast/apk-signing.jks (made on the
-#   first run), so a new build installs over an old one. Copies land in
-#   ~/Apps/SYN-CAST/.
+#   Signed with ~/.config/syn-cast/apk-signing.jks (made on the first run),
+#   so a new build installs over an old one. A copy lands in ~/Apps/SYN-CAST/.
 #
-#   usage: apk/build.sh [--shareable]
+#   usage: apk/build.sh
 #
 #   SYN-OS     : The Syntax Operating System
 #   Component  : SYN-CAST-APK
@@ -33,14 +30,12 @@ NDK=$(ls -d "$SDK"/ndk/* 2>/dev/null | sort -V | tail -1)
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/syn-cast-apk
 OUT=$HERE/out
 DEST=$HOME/Apps/SYN-CAST
-VERSION=0.1.0
-CODE=1
+VERSION=0.2.0
+CODE=2
 ABIS="arm64-v8a armeabi-v7a x86_64"
 OPUS_VER=1.6.1
 OPUS_SHA=6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1
 THEMES=$REPO/SYN-ISO-PROFILE/airootfs/usr/lib/syn-os/DotfileOverlay/etc/skel/.config/syn-os/themes
-ZCFG=$HOME/.config/syn-caster/crew/config.json
-ZKEY=$HOME/.config/syn-caster/crew/zello-key.pem
 KS=$HOME/.config/syn-cast/apk-signing.jks
 KSPASS=$HOME/.config/syn-cast/apk-signing.pass
 
@@ -70,21 +65,12 @@ for abi in $ABIS; do
   "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" --strip-unneeded -o "$OUT/stage/lib/$abi/libsyncast.so" "$b/libsyncast.so"
 done
 
-# ---- assets: the SYN-OS themes, the live one as default, names the app must refuse ----
-rm -rf "$OUT/assets" "$OUT/assets-personal"
+# ---- assets: the SYN-OS themes, the live one as default ----
+rm -rf "$OUT/assets"
 mkdir -p "$OUT/assets/themes"
 cp "$THEMES"/*.theme "$OUT/assets/themes/"
 cat "$HOME/.config/syn-os/current-theme" 2>/dev/null > "$OUT/assets/default-theme" || true
 [ -s "$OUT/assets/default-theme" ] || echo SYN-OS-M141 > "$OUT/assets/default-theme"
-# SYN-CASTER's account: one session per Zello account, so the phone must not take it
-python3 -I - "$ZCFG" > "$OUT/assets/reserved.json" <<'EOF'
-import json, sys
-try:
-    u = json.load(open(sys.argv[1])).get("username")
-except Exception:
-    u = None
-print(json.dumps([u] if u else []))
-EOF
 
 # ---- resources, Java, dex ----
 say "aapt2, javac, d8"
@@ -124,24 +110,6 @@ assemble() { # base apk, output
 }
 
 mkdir -p "$DEST"
-if [ "${1:-}" = "--shareable" ] || [ ! -f "$ZCFG" ] || [ ! -f "$ZKEY" ]; then
-  assemble "$OUT/base.apk" "$OUT/SYN-CAST-APK-$VERSION.apk"
-  cp "$OUT/SYN-CAST-APK-$VERSION.apk" "$DEST/"
-  say "shareable (no key inside): $DEST/SYN-CAST-APK-$VERSION.apk"
-fi
-
-if [ -f "$ZCFG" ] && [ -f "$ZKEY" ]; then
-  (umask 077; mkdir -p "$OUT/assets-personal"; cp -r "$OUT/assets/." "$OUT/assets-personal/")
-  python3 -I - "$ZCFG" "$ZKEY" "$OUT/assets-personal/devkey.json" <<'EOF'
-import json, os, sys
-issuer = json.load(open(sys.argv[1])).get("issuer", "")
-fd = os.open(sys.argv[3], os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-os.write(fd, json.dumps({"issuer": issuer, "key_pem": open(sys.argv[2]).read()}).encode())
-os.close(fd)
-EOF
-  link "$OUT/assets-personal" "$OUT/base-personal.apk"
-  (umask 077; assemble "$OUT/base-personal.apk" "$OUT/SYN-CAST-APK-$VERSION-personal.apk")
-  install -m 600 "$OUT/SYN-CAST-APK-$VERSION-personal.apk" "$DEST/"
-  rm -rf "$OUT/assets-personal" "$OUT/base-personal.apk"
-  say "$DEST/SYN-CAST-APK-$VERSION-personal.apk"
-fi
+assemble "$OUT/base.apk" "$OUT/SYN-CAST-APK-$VERSION.apk"
+cp "$OUT/SYN-CAST-APK-$VERSION.apk" "$DEST/"
+say "$DEST/SYN-CAST-APK-$VERSION.apk"

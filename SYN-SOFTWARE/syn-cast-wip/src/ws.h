@@ -20,8 +20,12 @@ enum { WS_TEXT = 1, WS_BINARY = 2, WS_CLOSE = 8, WS_PING = 9, WS_PONG = 10 };
 
 typedef struct ws ws;
 
-/* Blocking connect + TLS + upgrade. NULL with a reason in err. */
-ws *ws_connect(const char *url, char *err, size_t errn);
+/* Blocking connect + TLS + upgrade. NULL with a reason in err. With a
+ * cert (a PEM file) that certificate alone is trusted, pinned: the server
+ * must present exactly it (or a chain it signs), and its host name is not
+ * checked against it. "" or NULL trusts the system store and checks the
+ * name. */
+ws *ws_connect(const char *url, const char *cert, char *err, size_t errn);
 
 /* What ws_connect_async() writes (as a pointer) to notify_fd. The reader
  * owns it and frees it with free(). */
@@ -30,11 +34,12 @@ typedef struct {
 	ws *conn;        /* NULL on failure */
 	char err[200];
 } ws_connect_result;
-int ws_connect_async(const char *url, int notify_fd, uint64_t cookie);
+int ws_connect_async(const char *url, const char *cert, int notify_fd, uint64_t cookie);
 
 int ws_fd(const ws *w);
-/* The code of the peer's close frame (3003 is Zello's "another client took
- * this account"), 0 when there was none. */
+/* The code of the peer's close frame (4003: replaced by a newer session of
+ * this member and device; 4001, 4004: the token is refused), 0 when there
+ * was none. */
 int ws_close_code(const ws *w);
 /* now_ms() of the last bytes from the peer, pings included: what proves
  * the link alive on a quiet channel. */

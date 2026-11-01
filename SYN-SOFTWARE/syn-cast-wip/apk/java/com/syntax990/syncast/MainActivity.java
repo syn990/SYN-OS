@@ -58,6 +58,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.syntax990.syncast.core.Config;
+import com.syntax990.syncast.core.Proto;
 import com.syntax990.syncast.core.Engine;
 import com.syntax990.syncast.core.History;
 import com.syntax990.syncast.core.Json;
@@ -73,7 +74,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class MainActivity extends Activity {
-	private static final int REQ_PERMS = 1, REQ_IMAGE = 2, REQ_KEY = 3, REQ_LOCATION = 4;
+	private static final int REQ_PERMS = 1, REQ_IMAGE = 2, REQ_CERT = 3, REQ_LOCATION = 4;
 
 	private CastService svc;
 	private Palette pal;
@@ -93,7 +94,7 @@ public final class MainActivity extends Activity {
 	private Engine.View view;
 	private final LruCache<Long, Bitmap> thumbs = new LruCache<>(48);
 	private boolean volumeDown;
-	private EditText setupKey;
+	private EditText setupCert;
 	private TextView onlineBtn;
 
 	/* ---------- the service ---------- */
@@ -119,7 +120,6 @@ public final class MainActivity extends Activity {
 		super.onCreate(state);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);  /* the screen stays on while the app is in front */
-		seedConfig();
 		Intent i = new Intent(this, CastService.class);
 		startForegroundService(i);
 		bindService(i, conn, Context.BIND_AUTO_CREATE);
@@ -177,47 +177,6 @@ public final class MainActivity extends Activity {
 	@Override
 	public void onBackPressed() {
 		moveTaskToBack(true); /* the radio stays on; EXIT is in the notification and settings */
-	}
-
-	/** First run of a personal build: the developer key it carries, and the names it must not use. */
-	private void seedConfig() {
-		Map<String, Object> dk = devkey();
-		if (dk == null) return;
-		File f = CastService.configFile(this);
-		Config c = Config.load(f);
-		if (!c.issuer.isEmpty() && !c.keyPem.isEmpty()) return;
-		c.issuer = Json.str(dk, "issuer");
-		c.keyPem = Json.str(dk, "key_pem");
-		try {
-			c.save(f);
-		} catch (IOException ignored) {
-		}
-	}
-
-	private Map<String, Object> devkey() {
-		try (InputStream in = getAssets().open("devkey.json")) {
-			ByteArrayOutputStream b = new ByteArrayOutputStream();
-			byte[] buf = new byte[4096];
-			int n;
-			while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
-			return Json.object(b.toString("UTF-8"));
-		} catch (IOException e) {
-			return null;
-		}
-	}
-
-	private List<String> reserved() {
-		List<String> out = new ArrayList<>();
-		try (InputStream in = getAssets().open("reserved.json")) {
-			byte[] b = new byte[in.available()];
-			int n = in.read(b);
-			Object v = Json.parse(new String(b, 0, Math.max(0, n), StandardCharsets.UTF_8));
-			if (v instanceof List) {
-				for (Object o : (List<?>) v) if (o instanceof String) out.add((String) o);
-			}
-		} catch (IOException | RuntimeException ignored) {
-		}
-		return out;
 	}
 
 	/* ---------- styling helpers ---------- */
@@ -311,75 +270,54 @@ public final class MainActivity extends Activity {
 		root.addView(header);
 		root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
 
-		col.addView(label("Sign in to Zello", pal.accent, 18));
-		col.addView(label("Your own Zello account. Everything you send goes to the whole channel.", pal.text, 13));
+		col.addView(label("Sign in to SYN-CAST", pal.accent, 18));
+		col.addView(label("The crew's own radio. Paste the one-time invite code you were given; the member token it "
+			+ "earns stays on this phone. Everything you send goes to the whole selected channel.", pal.text, 13));
 		col.addView(label("SERVER", pal.accent, 12));
-		EditText server = field("wss://zello.io/ws", false);
+		EditText server = field("wss://HOST:PORT/cast/v1", false);
 		server.setText(c.server);
 		col.addView(server);
-		col.addView(label("USERNAME", pal.accent, 12));
-		EditText user = field("username", false);
-		user.setText(c.username);
-		col.addView(user);
-		col.addView(label("PASSWORD", pal.accent, 12));
-		EditText pass = field("password", true);
-		pass.setText(c.password);
-		col.addView(pass);
-		col.addView(label("CHANNELS (comma separated)", pal.accent, 12));
-		EditText chans = field("syntaxcorporation", false);
+		col.addView(label(c.token.isEmpty() ? "INVITE CODE" : "INVITE CODE (empty keeps the token you have)", pal.accent, 12));
+		EditText invite = field("one-time code from syn-caster cast invite", false);
+		invite.setText(c.invite);
+		col.addView(invite);
+		col.addView(label("CHANNELS (comma separated; empty: every channel you belong to)", pal.accent, 12));
+		EditText chans = field("ops", false);
 		chans.setText(String.join(", ", c.channels));
 		col.addView(chans);
-
-		boolean builtIn = devkey() != null && !c.issuer.isEmpty() && !c.keyPem.isEmpty();
-		EditText issuer = field("developer issuer", false);
-		setupKey = field("-----BEGIN PRIVATE KEY----- ...", false);
-		if (builtIn) {
-			col.addView(label("DEVELOPER KEY: built into this APK", pal.text, 12));
-		} else {
-			col.addView(label("DEVELOPER ISSUER (developers.zello.com/keys)", pal.accent, 12));
-			issuer.setText(c.issuer);
-			col.addView(issuer);
-			col.addView(label("DEVELOPER PRIVATE KEY (PEM)", pal.accent, 12));
-			setupKey.setSingleLine(false);
-			setupKey.setMinLines(3);
-			setupKey.setText(c.keyPem);
-			col.addView(setupKey);
-			TextView load = button("LOAD KEY FILE", v -> {
-				Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
-				startActivityForResult(i, REQ_KEY);
-			});
-			col.addView(load, new LinearLayout.LayoutParams(-1, -2));
-		}
+		col.addView(label("SERVER CERTIFICATE (PEM, pinned; empty trusts the system store)", pal.accent, 12));
+		setupCert = field("-----BEGIN CERTIFICATE----- ...", false);
+		setupCert.setSingleLine(false);
+		setupCert.setMinLines(2);
+		setupCert.setText(c.certPem);
+		col.addView(setupCert);
+		TextView load = button("LOAD CERTIFICATE FILE", v -> {
+			Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+			startActivityForResult(i, REQ_CERT);
+		});
+		col.addView(load, new LinearLayout.LayoutParams(-1, -2));
 		TextView err = label("", pal.urgent, 13);
 		Engine.View now = svc.engine().snapshot();
-		if (now.authError != null) err.setText("Zello refused the sign-in: " + now.authError + ".");
+		if (now.authError != null) err.setText("The server refused the sign-in: " + now.authError + ".");
 		TextView go = button("SIGN IN", v -> {
 			Config n = svc.config();
 			n.server = server.getText().toString().trim();
-			n.username = user.getText().toString().trim();
-			n.password = pass.getText().toString();
+			if (!n.server.isEmpty() && !n.server.contains("/cast/")) {
+				/* the host alone was given: the path is always the same */
+				n.server = n.server.replaceFirst("/+$", "") + Proto.PATH;
+			}
+			String code = invite.getText().toString().trim();
+			if (!code.isEmpty()) {
+				n.invite = code;
+				n.token = "";
+			}
 			n.channels.clear();
 			for (String s : chans.getText().toString().split(",")) {
 				if (!s.trim().isEmpty()) n.channels.add(s.trim());
 			}
-			if (!builtIn) {
-				n.issuer = issuer.getText().toString().trim();
-				n.keyPem = setupKey.getText().toString().trim();
-			}
-			for (String r : reserved()) {
-				if (r.equalsIgnoreCase(n.username)) {
-					/* one session per Zello account: this one would knock the crew off */
-					err.setText(n.username + " is SYN-CASTER's account. Zello allows one session per account, so use your own.");
-					return;
-				}
-			}
-			if (n.username.isEmpty() || n.channels.isEmpty()) {
-				err.setText("A username and at least one channel are needed.");
-				return;
-			}
-			if (n.authToken.isEmpty() && (n.issuer.isEmpty() || n.keyPem.isEmpty())) {
-				err.setText("Zello's Channel API needs your developer issuer and private key "
-					+ "(developers.zello.com/keys), or the personal build that carries them.");
+			n.certPem = setupCert.getText().toString().trim();
+			if (n.server.isEmpty() || (n.invite.isEmpty() && n.token.isEmpty())) {
+				err.setText("The server and an invite code are needed.");
 				return;
 			}
 			try {
@@ -688,13 +626,13 @@ public final class MainActivity extends Activity {
 		Uri u = data.getData();
 		if (req == REQ_IMAGE) {
 			new Thread(() -> prepareImage(u)).start();
-		} else if (req == REQ_KEY && setupKey != null) {
+		} else if (req == REQ_CERT && setupCert != null) {
 			try (InputStream in = getContentResolver().openInputStream(u)) {
 				ByteArrayOutputStream b = new ByteArrayOutputStream();
 				byte[] buf = new byte[4096];
 				int n;
 				while (in != null && (n = in.read(buf)) > 0 && b.size() < 65536) b.write(buf, 0, n);
-				setupKey.setText(b.toString("UTF-8"));
+				setupCert.setText(b.toString("UTF-8"));
 			} catch (IOException ignored) {
 			}
 		}

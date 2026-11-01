@@ -126,7 +126,7 @@ public final class CastService extends Service implements Engine.Platform {
 		audio.speaker = cfg.speaker;
 		audio.noiseSuppression = cfg.noiseSuppression;
 		audio.voxThreshold = cfg.voxThreshold;
-		engine = new Engine(cfg, new File(getFilesDir(), "history"), this);
+		engine = new Engine(cfg, new File(getFilesDir(), "history"), configFile(this), this);
 		audio.start(engine);
 		engine.start();
 		changed();
@@ -196,6 +196,20 @@ public final class CastService extends Service implements Engine.Platform {
 	@Override public void captureVox(boolean on) { audio.captureVox(on); }
 	@Override public int captureLevel() { return audio.captureLevel(); }
 	@Override public void tone(String meaning) { audio.tone(meaning); }
+
+	/** A 160 px JPEG cut from a received picture, for the history view. */
+	@Override
+	public byte[] thumbnail(byte[] picture) {
+		android.graphics.Bitmap b = android.graphics.BitmapFactory.decodeByteArray(picture, 0, picture.length);
+		if (b == null) return null;
+		float s = Math.min(1f, 160f / Math.max(b.getWidth(), b.getHeight()));
+		android.graphics.Bitmap small = s < 1f
+			? android.graphics.Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * s)), Math.max(1, Math.round(b.getHeight() * s)), true)
+			: b;
+		java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+		small.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out);
+		return out.toByteArray();
+	}
 	@Override public boolean focused() { return visible; }
 	@Override public void log(String line) { Log.i(TAG, line); }
 

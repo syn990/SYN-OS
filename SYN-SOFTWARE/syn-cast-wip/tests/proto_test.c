@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------------
- *   Unit tests: the Channel API encoding, the token, history on disk, voice
+ *   Unit tests: SYN-CAST protocol v1's encoding, history on disk, voice
  *   files and the replay time-stretch. Exits non-zero on any failure.
  *
  *   SYN-OS     : The Syntax Operating System
@@ -8,15 +8,12 @@
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
 #include "history.h"
-#include "jwt.h"
 #include "stretch.h"
 #include "util.h"
 #include "zproto.h"
 
 #include <jansson.h>
 #include <math.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,137 +37,210 @@ static json_t *parse_json(const char *s) {
 	return json_loads(s, 0, &e);
 }
 
-static void test_codec(void) {
-	zp_codec c = {16000, 1, 60};
-	char hdr[16];
-	zp_codec_encode(&c, hdr);
-	CHECK(strcmp(hdr, "gD4BPA==") == 0, "codec header %s, want the reference's gD4BPA==", hdr);
-	zp_codec d;
-	CHECK(zp_codec_decode("gD4BPA==", &d) == 0 && d.rate == 16000 && d.frames_per_packet == 1 && d.frame_ms == 60,
-		"decode gD4BPA==");
-	/* what the phone app announces by default: 16 kHz, 2 frames of 60 ms */
-	c = (zp_codec){16000, 2, 60};
-	zp_codec_encode(&c, hdr);
-	CHECK(zp_codec_decode(hdr, &d) == 0 && d.frames_per_packet == 2, "2-frame header round trip");
-	CHECK(zp_codec_decode("", &d) != 0, "empty header rejected");
-	CHECK(zp_codec_decode("AAAAAA==", &d) != 0, "zero rate rejected");
-}
-
 static void test_binary(void) {
 	uint8_t pkt[ZP_BIN_HDR + 3];
 	zp_bin_header(pkt, ZP_BIN_AUDIO, 0x01020304, 7);
 	memcpy(pkt + ZP_BIN_HDR, "abc", 3);
 	CHECK(pkt[0] == 1 && pkt[1] == 1 && pkt[2] == 2 && pkt[3] == 3 && pkt[4] == 4, "stream id big-endian");
-	CHECK(pkt[5] == 0 && pkt[8] == 7, "packet id big-endian");
+	CHECK(pkt[5] == 0 && pkt[8] == 7, "packet seq big-endian");
 	zp_bin b;
-	CHECK(zp_parse_bin(pkt, sizeof pkt, &b) == 0 && b.type == 1 && b.id == 0x01020304 && b.sub == 7 &&
+	CHECK(zp_parse_bin(pkt, sizeof pkt, &b) == 0 && b.kind == 1 && b.id == 0x01020304 && b.seq == 7 &&
 		b.len == 3 && memcmp(b.data, "abc", 3) == 0, "binary parse");
-	CHECK(zp_parse_bin(pkt, 8, &b) != 0, "short packet rejected");
+	CHECK(zp_parse_bin(pkt, 8, &b) != 0, "short frame rejected");
+	zp_bin_header(pkt, ZP_BIN_PIC, 9, 0);
+	CHECK(zp_parse_bin(pkt, sizeof pkt, &b) == 0 && b.kind == ZP_BIN_PIC && b.id == 9 && b.seq == 0, "picture frame");
 }
 
 static void test_events(void) {
 	zevent ev;
 	const char *s;
 
-	s = "{\"seq\":3,\"success\":true,\"refresh_token\":\"RT\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_REPLY && ev.seq == 3 && ev.success &&
-		strcmp(ev.refresh_token, "RT") == 0, "logon reply");
-	s = "{\"seq\":4,\"success\":true,\"stream_id\":22457}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.stream_id == 22457, "start_stream reply");
-	s = "{\"seq\":5,\"error\":\"channel is not ready\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_REPLY && !ev.success &&
-		strcmp(ev.error, "channel is not ready") == 0, "error reply");
-
-	s = "{\"command\":\"on_channel_status\",\"channel\":\"test\",\"status\":\"online\",\"users_online\":3,"
-		"\"images_supported\":true,\"texting_supported\":true,\"locations_supported\":false}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_CHANNEL_STATUS && ev.online && ev.users_online == 3 &&
-		ev.images_ok && ev.texting_ok && !ev.locations_ok && strcmp(ev.channel, "test") == 0, "channel status");
-
-	s = "{\"command\":\"on_stream_start\",\"type\":\"audio\",\"codec\":\"opus\",\"codec_header\":\"gD4CPA==\","
-		"\"packet_duration\":120,\"stream_id\":99,\"channel\":\"test\",\"from\":\"alice\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_STREAM_START && ev.stream_id == 99 &&
-		ev.codec_hdr.frames_per_packet == 2 && ev.packet_duration == 120 && strcmp(ev.from, "alice") == 0 &&
-		ev.forwho[0] == 0, "stream start");
-
-	s = "{\"command\":\"on_text_message\",\"channel\":\"test\",\"from\":\"bob\",\"for\":false,\"message_id\":7,"
-		"\"text\":\"h\\u00e9llo\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_TEXT && ev.text && strcmp(ev.text, "h\xc3\xa9llo") == 0 &&
-		ev.forwho[0] == 0 && ev.message_id == 7, "text, for:false");
-	zp_event_free(&ev);
-	s = "{\"command\":\"on_text_message\",\"channel\":\"test\",\"from\":\"bob\",\"for\":\"me\",\"text\":\"x\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.forwho, "me") == 0, "private text");
+	/* the hello answer */
+	s = "{\"type\":\"ok\",\"seq\":1,\"member\":\"syntax990\",\"session\":\"syntax990/window/3\","
+		"\"services\":[\"radio\",\"channels\"],\"channels\":[{\"channel\":\"ops\",\"name\":\"Ops\",\"kind\":\"open\","
+		"\"members\":[\"syntax990\",\"m141\"],\"online\":[\"syntax990\",\"m141\"],\"talking\":null},"
+		"{\"channel\":\"crew\",\"online\":[]}],\"held\":[{\"with\":\"m141\",\"count\":2},{\"with\":\"boz\",\"count\":1}],"
+		"\"refused\":[{\"channel\":\"old\",\"code\":\"no_channel\"}],\"token\":\"sct1.p.m\",\"token_id\":\"abc123\","
+		"\"limits\":{\"text\":4000}}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_REPLY && ev.seq == 1 && ev.ok, "hello ok");
+	CHECK(strcmp(ev.member, "syntax990") == 0 && strcmp(ev.session, "syntax990/window/3") == 0, "member and session");
+	CHECK(ev.n_channels == 2 && strcmp(ev.channels[0].id, "ops") == 0 && strcmp(ev.channels[0].name, "Ops") == 0 &&
+		ev.channels[0].online == 2 && strcmp(ev.channels[1].name, "crew") == 0 && ev.channels[1].online == 0,
+		"channels joined, online counted, a missing name falls back to the id");
+	CHECK(strcmp(ev.channels[0].who[0], "syntax990") == 0 && strcmp(ev.channels[0].who[1], "m141") == 0,
+		"who is online, by name");
+	CHECK(ev.held == 3, "held direct messages summed: %d", ev.held);
+	CHECK(ev.n_refused == 1 && strcmp(ev.refused[0].channel, "old") == 0 && strcmp(ev.refused[0].code, "no_channel") == 0,
+		"refused channel");
+	CHECK(strcmp(ev.token, "sct1.p.m") == 0 && strcmp(ev.token_id, "abc123") == 0, "the token an invite earned");
 	zp_event_free(&ev);
 
-	s = "{\"command\":\"on_location\",\"channel\":\"t\",\"from\":\"c\",\"latitude\":51.5,\"longitude\":-0.12,"
-		"\"rgl\":\"London\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_LOCATION && fabs(ev.latitude - 51.5) < 1e-9 &&
-		ev.text && strcmp(ev.text, "London") == 0, "location with the example's rgl key");
-	zp_event_free(&ev);
+	s = "{\"type\":\"error\",\"seq\":1,\"code\":\"unauthorized\",\"text\":\"bad token\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_REPLY && !ev.ok && strcmp(ev.code, "unauthorized") == 0 &&
+		strcmp(ev.error, "bad token") == 0, "error reply");
+	s = "{\"type\":\"error\",\"seq\":4,\"code\":\"busy\",\"text\":\"ops: m141 is talking\",\"talker\":\"m141\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && !ev.ok && strcmp(ev.code, "busy") == 0 && strcmp(ev.talker, "m141") == 0,
+		"busy carries the talker");
+	s = "{\"type\":\"error\",\"seq\":5,\"code\":\"forbidden\",\"service\":\"radio\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.service, "radio") == 0 && strcmp(ev.error, "forbidden") == 0,
+		"forbidden names the service; the code stands in for a missing text");
+	s = "{\"type\":\"error\",\"code\":\"revoked\",\"text\":\"this token was revoked\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_ERROR && strcmp(ev.code, "revoked") == 0,
+		"an error without seq is the server's own");
 
-	s = "{\"command\":\"on_image\",\"channel\":\"t\",\"from\":\"c\",\"message_id\":41,\"type\":\"jpeg\","
-		"\"width\":800,\"height\":600,\"source\":\"camera\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_IMAGE && ev.message_id == 41 && ev.width == 800,
-		"image");
-	s = "{\"command\":\"on_stream_stop\",\"stream_id\":99}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_STREAM_STOP && ev.stream_id == 99, "stream stop");
-	s = "{\"command\":\"on_error\",\"error\":\"server closed connection\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_ERROR, "error event");
-	s = "{\"command\":\"on_something_new\"}";
-	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_UNKNOWN, "unknown command");
+	/* a join answer is one channel's record */
+	s = "{\"type\":\"ok\",\"seq\":2,\"channel\":\"ops\",\"name\":\"Ops\",\"kind\":\"open\",\"members\":[\"a\"],"
+		"\"online\":[\"a\",\"b\",\"c\"],\"talking\":\"b\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.n_channels == 1 && ev.channels[0].online == 3 &&
+		strcmp(ev.channels[0].talking, "b") == 0, "join reply");
+
+	s = "{\"type\":\"ok\",\"seq\":3,\"stream\":22457}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.stream == 22457, "talk reply");
+	s = "{\"type\":\"ok\",\"seq\":4,\"stream\":22457,\"message\":\"20261101-0001ab\",\"ms\":1200,\"packets\":20}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.message, "20261101-0001ab") == 0 && ev.ms == 1200 &&
+		ev.packets == 20, "over reply");
+	s = "{\"type\":\"ok\",\"seq\":5,\"upload\":77}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.upload == 77, "pic reply");
+	s = "{\"type\":\"ok\",\"seq\":6,\"channel\":\"ops\",\"messages\":[{\"id\":\"a\",\"kind\":\"text\"},{\"id\":\"b\"}],\"more\":true}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.messages && json_array_size(ev.messages) == 2 && ev.more,
+		"history reply keeps the lines");
+	zp_event_free(&ev);
+	CHECK(ev.messages == NULL, "freed");
+
+	/* events */
+	s = "{\"type\":\"talk\",\"stream\":99,\"from\":\"alice\",\"channel\":\"ops\",\"codec\":\"opus\",\"rate\":16000,"
+		"\"channels\":1,\"frame_ms\":60}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_TALK && ev.stream == 99 && strcmp(ev.from, "alice") == 0 &&
+		ev.codec.rate == 16000 && ev.codec.frames_per_packet == 1 && ev.codec.frame_ms == 60 && !ev.replay &&
+		ev.to[0] == 0, "talk event");
+	s = "{\"type\":\"talk\",\"stream\":100,\"from\":\"alice\",\"to\":\"bob\",\"codec\":\"opus\",\"rate\":16000,"
+		"\"channels\":1,\"frame_ms\":20,\"replay\":true,\"message\":\"m1\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.replay && strcmp(ev.to, "bob") == 0 && ev.codec.frame_ms == 20 &&
+		strcmp(ev.message, "m1") == 0, "a replayed direct message");
+	s = "{\"type\":\"talk\",\"stream\":101,\"from\":\"x\",\"channel\":\"ops\",\"frame_ms\":17}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.codec.frame_ms == 20 && ev.codec.rate == 16000,
+		"an odd frame length falls back to 20 ms");
+	s = "{\"type\":\"over\",\"stream\":99,\"from\":\"alice\",\"channel\":\"ops\",\"message\":\"m2\",\"ms\":600,\"reason\":\"stall\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_OVER && ev.stream == 99 && strcmp(ev.reason, "stall") == 0 &&
+		ev.ms == 600, "over event");
+	s = "{\"type\":\"say\",\"message\":\"m3\",\"from\":\"bob\",\"channel\":\"ops\",\"text\":\"h\\u00e9llo\",\"at\":\"2026-11-01T00:00:00Z\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_SAY && ev.text && strcmp(ev.text, "h\xc3\xa9llo") == 0 &&
+		strcmp(ev.at, "2026-11-01T00:00:00Z") == 0 && ev.to[0] == 0, "say");
+	zp_event_free(&ev);
+	s = "{\"type\":\"say\",\"message\":\"m4\",\"from\":\"bob\",\"to\":\"me\",\"text\":\"x\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.to, "me") == 0 && ev.channel[0] == 0, "a direct message");
+	zp_event_free(&ev);
+	s = "{\"type\":\"loc\",\"message\":\"m5\",\"from\":\"c\",\"channel\":\"t\",\"lat\":51.5,\"lon\":-0.12,\"accuracy\":9,"
+		"\"address\":\"London\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_LOC && fabs(ev.lat - 51.5) < 1e-9 &&
+		fabs(ev.accuracy - 9) < 1e-9 && ev.text && strcmp(ev.text, "London") == 0, "location");
+	zp_event_free(&ev);
+	s = "{\"type\":\"pic\",\"message\":\"m6\",\"from\":\"c\",\"channel\":\"t\",\"mime\":\"image/jpeg\",\"width\":800,"
+		"\"height\":600,\"size\":12345,\"blob\":41}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_PIC && ev.blob == 41 && ev.width == 800 && ev.size == 12345 &&
+		strcmp(ev.mime, "image/jpeg") == 0, "picture event");
+	s = "{\"type\":\"presence\",\"member\":\"m141\",\"status\":\"busy\",\"text\":\"at work\",\"devices\":2}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_PRESENCE && strcmp(ev.member, "m141") == 0 &&
+		strcmp(ev.status, "busy") == 0 && ev.devices == 2 && ev.text && strcmp(ev.text, "at work") == 0, "presence");
+	zp_event_free(&ev);
+	s = "{\"type\":\"join\",\"channel\":\"ops\",\"member\":\"m141\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_JOIN && strcmp(ev.member, "m141") == 0 &&
+		strcmp(ev.channel, "ops") == 0, "join event");
+	s = "{\"type\":\"leave\",\"channel\":\"ops\",\"member\":\"m141\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_LEAVE, "leave event");
+	s = "{\"type\":\"something_new\",\"x\":1}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_UNKNOWN, "unknown type");
 	s = "[1,2]";
 	CHECK(zp_parse(s, strlen(s), &ev) != 0, "array rejected");
 	s = "{nope";
 	CHECK(zp_parse(s, strlen(s), &ev) != 0, "bad json rejected");
 }
 
-static void test_commands(void) {
-	const char *chans[] = {"one", "two"};
-	char *s = zp_logon(1, "TOKEN", NULL, "user", "pw", chans, 2, false, false);
+static json_t *J(char *s) {
 	json_t *o = parse_json(s);
-	CHECK(o && strcmp(json_string_value(json_object_get(o, "command")), "logon") == 0, "logon command");
-	CHECK(strcmp(json_string_value(json_object_get(o, "auth_token")), "TOKEN") == 0, "auth_token");
-	CHECK(json_array_size(json_object_get(o, "channels")) == 2, "channels array");
-	CHECK(!json_object_get(o, "refresh_token") && !json_object_get(o, "listen_only"), "no refresh, not listen-only");
-	json_decref(o);
 	free(s);
+	return o;
+}
 
-	s = zp_logon(2, "TOKEN", "REFRESH", "user", "pw", chans, 1, true, true);
-	o = parse_json(s);
-	CHECK(!json_object_get(o, "auth_token") && json_object_get(o, "refresh_token"), "refresh replaces auth_token");
-	CHECK(json_is_true(json_object_get(o, "listen_only")), "listen_only");
-	CHECK(json_is_true(json_object_get(json_object_get(o, "features"), "transcriptions")), "transcriptions feature");
+static const char *S(json_t *o, const char *k) {
+	const char *v = json_string_value(json_object_get(o, k));
+	return v ? v : "";
+}
+
+static void test_commands(void) {
+	const char *chans[] = {"ops", "crew"};
+	json_t *o = J(zp_hello(1, "sct1.a.b", NULL, "window", "syn-cast/0.2.0", chans, 2, false));
+	CHECK(o && strcmp(S(o, "type"), "hello") == 0 && json_integer_value(json_object_get(o, "seq")) == 1 &&
+		json_integer_value(json_object_get(o, "v")) == 1, "hello with v 1");
+	CHECK(strcmp(S(o, "token"), "sct1.a.b") == 0 && !json_object_get(o, "invite"), "token, no invite");
+	CHECK(strcmp(S(o, "device"), "window") == 0 && strcmp(S(o, "client"), "syn-cast/0.2.0") == 0, "device and client");
+	CHECK(json_array_size(json_object_get(o, "channels")) == 2, "channels listed");
 	json_decref(o);
-	free(s);
+	o = J(zp_hello(2, "sct1.a.b", "CODE", "", NULL, NULL, 0, true));
+	CHECK(strcmp(S(o, "invite"), "CODE") == 0 && !json_object_get(o, "token"), "an invite replaces the token");
+	CHECK(!json_object_get(o, "channels"), "no channels key: every channel the member belongs to");
+	CHECK(strcmp(S(o, "device"), "window") == 0, "device defaults to window");
+	json_decref(o);
+
+	o = J(zp_join(3, "ops"));
+	CHECK(strcmp(S(o, "type"), "join") == 0 && strcmp(S(o, "channel"), "ops") == 0, "join");
+	json_decref(o);
+	o = J(zp_leave(4, "ops", true));
+	CHECK(strcmp(S(o, "type"), "leave") == 0 && json_is_true(json_object_get(o, "drop")), "leave for good");
+	json_decref(o);
+	o = J(zp_leave(5, "ops", false));
+	CHECK(!json_object_get(o, "drop"), "leave this session only");
+	json_decref(o);
 
 	zp_codec c = {16000, 1, 60};
-	s = zp_start_stream(3, "one", NULL, &c);
-	o = parse_json(s);
-	CHECK(strcmp(json_string_value(json_object_get(o, "codec_header")), "gD4BPA==") == 0, "stream codec header");
-	CHECK(json_integer_value(json_object_get(o, "packet_duration")) == 60, "packet_duration");
-	CHECK(!json_object_get(o, "for"), "no for on a channel stream");
+	o = J(zp_talk(6, "ops", NULL, &c));
+	CHECK(strcmp(S(o, "type"), "talk") == 0 && strcmp(S(o, "channel"), "ops") == 0 && !json_object_get(o, "to"),
+		"talk in a channel");
+	CHECK(strcmp(S(o, "codec"), "opus") == 0 && json_integer_value(json_object_get(o, "rate")) == 16000 &&
+		json_integer_value(json_object_get(o, "channels")) == 1 && json_integer_value(json_object_get(o, "frame_ms")) == 60,
+		"opus 16 kHz mono 60 ms");
 	json_decref(o);
-	free(s);
+	zp_codec two = {16000, 2, 20};
+	o = J(zp_talk(7, NULL, "m141", &two));
+	CHECK(strcmp(S(o, "to"), "m141") == 0 && !json_object_get(o, "channel") &&
+		json_integer_value(json_object_get(o, "frame_ms")) == 40, "a direct talk; two 20 ms frames are 40 ms");
+	json_decref(o);
+	o = J(zp_over(8, 22457));
+	CHECK(strcmp(S(o, "type"), "over") == 0 && json_integer_value(json_object_get(o, "stream")) == 22457, "over");
+	json_decref(o);
 
-	s = zp_send_text(4, "one", "bob", "hi");
-	o = parse_json(s);
-	CHECK(strcmp(json_string_value(json_object_get(o, "for")), "bob") == 0, "private text for");
+	o = J(zp_say(9, "ops", NULL, "h\xc3\xa9llo"));
+	CHECK(strcmp(S(o, "type"), "say") == 0 && strcmp(S(o, "text"), "h\xc3\xa9llo") == 0 &&
+		strcmp(S(o, "channel"), "ops") == 0, "say keeps UTF-8");
 	json_decref(o);
-	free(s);
-
-	s = zp_send_image(5, "one", "", 640, 480, 100, 2000);
-	o = parse_json(s);
-	CHECK(json_integer_value(json_object_get(o, "thumbnail_content_length")) == 100 &&
-		json_integer_value(json_object_get(o, "content_length")) == 2000 &&
-		strcmp(json_string_value(json_object_get(o, "type")), "jpeg") == 0, "send_image");
+	o = J(zp_pic(10, "ops", NULL, "image/jpeg", 640, 400, 12345));
+	CHECK(strcmp(S(o, "type"), "pic") == 0 && strcmp(S(o, "mime"), "image/jpeg") == 0 &&
+		json_integer_value(json_object_get(o, "width")) == 640 && json_integer_value(json_object_get(o, "height")) == 400 &&
+		json_integer_value(json_object_get(o, "size")) == 12345, "pic reserves an upload");
 	json_decref(o);
-	free(s);
-
-	s = zp_send_location(6, "one", NULL, 1.5, 2.5, 10, "Somewhere");
-	o = parse_json(s);
-	CHECK(json_real_value(json_object_get(o, "latitude")) == 1.5 &&
-		strcmp(json_string_value(json_object_get(o, "formatted_address")), "Somewhere") == 0, "send_location");
+	o = J(zp_loc(11, "ops", NULL, 51.5, -0.12, 7, "London"));
+	CHECK(strcmp(S(o, "type"), "loc") == 0 && fabs(json_number_value(json_object_get(o, "lat")) - 51.5) < 1e-9 &&
+		fabs(json_number_value(json_object_get(o, "lon")) + 0.12) < 1e-9 &&
+		fabs(json_number_value(json_object_get(o, "accuracy")) - 7) < 1e-9 && strcmp(S(o, "address"), "London") == 0, "loc");
 	json_decref(o);
-	free(s);
+	o = J(zp_loc(12, "ops", NULL, 1, 2, 0, ""));
+	CHECK(!json_object_get(o, "address"), "an empty address is left out");
+	json_decref(o);
+	o = J(zp_presence(13, "busy", NULL));
+	CHECK(strcmp(S(o, "type"), "presence") == 0 && strcmp(S(o, "status"), "busy") == 0 && !json_object_get(o, "text"),
+		"presence busy");
+	json_decref(o);
+	o = J(zp_history(14, "ops", NULL, 20, "m9"));
+	CHECK(strcmp(S(o, "type"), "history") == 0 && strcmp(S(o, "channel"), "ops") == 0 &&
+		json_integer_value(json_object_get(o, "limit")) == 20 && strcmp(S(o, "before"), "m9") == 0, "history page");
+	json_decref(o);
+	o = J(zp_history(15, NULL, "m141", 0, NULL));
+	CHECK(strcmp(S(o, "with"), "m141") == 0 && !json_object_get(o, "channel") && !json_object_get(o, "limit") &&
+		!json_object_get(o, "before"), "the direct messages with a member, the server's default page");
+	json_decref(o);
+	o = J(zp_history_play(16, "ops", NULL, "m7"));
+	CHECK(strcmp(S(o, "type"), "history") == 0 && strcmp(S(o, "play"), "m7") == 0, "history play");
+	json_decref(o);
 }
 
 static void test_util(void) {
@@ -281,46 +351,12 @@ static void test_stretch(void) {
 	free(out);
 }
 
-static void test_jwt(void) {
-	char key[300];
-	snprintf(key, sizeof key, "%s/key.pem", tmpdir);
-	EVP_PKEY *pk = EVP_RSA_gen(2048);
-	FILE *f = fopen(key, "w");
-	PEM_write_PrivateKey(f, pk, NULL, NULL, 0, NULL, NULL);
-	fclose(f);
-	char err[200];
-	char *tok = jwt_mint(key, "ISSUER", 60, err, sizeof err);
-	CHECK(tok != NULL, "jwt minted: %s", err);
-	if (tok) {
-		char *dot1 = strchr(tok, '.'), *dot2 = dot1 ? strchr(dot1 + 1, '.') : NULL;
-		CHECK(dot1 && dot2, "three parts");
-		if (dot1 && dot2) {
-			uint8_t body[256];
-			*dot2 = 0;
-			long n = b64_decode(dot1 + 1, body, sizeof body - 1);
-			body[n > 0 ? n : 0] = 0;
-			CHECK(strstr((char *)body, "\"iss\":\"ISSUER\"") != NULL, "payload carries the issuer: %s", body);
-			uint8_t sig[512];
-			long sn = b64_decode(dot2 + 1, sig, sizeof sig);
-			EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-			int ok = EVP_DigestVerifyInit(ctx, NULL, EVP_sha256(), NULL, pk) == 1 &&
-				EVP_DigestVerify(ctx, sig, (size_t)sn, (uint8_t *)tok, strlen(tok)) == 1;
-			EVP_MD_CTX_free(ctx);
-			CHECK(ok, "RS256 signature verifies with the public key");
-		}
-		free(tok);
-	}
-	CHECK(jwt_mint("/nonexistent", "I", 60, err, sizeof err) == NULL, "missing key fails");
-	EVP_PKEY_free(pk);
-}
-
 int main(void) {
 	snprintf(tmpdir, sizeof tmpdir, "/tmp/syn-cast-test-XXXXXX");
 	if (!mkdtemp(tmpdir)) {
 		perror("mkdtemp");
 		return 1;
 	}
-	test_codec();
 	test_binary();
 	test_events();
 	test_commands();
@@ -328,7 +364,6 @@ int main(void) {
 	test_history();
 	test_voice_file();
 	test_stretch();
-	test_jwt();
 	char cmd[300];
 	snprintf(cmd, sizeof cmd, "rm -rf '%s'", tmpdir);
 	if (system(cmd) != 0) {

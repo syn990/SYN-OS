@@ -6,7 +6,6 @@
  * ------------------------------------------------------------------------ */
 #include "app.h"
 #include "image.h"
-#include "jwt.h"
 #include "syn_bar_notify.h"
 #include "util.h"
 
@@ -22,24 +21,15 @@
 #include <unistd.h>
 
 #define PING_EVERY_MS 25000
-#define DEAD_AFTER_MS 70000     /* Zello pings every 30 s; $SYN_CAST_DEAD_AFTER_MS for tests */
+#define DEAD_AFTER_MS 70000     /* the server pings every 20 s; $SYN_CAST_DEAD_AFTER_MS for tests */
 #define LIVE_PREBUFFER_PACKETS 3
 #define LIVE_PREBUFFER_MS 400
 #define FEED_AHEAD (AUDIO_RATE / 2)
 #define HELD_MAX 50
 #define SAY_LEAD_MS 300
-#define RECENT_STREAMS 32
 #define KICK_WINDOW_MS 120000
 
 app_t app;
-
-/* stream_id -> history message, for on_transcription after the stream ended */
-static struct {
-	uint32_t stream_id;
-	int channel;
-	uint64_t msg_id;
-} recent[RECENT_STREAMS];
-static int recent_next;
 
 static void tone(const char *meaning) {
 	if (app.cfg.tones) {
@@ -66,7 +56,7 @@ void app_toast(const char *fmt, ...) {
 }
 
 static const char *me(void) {
-	return app.cfg.username[0] ? app.cfg.username : "you";
+	return app.member[0] ? app.member : app.cfg.member[0] ? app.cfg.member : "you";
 }
 
 /* ---------- packet lists ---------- */
@@ -195,39 +185,27 @@ static void session_connect(int s) {
 	ss->state = SS_CONNECTING;
 	ss->kill = false;
 	ss->cookie = ((uint64_t)s << 48) | ++app.next_cookie;
-	if (ws_connect_async(app.cfg.server, app.connect_pipe[1], ss->cookie) != 0) {
+	if (ws_connect_async(app.cfg.server, app.cfg.cert_path, app.connect_pipe[1], ss->cookie) != 0) {
 		str_copy(ss->error, sizeof ss->error, "cannot start a connect thread");
 		schedule_retry(s, 1000);
 	}
 	app.dirty = true;
 }
 
-static void send_logon(int s) {
+/* hello: an invite code the first time (the answer carries the token to
+ * keep), the token after. With channels configured those are joined;
+ * with none, every channel the member belongs to. */
+static void send_hello(int s) {
 	session *ss = &app.sess[s];
-	char *token = NULL;
-	char err[200] = "";
-	bool use_refresh = ss->refresh_token[0] != 0;
-	if (!use_refresh) {
-		if (app.cfg.auth_token[0]) {
-			token = strdup(app.cfg.auth_token);
-		} else if (app.cfg.issuer[0] && app.cfg.key_path[0]) {
-			token = jwt_mint(app.cfg.key_path, app.cfg.issuer, 120, err, sizeof err);
-			if (!token) {
-				str_copy(ss->error, sizeof ss->error, err);
-				session_kill(s, err);
-				return;
-			}
-		}
-	}
 	const char *names[CFG_MAX_CHANNELS];
 	for (int k = 0; k < ss->n_chans; k++) {
 		names[k] = app.chan[ss->chans[k]].name;
 	}
+	bool invite = app.cfg.invite[0] != 0;
 	int seq = next_seq(s);
-	char *json = zp_logon(seq, token, use_refresh ? ss->refresh_token : NULL, app.cfg.username,
-		app.cfg.password, names, (size_t)ss->n_chans, false, app.cfg.transcriptions);
-	free(token);
-	add_pending(s, seq, P_LOGON, -1, use_refresh);
+	char *json = zp_hello(seq, app.cfg.token, app.cfg.invite, app.cfg.device, "syn-cast/" SYN_CAST_VERSION,
+		names, (size_t)ss->n_chans, app.cfg.n_channels == 0);
+	add_pending(s, seq, P_HELLO, -1, invite);
 	session_send(s, json);
 	ss->state = SS_LOGON;
 }
@@ -238,7 +216,7 @@ static void tx_abort(const char *why);
 static void fail_pending(session *ss) {
 	for (int i = 0; i < MAX_PENDING; i++) {
 		pending *p = &ss->pend[i];
-		if ((p->kind == P_TEXT || p->kind == P_LOCATION) && p->channel >= 0) {
+		if ((p->kind == P_SAY || p->kind == P_LOC) && p->channel >= 0) {
 			hmsg *m = msg(p->channel, p->ref);
 			if (m && m->partial) {
 				m->partial = false;
@@ -246,7 +224,7 @@ static void fail_pending(session *ss) {
 				add_event(p->channel, "not delivered (connection lost)");
 			}
 		}
-		if (p->kind == P_IMAGE) {
+		if (p->kind == P_PIC) {
 			app.img_out.busy = false;
 		}
 		p->kind = P_NONE;
@@ -290,27 +268,26 @@ static void session_drop(int s, const char *why) {
 		ss->kicked = false;
 		int64_t now = now_ms();
 		if (ss->last_kick && now - ss->last_kick < KICK_WINDOW_MS) {
-			/* kicked twice in a row: another client keeps taking it, so give way */
+			/* replaced twice in a row: another SYN-CAST keeps taking this device's place, so give way */
 			ss->last_kick = 0;
 			ss->state = SS_OFF;
 			app.offline = true;
-			snprintf(ss->error, sizeof ss->error, "another client keeps signing in as %.60s", app.cfg.username);
+			snprintf(ss->error, sizeof ss->error, "another %.20s session keeps replacing this one", app.cfg.device);
 			for (int k = 0; k < ss->n_chans; k++) {
-				add_event(ss->chans[k], "signed in elsewhere: went offline");
+				add_event(ss->chans[k], "replaced by another session: went offline");
 			}
-			app_toast("another client is using %s: SYN-CAST went offline (F6 brings it back)", app.cfg.username);
+			app_toast("another SYN-CAST is signed in as %s on this device: went offline (F6 brings it back)", me());
 			return;
 		}
 		ss->last_kick = now;
 		ss->backoff_ms = 0;
-		LOG("another client signed in as %s: taking the account back", app.cfg.username);
+		LOG("another session replaced this one as %s/%s: taking the place back", me(), app.cfg.device);
 	}
 	if (ss->refused) {
 		ss->state = SS_OFF; /* until the account is fixed (syn-cast setup) and it restarts */
 		app.dirty = true;
 		return;
 	}
-	/* a refused refresh token is retried with a fresh auth token at once */
 	schedule_retry(s, 0);
 }
 
@@ -332,7 +309,7 @@ void app_on_connect_pipe(void) {
 		} else {
 			app.sess[s].conn = r->conn;
 			app.sess[s].last_rx = app.sess[s].last_ping = now_ms();
-			send_logon(s);
+			send_hello(s);
 		}
 		free(r);
 		app.dirty = true;
@@ -358,14 +335,71 @@ int app_find_channel(const char *name) {
 	return -1;
 }
 
-/* ---------- incoming voice ---------- */
-
-static void remember_stream(uint32_t sid, int channel, uint64_t id) {
-	recent[recent_next].stream_id = sid;
-	recent[recent_next].channel = channel;
-	recent[recent_next].msg_id = id;
-	recent_next = (recent_next + 1) % RECENT_STREAMS;
+/* Where an event belongs: its channel, or for a direct message (no
+ * channel, "to" is this member) the selected channel. -1 if nowhere. */
+static int event_channel(int s, const zevent *ev) {
+	if (ev->channel[0]) {
+		return channel_in_session(s, ev->channel);
+	}
+	if (ev->to[0] && app.n_chan) {
+		return app.active;
+	}
+	return -1;
 }
+
+/* A channel the hello answer named that the config did not: opened and
+ * carried by the session from now on. */
+static int channel_add(const char *id) {
+	if (app.n_chan >= CFG_MAX_CHANNELS || app.n_sess == 0) {
+		return -1;
+	}
+	channel *c = &app.chan[app.n_chan];
+	memset(c, 0, sizeof *c);
+	str_copy(c->name, sizeof c->name, id);
+	if (history_open(&c->hist, app.cfg.data_dir, c->name) != 0) {
+		LOG("cannot open history for %s in %s", c->name, app.cfg.data_dir);
+		return -1;
+	}
+	history_prune(&c->hist, app.cfg.history_days, (long long)app.cfg.history_mb << 20);
+	c->session = 0;
+	app.sess[0].chans[app.sess[0].n_chans++] = app.n_chan;
+	return app.n_chan++;
+}
+
+/* The online set of a channel: a member in it once, however many sessions. */
+static int who_index(const channel *c, const char *member) {
+	int n = c->users_online < ZP_ONLINE_MAX ? c->users_online : ZP_ONLINE_MAX;
+	for (int i = 0; i < n; i++) {
+		if (strcasecmp(c->who[i], member) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+static bool who_add(channel *c, const char *member) {
+	if (who_index(c, member) >= 0) {
+		return false;
+	}
+	if (c->users_online < ZP_ONLINE_MAX) {
+		str_copy(c->who[c->users_online], sizeof c->who[0], member);
+	}
+	c->users_online++;
+	return true;
+}
+
+static bool who_remove(channel *c, const char *member) {
+	int i = who_index(c, member);
+	if (i < 0) {
+		return false;
+	}
+	int n = c->users_online < ZP_ONLINE_MAX ? c->users_online : ZP_ONLINE_MAX;
+	memmove(c->who[i], c->who[i + 1], sizeof c->who[0] * (size_t)(n - 1 - i));
+	c->users_online--;
+	return true;
+}
+
+/* ---------- incoming voice ---------- */
 
 static void rx_free(int i) {
 	rx_stream *r = &app.rx[i];
@@ -387,7 +421,7 @@ static void player_push(play_item *it) {
 }
 
 static void rx_start(int s, const zevent *ev) {
-	int ch = channel_in_session(s, ev->channel);
+	int ch = event_channel(s, ev);
 	if (ch < 0) {
 		return;
 	}
@@ -417,23 +451,22 @@ static void rx_start(int s, const zevent *ev) {
 	r->used = true;
 	r->session = s;
 	r->channel = ch;
-	r->stream_id = ev->stream_id;
+	r->stream_id = ev->stream;
 	str_copy(r->from, sizeof r->from, ev->from);
-	str_copy(r->forwho, sizeof r->forwho, ev->forwho);
-	r->codec = ev->codec_hdr;
+	str_copy(r->forwho, sizeof r->forwho, ev->to);
+	r->codec = ev->codec;
 	r->started = now_ms();
 
 	channel *c = &app.chan[ch];
 	hmsg m = {.kind = HM_VOICE, .partial = true};
 	str_copy(m.from, sizeof m.from, ev->from);
-	str_copy(m.forwho, sizeof m.forwho, ev->forwho);
+	str_copy(m.forwho, sizeof m.forwho, ev->to);
 	r->msg_id = history_add(&c->hist, &m);
 	char path[1200];
 	history_voice_path(&c->hist, r->msg_id, path, sizeof path);
 	if (hv_open(&r->file, path, &r->codec) != 0) {
 		LOG("cannot write %s", path);
 	}
-	remember_stream(r->stream_id, ch, r->msg_id);
 
 	if (app.cfg.auto_play && !app.busy && !c->muted) {
 		play_item it = {.kind = PI_LIVE, .rx = slot, .channel = ch, .msg_id = r->msg_id, .began = now_ms()};
@@ -448,7 +481,7 @@ static void rx_start(int s, const zevent *ev) {
 			app.busy_qn++;
 		}
 	}
-	LOG("%s: voice from %s%s%s", c->name, ev->from, ev->forwho[0] ? " for " : "", ev->forwho);
+	LOG("%s: voice from %s%s%s", c->name, ev->from, ev->to[0] ? " for " : "", ev->to);
 	app.dirty = true;
 }
 
@@ -482,14 +515,14 @@ static void rx_packet(int s, const zp_bin *b) {
 		if (!r->used || r->ended || r->session != s || r->stream_id != b->id) {
 			continue;
 		}
-		if (r->have_pid && b->sub > r->last_pid + 1 && b->sub - r->last_pid <= 25) {
+		if (r->have_pid && b->seq > r->last_pid + 1 && b->seq - r->last_pid <= 25) {
 			/* lost packets: marked so playback can cover them with FEC/PLC */
-			for (uint32_t k = r->last_pid + 1; k < b->sub; k++) {
+			for (uint32_t k = r->last_pid + 1; k < b->seq; k++) {
 				pl_push(&r->pkts, NULL, 0);
 				hv_write(&r->file, NULL, 0);
 			}
 		}
-		r->last_pid = b->sub;
+		r->last_pid = b->seq;
 		r->have_pid = true;
 		pl_push(&r->pkts, b->data, b->len);
 		hv_write(&r->file, b->data, b->len);
@@ -705,12 +738,12 @@ static bool tx_begin(bool vox) {
 	}
 	int s = c->session;
 	int seq = next_seq(s);
-	if (!session_send(s, zp_start_stream(seq, c->name, NULL, &PTT_CODEC))) {
+	if (!session_send(s, zp_talk(seq, c->name, NULL, &PTT_CODEC))) {
 		tone("FAIL");
 		app_toast("not connected");
 		return false;
 	}
-	add_pending(s, seq, P_START, app.active, 0);
+	add_pending(s, seq, P_TALK, app.active, 0);
 	app.tx.phase = TX_STARTING;
 	app.tx.channel = app.active;
 	app.tx.start_seq = seq;
@@ -731,9 +764,11 @@ static void tx_send_packet(const uint8_t *d, size_t n) {
 static void tx_finish(void) {
 	channel *c = &app.chan[app.tx.channel];
 	if (app.tx.phase == TX_SENDING) {
-		int seq = next_seq(c->session);
-		/* the reference gives stop_stream no reply shape: nothing to wait for */
-		session_send(c->session, zp_stop_stream(seq, c->name, app.tx.stream_id));
+		if (!app.tx.server_over) {
+			int seq = next_seq(c->session);
+			session_send(c->session, zp_over(seq, app.tx.stream_id));
+			add_pending(c->session, seq, P_OVER, app.tx.channel, app.tx.msg_id);
+		}
 		hmsg *m = msg(app.tx.channel, app.tx.msg_id);
 		if (m) {
 			m->partial = false;
@@ -780,16 +815,19 @@ static void tx_input_ended(void) {
 
 static void tx_started(int s, const zevent *ev) {
 	if (app.tx.phase != TX_STARTING || ev->seq != app.tx.start_seq) {
-		if (ev->success && ev->stream_id) {
+		if (ev->ok && ev->stream) {
 			/* the button was given up on before the server answered */
-			int ch = app.tx.phase == TX_IDLE ? app.active : app.tx.channel;
-			session_send(s, zp_stop_stream(next_seq(s), app.chan[ch].name, ev->stream_id));
+			session_send(s, zp_over(next_seq(s), ev->stream));
 		}
 		return;
 	}
-	if (!ev->success) {
+	if (!ev->ok) {
 		tone("FAIL");
-		app_toast("cannot talk: %s", ev->error[0] ? ev->error : "refused");
+		if (strcmp(ev->code, "busy") == 0 && ev->talker[0]) {
+			app_toast("cannot talk: %s is talking", ev->talker);
+		} else {
+			app_toast("cannot talk: %s", ev->error[0] ? ev->error : "refused");
+		}
 		if (!app.tx.say_pcm && !app.tx.released && !app.tx.vox) {
 			capture_end();
 		}
@@ -797,7 +835,7 @@ static void tx_started(int s, const zevent *ev) {
 		return;
 	}
 	channel *c = &app.chan[app.tx.channel];
-	app.tx.stream_id = ev->stream_id;
+	app.tx.stream_id = ev->stream;
 	app.tx.phase = TX_SENDING;
 	tone("START"); /* talk permit */
 	hmsg m = {.kind = HM_VOICE, .out = true, .played = true, .partial = true};
@@ -953,19 +991,19 @@ int app_send_text(const char *text, char *err, size_t errn) {
 		snprintf(err, errn, "empty message");
 		return -1;
 	}
-	if (strlen(text) > 30000) {
-		snprintf(err, errn, "text longer than the 30 KB the API takes");
+	if (strlen(text) > ZP_TEXT_MAX) {
+		snprintf(err, errn, "text longer than the %d characters a message takes", ZP_TEXT_MAX);
 		return -1;
 	}
 	int seq = next_seq(c->session);
-	if (!session_send(c->session, zp_send_text(seq, c->name, NULL, text))) {
+	if (!session_send(c->session, zp_say(seq, c->name, NULL, text))) {
 		snprintf(err, errn, "not connected");
 		return -1;
 	}
 	hmsg m = {.kind = HM_TEXT, .out = true, .partial = true, .text = (char *)text};
 	str_copy(m.from, sizeof m.from, me());
 	uint64_t id = history_add(&c->hist, &m);
-	add_pending(c->session, seq, P_TEXT, app.active, id);
+	add_pending(c->session, seq, P_SAY, app.active, id);
 	app.dirty = true;
 	return 0;
 }
@@ -980,7 +1018,7 @@ int app_send_location(double lat, double lon, const char *address, char *err, si
 		return -1;
 	}
 	int seq = next_seq(c->session);
-	if (!session_send(c->session, zp_send_location(seq, c->name, NULL, lat, lon, 0, address))) {
+	if (!session_send(c->session, zp_loc(seq, c->name, NULL, lat, lon, 0, address))) {
 		snprintf(err, errn, "not connected");
 		return -1;
 	}
@@ -988,7 +1026,7 @@ int app_send_location(double lat, double lon, const char *address, char *err, si
 		.text = (char *)(address ? address : "")};
 	str_copy(m.from, sizeof m.from, me());
 	uint64_t id = history_add(&c->hist, &m);
-	add_pending(c->session, seq, P_LOCATION, app.active, id);
+	add_pending(c->session, seq, P_LOC, app.active, id);
 	app.dirty = true;
 	return 0;
 }
@@ -1009,7 +1047,7 @@ int app_send_image(const char *jpeg_path, char *err, size_t errn) {
 		return -1;
 	}
 	int seq = next_seq(c->session);
-	if (!session_send(c->session, zp_send_image(seq, c->name, NULL, w, h, thumb_n, full_n))) {
+	if (!session_send(c->session, zp_pic(seq, c->name, NULL, "image/jpeg", w, h, full_n))) {
 		free(full);
 		free(thumb);
 		snprintf(err, errn, "not connected");
@@ -1024,17 +1062,17 @@ int app_send_image(const char *jpeg_path, char *err, size_t errn) {
 	app.img_out.channel = app.active;
 	app.img_out.seq = seq;
 	app.img_out.busy = true;
-	add_pending(c->session, seq, P_IMAGE, app.active, 0);
+	add_pending(c->session, seq, P_PIC, app.active, 0);
 	return 0;
 }
 
+/* The pic answer reserved an upload: the picture goes as one binary frame
+ * (kind 2, the upload's id, exactly the declared size). */
 static void image_sent(int s, const zevent *ev) {
 	int ch = app.img_out.channel;
-	if (ev->success && ev->image_id) {
+	if (ev->ok && ev->upload) {
 		uint8_t hdr[ZP_BIN_HDR];
-		zp_bin_header(hdr, ZP_BIN_IMAGE, ev->image_id, ZP_IMAGE_THUMB);
-		session_send_bin(s, hdr, app.img_out.thumb, app.img_out.thumb_n);
-		zp_bin_header(hdr, ZP_BIN_IMAGE, ev->image_id, ZP_IMAGE_FULL);
+		zp_bin_header(hdr, ZP_BIN_PIC, ev->upload, 0);
 		session_send_bin(s, hdr, app.img_out.full, app.img_out.full_n);
 		hmsg m = {.kind = HM_IMAGE, .out = true, .w = app.img_out.w, .h = app.img_out.h};
 		str_copy(m.from, sizeof m.from, me());
@@ -1058,7 +1096,7 @@ static void image_sent(int s, const zevent *ev) {
 static void image_in_start(int ch, const zevent *ev) {
 	hmsg m = {.kind = HM_IMAGE, .partial = true, .w = ev->width, .h = ev->height};
 	str_copy(m.from, sizeof m.from, ev->from);
-	str_copy(m.forwho, sizeof m.forwho, ev->forwho);
+	str_copy(m.forwho, sizeof m.forwho, ev->to);
 	uint64_t id = history_add(&app.chan[ch].hist, &m);
 	int slot = 0;
 	for (int i = 0; i < MAX_IMAGES_IN; i++) {
@@ -1070,37 +1108,89 @@ static void image_in_start(int ch, const zevent *ev) {
 			slot = i;
 		}
 	}
-	app.images[slot] = (image_in){ev->message_id, ch, id, now_ms()};
+	app.images[slot] = (image_in){ev->blob, ch, id, now_ms()};
 }
 
+/* The picture itself, one frame after its pic event: stored whole, and a
+ * thumbnail is cut from it for the history view. */
 static void image_in_data(const zp_bin *b) {
 	for (int i = 0; i < MAX_IMAGES_IN; i++) {
 		image_in *in = &app.images[i];
-		if (!in->msg_id || in->message_id != b->id) {
+		if (!in->msg_id || in->blob != b->id) {
 			continue;
 		}
 		history *h = &app.chan[in->channel].hist;
-		char p[1200];
-		history_image_path(h, in->msg_id, b->sub == ZP_IMAGE_THUMB, p, sizeof p);
+		char p[1200], t[1200];
+		history_image_path(h, in->msg_id, false, p, sizeof p);
 		write_file(p, b->data, b->len, 0600);
-		if (b->sub == ZP_IMAGE_FULL) {
-			hmsg *m = history_find(h, in->msg_id);
-			if (m) {
-				m->partial = false;
-				history_commit(h, m);
-				char line[200];
-				snprintf(line, sizeof line, "%s sent an image", m->from);
-				notify(app.chan[in->channel].name, line);
-			}
-			tone("ALERT");
-			memset(in, 0, sizeof *in);
+		history_image_path(h, in->msg_id, true, t, sizeof t);
+		uint8_t *full, *thumb;
+		size_t full_n, thumb_n;
+		int w, hh;
+		char err[200];
+		if (image_prepare(p, &full, &full_n, &thumb, &thumb_n, &w, &hh, err, sizeof err) == 0) {
+			write_file(t, thumb, thumb_n, 0600);
+			free(full);
+			free(thumb);
+		} else {
+			write_file(t, b->data, b->len, 0600); /* not a JPEG we can cut: the picture stands in */
 		}
+		hmsg *m = history_find(h, in->msg_id);
+		if (m) {
+			m->partial = false;
+			history_commit(h, m);
+			char line[200];
+			snprintf(line, sizeof line, "%s sent an image", m->from);
+			notify(app.chan[in->channel].name, line);
+		}
+		tone("ALERT");
+		memset(in, 0, sizeof *in);
 		app.dirty = true;
 		return;
 	}
 }
 
 /* ---------- frames ---------- */
+
+/* The channels the hello answer joined (and any it named that the config
+ * did not), marked online with who is in them. */
+static void hello_channels(int s, const zevent *ev) {
+	for (int k = 0; k < ev->n_channels; k++) {
+		const zp_chan *zc = &ev->channels[k];
+		int ch = app_find_channel(zc->id);
+		if (ch < 0) {
+			ch = channel_add(zc->id);
+		}
+		if (ch < 0) {
+			continue;
+		}
+		channel *c = &app.chan[ch];
+		bool was = c->online;
+		c->online = true;
+		c->users_online = zc->online;
+		memcpy(c->who, zc->who, sizeof c->who);
+		c->error[0] = 0;
+		if (!was) {
+			add_event(ch, "connected, %d online", zc->online);
+		}
+	}
+	for (int k = 0; k < ev->n_refused; k++) {
+		int ch = app_find_channel(ev->refused[k].channel);
+		if (ch >= 0) {
+			str_copy(app.chan[ch].error, sizeof app.chan[ch].error, ev->refused[k].code);
+			add_event(ch, "not joined: %s", ev->refused[k].code);
+		}
+	}
+	if (app.sess[s].was_online) {
+		tone("SUCCESS");
+	}
+	app.sess[s].was_online = true;
+}
+
+static bool token_refused(const char *code) {
+	return strcmp(code, "unauthorized") == 0 || strcmp(code, "expired") == 0 || strcmp(code, "revoked") == 0 ||
+		strcmp(code, "version") == 0;
+}
 
 static void on_reply(int s, const zevent *ev) {
 	pending p;
@@ -1109,45 +1199,76 @@ static void on_reply(int s, const zevent *ev) {
 	}
 	session *ss = &app.sess[s];
 	switch (p.kind) {
-	case P_LOGON:
-		if (ev->success) {
+	case P_HELLO:
+		if (ev->ok) {
 			ss->state = SS_ONLINE;
 			ss->backoff_ms = 0;
 			ss->error[0] = 0;
-			if (ev->refresh_token[0]) {
-				str_copy(ss->refresh_token, sizeof ss->refresh_token, ev->refresh_token);
+			bool save = false;
+			if (ev->member[0]) {
+				str_copy(app.member, sizeof app.member, ev->member);
+				if (strcmp(app.cfg.member, ev->member) != 0) {
+					str_copy(app.cfg.member, sizeof app.cfg.member, ev->member);
+					save = true;
+				}
 			}
-			LOG("signed in as %s", app.cfg.username[0] ? app.cfg.username : "(anonymous)");
+			if (ev->token[0]) {
+				/* the invite is spent: from now on the token signs in */
+				str_copy(app.cfg.token, sizeof app.cfg.token, ev->token);
+				app.cfg.invite[0] = 0;
+				save = true;
+				LOG("invite accepted: member token %s kept in %s", ev->token_id, app.cfg.path);
+			}
+			if (save && config_save_account(&app.cfg) != 0) {
+				LOG("cannot write %s: the token would be lost on the next start", app.cfg.path);
+			}
+			hello_channels(s, ev);
+			if (ev->held) {
+				app_toast("%d direct message%s waiting for you", ev->held, ev->held == 1 ? "" : "s");
+			}
+			LOG("hello: %s, session %s", me(), ev->session);
 		} else {
-			char why[200];
-			snprintf(why, sizeof why, "sign-in refused: %s", ev->error[0] ? ev->error : "unknown");
-			if (p.ref) {
-				ss->refresh_token[0] = 0; /* stale: the next try mints a token */
-			} else {
-				/* a wrong password, username or key: retrying only risks a lockout */
+			char why[240];
+			snprintf(why, sizeof why, "sign-in refused: %s", ev->error);
+			if (token_refused(ev->code)) {
+				/* a bad or spent invite, a revoked or expired token: retrying cannot help */
 				ss->refused = true;
+				if (p.ref && app.cfg.invite[0]) {
+					app.cfg.invite[0] = 0;
+					config_save_account(&app.cfg);
+				}
 			}
 			session_kill(s, why);
 		}
 		break;
-	case P_START:
+	case P_TALK:
 		tx_started(s, ev);
 		break;
-	case P_TEXT:
-	case P_LOCATION: {
+	case P_OVER:
+		if (ev->ok && ev->message[0]) {
+			LOG("voice message %s saved by the server, %d ms", ev->message, ev->ms);
+		}
+		break;
+	case P_SAY:
+	case P_LOC: {
 		hmsg *m = msg(p.channel, p.ref);
 		if (m) {
 			m->partial = false;
 			history_commit(&app.chan[p.channel].hist, m);
 		}
-		if (!ev->success) {
-			add_event(p.channel, "not delivered: %s", ev->error[0] ? ev->error : "refused");
+		if (!ev->ok) {
+			add_event(p.channel, "not delivered: %s", ev->error);
 			tone("FAIL");
 		}
 		break;
 	}
-	case P_IMAGE:
+	case P_PIC:
 		image_sent(s, ev);
+		break;
+	case P_PRESENCE:
+		if (!ev->ok) {
+			LOG("presence refused: %s", ev->error);
+		}
 		break;
 	default:
 		break;
@@ -1160,47 +1281,31 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 	if (zp_parse((const char *)d, n, &ev) != 0) {
 		return;
 	}
-	int ch = ev.channel[0] || app.sess[s].n_chans == 1 ? channel_in_session(s, ev.channel) : -1;
+	int ch = event_channel(s, &ev);
 	switch (ev.kind) {
 	case ZEV_REPLY:
 		on_reply(s, &ev);
 		break;
-	case ZEV_CHANNEL_STATUS:
-		if (ch >= 0) {
-			channel *c = &app.chan[ch];
-			bool was = c->online;
-			c->online = ev.online;
-			c->users_online = ev.users_online;
-			c->images_ok = ev.images_ok;
-			c->texting_ok = ev.texting_ok;
-			c->locations_ok = ev.locations_ok;
-			str_copy(c->error, sizeof c->error, ev.error);
-			if (ev.online && !was) {
-				add_event(ch, "connected, %d online", ev.users_online);
-				if (app.sess[s].was_online) {
-					tone("SUCCESS");
-				}
-				app.sess[s].was_online = true;
-			} else if (!ev.online && was) {
-				add_event(ch, "channel offline%s%s", ev.error[0] ? ": " : "", ev.error);
-			}
-		}
-		break;
-	case ZEV_STREAM_START:
+	case ZEV_TALK:
 		rx_start(s, &ev);
 		break;
-	case ZEV_STREAM_STOP:
+	case ZEV_OVER:
 		for (int i = 0; i < MAX_RX; i++) {
-			if (app.rx[i].used && app.rx[i].session == s && app.rx[i].stream_id == ev.stream_id) {
+			if (app.rx[i].used && app.rx[i].session == s && app.rx[i].stream_id == ev.stream) {
 				rx_end(i);
 			}
 		}
+		if (app.tx.phase == TX_SENDING && app.tx.stream_id == ev.stream && !ev.replay) {
+			/* the server ended our floor (a stall, the 5 minutes, a flood) */
+			app.tx.server_over = true;
+			tx_abort(ev.reason[0] ? ev.reason : "ended by the server");
+		}
 		break;
-	case ZEV_TEXT:
+	case ZEV_SAY:
 		if (ch >= 0 && ev.text) {
 			hmsg m = {.kind = HM_TEXT, .text = ev.text};
 			str_copy(m.from, sizeof m.from, ev.from);
-			str_copy(m.forwho, sizeof m.forwho, ev.forwho);
+			str_copy(m.forwho, sizeof m.forwho, ev.to);
 			history_add(&app.chan[ch].hist, &m);
 			if (ch != app.active) {
 				app.chan[ch].unread++;
@@ -1209,44 +1314,46 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 				tone("ALERT");
 			}
 			char title[200];
-			snprintf(title, sizeof title, "%s%s%s", ev.from, ev.forwho[0] ? " (private) in " : " in ",
+			snprintf(title, sizeof title, "%s%s%s", ev.from, ev.to[0] ? " (private) in " : " in ",
 				app.chan[ch].name);
 			notify(title, ev.text);
 		}
 		break;
-	case ZEV_IMAGE:
+	case ZEV_PIC:
 		if (ch >= 0) {
 			image_in_start(ch, &ev);
 		}
 		break;
-	case ZEV_LOCATION:
+	case ZEV_LOC:
 		if (ch >= 0) {
-			hmsg m = {.kind = HM_LOCATION, .lat = ev.latitude, .lon = ev.longitude,
-				.acc = ev.accuracy, .text = ev.text};
+			hmsg m = {.kind = HM_LOCATION, .lat = ev.lat, .lon = ev.lon, .acc = ev.accuracy, .text = ev.text};
 			str_copy(m.from, sizeof m.from, ev.from);
-			str_copy(m.forwho, sizeof m.forwho, ev.forwho);
+			str_copy(m.forwho, sizeof m.forwho, ev.to);
 			history_add(&app.chan[ch].hist, &m);
 			tone("ALERT");
 		}
 		break;
-	case ZEV_TRANSCRIPTION:
-		for (int k = 0; k < RECENT_STREAMS; k++) {
-			if (recent[k].msg_id && recent[k].stream_id == ev.stream_id) {
-				hmsg *m = msg(recent[k].channel, recent[k].msg_id);
-				if (m && ev.text) {
-					history_set_text(m, ev.text);
-					history_commit(&app.chan[recent[k].channel].hist, m);
-				}
-			}
+	case ZEV_JOIN:
+		if (ch >= 0 && who_add(&app.chan[ch], ev.member)) {
+			add_event(ch, "%s joined", ev.member);
 		}
 		break;
+	case ZEV_LEAVE:
+		if (ch >= 0 && who_remove(&app.chan[ch], ev.member)) {
+			add_event(ch, "%s left", ev.member);
+		}
+		break;
+	case ZEV_PRESENCE:
+		LOG("%s is %s%s%s", ev.member, ev.status, ev.text && ev.text[0] ? ": " : "", ev.text ? ev.text : "");
+		break;
 	case ZEV_ERROR:
-		app_toast("server: %s", ev.error);
-		if (strcmp(ev.error, "server closed connection") == 0) {
-			session_kill(s, ev.error);
-		} else if (strcmp(ev.error, "kicked") == 0) {
-			app.sess[s].kicked = true;
-			session_kill(s, "signed in elsewhere");
+		if (strcmp(ev.code, "revoked") == 0) {
+			app.sess[s].refused = true;
+			session_kill(s, "token revoked");
+		} else if (strcmp(ev.code, "not_logged_in") == 0) {
+			session_kill(s, "not signed in");
+		} else {
+			app_toast("server: %s", ev.error);
 		}
 		break;
 	default:
@@ -1266,9 +1373,9 @@ static void on_frame(void *ud, int op, const uint8_t *d, size_t n) {
 		if (zp_parse_bin(d, n, &b) != 0) {
 			return;
 		}
-		if (b.type == ZP_BIN_AUDIO) {
+		if (b.kind == ZP_BIN_AUDIO) {
 			rx_packet(s, &b);
-		} else if (b.type == ZP_BIN_IMAGE) {
+		} else if (b.kind == ZP_BIN_PIC) {
 			image_in_data(&b);
 		}
 	}
@@ -1298,9 +1405,13 @@ void app_on_session_io(int s, short revents) {
 	}
 	if (revents & (POLLIN | POLLHUP | POLLERR)) {
 		if (ws_read(ss->conn, on_frame, (void *)(intptr_t)s) < 0) {
-			if (ws_close_code(ss->conn) == 3003) {
-				ss->kicked = true; /* Zello's "another client took this account" */
-				session_kill(s, "signed in elsewhere");
+			int code = ws_close_code(ss->conn);
+			if (code == 4003) {
+				ss->kicked = true; /* a newer session of this member and device */
+				session_kill(s, "replaced by another session");
+			} else if (code == 4001 || code == 4004) {
+				ss->refused = true;
+				session_kill(s, code == 4004 ? "token revoked" : "token refused");
 			} else {
 				session_kill(s, "connection closed by the server");
 			}
@@ -1312,7 +1423,7 @@ void app_on_session_io(int s, short revents) {
 
 static bool may_connect(void) {
 	session *ss = &app.sess[0];
-	return !app.offline && !ss->refused && !config_is_bot_account(app.cfg.username) && config_has_account(&app.cfg);
+	return !app.offline && !ss->refused && config_has_account(&app.cfg);
 }
 
 /* Closes the session on purpose (a channel switch, going offline). */
@@ -1350,7 +1461,7 @@ void app_set_offline(bool off) {
 	if (off) {
 		leave();
 		ss->error[0] = 0;
-		app_toast("offline: the account is free for another client");
+		app_toast("offline");
 	} else {
 		ss->error[0] = 0;
 		ss->last_kick = 0;
@@ -1361,24 +1472,10 @@ void app_set_offline(bool off) {
 	}
 }
 
-/* Leaves the joined channel and joins idx on the same session. */
-static void rejoin(int idx) {
-	session *ss = &app.sess[0];
-	leave();
-	ss->chans[0] = idx;
-	ss->n_chans = 1;
-	ss->error[0] = 0;
-	if (may_connect()) {
-		session_connect(0);
-	}
-}
-
+/* Every channel is joined already: selecting one only aims what is sent. */
 void app_select_channel(int idx) {
 	if (idx < 0 || idx >= app.n_chan || app.tx.phase != TX_IDLE) {
 		return;
-	}
-	if (idx != app.active) {
-		rejoin(idx);
 	}
 	app.active = idx;
 	app.chan[idx].unread = 0;
@@ -1393,6 +1490,12 @@ void app_cycle_speed(void) {
 void app_toggle_busy(void) {
 	app.busy = !app.busy;
 	app_toast(app.busy ? "Busy: incoming voice is kept, not played" : "Available");
+	if (app.n_sess && app.sess[0].state == SS_ONLINE) {
+		int seq = next_seq(0);
+		if (session_send(0, zp_presence(seq, app.busy ? "busy" : "online", NULL))) {
+			add_pending(0, seq, P_PRESENCE, -1, 0);
+		}
+	}
 	if (!app.busy) {
 		/* play the messages queued while busy, in order */
 		for (int i = app.busy_qn - 1; i >= 0; i--) {
@@ -1620,14 +1723,11 @@ int app_init(void) {
 		history_prune(&c->hist, app.cfg.history_days, (long long)app.cfg.history_mb << 20);
 		app.n_chan++;
 	}
-	/* One session (Zello allows one per account) carrying the selected
-	 * channel; it moves when another is selected. */
-	app.n_sess = app.n_chan ? 1 : 0;
+	/* One session carrying every channel (hello joins them all). */
+	app.n_sess = 1;
 	for (int k = 0; k < app.n_chan; k++) {
 		app.chan[k].session = 0;
-	}
-	if (app.n_chan) {
-		app.sess[0].chans[app.sess[0].n_chans++] = app.active;
+		app.sess[0].chans[app.sess[0].n_chans++] = k;
 	}
 
 	playback_set_gain_db(app.cfg.play_gain_db);
@@ -1638,15 +1738,7 @@ int app_init(void) {
 	if (capture_start(app.capture_pipe[1], &o) != 0) {
 		return -1;
 	}
-	if (config_is_bot_account(app.cfg.username)) {
-		/* Zello allows one session per account: signing in here would knock
-		 * SYN-CASTER off the channel */
-		for (int s = 0; s < app.n_sess; s++) {
-			snprintf(app.sess[s].error, sizeof app.sess[s].error,
-				"%.40s is SYN-CASTER's account; use your own (syn-cast setup)", app.cfg.username);
-		}
-		LOG("not signing in: %s is SYN-CASTER's account", app.cfg.username);
-	} else if (config_has_account(&app.cfg)) {
+	if (config_has_account(&app.cfg)) {
 		for (int s = 0; s < app.n_sess; s++) {
 			session_connect(s);
 		}
@@ -1687,7 +1779,8 @@ void app_shutdown(void) {
 
 char *app_status_json(void) {
 	json_t *o = json_object();
-	json_object_set_new(o, "user", json_string(app.cfg.username));
+	json_object_set_new(o, "member", json_string(me()));
+	json_object_set_new(o, "device", json_string(app.cfg.device));
 	json_object_set_new(o, "server", json_string(app.cfg.server));
 	static const char *TB[] = {"idle", "connecting", "sending", "receiving", "disabled"};
 	json_object_set_new(o, "talk", json_string(TB[app_talk_state()]));

@@ -1,11 +1,11 @@
 /* ------------------------------------------------------------------------
  *   Layout, top to bottom:
  *
- *   SYN-CAST | user @ zello.io                 AVAILABLE  VOX  1x
- *   CHANNELS        | # channel              3 ONLINE  TEXT IMG LOC
+ *   SYN-CAST | member @ host                  AVAILABLE  VOX  1x
+ *   CHANNELS        | # channel              3 ONLINE
  *   > channel    3  |  20:01  m990          VOICE 0:07
  *     other     *2  |  20:02  you           hello there
- *                   |  20:03  syn-zello     IMAGE 1280x720  [thumb]
+ *                   |  20:03  blackmesa     IMAGE 1280x720  [thumb]
  *                   |  ON AIR  m990  |||||||....  0:03     QUEUE 1
  *                   |  > type a message_
  *                   |  [        HOLD SPACE TO TALK  -> channel       ]
@@ -363,7 +363,7 @@ static void draw_header(void) {
 	char who[300];
 	const char *host = strstr(app.cfg.server, "://");
 	host = host ? host + 3 : app.cfg.server;
-	snprintf(who, sizeof who, "%s @ %.*s", app.cfg.username[0] ? app.cfg.username : "anonymous",
+	snprintf(who, sizeof who, "%s @ %.*s", app.member[0] ? app.member : app.cfg.member[0] ? app.cfg.member : "member",
 		(int)strcspn(host, "/"), host);
 	x += draw_text(ui.font, x, PAD / 2, who, p->text);
 
@@ -589,8 +589,7 @@ static void draw_history(void) {
 	tx += draw_text(ui.font_big, tx, r.y + PAD / 2, "# ", p->accent);
 	char info[300];
 	if (c->online) {
-		snprintf(info, sizeof info, "%d ONLINE%s%s%s", c->users_online, c->texting_ok ? "  TEXT" : "",
-			c->images_ok ? "  IMG" : "", c->locations_ok ? "  LOC" : "");
+		snprintf(info, sizeof info, "%d ONLINE", c->users_online);
 	} else {
 		const char *err = app.sess[c->session].error;
 		snprintf(info, sizeof info, "%s%s%s", app_session_label(app.active), err[0] ? ": " : "", err);

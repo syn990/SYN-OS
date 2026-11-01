@@ -48,7 +48,7 @@ set(BARCORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-bar-core-src/src)
 set(CRYPTER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../syn-crypter-src/src)
 
 set(CORE_SOURCES
-  src/util.c src/zproto.c src/jwt.c src/ws.c src/config.c src/history.c
+  src/util.c src/zproto.c src/ws.c src/config.c src/history.c
   src/audio.c src/stretch.c src/image.c src/app.c src/ctl.c
   ${BARCORE_SRC}/syn_bar_notify.c)
 
@@ -63,12 +63,14 @@ target_compile_options(syn-cast PRIVATE ${DEPS_CFLAGS_OTHER})
 
 # tests: `cmake --build build && ctest --test-dir build`
 enable_testing()
-add_executable(proto_test tests/proto_test.c src/util.c src/zproto.c src/history.c src/stretch.c src/jwt.c)
+add_executable(proto_test tests/proto_test.c src/util.c src/zproto.c src/history.c src/stretch.c)
 target_include_directories(proto_test PRIVATE src ${DEPS_INCLUDE_DIRS})
 target_link_libraries(proto_test PRIVATE ${DEPS_LIBRARIES} m)
 add_test(NAME proto COMMAND proto_test)
+# e2e needs a protocol v1 server: `syn-caster` on PATH (or $SYN_CASTER), or
+# SYN-CASTER's tests/castd_ref.py (or $CASTD_REF); without one it is skipped.
 add_test(NAME e2e COMMAND python3 -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/e2e.py $<TARGET_FILE:syn-cast>)
-set_tests_properties(e2e PROPERTIES TIMEOUT 180)
+set_tests_properties(e2e PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
 
 install(TARGETS syn-cast RUNTIME DESTINATION bin)
 install(FILES syn-cast.desktop DESTINATION share/applications)

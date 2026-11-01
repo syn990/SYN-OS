@@ -2,8 +2,8 @@
 Type=Application
 Name=SYN-CAST
 GenericName=Push-to-talk
-Comment=Talk on Zello channels
+Comment=Talk on SYN-CAST channels
 Exec=syn-cast
 Terminal=false
 Categories=Network;Chat;AudioVideo;
-Keywords=zello;walkie-talkie;radio;ptt;
+Keywords=syn-cast;walkie-talkie;radio;ptt;

@@ -1,54 +1,57 @@
 # SYN-CAST
 
-Push-to-talk on Zello channels, as a native SYN-OS window (`syn-cast`) and
-an Android app (SYN-CAST-APK, below). Hold space, hear
-the beep, talk; let go and it's sent. Everyone on the channel, phones
-included, hears it live. What they say plays as it arrives, one message at a
-time, and every message stays in the history to replay.
+Push-to-talk on the crew's own radio, as a native SYN-OS window (`syn-cast`)
+and an Android app (SYN-CAST-APK, below). Hold space, hear the beep, talk;
+let go and it's sent. Everyone on the channel, phones included, hears it
+live. What they say plays as it arrives, one message at a time, and every
+message stays in the history to replay.
 
-It is the Zello Android app's channel side rebuilt for the desktop: the
-feature set, encoder settings and behaviour were taken from the APK
-(`docs/REV-zello-7.19.2.md` says what and from where), and it talks to Zello
-through the public Channel API, not the app's private protocol.
+It speaks **SYN-CAST protocol v1**, ours: WebSocket over TLS to SYN-CASTER's
+server (`syn-caster cast serve`; SYN-CASTER's `docs/cast-protocol.md` is the
+contract), JSON control frames and binary Opus frames, member tokens from a
+one-time invite code. Nothing here touches Zello's API. The feature set and
+encoder settings came from the Zello Android app's channel side
+(`docs/REV-zello-7.19.2.md` says what and from where), rebuilt for the desktop.
 
 ## What it does
 
 - **Talk**: hold space (or the on-screen bar, or a global key through the
   control socket). Toggle mode if you prefer press-to-start, press-to-stop.
-  The talk-permit beep comes when Zello opens the stream, like the phone.
+  The talk-permit beep comes when the server gives the floor (`talk` answered
+  with a stream), like the phone.
 - **Listen**: incoming voice plays live with the talker's name and level;
   messages that overlap (two channels at once) queue and play in turn. Esc
   stops one.
-- **History** per channel: voice, texts, images, locations, connection
+- **History** per channel: voice, texts, pictures, locations, connection
   events. Enter (or right-click) on a voice message replays it; Ctrl+R
   replays the last one; F2 cycles replay speed 1x / 1.25x / 1.5x with the
-  pitch kept.
-- **Text**: type and Enter. Everything you send goes to the whole channel:
-  the Channel API can only make a message private to someone in the same
-  channel, never a true one-to-one, so SYN-CAST sticks to channels. Private
-  messages others send you still arrive and are marked as such.
-- **Images**: `/img FILE.jpg` sends one (thumbnail first, like the app);
-  received ones show inline, Enter opens the full image.
+  pitch kept. The server keeps every voice message too, as Ogg Opus.
+- **Text**: type and Enter. Everything you send goes to the whole selected
+  channel. A direct message another member sends you arrives in the selected
+  channel, marked private.
+- **Pictures**: `/img FILE.jpg` sends one (one JPEG on the wire; the receiver
+  cuts its own thumbnail); received ones show inline, Enter opens the full
+  picture.
 - **Locations**: `/loc LAT LON [ADDRESS]`; Enter on one opens the map.
-- **Busy** (F3): incoming voice is kept and counted, not played. **Mute** (F4)
-  does that for one channel.
+- **Busy** (F3): incoming voice is kept and counted, not played, and the
+  channel is told (presence `busy`); Available plays what was kept. **Mute**
+  (F4) does that for one channel.
 - **VOX** (F5): talking opens the channel, RNNoise decides what talking is.
-- **Losses**: the encoder sends in-band FEC like the app does, and lost
-  packets are recovered from the next one or concealed.
-- **One channel at a time.** Zello allows one session per account and a
-  free (Friends & Family) logon joins one channel, so picking another
-  channel moves the session there; the rest show NOT JOINED.
+- **Losses**: the encoder sends in-band FEC, and lost packets (a gap in the
+  frame sequence) are recovered from the next one or concealed.
+- **Every channel at once.** `hello` joins every configured channel (or every
+  channel you belong to); picking one only aims what you send. One talker per
+  channel: a second `talk` is refused `busy` with the talker's name.
 - **ONLINE / OFFLINE** (F6, or the button on the phone): offline closes the
-  session and keeps the account, so the Zello app or another device can
-  have it; online takes it again. If another client signs in with the
-  account, SYN-CAST takes it straight back once (the Zello app doesn't fight
-  back); a second time within two minutes it goes offline instead of
-  fighting.
-- **Reconnects** by itself with backoff, using the refresh token Zello gives;
-  Zello's keep-alive pings count, so a quiet channel stays connected. A
-  refused password is not retried.
+  session and keeps the token; online opens it again. A second SYN-CAST
+  signing in as the same member on the same device replaces this one (close
+  4003): it takes its place straight back once; a second time within two
+  minutes it goes offline instead of fighting.
+- **Reconnects** by itself with backoff. The server's pings count, so a quiet
+  channel stays connected. A refused, expired or revoked token is not retried
+  (REFUSED): ask for a new invite.
 - Tones go through syn-bar-core (`START` talk permit, `STOP` end of a
-  message, `ALERT` text/image, `FAIL` refused, `TOGGLE_OFF` connection lost).
+  message, `ALERT` text/picture, `FAIL` refused, `TOGGLE_OFF` connection lost).
   Colours follow the live SYN-OS theme, re-read when the window gets focus.
 
 ## Commands
@@ -56,7 +59,7 @@ through the public Channel API, not the app's private protocol.
 ```
 syn-cast                   the window
 syn-cast --headless        no window; the control socket still works
-syn-cast setup             write the config (offers SYN-ZELLO's developer key)
+syn-cast setup             write the config (server, invite code, channels, certificate)
 syn-cast decode IN.spt OUT.wav
 
 syn-cast ptt down|up|toggle     syn-cast say FILE.wav     syn-cast text MESSAGE
@@ -80,22 +83,23 @@ Ctrl+Q quit.
 
 ## Config
 
-`~/.config/syn-cast/config.json` (mode 600; it holds a password):
+`~/.config/syn-cast/config.json` (mode 600; it holds the member token):
 
 | Key | Default | |
 |---|---|---|
-| `server` | `wss://zello.io/ws` | |
-| `username`, `password` | | the Zello account |
-| `issuer`, `key` | | developer issuer and private key (Friends & Family) |
-| `auth_token` | | a fixed token instead of issuer + key |
-| `channels` | | names; the selected one is joined, picking another moves there |
+| `server` | | `wss://HOST:PORT/cast/v1` |
+| `invite` | | a one-time code from `syn-caster cast invite MEMBER`; spent on the first hello |
+| `token` | | the member token the invite earned (written by syn-cast itself) |
+| `member` | | the member id the server answered with (written by syn-cast itself) |
+| `device` | `window` | this session's device name; one session per member and device |
+| `cert` | | the server's own certificate (PEM path), pinned: it alone is trusted and the host name is not checked; empty trusts the system store |
+| `channels` | | ids; empty joins every channel you belong to |
 | `ptt_mode` | `hold` | or `toggle` |
 | `auto_play` | `true` | play incoming voice as it arrives |
 | `noise_suppression` | `true` | RNNoise on the mic |
 | `vox`, `vox_threshold` | `false`, `0.85` | voice-activated talk |
 | `mic_gain_db`, `play_gain_db` | `0` | amplifiers |
-| `max_talk_seconds` | `300` | |
-| `transcriptions` | `false` | ask for `on_transcription` (Work networks) |
+| `max_talk_seconds` | `300` | (the server ends a floor at 5 minutes too) |
 | `notify`, `tones` | `true` | notify-send for texts when unfocused; syn-bar-core cues |
 | `history_days`, `history_mb` | `30`, `512` | per channel; 0 = no limit |
 | `font`, `width`, `height` | `Terminus:size=14`, 980, 640 | |
@@ -111,25 +115,29 @@ as `v<id>.spt` (the Opus packets as received, lost ones marked), images as
 | `src/main.c` | commands, the poll loop, `setup`, `decode` |
 | `src/app.c` | sessions, talk button, incoming streams, playback queue, history |
 | `src/ui.c` | the Wayland window (pixman + fcft) |
-| `src/zproto.c` | the Channel API as data: commands, events, binary packets |
-| `src/ws.c`, `src/jwt.c` | TLS WebSocket, the RS256 auth token |
+| `src/zproto.c` | SYN-CAST protocol v1 as data: requests, replies, events, binary frames |
+| `src/ws.c` | TLS WebSocket, with the server's certificate pinned |
 | `src/audio.c`, `src/stretch.c` | capture, playback, Opus, RNNoise, VOX; replay speed |
 | `src/history.c`, `src/image.c`, `src/ctl.c`, `src/config.c` | storage, JPEG, control socket, config |
 | `tests/proto_test.c` | unit tests |
-| `tests/standin.py`, `tests/e2e.py` | a stand-in Channel API server; two headless instances end to end |
+| `tests/e2e.py`, `tests/e2e_apk.py` | two headless instances (and the APK's engine on the JVM) end to end on a protocol v1 server: `syn-caster` on PATH (or `$SYN_CASTER`), or SYN-CASTER's `tests/castd_ref.py` (`$CASTD_REF`); skipped without one |
 
 ## Build and test
 
 ```
 cmake -S . -B build && cmake --build build
-ctest --test-dir build --output-on-failure     # proto (62 checks) and e2e (61)
-python3 -I tests/e2e_apk.py build/syn-cast       # the APK's engine against the desktop (41)
+ctest --test-dir build --output-on-failure     # proto (79 checks) and e2e (58)
+python3 -I tests/e2e_apk.py build/syn-cast       # the APK's engine against the desktop (59)
 ```
 
 Needs `wayland libxkbcommon fcft pixman libpulse opus rnnoise libjpeg-turbo
 jansson openssl ncurses terminus-font`, and `cmake wayland-protocols tllist`
 to build. The end-to-end tests run with `SYN_CAST_NOAUDIO=1` (clocks instead
-of sound devices) against `tests/standin.py`; they never touch a live server.
+of sound devices) against a real protocol v1 server on loopback, wss with a
+self-signed certificate the clients pin: `syn-caster` on PATH (or
+`$SYN_CASTER`), else SYN-CASTER's `tests/castd_ref.py` (`$CASTD_REF`, needs
+the `websockets` module). Without either they exit 77 and ctest reports them
+skipped. They never touch a live server.
 
 ## SYN-CAST-APK
 
@@ -145,26 +153,25 @@ foreground service keeps the channel playing with the screen off; the
 volume-down key can be the talk button.
 
 ```
-apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.1.0-personal.apk
-adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.1.0-personal.apk
+apk/build.sh          # -> ~/Apps/SYN-CAST/SYN-CAST-APK-0.2.0.apk
+adb install -r ~/Apps/SYN-CAST/SYN-CAST-APK-0.2.0.apk
 ```
 
-The personal APK carries the developer issuer and key from
-`~/.config/syn-caster/crew/`, so only the username, password and channels are
-asked for; if it ever leaks, revoke the key at developers.zello.com.
-`apk/build.sh --shareable` also builds one with no secrets, which signs in
-with a pasted or loaded key. Both refuse SYN-CASTER's own account (one
-session per Zello account), and a refused sign-in (a wrong password) is not
-retried: the form comes back with Zello's reason. The
-signing key is `~/.config/syn-cast/apk-signing.jks`, made on the first
-build, so new builds install over old ones.
+The APK carries no secrets. On first start it asks for the server, the
+one-time invite code (`syn-caster cast invite MEMBER`), the channels (empty:
+every one you belong to) and, for a self-signed server, its certificate as
+PEM text (pasted or loaded from a file; pinned). The member token the invite
+earns is written to the app's own config and used from then on; a refused,
+expired or revoked token is not retried: the form comes back with the
+server's reason. The signing key is `~/.config/syn-cast/apk-signing.jks`,
+made on the first build, so new builds install over old ones.
 
 It needs the Android SDK (`platforms;android-36`, `build-tools;36.1.0`,
 `ndk;29.0.14206865` under `~/Android/Sdk`). It runs on Android 8 and later.
 
 | File | |
 |---|---|
-| `apk/java/.../core/` | the engine, protocol, WebSocket, token, history, WSOLA: no Android code, so `tests/e2e_apk.py` runs it on the desktop JVM |
+| `apk/java/.../core/` | the engine, protocol, WebSocket (pinned TLS), history, WSOLA: no Android code, so `tests/e2e_apk.py` runs it on the desktop JVM |
 | `apk/java/.../CastService.java` | the foreground service: engine, audio, notifications |
 | `apk/java/.../AndroidAudio.java` | AudioTrack, AudioRecord, VOX, the tones |
 | `apk/java/.../MainActivity.java`, `Views.java`, `Palette.java` | the screen |
@@ -173,15 +180,20 @@ It needs the Android SDK (`platforms;android-36`, `build-tools;36.1.0`,
 
 ## Status
 
-Both are built and tested offline end to end, the APK's engine against the
-desktop's. Before this folder becomes `syn-cast-src` (WIP.md's "Making one
-real"):
+Both speak SYN-CAST protocol v1 and are tested end to end against SYN-CASTER's
+C server (`syn-caster cast serve`), the APK's engine against the desktop's:
+hello with a token or an invite, every channel joined at once, talk/over with
+busy, say, pictures, locations, presence (Busy), replay, replacement (4003),
+refused and revoked tokens. Before this folder becomes `syn-cast-src`
+(WIP.md's "Making one real"):
 
-- A first sign-in on the live `zello.io` with the owner's account, and a
-  talk both ways with a phone. Against the live server only the sign-in
-  exchange has been seen so far (it reached Zello and was answered).
-- The APK on a real phone: the microphone, speaker, foreground service and
-  screen on hardware.
-- The packet-id loss check assumes server ids go up by one per packet, as
-  the reference implies; confirm it on live traffic.
+- The APK on the real phone against the live server (G111 J25 step A's
+  install waits for the phone to be on the LAN for wireless ADB), then away
+  through SYN-Link's cast stream and the off-network test with its date
+  (step B).
+- `history`: the protocol layer builds and parses it (unit-tested), but the
+  clients do not yet fetch what they missed while away; local history holds
+  what each client heard. Needs server message ids in the local records.
+- The server-side replay (`history` with `play`) is not used: replay is local,
+  from the stored voice files.
 - labwc menu entry and a talk keybind, and the docs page.

@@ -220,6 +220,16 @@ public final class HeadlessClient implements Engine.Platform {
 	}
 
 	@Override
+	public byte[] thumbnail(byte[] picture) {
+		try {
+			BufferedImage img = ImageIO.read(new java.io.ByteArrayInputStream(picture));
+			return img == null ? null : jpeg(img, 160);
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	@Override
 	public void notify(String title, String text) {
 	}
 
@@ -263,7 +273,7 @@ public final class HeadlessClient implements Engine.Platform {
 	public static void main(String[] args) throws Exception {
 		Config cfg = Config.load(new File(args[0]));
 		HeadlessClient pf = new HeadlessClient(args[2]);
-		Engine e = new Engine(cfg, new File(args[1]), pf);
+		Engine e = new Engine(cfg, new File(args[1]), new File(args[0]), pf);
 		pf.engine = e;
 		e.start();
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -281,7 +291,7 @@ public final class HeadlessClient implements Engine.Platform {
 						(double) c.users, "unread", (double) c.unread, "error", c.error));
 				}
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
-					"active", (double) v.active, "offline", v.offline,
+					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
 					"busy", v.busy, "speed", v.speed, "channels", chans,
 					"played_samples", (double) pf.playPlayed()));
 				break;
