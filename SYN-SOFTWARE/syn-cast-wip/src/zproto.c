@@ -75,6 +75,9 @@ int zp_parse(const char *json, size_t n, zevent *ev) {
 	get_str(o, "to", ev->to, sizeof ev->to);
 	get_str(o, "at", ev->at, sizeof ev->at);
 	get_str(o, "message", ev->message, sizeof ev->message);
+	get_str(o, "as", ev->as, sizeof ev->as);
+	get_str(o, "name", ev->name, sizeof ev->name);
+	get_str(o, "colour", ev->colour, sizeof ev->colour);
 	ev->stream = (uint32_t)get_num(o, "stream");
 	ev->ms = (int)get_num(o, "ms");
 
@@ -147,6 +150,8 @@ int zp_parse(const char *json, size_t n, zevent *ev) {
 		/* talk, over, say, loc, pic, history */
 		ev->upload = (uint32_t)get_num(o, "upload");
 		ev->packets = (int)get_num(o, "packets");
+		/* portrait */
+		ev->png = dup_str(o, "png");
 		json_t *msgs = json_object_get(o, "messages");
 		if (json_is_array(msgs)) {
 			ev->messages = json_incref(msgs);
@@ -203,6 +208,8 @@ int zp_parse(const char *json, size_t n, zevent *ev) {
 void zp_event_free(zevent *ev) {
 	free(ev->text);
 	ev->text = NULL;
+	free(ev->png);
+	ev->png = NULL;
 	if (ev->messages) {
 		json_decref(ev->messages);
 		ev->messages = NULL;
@@ -288,6 +295,12 @@ char *zp_say(int seq, const char *channel, const char *to, const char *text) {
 	json_t *o = request("say", seq);
 	address(o, channel, to, "to");
 	json_object_set_new(o, "text", json_string(text));
+	return finish(o);
+}
+
+char *zp_portrait(int seq, const char *member) {
+	json_t *o = request("portrait", seq);
+	json_object_set_new(o, "member", json_string(member));
 	return finish(o);
 }
 

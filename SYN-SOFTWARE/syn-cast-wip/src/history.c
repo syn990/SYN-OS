@@ -44,6 +44,16 @@ void history_set_text(hmsg *m, const char *text) {
 	m->text = text ? strdup(text) : NULL;
 }
 
+const char *hmsg_who(const hmsg *m) {
+	return m->name[0] ? m->name : m->as[0] ? m->as : m->from;
+}
+
+void hmsg_speaker(hmsg *m, const char *as, const char *name, const char *colour) {
+	str_copy(m->as, sizeof m->as, as ? as : "");
+	str_copy(m->name, sizeof m->name, as && as[0] && name ? name : "");
+	str_copy(m->colour, sizeof m->colour, colour ? colour : "");
+}
+
 static json_t *to_json(const hmsg *m) {
 	json_t *o = json_object();
 	json_object_set_new(o, "id", json_integer((json_int_t)m->id));
@@ -54,6 +64,9 @@ static json_t *to_json(const hmsg *m) {
 	if (m->partial) json_object_set_new(o, "partial", json_true());
 	json_object_set_new(o, "from", json_string(m->from));
 	if (m->forwho[0]) json_object_set_new(o, "for", json_string(m->forwho));
+	if (m->as[0]) json_object_set_new(o, "as", json_string(m->as));
+	if (m->name[0]) json_object_set_new(o, "name", json_string(m->name));
+	if (m->colour[0]) json_object_set_new(o, "colour", json_string(m->colour));
 	if (m->duration_ms) json_object_set_new(o, "duration_ms", json_integer(m->duration_ms));
 	if (m->w) json_object_set_new(o, "w", json_integer(m->w));
 	if (m->h) json_object_set_new(o, "h", json_integer(m->h));
@@ -86,6 +99,9 @@ static int from_json(json_t *o, hmsg *m) {
 	const char *s;
 	if ((s = json_string_value(json_object_get(o, "from")))) str_copy(m->from, sizeof m->from, s);
 	if ((s = json_string_value(json_object_get(o, "for")))) str_copy(m->forwho, sizeof m->forwho, s);
+	if ((s = json_string_value(json_object_get(o, "as")))) str_copy(m->as, sizeof m->as, s);
+	if ((s = json_string_value(json_object_get(o, "name")))) str_copy(m->name, sizeof m->name, s);
+	if ((s = json_string_value(json_object_get(o, "colour")))) str_copy(m->colour, sizeof m->colour, s);
 	m->duration_ms = (int)json_integer_value(json_object_get(o, "duration_ms"));
 	m->w = (int)json_integer_value(json_object_get(o, "w"));
 	m->h = (int)json_integer_value(json_object_get(o, "h"));

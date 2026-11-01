@@ -320,6 +320,72 @@ class Raw:
             pass
 
 
+def speakers(srv, bob, voice):
+    """G228: a line or a note a cast member speaks for a character (the bot speaks for the whole crew as one member)
+    carries as, the character's name and colour; the window keeps them on the line, names and colours whoever is
+    talking, and asks the server for the speaker's portrait once, for the top right corner while the note plays."""
+    import struct
+    import zlib
+    write_json(os.path.join(srv.data, "members", "kirk", "member.json"),
+               {"id": "kirk", "role": "cast", "services": [{"id": s} for s in ("chat", "radio", "messages", "channels")]})
+    write_json(os.path.join(srv.data, "members", "data", "member.json"),
+               {"id": "data", "name": "Commander Data", "colour": "#4fc3f7", "services": []})
+
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    rows = b"".join(b"\0" + bytes([79, 195, 247]) * 64 for _ in range(64))
+    png = os.path.join(srv.data, "members", "data", "portrait.png")
+    with open(png, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 64, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+    size = os.path.getsize(png)
+    packets = [p for p in spt_packets(os.path.join(bob.dir, "data", "test", f"v{voice['id']}.spt")) if p]
+    kirk = Raw(srv, srv.token("kirk"), channels=["test"])
+    try:
+        probe = kirk.req("portrait", member="data")
+        if probe and probe.get("type") == "error" and probe.get("code") in ("unknown_type", "bad_request"):
+            print("SKIP G228: this server has no speaker tags or portraits yet (SYN-CASTER C227)")
+            return
+        r = kirk.req("say", channel="test", text="Captain, the figures are in.", **{"as": "data"})
+        m = wait_for(lambda: bob.find("test", kind="text", text="Captain, the figures are in."), 6)
+        check("a line spoken for a character keeps who spoke in the window: as, name and colour",
+              m and m.get("from") == "kirk" and m.get("as") == "data" and m.get("name") == "Commander Data"
+              and m.get("colour") == "#4fc3f7", (r, m))
+        wait_for(lambda: bob.status()["queue"] == 0 and bob.status()["talk"] == "idle", 8)
+        r = kirk.req("talk", channel="test", codec="opus", rate=16000, channels=1, frame_ms=20, **{"as": "data"})
+        sid = r.get("stream") if r else None
+        check("the cast member takes the floor as the character", r and r.get("type") == "ok" and sid, r)
+        seen = []
+        t0 = time.time()
+        for i, p in enumerate(packets):
+            kirk.ws.send(bytes([1]) + int(sid).to_bytes(4, "big") + i.to_bytes(4, "big") + p)
+            if i % 10 == 9:
+                seen.append(bob.status())
+            time.sleep(max(0, t0 + (i + 1) * 0.02 - time.time()))
+        kirk.req("over", stream=sid)
+        wait_for(lambda: (seen.append(bob.status()) or seen[-1]["queue"] == 0 and seen[-1]["talk"] == "idle"), 8)
+        on = [st for st in seen if st.get("on_air")]
+        check("while the note plays the window names the character, not the member who carried it",
+              on and all(st["on_air"] == "Commander Data" and st["rx_face"] == "data" for st in on), on[:2])
+        check("in the character's colour", on and all(st["rx_colour"] == "#4fc3f7" for st in on), on[:2])
+        check("and has the portrait, fetched while it plays", any(st["rx_portrait"] == size for st in on),
+              [st.get("rx_portrait") for st in on])
+        check("the portrait is held whole, PNG bytes as the server keeps them",
+              bob.status()["portraits"].get("data") == size, (bob.status()["portraits"], size))
+        check("asked for once, however many notes", bob.log_count("portrait of data:") == 1, bob.log_count("portrait of data:"))
+        v = wait_for(lambda: bob.find("test", kind="voice", **{"from": "kirk"}), 4)
+        check("the note keeps the speaker on its line for replay and the list",
+              v and v.get("as") == "data" and v.get("name") == "Commander Data" and v.get("colour") == "#4fc3f7", v)
+        p0 = bob.played_seconds()
+        bob.ctl("replay")
+        st = wait_for(lambda: (lambda s: s if s.get("on_air") else None)(bob.status()), 4)
+        check("a replay names the character too", st and st["on_air"] == "Commander Data" and st["rx_colour"] == "#4fc3f7", st)
+        wait_for(lambda: bob.status()["queue"] == 0 and bob.status()["talk"] == "idle", 8)
+        check("and asks no second time", bob.log_count("portrait of data:") == 1 and bob.played_seconds() > p0)
+    finally:
+        kirk.close()
+
+
 def decode(spt, out):
     subprocess.run([BIN, "decode", spt, out], capture_output=True)
     return wav_info(out)
@@ -463,6 +529,8 @@ def main():
         check("replay plays the last message", 1.3 < one < 2.1, one)
         check("1.5x replay takes two thirds of the time", 0.6 < fast / one < 0.73, (one, fast))
         bob.ctl("speed")
+
+        speakers(srv, bob, [v for v in bob.voices("test", out=False) if not v.get("partial")][-1])
 
         # Busy: kept, not played, and told to the channel as presence
         bob.ctl("busy")

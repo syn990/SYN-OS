@@ -14,7 +14,7 @@ add_compile_options(-Wall -Wextra -D_GNU_SOURCE)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DEPS REQUIRED
   wayland-client wayland-cursor xkbcommon fcft pixman-1
-  libpulse-simple opus rnnoise libturbojpeg jansson openssl)
+  libpulse-simple opus rnnoise libturbojpeg libpng jansson openssl)
 # syn_theme.c's unused ncurses half still pulls in ncursesw at link time,
 # the same as syn-uplink-dialpad.
 pkg_check_modules(NCURSES REQUIRED ncursesw)

@@ -25,4 +25,9 @@ int image_prepare(const char *path, uint8_t **full, size_t *full_n, uint8_t **th
 /* Decodes a JPEG file to XRGB8888 scaled to fit max_w x max_h. */
 uint32_t *image_load_argb(const char *path, int max_w, int max_h, int *w, int *h);
 
+/* G228: decodes a PNG held in memory (a speaker's portrait), cut to the
+ * centred square and scaled to side x side, as XRGB8888 with any
+ * transparency laid over bg (0xRRGGBB). NULL on a bad PNG. */
+uint32_t *image_png_square(const uint8_t *png, size_t n, int side, uint32_t bg);
+
 #endif

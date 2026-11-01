@@ -168,6 +168,64 @@ static bool take_pending(int s, int seq, pending *out) {
 	return false;
 }
 
+/* ---------- portraits (G228) ---------- */
+
+const char *app_face(const hmsg *m) {
+	return m->as[0] ? m->as : m->from;
+}
+
+const portrait *app_portrait(const char *id) {
+	for (int i = 0; i < app.n_portraits; i++) {
+		if (strcmp(app.portraits[i].id, id) == 0) {
+			return &app.portraits[i];
+		}
+	}
+	return NULL;
+}
+
+/* Asks session s for id's portrait, once: a server that has no portrait
+ * request answers an error, and the id is not asked again. */
+static void want_portrait(int s, const char *id) {
+	if (!id || !id[0] || app_portrait(id) || app.sess[s].state != SS_ONLINE) {
+		return;
+	}
+	int k = app.n_portraits < MAX_PORTRAITS ? app.n_portraits++ : app.portrait_next;
+	app.portrait_next = (k + 1) % MAX_PORTRAITS;
+	portrait *p = &app.portraits[k];
+	free(p->png);
+	*p = (portrait){.asked = now_ms()};
+	str_copy(p->id, sizeof p->id, id);
+	int seq = next_seq(s);
+	if (session_send(s, zp_portrait(seq, id))) {
+		add_pending(s, seq, P_PORTRAIT, -1, (uint64_t)k);
+	}
+}
+
+static void portrait_reply(const pending *pd, const zevent *ev) {
+	portrait *p = &app.portraits[pd->ref % MAX_PORTRAITS];
+	if (ev->ok && ev->member[0] && strcmp(ev->member, p->id) != 0) {
+		return; /* the slot went to another id meanwhile */
+	}
+	p->answered = true;
+	if (ev->ok) {
+		LOG("portrait of %s: %s", p->id, ev->png ? "a picture" : "none");
+	}
+	if (ev->ok && ev->png) {
+		size_t cap = strlen(ev->png) / 4 * 3 + 3;
+		uint8_t *b = malloc(cap);
+		long n = b ? b64_decode(ev->png, b, cap) : -1;
+		if (n > 8) {
+			p->png = b;
+			p->n = (size_t)n;
+		} else {
+			free(b);
+		}
+	} else if (!ev->ok) {
+		LOG("portrait %s: %s", p->id, ev->error);
+	}
+	app.dirty = true;
+}
+
 static void schedule_retry(int s, int min_ms) {
 	session *ss = &app.sess[s];
 	ss->state = SS_RETRY;
@@ -461,7 +519,9 @@ static void rx_start(int s, const zevent *ev) {
 	hmsg m = {.kind = HM_VOICE, .partial = true};
 	str_copy(m.from, sizeof m.from, ev->from);
 	str_copy(m.forwho, sizeof m.forwho, ev->to);
+	hmsg_speaker(&m, ev->as, ev->name, ev->colour);
 	r->msg_id = history_add(&c->hist, &m);
+	want_portrait(s, app_face(&m)); /* fetched while the note plays */
 	char path[1200];
 	history_voice_path(&c->hist, r->msg_id, path, sizeof path);
 	if (hv_open(&r->file, path, &r->codec) != 0) {
@@ -654,7 +714,8 @@ void app_replay(int channel, uint64_t msg_id) {
 		return;
 	}
 	play_item it = {.kind = PI_REPLAY, .channel = channel, .msg_id = msg_id};
-	str_copy(it.from, sizeof it.from, m->from);
+	str_copy(it.from, sizeof it.from, hmsg_who(m));
+	want_portrait(app.chan[channel].session, app_face(m));
 	it.duration_ms = m->duration_ms;
 	char path[1200];
 	history_voice_path(&app.chan[channel].hist, msg_id, path, sizeof path);
@@ -696,7 +757,12 @@ const char *app_rx_name(int *level, int *elapsed_ms) {
 	}
 	*level = playback_level();
 	*elapsed_ms = (int)(now_ms() - app.queue[0].began);
-	return app.queue[0].from;
+	const hmsg *m = app_rx_msg();
+	return m ? hmsg_who(m) : app.queue[0].from;
+}
+
+const hmsg *app_rx_msg(void) {
+	return app.playing && app.qn > 0 ? msg(app.queue[0].channel, app.queue[0].msg_id) : NULL;
 }
 
 /* ---------- talking ---------- */
@@ -1097,6 +1163,7 @@ static void image_in_start(int ch, const zevent *ev) {
 	hmsg m = {.kind = HM_IMAGE, .partial = true, .w = ev->width, .h = ev->height};
 	str_copy(m.from, sizeof m.from, ev->from);
 	str_copy(m.forwho, sizeof m.forwho, ev->to);
+	hmsg_speaker(&m, ev->as, ev->name, ev->colour);
 	uint64_t id = history_add(&app.chan[ch].hist, &m);
 	int slot = 0;
 	for (int i = 0; i < MAX_IMAGES_IN; i++) {
@@ -1265,6 +1332,9 @@ static void on_reply(int s, const zevent *ev) {
 	case P_PIC:
 		image_sent(s, ev);
 		break;
+	case P_PORTRAIT:
+		portrait_reply(&p, ev);
+		break;
 	case P_PRESENCE:
 		if (!ev->ok) {
 			LOG("presence refused: %s", ev->error);
@@ -1306,6 +1376,7 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 			hmsg m = {.kind = HM_TEXT, .text = ev.text};
 			str_copy(m.from, sizeof m.from, ev.from);
 			str_copy(m.forwho, sizeof m.forwho, ev.to);
+			hmsg_speaker(&m, ev.as, ev.name, ev.colour);
 			history_add(&app.chan[ch].hist, &m);
 			if (ch != app.active) {
 				app.chan[ch].unread++;
@@ -1314,7 +1385,7 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 				tone("ALERT");
 			}
 			char title[200];
-			snprintf(title, sizeof title, "%s%s%s", ev.from, ev.to[0] ? " (private) in " : " in ",
+			snprintf(title, sizeof title, "%s%s%s", hmsg_who(&m), ev.to[0] ? " (private) in " : " in ",
 				app.chan[ch].name);
 			notify(title, ev.text);
 		}
@@ -1329,6 +1400,7 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 			hmsg m = {.kind = HM_LOCATION, .lat = ev.lat, .lon = ev.lon, .acc = ev.accuracy, .text = ev.text};
 			str_copy(m.from, sizeof m.from, ev.from);
 			str_copy(m.forwho, sizeof m.forwho, ev.to);
+			hmsg_speaker(&m, ev.as, ev.name, ev.colour);
 			history_add(&app.chan[ch].hist, &m);
 			tone("ALERT");
 		}
@@ -1775,6 +1847,10 @@ void app_shutdown(void) {
 	for (int k = 0; k < app.n_chan; k++) {
 		history_close(&app.chan[k].hist);
 	}
+	for (int i = 0; i < app.n_portraits; i++) {
+		free(app.portraits[i].png);
+	}
+	app.n_portraits = 0;
 }
 
 char *app_status_json(void) {
@@ -1791,6 +1867,18 @@ char *app_status_json(void) {
 	json_object_set_new(o, "queue", json_integer(app.qn));
 	int level, el;
 	json_object_set_new(o, "on_air", json_string(app_rx_name(&level, &el)));
+	/* G228: who is on air, in what colour, and their portrait */
+	const hmsg *rm = app_rx_msg();
+	json_object_set_new(o, "rx_colour", json_string(rm ? rm->colour : ""));
+	json_object_set_new(o, "rx_face", json_string(rm ? app_face(rm) : ""));
+	const portrait *rp = rm ? app_portrait(app_face(rm)) : NULL;
+	json_object_set_new(o, "rx_portrait", json_integer(rp ? (json_int_t)rp->n : 0));
+	json_t *pj = json_object();
+	for (int i = 0; i < app.n_portraits; i++) {
+		const portrait *q = &app.portraits[i];
+		json_object_set_new(pj, q->id, json_integer(q->answered ? (json_int_t)q->n : -1));
+	}
+	json_object_set_new(o, "portraits", pj);
 	json_t *chans = json_array();
 	for (int k = 0; k < app.n_chan; k++) {
 		channel *c = &app.chan[k];

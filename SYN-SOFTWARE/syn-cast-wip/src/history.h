@@ -36,6 +36,11 @@ typedef struct {
 	bool partial;        /* voice still arriving, image still loading */
 	char from[64];
 	char forwho[64];     /* private recipient, "" for the channel */
+	/* G228: a line a cast member spoke for a character: its id, display
+	 * name and #rrggbb colour ("" when the member spoke as themselves) */
+	char as[64];
+	char name[64];
+	char colour[16];
 	int duration_ms;
 	int w, h;
 	double lat, lon, acc;
@@ -58,6 +63,11 @@ hmsg *history_find(history *h, uint64_t id);
 /* Rewrites the record after its fields changed. */
 void history_commit(history *h, const hmsg *m);
 void history_set_text(hmsg *m, const char *text);
+/* The name a line is shown under: the character's name, else its id, else
+ * the member who sent it. */
+const char *hmsg_who(const hmsg *m);
+/* Copies who spoke (as, name, colour) from a parsed event or history line. */
+void hmsg_speaker(hmsg *m, const char *as, const char *name, const char *colour);
 
 void history_voice_path(const history *h, uint64_t id, char *out, size_t cap);
 void history_image_path(const history *h, uint64_t id, bool thumb, char *out, size_t cap);

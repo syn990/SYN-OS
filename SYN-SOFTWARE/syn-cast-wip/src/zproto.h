@@ -107,6 +107,14 @@ typedef struct {
 	char from[ZP_NAME_MAX];
 	char to[ZP_NAME_MAX];    /* a direct message: the receiver (this member) */
 	char at[32];
+	/* G228: who spoke, when a cast member speaks for a character (talk,
+	 * over, say, loc, pic; history lines carry the same): the character's
+	 * id, display name and #rrggbb colour; "" when the member spoke as
+	 * themselves. A portrait reply names its member, name and colour too. */
+	char as[ZP_NAME_MAX];
+	char name[64];
+	char colour[16];
+	char *png;               /* portrait reply: the PNG, base64; malloc'd */
 
 	/* talk */
 	zp_codec codec;
@@ -149,6 +157,8 @@ char *zp_loc(int seq, const char *channel, const char *to, double lat, double lo
 	const char *address);
 char *zp_presence(int seq, const char *status, const char *text);
 char *zp_history(int seq, const char *channel, const char *with, int limit, const char *before);
+/* G228: asks for a member's or character's name, colour and portrait. */
+char *zp_portrait(int seq, const char *member);
 char *zp_history_play(int seq, const char *channel, const char *with, const char *message);
 
 /* Binary header writer and parser. */

@@ -127,6 +127,21 @@ static void test_events(void) {
 	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_SAY && ev.text && strcmp(ev.text, "h\xc3\xa9llo") == 0 &&
 		strcmp(ev.at, "2026-11-01T00:00:00Z") == 0 && ev.to[0] == 0, "say");
 	zp_event_free(&ev);
+	/* G228: a line spoken for a character, and the portrait reply */
+	s = "{\"type\":\"say\",\"message\":\"m3a\",\"from\":\"kirk\",\"as\":\"data\",\"name\":\"Commander Data\","
+		"\"colour\":\"#4fc3f7\",\"channel\":\"ops\",\"text\":\"x\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.from, "kirk") == 0 && strcmp(ev.as, "data") == 0 &&
+		strcmp(ev.name, "Commander Data") == 0 && strcmp(ev.colour, "#4fc3f7") == 0, "say as a character");
+	zp_event_free(&ev);
+	s = "{\"type\":\"say\",\"message\":\"m3b\",\"from\":\"bob\",\"colour\":\"#ff8800\",\"channel\":\"ops\",\"text\":\"x\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.as[0] == 0 && ev.name[0] == 0 && strcmp(ev.colour, "#ff8800") == 0,
+		"a plain speaker's colour");
+	zp_event_free(&ev);
+	s = "{\"type\":\"ok\",\"seq\":12,\"member\":\"data\",\"name\":\"Commander Data\",\"colour\":null,\"png\":\"iVBORw==\"}";
+	CHECK(zp_parse(s, strlen(s), &ev) == 0 && ev.kind == ZEV_REPLY && ev.ok && ev.png && strcmp(ev.png, "iVBORw==") == 0 &&
+		ev.colour[0] == 0, "portrait reply: the PNG kept, a null colour empty");
+	zp_event_free(&ev);
+	CHECK(ev.png == NULL, "the PNG freed");
 	s = "{\"type\":\"say\",\"message\":\"m4\",\"from\":\"bob\",\"to\":\"me\",\"text\":\"x\"}";
 	CHECK(zp_parse(s, strlen(s), &ev) == 0 && strcmp(ev.to, "me") == 0 && ev.channel[0] == 0, "a direct message");
 	zp_event_free(&ev);
@@ -213,6 +228,10 @@ static void test_commands(void) {
 	CHECK(strcmp(S(o, "type"), "say") == 0 && strcmp(S(o, "text"), "h\xc3\xa9llo") == 0 &&
 		strcmp(S(o, "channel"), "ops") == 0, "say keeps UTF-8");
 	json_decref(o);
+	o = J(zp_portrait(11, "data"));
+	CHECK(strcmp(S(o, "type"), "portrait") == 0 && strcmp(S(o, "member"), "data") == 0 &&
+		json_integer_value(json_object_get(o, "seq")) == 11, "portrait asks for one member");
+	json_decref(o);
 	o = J(zp_pic(10, "ops", NULL, "image/jpeg", 640, 400, 12345));
 	CHECK(strcmp(S(o, "type"), "pic") == 0 && strcmp(S(o, "mime"), "image/jpeg") == 0 &&
 		json_integer_value(json_object_get(o, "width")) == 640 && json_integer_value(json_object_get(o, "height")) == 400 &&
@@ -287,15 +306,30 @@ static void test_history(void) {
 	m->duration_ms = 1200;
 	history_set_text(m, "transcribed");
 	history_commit(&h, m);
+	hmsg c = {.kind = HM_TEXT, .text = "for the captain"};
+	str_copy(c.from, sizeof c.from, "kirk");
+	hmsg_speaker(&c, "data", "Commander Data", "#4fc3f7");
+	uint64_t idc = history_add(&h, &c);
+	hmsg p = {.kind = HM_TEXT, .text = "plain"};
+	str_copy(p.from, sizeof p.from, "bob");
+	hmsg_speaker(&p, "", "Bob B", "#ff8800");
+	uint64_t idp = history_add(&h, &p);
+	CHECK(strcmp(hmsg_who(&c), "Commander Data") == 0 && strcmp(hmsg_who(&p), "bob") == 0 && p.name[0] == 0,
+		"a character's name shown; a name without a character is not kept");
+	history_close(&h);
+	CHECK(history_open(&h, tmpdir, "Chan/../x") == 0 && (m = history_find(&h, idc)) && strcmp(m->as, "data") == 0 &&
+		strcmp(m->name, "Commander Data") == 0 && strcmp(m->colour, "#4fc3f7") == 0 &&
+		(m = history_find(&h, idp)) && m->as[0] == 0 && m->name[0] == 0 && strcmp(m->colour, "#ff8800") == 0,
+		"the speaker survives a reopen");
 	history_close(&h);
 
-	CHECK(history_open(&h, tmpdir, "Chan/../x") == 0 && h.n == 3, "reopen keeps 3, got %zu", h.n);
+	CHECK(history_open(&h, tmpdir, "Chan/../x") == 0 && h.n == 5, "reopen keeps 5, got %zu", h.n);
 	m = history_find(&h, idv);
 	CHECK(m && !m->partial && m->duration_ms == 1200 && m->text && strcmp(m->text, "transcribed") == 0,
 		"later record replaces the earlier");
-	CHECK(history_prune(&h, 30, 0) == 1 && h.n == 2, "prune drops the 40-day-old message");
+	CHECK(history_prune(&h, 30, 0) == 1 && h.n == 4, "prune drops the 40-day-old message");
 	history_close(&h);
-	CHECK(history_open(&h, tmpdir, "Chan/../x") == 0 && h.n == 2, "prune persisted");
+	CHECK(history_open(&h, tmpdir, "Chan/../x") == 0 && h.n == 4, "prune persisted");
 	history_close(&h);
 }
 
