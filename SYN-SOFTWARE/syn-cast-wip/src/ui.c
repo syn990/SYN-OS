@@ -730,7 +730,7 @@ static void face_drop(void) {
 
 static void draw_portrait(rect r) {
 	const hmsg *m = app_rx_msg();
-	int side = ui.lh * 5;
+	int side = ui.lh * 6;
 	if (!m || r.w < side * 3 || r.h < side + ui.lh * 2) {
 		return;
 	}
@@ -750,17 +750,24 @@ static void draw_portrait(rect r) {
 			}
 		}
 	}
+	/* the name under the card in a band of the speaker's colour: as wide as the card, wider (to the left, up to
+	 * twice the card) for a long name, so "Commander Data" is read whole */
+	const char *who = hmsg_who(m);
 	int cap = ui.lh + 4;
-	int cw = side + 4, chh = side + cap + 4;
+	int cw = side + 4;
 	int x = r.x + r.w - cw - PAD, y = r.y + PAD;
-	fill(x, y, cw, chh, c);
+	int bw = text_width(ui.font, who) + 10;
+	bw = bw < cw ? cw : bw > cw * 2 ? cw * 2 : bw;
+	int bx = x + cw - bw;
+	fill(x, y, cw, side + 4, c);
+	fill(bx, y + side + 4, bw, cap, c);
 	if (ui.face.img) {
 		pixman_image_composite32(PIXMAN_OP_SRC, ui.face.img, NULL, dst, 0, 0, 0, 0, x + 2, y + 2, side, side);
 	} else {
 		syn_rgb under = mix(c, p->panel, 35);
 		fill(x + 2, y + 2, side, side, under);
 		char ini[8] = "";
-		const char *n = hmsg_who(m);
+		const char *n = who;
 		int k = 0;
 		for (const char *q = n; *q && k < 2; q++) {
 			if ((q == n || q[-1] == ' ') && (unsigned char)*q < 0x80 && *q != ' ') {
@@ -772,7 +779,9 @@ static void draw_portrait(rect r) {
 		int tw = text_width(f, ini);
 		draw_text(f, x + 2 + (side - tw) / 2, y + 2 + (side - f->height) / 2, ini, ink_on(under));
 	}
-	draw_text_fit(ui.font, x + 4, y + side + 4 + (cap - ui.lh) / 2, hmsg_who(m), ink_on(c), side - 4);
+	int tw = text_width(ui.font, who);
+	int tx = tw <= bw - 10 ? bx + (bw - tw) / 2 : bx + 5;
+	draw_text_fit(ui.font, tx, y + side + 4 + (cap - ui.lh) / 2, who, ink_on(c), bw - 10);
 }
 
 static void draw_input(void) {
