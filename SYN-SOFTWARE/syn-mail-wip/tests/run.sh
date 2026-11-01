@@ -180,6 +180,13 @@ S1=$(date +%s)
 has "the server did announce the huge reply" "$(cat "$T/log")" "imap UID FETCH 666 huge literal announced"
 O=$("$BIN" headers pw '[Gmail]' 2>&1); r=$?
 [ $r -ne 0 ] && ok "headers of a folder that holds no messages fails" || no "headers of a folder that holds no messages fails" "$O"
+# a folder name with a line break would end the command and smuggle in a second one (SELECT marks mail read)
+BADNAME=$(printf 'INBOX\r\nX1 SELECT INBOX')
+O=$("$BIN" headers pw "$BADNAME" 2>&1); r=$?
+[ $r -ne 0 ] && has "headers refuses a folder name with a line break" "$O" "line break" || no "headers refuses a folder name with a line break" "$O (exit $r)"
+O=$("$BIN" show pw "$(printf 'INBOX\nX2 SELECT INBOX')" 102 2>&1); r=$?
+[ $r -ne 0 ] && has "show refuses a folder name with a line break" "$O" "line break" || no "show refuses a folder name with a line break" "$O (exit $r)"
+hasnt "no smuggled command reached the server" "$(cat "$T/log")" "imap SELECT"
 : >"$T/draw"
 O=$(SYN_MAIL_DRAWLOG="$T/draw" WAYLAND_DISPLAY= "$BIN" window --shot "$T/shot.png" --size 1280x800 2>&1); r=$?
 [ $r -eq 0 ] && ok "window --shot draws without a compositor" || no "window --shot draws without a compositor" "$O"
@@ -200,6 +207,23 @@ O=$(WAYLAND_DISPLAY=nowhere-$$ "$BIN" window 2>&1); r=$?
 [ $r -ne 0 ] && has "window without a desktop says so" "$O" "no Wayland display" || no "window without a desktop says so" "$O"
 hasnt "nothing was ever marked read" "$(cat "$T/log")" "marks read"
 has "bodies were fetched with PEEK" "$(cat "$T/log")" "imap UID FETCH 103 PEEK"
+
+# 6b. export for the phone app: one file, mode 600, the account and its keyring secrets, never through a link
+O=$("$BIN" export pw "$T/pw.syn-mail" 2>&1); r=$?
+[ $r -eq 0 ] && [ "$(stat -c %a "$T/pw.syn-mail")" = 600 ] && ok "export writes the account file mode 600" ||
+	no "export writes the account file mode 600" "$O"
+X=$(python3 -c 'import json,sys; j=json.load(open(sys.argv[1])); print(j["syn_mail_account"], j["address"], j["imap_host"], j["auth"], j["secrets"]["password"])' "$T/pw.syn-mail" 2>&1)
+has "the export carries the account and its password" "$X" '1 pw@example.test localhost password s3cret pass"word'
+O=$("$BIN" export oa "$T/oa.syn-mail" 2>&1); r=$?
+X=$(python3 -c 'import json,sys; j=json.load(open(sys.argv[1])); s=j["secrets"]; print(j["auth"], sorted(s), s["client_id"])' "$T/oa.syn-mail" 2>&1)
+[ $r -eq 0 ] && has "the Google export carries the refresh token and the client" "$X" "oauth ['client_id', 'client_secret', 'refresh_token'] cid" ||
+	no "the Google export carries the refresh token and the client" "$O $X"
+ln -s "$T/elsewhere" "$T/link.syn-mail"
+O=$("$BIN" export pw "$T/link.syn-mail" 2>&1); r=$?
+[ $r -ne 0 ] && [ ! -e "$T/elsewhere" ] && ok "export will not write through a link" || no "export will not write through a link" "$O"
+O=$("$BIN" export nobody "$T/x.syn-mail" 2>&1); r=$?
+[ $r -ne 0 ] && [ ! -e "$T/x.syn-mail" ] && ok "export of an unknown account writes nothing" || no "export of an unknown account writes nothing" "$O"
+[ -n "$SYN_MAIL_EXPORT_OUT" ] && cp "$T/pw.syn-mail" "$T/oa.syn-mail" "$SYN_MAIL_EXPORT_OUT"/ 2>/dev/null
 
 # 7. sending: AUTH PLAIN and XOAUTH2, the message as built, header injection, bad recipients
 printf 'Hello,\n.leading dot line\nCafé.\n' | "$BIN" send pw to@example.test 'Résumé

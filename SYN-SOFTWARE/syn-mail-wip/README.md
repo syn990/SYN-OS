@@ -1,14 +1,14 @@
 # syn-mail
 
 A mail client for SYN-OS, built by the crew in the SYN-CAST family: a
-native Linux program and, later, an Android APK, sharing one design and
-one stand-in test server. It reads and sends for both of the operator's
+native Linux program and an Android APK, sharing one design and one
+stand-in test server. It reads and sends for both of the operator's
 domains: a Google Workspace mailbox (OAuth) and an IONOS mailbox
 (password). Ticket G223; the plan is in the crew workspace,
 `research/2026-11-01-syn-mail-plan.md`.
 
-**Slices 1 and 2 are built: the command-line core and the window.** The
-APK (slice 3) is not.
+**Slices 1 to 3 are built: the command-line core, the window and the
+phone app (`apk/`).**
 
 ## Commands
 
@@ -88,6 +88,42 @@ Nth message first.
 | `src/config.c` | The accounts file, written atomically |
 | `tests/standin.py` | A stand-in IMAP, SMTP and token server on localhost with a throwaway certificate |
 | `tests/run.sh` | The tests: never the real keyring, config or mail |
+| `apk/` | The phone app: `build.sh`, `test.sh`, the core and the screens (above) |
+
+## The phone app (apk/)
+
+A plain APK, no Gradle, built like syn-cast's: `apk/build.sh` runs aapt2,
+javac (`--release 17 -Werror`), d8, zipalign and apksigner, and puts
+`SYN-MAIL-APK-0.1.0.apk` in `~/Apps/SYN-Mail/`. The key is
+`~/.config/syn-mail/apk-signing.jks` (made on the first build). Android 8
+(API 26) and up.
+
+- `apk/java/com/syntax990/synmail/core/` is the mail core in plain Java,
+  no Android code: TLS (system trust, or a given CA for the stand-in;
+  the host name checked), IMAP (LOGIN or XOAUTH2, EXAMINE and BODY.PEEK
+  only, so reading never marks mail read; literals refused past 64 MiB;
+  folder names with CR, LF or NUL refused), SMTP (PLAIN or XOAUTH2,
+  dot-stuffing, the same header-injection checks as `msg.c`), the
+  Google refresh grant, MIME and modified UTF-7. The desktop JVM tests it.
+- The screens: the accounts with their unread count, folders, a page of
+  25 messages ("Older" for the next), the reader with Reply, Write, and
+  Add account (Gmail by app password, IONOS by mailbox password). Colours
+  follow the SYN-OS theme through the launcher, as in syn-cast.
+- Secrets are sealed with AES-256-GCM under a key held in the Android
+  Keystore (`syn-mail-secrets`); only the sealed text is stored. No
+  backup (allowBackup false, no_backup.xml). No secret is in the APK.
+- Bringing an account from the PC: `syn-mail export NAME FILE` (mode 600;
+  for Google the refresh token and its client), `syn-link send FILE`, then
+  Import from PC on the phone: it signs in once to prove the file, seals
+  it, and offers to delete the file from Downloads.
+- A background check every 15 minutes (JobScheduler, network required,
+  kept over a reboot): STATUS UNSEEN on each inbox, and a notification
+  when the count rises.
+- `make apk-standin STANDIN=DIR` builds `com.syntax990.synmail.standin`,
+  a separate package that trusts only the stand-in's certificate and
+  carries its test account; it stays in `apk/build/`, is never copied to
+  `~/Apps`, and reaches the PC with
+  `adb reverse tcp:PORT tcp:PORT` for the three ports `build.sh` prints.
 
 ## Build and test
 
@@ -99,7 +135,9 @@ command for the tests. The theme reader is built from
 
 ```
 make          # build/syn-mail
-make test     # 80 checks against the stand-in
+make test     # 88 checks of the desktop client against the stand-in,
+              # then 59 of the phone app's core (apk/test.sh, needs a JDK)
+make apk      # the phone app (needs the Android SDK: platform 36, build-tools 36.1.0)
 ```
 
 Test hooks (tests only): `SYN_MAIL_CONFIG`, `SYN_MAIL_SECRETS_FILE`,
@@ -109,8 +147,6 @@ Test hooks (tests only): `SYN_MAIL_CONFIG`, `SYN_MAIL_SECRETS_FILE`,
 
 ## Next
 
-3. The APK: the core in Java, background checks with notifications, the
-   Google token carried from the PC over SYN-Link.
 4. IMAP IDLE, search, attachments, an offline cache, threads, a labwc
    menu entry and a PKGBUILD.
 

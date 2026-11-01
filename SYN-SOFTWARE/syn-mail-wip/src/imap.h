@@ -29,7 +29,7 @@ Imap *imap_open(const Account *a, char *err, size_t errn);
 int imap_signin(Imap *im, const Account *a, char *err, size_t errn);
 /* 0 OK, 1 NO, 2 BAD, -1 connection lost; the untagged responses in im->resp */
 int imap_cmd(Imap *im, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
-/* a string as an IMAP quoted string */
-void imap_quote(Buf *out, const char *s);
+/* a string as an IMAP quoted string; -1, and nothing added, if it holds CR or LF */
+int imap_quote(Buf *out, const char *s);
 void imap_close(Imap *im);
 #endif

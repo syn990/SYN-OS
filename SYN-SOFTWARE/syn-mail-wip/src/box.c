@@ -174,7 +174,11 @@ static long count_of(Imap *im, const char *what) {
 static int examine(Imap *im, const char *raw, char *err, size_t errn) {
 	Buf c = {0};
 	buf_puts(&c, "EXAMINE ");
-	imap_quote(&c, raw);
+	if (imap_quote(&c, raw) != 0) {
+		buf_free(&c);
+		snprintf(err, errn, "a folder name with a line break in it is refused: nothing sent");
+		return -1;
+	}
 	int rc = imap_cmd(im, "%s", c.p);
 	buf_free(&c);
 	if (rc != 0) {
@@ -254,7 +258,7 @@ int box_page(Imap *im, const char *raw, long skip, int count, Page *out, char *e
 	{
 		Buf c = {0};
 		buf_puts(&c, "STATUS ");
-		imap_quote(&c, raw);
+		imap_quote(&c, raw); /* examine() above has refused a name with CR or LF */
 		buf_puts(&c, " (UNSEEN)");
 		if (imap_cmd(im, "%s", c.p) == 0) {
 			for (int i = 0; i < im->nresp; i++) {

@@ -16,10 +16,14 @@
 #include "smtp.h"
 #include "ui.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -36,7 +40,8 @@ static void usage(void) {
 	      "  folders NAME                  the account's folders\n"
 	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
 	      "  show NAME FOLDER UID          one message by UID as text\n"
-	      "  window [--shot FILE.png] [--size WxH]   the SYN-Mail window (--shot: draw once offscreen and save)\n",
+	      "  window [--shot FILE.png] [--size WxH]   the SYN-Mail window (--shot: draw once offscreen and save)\n"
+	      "  export NAME FILE              the account and its keyring secrets as one file (mode 600) for the phone app\n",
 		stderr);
 }
 
@@ -149,6 +154,74 @@ static int cmd_login(int argc, char **argv) {
 		if (oauth_login(a, browser, 300, err, sizeof err) != 0) { fprintf(stderr, "syn-mail: %s\n", err); rc = 1; }
 		else printf("%s is signed in; the token is in the keyring\n", a->name);
 	}
+	config_free(&c);
+	return rc;
+}
+
+/* The account and its secrets as one JSON file for SYN-Mail on the phone (Import from PC). It is written mode 600 and
+ * never over a link; carry it with `syn-link send FILE` and delete it: the phone app deletes its copy on import. */
+static int cmd_export(int argc, char **argv) {
+	if (argc != 3) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	if (!a) { config_free(&c); return 1; }
+	static const char *pw_kinds[] = {"password", NULL};
+	static const char *oa_kinds[] = {"refresh_token", "client_id", "client_secret", NULL};
+	const char **kinds = a->auth == AUTH_OAUTH ? oa_kinds : pw_kinds;
+	json_t *sec = json_object();
+	char err[256] = "";
+	int rc = 1;
+	for (int i = 0; kinds[i]; i++) {
+		char *v = secret_get(a->name, kinds[i], err, sizeof err);
+		if (!v) {
+			if (!*err) {
+				snprintf(err, sizeof err, "no %s for %s in the keyring: %s", kinds[i], a->name,
+					a->auth == AUTH_OAUTH ? "run syn-mail login first" : "run syn-mail password first");
+			}
+			fprintf(stderr, "syn-mail: %s, nothing written\n", err);
+			goto out;
+		}
+		json_object_set_new(sec, kinds[i], json_string(v));
+		secret_free(v);
+	}
+	json_t *root = json_pack("{s:i, s:s, s:s, s:s, s:s, s:i, s:s, s:i, s:s, s:O}", "syn_mail_account", 1,
+		"name", a->name, "address", a->address, "display_name", a->display,
+		"imap_host", a->imap_host, "imap_port", a->imap_port, "smtp_host", a->smtp_host, "smtp_port", a->smtp_port,
+		"auth", a->auth == AUTH_OAUTH ? "oauth" : "password", "secrets", sec);
+	char *text = json_dumps(root, JSON_INDENT(1) | JSON_PRESERVE_ORDER);
+	json_decref(root);
+	int fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+	if (fd < 0 || fchmod(fd, 0600) != 0) {
+		fprintf(stderr, "syn-mail: %s: %s\n", argv[2], strerror(errno));
+	} else {
+		size_t n = strlen(text), off = 0;
+		while (off < n) {
+			ssize_t w = write(fd, text + off, n - off);
+			if (w <= 0) break;
+			off += (size_t)w;
+		}
+		if (off == n && fsync(fd) == 0) {
+			printf("wrote %s (mode 600): send it with syn-link send, then delete it here\n", argv[2]);
+			rc = 0;
+		} else {
+			fprintf(stderr, "syn-mail: %s: %s\n", argv[2], strerror(errno));
+		}
+	}
+	if (fd >= 0) close(fd);
+	if (rc != 0 && fd >= 0) unlink(argv[2]);
+	explicit_bzero(text, strlen(text));
+	free(text);
+out:
+	{
+		/* wipe the secrets held in the JSON tree before it is freed */
+		const char *k;
+		json_t *v;
+		json_object_foreach(sec, k, v) {
+			explicit_bzero((char *)json_string_value(v), json_string_length(v));
+		}
+	}
+	json_decref(sec);
 	config_free(&c);
 	return rc;
 }
@@ -483,6 +556,7 @@ int main(int argc, char **argv) {
 	if (!strcmp(cmd, "headers")) return cmd_headers(n, v);
 	if (!strcmp(cmd, "show")) return cmd_show(n, v);
 	if (!strcmp(cmd, "window")) return ui_main(n, v);
+	if (!strcmp(cmd, "export")) return cmd_export(n, v);
 	usage();
 	return 2;
 }
