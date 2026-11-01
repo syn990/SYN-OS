@@ -116,6 +116,43 @@ class Jim:
         return self.proc.returncode
 
 
+def rooms_bar(srv, jim):
+    """G192: the rooms bar follows the server's rooms: a ticket room opened for the member appears as a tab, already
+    joined, ahead of the other rooms; swiping moves along the bar; a closed room leaves it. Needs a server with the
+    rooms request (SYN-CASTER after G192); an older one answers it with an error and the checks are skipped."""
+    probe = e2e.Raw(srv, srv.token("dave"), channels=["test"])
+    r = probe.req("rooms")
+    probe.close()
+    if not r or r.get("type") != "ok":
+        print("SKIP rooms bar: this server has no rooms request")
+        return
+    check("the bar lists the rooms the member is in", wait_for(lambda: sorted(jim.status()["bar"]) == ["second", "test"], 4),
+          jim.status())
+    room = os.path.join(srv.data, "channels", "g999", "channel.json")
+    e2e.write_json(room, {"name": "G999 a ticket room", "kind": "invite", "owner": "alice", "members": ["frank"]})
+    check("a ticket room opened for him appears on the bar by itself, before the other rooms",
+          wait_for(lambda: jim.status()["bar"][:1] == ["g999"], 12), jim.status())
+    g = [c for c in jim.status()["channels"] if c["name"] == "g999"]
+    check("its tab carries the ticket's title and it is joined, no name typed",
+          g and g[0]["title"] == "G999 a ticket room" and wait_for(lambda: [c for c in jim.status()["channels"]
+                                                                            if c["name"] == "g999"][0]["online"], 5), g)
+    first = jim.status()["active"]
+    jim.cmd("swipe -1")
+    jim.cmd("swipe -1")
+    jim.cmd("swipe -1")
+
+    def on_tab(k):  # the swipes are queued on the engine's thread: read the status once they have applied
+        st = jim.status()
+        return st["channels"][int(st["active"])]["name"] == st["bar"][k]
+    check("swiping back runs to the first tab and stops there", wait_for(lambda: on_tab(0), 4), jim.status())
+    jim.cmd("swipe 1")
+    check("and a swipe forward moves one tab", wait_for(lambda: on_tab(1), 4), (first, jim.status()))
+    e2e.write_json(room, {"name": "G999 a ticket room", "kind": "invite", "owner": "alice", "members": ["frank"],
+                          "closed": True})
+    check("a closed ticket room leaves the bar by itself", wait_for(lambda: "g999" not in jim.status()["bar"], 12),
+          jim.status())
+
+
 def decode(spt, out):
     subprocess.run([BIN, "decode", spt, out], capture_output=True)
     return e2e.wav_info(out)
@@ -291,6 +328,7 @@ def main():
         frank.stop()
         frank.start()
         check("frank restarts on the kept token", wait_for(frank.online, 10), frank.status())
+        rooms_bar(srv, frank)
         frank.stop()
 
         eve = Jim(root, srv, ["test"], name="eve", token="sct1.bad.token")

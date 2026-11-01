@@ -82,6 +82,10 @@ public final class MainActivity extends Activity {
 
 	private Views.Header header;
 	private LinearLayout tabs;
+	private HorizontalScrollView tabScroll;
+	private TextView peek; /* G192: who is inside the room you are in */
+	private int peekAt = -1; /* a held tab's room shown in the peek line until peekUntil */
+	private long peekUntil;
 	private ListView list;
 	private Views.OnAir onAir;
 	private Views.TalkButton talk;
@@ -281,10 +285,6 @@ public final class MainActivity extends Activity {
 		EditText invite = field("one-time code from syn-caster cast invite", false);
 		invite.setText(c.invite);
 		col.addView(invite);
-		col.addView(label("CHANNELS (comma separated; empty: every channel you belong to)", pal.accent, 12));
-		EditText chans = field("ops", false);
-		chans.setText(String.join(", ", c.channels));
-		col.addView(chans);
 		col.addView(label("SERVER CERTIFICATE (PEM, pinned; empty trusts the system store)", pal.accent, 12));
 		setupCert = field("-----BEGIN CERTIFICATE----- ...", false);
 		setupCert.setSingleLine(false);
@@ -311,10 +311,7 @@ public final class MainActivity extends Activity {
 				n.invite = code;
 				n.token = "";
 			}
-			n.channels.clear();
-			for (String s : chans.getText().toString().split(",")) {
-				if (!s.trim().isEmpty()) n.channels.add(s.trim());
-			}
+			n.channels.clear(); /* G192: never typed: every room the member belongs to, as tabs */
 			n.certPem = setupCert.getText().toString().trim();
 			if (n.server.isEmpty() || (n.invite.isEmpty() && n.token.isEmpty())) {
 				err.setText("The server and an invite code are needed.");
@@ -354,7 +351,13 @@ public final class MainActivity extends Activity {
 		tabs = new LinearLayout(this);
 		hs.addView(tabs);
 		root.addView(hs);
+		tabScroll = hs;
 		shownTabs = "";
+		peek = label("", Palette.mix(pal.text, pal.bg, 30), 12);
+		peek.setPadding(dp(8), dp(2), dp(8), dp(2));
+		peek.setSingleLine(true);
+		peek.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		root.addView(peek);
 
 		list = new ListView(this);
 		list.setBackgroundColor(pal.bg);
@@ -367,6 +370,20 @@ public final class MainActivity extends Activity {
 			menu(rows.get(pos));
 			return true;
 		});
+		/* G192: swipe the messages left or right to move to the next room */
+		android.view.GestureDetector swipe = new android.view.GestureDetector(this,
+			new android.view.GestureDetector.SimpleOnGestureListener() {
+				@Override
+				public boolean onFling(android.view.MotionEvent a, android.view.MotionEvent b, float vx, float vy) {
+					if (a == null || b == null) return false;
+					float dx = b.getX() - a.getX(), dy = b.getY() - a.getY();
+					if (Math.abs(dx) < dp(80) || Math.abs(dx) < 2 * Math.abs(dy) || Math.abs(vx) < dp(300)) return false;
+					svc.engine().selectStep(dx < 0 ? 1 : -1);
+					thumbs.evictAll();
+					return true;
+				}
+			});
+		list.setOnTouchListener((v, e) -> swipe.onTouchEvent(e) && false);
 		root.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
 
 		onAir = new Views.OnAir(this, pal);
@@ -494,26 +511,49 @@ public final class MainActivity extends Activity {
 		}
 		talk.v = view;
 		talk.invalidate();
-		String tabKey = view.active + ":" + view.channels.size();
+		String tabKey = view.active + ":" + view.channels.size() + ":" + view.order;
 		StringBuilder sb = new StringBuilder(tabKey);
-		for (Engine.ChannelView c : view.channels) sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted);
+		for (Engine.ChannelView c : view.channels) {
+			sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted).append(c.title);
+		}
 		if (!sb.toString().equals(shownTabs)) {
 			shownTabs = sb.toString();
 			tabs.removeAllViews();
-			for (int k = 0; k < view.channels.size(); k++) {
+			View activeTab = null;
+			for (int k : view.order) {
 				Engine.ChannelView c = view.channels.get(k);
 				boolean act = k == view.active;
-				String t = c.name + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted ? " M" : "");
+				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted ? " M" : "");
 				TextView tab = button(t, null);
 				final int idx = k;
 				tab.setOnClickListener(v -> {
 					svc.engine().selectChannel(idx);
 					thumbs.evictAll();
 				});
+				/* G192: hold a tab to see who is inside before going in */
+				tab.setOnLongClickListener(v -> {
+					peekAt = idx;
+					peekUntil = System.currentTimeMillis() + 4000;
+					roomCard(idx);
+					return true;
+				});
 				tab.setBackground(box(act ? pal.accentDim : pal.bg, act ? pal.accent : pal.border));
 				tab.setTextColor(c.online ? pal.text : Palette.mix(pal.text, pal.bg, 50));
 				tabs.addView(tab);
+				if (act) activeTab = tab;
 			}
+			if (activeTab != null) {
+				View at = activeTab;
+				tabScroll.post(() -> tabScroll.smoothScrollTo(Math.max(0, at.getLeft() - dp(24)), 0));
+			}
+		}
+		int pk = System.currentTimeMillis() < peekUntil ? peekAt : view.active;
+		if (pk >= 0 && pk < view.channels.size()) {
+			Engine.ChannelView c = view.channels.get(pk);
+			peek.setText((pk == view.active ? "In here: " : "In " + tabTitle(c) + ": ")
+				+ (c.who.isEmpty() ? "nobody else" : String.join(", ", c.who)));
+		} else {
+			peek.setText("");
 		}
 		boolean playingChanged = view.playingMsgId != shownPlaying;
 		if (view.historyVersion != shownVersion || view.active != shownChannel || playingChanged || view.rxName != null) {
@@ -729,10 +769,9 @@ public final class MainActivity extends Activity {
 		col.setPadding(dp(16), dp(8), dp(16), dp(8));
 		col.setBackgroundColor(pal.bg);
 		sv.addView(col);
-		col.addView(label("CHANNELS (comma separated; one is joined at a time, the tabs switch)", pal.accent, 12));
-		EditText chans = field("syntaxcorporation, another", false);
-		chans.setText(String.join(", ", c.channels));
-		col.addView(chans);
+		col.addView(label("ROOMS: the tabs at the top are every room you belong to, ticket rooms included, opening "
+			+ "and closing by themselves. Swipe the messages to move between them; hold a tab to see who is inside.",
+			pal.text, 12));
 		CheckBox toggle = check(col, "Tap to start and stop talking (instead of hold)", c.pttToggle);
 		CheckBox auto = check(col, "Play incoming messages as they arrive", c.autoPlay);
 		CheckBox ns = check(col, "Noise suppression", c.noiseSuppression);
@@ -768,11 +807,7 @@ public final class MainActivity extends Activity {
 		});
 		col.addView(exit, lp);
 		dlg[0] = new AlertDialog.Builder(this).setView(sv).setPositiveButton("SAVE", (d, w) -> {
-			List<String> list = new ArrayList<>();
-			for (String s : chans.getText().toString().split(",")) {
-				if (!s.trim().isEmpty() && !list.contains(s.trim())) list.add(s.trim());
-			}
-			if (!list.isEmpty()) c.channels = list; /* an empty list would leave nothing to join */
+			c.channels = new ArrayList<>(); /* G192: every room the member belongs to; none typed */
 			c.pttToggle = toggle.isChecked();
 			c.autoPlay = auto.isChecked();
 			c.noiseSuppression = ns.isChecked();
@@ -790,6 +825,28 @@ public final class MainActivity extends Activity {
 			build();
 		}).setNegativeButton("CANCEL", null).create();
 		dlg[0].show();
+	}
+
+	/** A tab's words: a ticket room's "G192 SYN-CAST rooms bar..." cut to fit, a fixed room's name as it is. */
+	private static String tabTitle(Engine.ChannelView c) {
+		String t = c.title == null || c.title.isEmpty() ? c.name : c.title;
+		return t.length() > 22 ? t.substring(0, 21) + "\u2026" : t;
+	}
+
+	/** G192: who is inside a room, from a held tab, with the choice to go in. */
+	private void roomCard(int k) {
+		Engine.View v = svc.engine().snapshot();
+		if (k < 0 || k >= v.channels.size()) return;
+		Engine.ChannelView c = v.channels.get(k);
+		StringBuilder sb = new StringBuilder();
+		sb.append(c.ticket ? "Ticket room" : "Room").append(", ").append(c.users).append(c.users == 1 ? " inside" : " inside").append('\n');
+		if (c.who.isEmpty()) sb.append("\nNobody is in it now.");
+		for (String w : c.who) sb.append("\n  ").append(w);
+		new AlertDialog.Builder(this).setTitle(c.title == null || c.title.isEmpty() ? c.name : c.title).setMessage(sb.toString())
+			.setPositiveButton("GO IN", (d, w) -> {
+				svc.engine().selectChannel(k);
+				thumbs.evictAll();
+			}).setNegativeButton("CLOSE", null).show();
 	}
 
 	private CheckBox check(LinearLayout col, String text, boolean on) {

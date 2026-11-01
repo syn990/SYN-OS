@@ -76,7 +76,7 @@ public final class Engine {
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS }
 
 	private static final class Pending {
 		int seq;
@@ -110,6 +110,10 @@ public final class Engine {
 		public final String name;
 		int session;
 		public boolean online, muted;
+		/* G192: the room's own name from the server ("G192 rooms bar"), and gone: closed or taken away, so no tab
+		   (its history stays on the phone) */
+		public String title = "";
+		boolean gone;
 		public final List<String> who = new ArrayList<>(); /* members online in it, by name */
 		public int unread;
 		public String error = "";
@@ -606,6 +610,9 @@ public final class Engine {
 		case "leave":
 			if (ch >= 0 && chan.get(ch).remove(Json.str(o, "member"))) event(ch, Json.str(o, "member") + " left");
 			break;
+		case "rooms":
+			applyRooms(ss, o.get("rooms"));
+			break;
 		case "presence":
 			pf.log(Json.str(o, "member") + " is " + Json.str(o, "status")
 				+ (Json.str(o, "text").isEmpty() ? "" : ": " + Json.str(o, "text")));
@@ -629,6 +636,75 @@ public final class Engine {
 		}
 	}
 
+	/** G192: the server's list of the member's rooms (the rooms answer or event): each becomes a tab, with who is
+	    inside; a room no longer listed (a closed ticket's) loses its tab. An older server answers unknown_type and
+	    nothing here runs: the tabs stay the hello's. */
+	private void applyRooms(Session ss, Object rooms) {
+		if (!(rooms instanceof List)) return;
+		java.util.Set<String> listed = new java.util.HashSet<>();
+		for (Object v : (List<?>) rooms) {
+			if (!(v instanceof Map)) continue;
+			@SuppressWarnings("unchecked")
+			Map<String, Object> r = (Map<String, Object>) v;
+			String id = Json.str(r, "channel");
+			if (id.isEmpty()) continue;
+			listed.add(id.toLowerCase(Locale.ROOT));
+			int ch = -1;
+			for (int k = 0; k < chan.size(); k++) if (chan.get(k).name.equalsIgnoreCase(id)) ch = k;
+			if (ch < 0) {
+				ch = channelAdd(id);
+				if (ch < 0) continue;
+				event(ch, "room opened");
+			}
+			Channel c = chan.get(ch);
+			if (!Json.str(r, "name").isEmpty()) c.title = Json.str(r, "name");
+			c.gone = false;
+			c.online = !r.containsKey("joined") || Json.bool(r, "joined");
+			if (!c.online && ss.state == SState.ONLINE) {
+				/* a session that named its channels (an older config): the room is joined here, never typed */
+				c.online = send(ss, Proto.join(++ss.seq, id));
+			}
+			Object online = r.get("online");
+			if (online instanceof List) {
+				c.who.clear();
+				for (Object w : (List<?>) online) if (w instanceof String) c.who.add((String) w);
+			}
+		}
+		for (int k : ss.chans) {
+			Channel c = chan.get(k);
+			if (!listed.contains(c.name.toLowerCase(Locale.ROOT)) && !c.gone) {
+				c.gone = true;
+				c.online = false;
+				c.who.clear();
+				event(k, "room closed");
+			}
+		}
+		if (!chan.isEmpty() && chan.get(active).gone && tx == Tx.IDLE) {
+			List<Integer> o = order();
+			if (!o.isEmpty()) active = o.get(0);
+		}
+		changed();
+	}
+
+	/** A ticket's room: its id is g and the ticket's number (J42's channel_sync_tickets). */
+	static boolean isTicketRoom(String id) {
+		return Rooms.ticket(id) >= 0;
+	}
+
+	/** G192: the bar's order: the fixed rooms (Lobby, Crew, Alerts, Guests, Meeting Room, the HQs), then ticket rooms by number; closed rooms left out. */
+	private List<Integer> order() {
+		List<String> ids = new ArrayList<>();
+		List<Integer> idx = new ArrayList<>();
+		for (int k = 0; k < chan.size(); k++) {
+			if (chan.get(k).gone) continue;
+			ids.add(chan.get(k).name);
+			idx.add(k);
+		}
+		List<Integer> out = new ArrayList<>();
+		for (int r : Rooms.order(ids)) out.add(idx.get(r));
+		return out;
+	}
+
 	/** The channels the hello answer joined (and any it named that the config did not), with who is in them. */
 	private void helloChannels(Session ss, Map<String, Object> o) {
 		Object chans = o.get("channels");
@@ -645,6 +721,8 @@ public final class Engine {
 				Channel c = chan.get(ch);
 				boolean was = c.online;
 				c.online = true;
+				c.gone = false;
+				if (!Json.str(zc, "name").isEmpty()) c.title = Json.str(zc, "name");
 				c.who.clear();
 				Object online = zc.get("online");
 				if (online instanceof List) {
@@ -710,6 +788,8 @@ public final class Engine {
 					}
 				}
 				helloChannels(ss, o);
+				int rseq = ++ss.seq;
+				if (send(ss, Proto.rooms(rseq))) addPending(ss, rseq, PKind.ROOMS, -1, 0, false);
 				int held = 0;
 				if (o.get("held") instanceof List) {
 					for (Object h : (List<?>) o.get("held")) {
@@ -764,6 +844,9 @@ public final class Engine {
 		}
 		case PIC:
 			imageSent(ss, ok, Json.lng(o, "upload"), err);
+			break;
+		case ROOMS:
+			if (ok) applyRooms(ss, o.get("rooms"));
 			break;
 		case PRESENCE:
 			if (!ok) pf.log("presence refused: " + err);
@@ -1373,6 +1456,20 @@ public final class Engine {
 		});
 	}
 
+	/** G192: a swipe: the next tab to the right (dir 1) or left (-1), stopping at the ends. */
+	public void selectStep(int dir) {
+		post(() -> {
+			if (tx != Tx.IDLE) return;
+			List<Integer> o = order();
+			int at = o.indexOf(active);
+			int to = at < 0 ? 0 : at + (dir > 0 ? 1 : -1);
+			if (to < 0 || to >= o.size()) return;
+			active = o.get(to);
+			chan.get(active).unread = 0;
+			changed();
+		});
+	}
+
 	/** Every channel is joined already: selecting one only aims what is sent. */
 	public void selectChannel(int k) {
 		post(() -> {
@@ -1513,6 +1610,10 @@ public final class Engine {
 		public String name, state, error;
 		public boolean online, muted;
 		public int users, unread;
+		/* G192: the room's name to show, who is inside (by member id), a ticket's room */
+		public String title;
+		public List<String> who = new ArrayList<>();
+		public boolean ticket;
 	}
 
 	public static final class View {
@@ -1520,6 +1621,8 @@ public final class Engine {
 		public String user, server, toast;
 		public List<ChannelView> channels = new ArrayList<>();
 		public int active;
+		/** G192: the tabs, left to right, as indexes into channels (closed rooms have none) */
+		public List<Integer> order = new ArrayList<>();
 		public Talk talk;
 		public boolean busy, vox, offline;
 		public double speed;
@@ -1554,6 +1657,7 @@ public final class Engine {
 		v.queue = Math.max(0, queue.size() - (playing ? 1 : 0));
 		v.historyVersion = historyVersion;
 		v.authError = authError;
+		v.order = order();
 		for (int k = 0; k < chan.size(); k++) {
 			Channel c = chan.get(k);
 			ChannelView cv = new ChannelView();
@@ -1561,6 +1665,9 @@ public final class Engine {
 			cv.online = c.online;
 			cv.muted = c.muted;
 			cv.users = c.who.size();
+			cv.title = Rooms.title(c.name, c.title);
+			cv.who.addAll(c.who);
+			cv.ticket = isTicketRoom(c.name);
 			cv.unread = c.unread;
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;

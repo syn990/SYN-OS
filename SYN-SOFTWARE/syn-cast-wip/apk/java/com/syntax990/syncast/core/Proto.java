@@ -28,7 +28,7 @@ public final class Proto {
 	public static final int BIN_AUDIO = 1, BIN_PIC = 2;
 	public static final int HDR = 9;
 	public static final int TEXT_MAX = 4000;
-	public static final String CLIENT = "syn-cast-apk/0.2.0";
+	public static final String CLIENT = "syn-cast-apk/0.3.0";
 
 	private Proto() {
 	}
@@ -132,6 +132,11 @@ public final class Proto {
 		m.put("accuracy", acc);
 		if (address != null && !address.isEmpty()) m.put("address", address);
 		return Json.write(m);
+	}
+
+	/** G192: every room the member belongs to, with who is inside (the tabs). */
+	public static String rooms(int seq) {
+		return Json.write(request("rooms", seq));
 	}
 
 	public static String presence(int seq, String status, String text) {
