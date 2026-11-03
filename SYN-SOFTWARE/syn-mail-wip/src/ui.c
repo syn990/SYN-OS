@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "box.h"
 #include "config.h"
+#include "html.h"
 #include "mime.h"
 #include "msg.h"
 #include "syn_theme.h"
@@ -24,6 +25,7 @@
 #include <pixman.h>
 #include <png.h>
 #include <poll.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,6 +94,17 @@ static struct {
 	unsigned long rd_uid;
 	bool body_loading;
 	int read_top;                 /* first wrapped line shown */
+
+	/* the HTML view (G265): the page drawn by a headless Chrome off this thread, the text view beside it */
+	MimeHtml mh;
+	bool has_html, view_text, allow_remote, html_busy, html_pending, html_more;
+	bool remote_always;           /* --images: every message read as if i had been pressed */
+	int remote_refs, html_w, html_h, html_drawn_w;
+	long html_gen;
+	uint32_t *html_px;
+	pixman_image_t *html_img;
+	char html_err[300];
+	int html_fd[2];
 	int pane;
 	char status[512];
 	bool status_bad;
@@ -147,7 +160,7 @@ static struct {
 	syn_palette pal;
 	rect r_head, r_side, r_list, r_read, r_foot;
 	FILE *drawlog;
-} ui = {.clip_fd = -1, .repeat_fd = -1, .open_acc = -1, .last_click_row = -1};
+} ui = {.clip_fd = -1, .repeat_fd = -1, .open_acc = -1, .last_click_row = -1, .html_fd = {-1, -1}};
 
 static int64_t now_ms(void) {
 	struct timespec ts;
@@ -203,6 +216,8 @@ static void set_status(bool bad, const char *fmt, ...) {
 /* ---------- drawing (after SYN-CAST's ui.c) ---------- */
 
 static pixman_image_t *dst;
+static void layout(void);
+static void start_render(void);
 
 static pixman_color_t col(syn_rgb c) {
 	return (pixman_color_t){(uint16_t)(c.r * 257), (uint16_t)(c.g * 257), (uint16_t)(c.b * 257), 0xFFFF};
@@ -373,7 +388,22 @@ static void ask_page(long skip) {
 	ui.dirty = true;
 }
 
+static void html_drop_image(void) {
+	if (ui.html_img) pixman_image_unref(ui.html_img);
+	free(ui.html_px);
+	ui.html_img = NULL;
+	ui.html_px = NULL;
+	ui.html_w = ui.html_h = ui.html_drawn_w = 0;
+	ui.html_more = false;
+}
+
 static void clear_reader(void) {
+	html_drop_image();
+	mime_html_free(&ui.mh);
+	ui.has_html = ui.view_text = ui.allow_remote = ui.html_pending = false;
+	ui.remote_refs = 0;
+	ui.html_err[0] = 0;
+	ui.html_gen++; /* a drawing still under way is for a message no longer read */
 	buf_free(&ui.raw);
 	text_set(&ui.body, "");
 	ui.rd_from[0] = ui.rd_to[0] = ui.rd_date[0] = ui.rd_subject[0] = 0;
@@ -446,6 +476,173 @@ static void take_body(Result *r) {
 	if (!ui.body.p) text_set(&ui.body, "");
 	ui.body_loading = false;
 	ui.read_top = 0;
+	ui.has_html = mime_html(ui.raw.p, ui.raw.n, &ui.mh) == 0;
+	ui.allow_remote = ui.remote_always;
+	if (ui.has_html) {
+		Buf probe = {0};
+		html_prepare(&ui.mh, 0, &probe, &ui.remote_refs);
+		buf_free(&probe);
+		start_render();
+	} else {
+		mime_html_free(&ui.mh);
+	}
+}
+
+
+/* ---------- the HTML view (G265) ---------- */
+
+typedef struct {
+	long gen;
+	int width, remote;
+	char dir[4096], page[4200];
+} RenderJob;
+
+typedef struct {
+	long gen;
+	int width, w, h, more;
+	uint32_t *px;
+	char err[300];
+} RenderOut;
+
+static pthread_mutex_t render_mu = PTHREAD_MUTEX_INITIALIZER;
+static RenderOut *render_done;
+
+/* the render thread: Chrome draws the page, the PNG is read, the folder goes; the window is woken over the pipe */
+static void *render_main(void *arg) {
+	RenderJob *j = arg;
+	RenderOut *o = calloc(1, sizeof *o);
+	o->gen = j->gen;
+	o->width = j->width;
+	char png[4300];
+	snprintf(png, sizeof png, "%s/render.png", j->dir);
+	if (html_render(j->page, j->width, j->remote, png, o->err, sizeof o->err) == 0) {
+		o->px = html_png_load(png, &o->w, &o->h, &o->more);
+		if (!o->px) snprintf(o->err, sizeof o->err, "the drawing of the HTML could not be read");
+	}
+	html_rmdir(j->dir);
+	free(j);
+	pthread_mutex_lock(&render_mu);
+	if (render_done) {
+		free(render_done->px);
+		free(render_done);
+	}
+	render_done = o;
+	pthread_mutex_unlock(&render_mu);
+	if (write(ui.html_fd[1], "r", 1) < 0) {
+		/* the window still sees it on its next look */
+	}
+	return NULL;
+}
+
+static int html_width(void) {
+	int w = ui.r_read.w - 16;
+	return w < 200 ? 200 : w;
+}
+
+static void start_render(void) {
+	if (!ui.has_html || ui.view_text) return;
+	if (!html_renderer()) {
+		snprintf(ui.html_err, sizeof ui.html_err, "no headless Chrome here to draw the HTML");
+		return;
+	}
+	if (ui.html_busy) {
+		ui.html_pending = true;
+		return;
+	}
+	if (ui.html_fd[0] < 0 && pipe2(ui.html_fd, O_CLOEXEC | O_NONBLOCK) != 0) {
+		snprintf(ui.html_err, sizeof ui.html_err, "pipe: %s", strerror(errno));
+		return;
+	}
+	layout();
+	RenderJob *j = calloc(1, sizeof *j);
+	j->gen = ui.html_gen;
+	j->width = html_width();
+	j->remote = ui.allow_remote;
+	char err[300];
+	ui.html_drawn_w = j->width; /* a failure here is not tried again on every frame */
+	if (html_dir("render", j->dir, sizeof j->dir, err, sizeof err) != 0 ||
+		html_write(&ui.mh, j->remote, j->dir, j->page, sizeof j->page, &ui.remote_refs, err, sizeof err) != 0) {
+		if (j->dir[0]) html_rmdir(j->dir);
+		snprintf(ui.html_err, sizeof ui.html_err, "%s", err);
+		free(j);
+		return;
+	}
+	pthread_t th;
+	pthread_attr_t at;
+	pthread_attr_init(&at);
+	pthread_attr_setdetachstate(&at, PTHREAD_CREATE_DETACHED);
+	if (pthread_create(&th, &at, render_main, j) != 0) {
+		html_rmdir(j->dir);
+		free(j);
+		snprintf(ui.html_err, sizeof ui.html_err, "could not start the drawing");
+	} else {
+		ui.html_busy = true;
+		ui.html_err[0] = 0;
+	}
+	pthread_attr_destroy(&at);
+}
+
+/* a drawing has finished: keep it if it is for the message on show, then start any drawing that waited */
+static void on_render(void) {
+	char b[64];
+	while (ui.html_fd[0] >= 0 && read(ui.html_fd[0], b, sizeof b) > 0) {
+	}
+	pthread_mutex_lock(&render_mu);
+	RenderOut *o = render_done;
+	render_done = NULL;
+	pthread_mutex_unlock(&render_mu);
+	if (!o) return;
+	ui.html_busy = false;
+	if (o->gen == ui.html_gen) {
+		if (o->px) {
+			html_drop_image();
+			ui.html_px = o->px;
+			ui.html_w = o->w;
+			ui.html_h = o->h;
+			ui.html_more = o->more;
+			ui.html_drawn_w = o->width;
+			ui.html_img = pixman_image_create_bits(PIXMAN_x8r8g8b8, o->w, o->h, o->px, o->w * 4);
+			o->px = NULL;
+			ui.html_err[0] = 0;
+		} else {
+			snprintf(ui.html_err, sizeof ui.html_err, "%s", o->err);
+			ui.html_drawn_w = o->width; /* tried at this width: no retry on every frame */
+		}
+	}
+	free(o->px);
+	free(o);
+	if (ui.html_pending) {
+		ui.html_pending = false;
+		start_render();
+	}
+	ui.dirty = true;
+}
+
+/* o: the message in a new Chrome tab, its inline images with it (remote ones as the reader has them) */
+static void open_in_chrome(void) {
+	if (!ui.rd_uid || ui.body_loading) return;
+	MimeHtml plain = {0};
+	const MimeHtml *h = &ui.mh;
+	if (!ui.has_html) {
+		/* a text message goes as its text */
+		buf_puts(&plain.html, "<!doctype html><html><body><pre style=\"white-space:pre-wrap;font:15px monospace\">");
+		for (const char *c = text_str(&ui.body); *c; c++) {
+			if (*c == '<') buf_puts(&plain.html, "&lt;");
+			else if (*c == '>') buf_puts(&plain.html, "&gt;");
+			else if (*c == '&') buf_puts(&plain.html, "&amp;");
+			else buf_put(&plain.html, c, 1);
+		}
+		buf_puts(&plain.html, "</pre></body></html>");
+		h = &plain;
+	}
+	char dir[4096], page[4200], err[300];
+	html_sweep();
+	if (html_dir("open", dir, sizeof dir, err, sizeof err) != 0 ||
+		html_write(h, ui.allow_remote, dir, page, sizeof page, NULL, err, sizeof err) != 0 || html_open(page, err, sizeof err) != 0)
+		set_status(true, "Not opened: %s", err);
+	else
+		set_status(false, "Opened in Chrome%s", ui.has_html && ui.remote_refs && !ui.allow_remote ? ", remote images held back (i loads them)" : "");
+	buf_free(&plain.html);
 }
 
 static void handle(Result *r) {
@@ -759,6 +956,49 @@ static void draw_reader(void) {
 		draw_text(ui.font, x, y, "loading…", dim);
 		return;
 	}
+	if (ui.has_html) {
+		/* one line on what is shown and the keys that change it */
+		char bar[400];
+		bool pic = ui.html_img && !ui.view_text;
+		if (ui.view_text) snprintf(bar, sizeof bar, "Text view   t shows the HTML   o opens it in Chrome");
+		else if (ui.html_err[0] && !pic) snprintf(bar, sizeof bar, "HTML not drawn: %s   o opens it in Chrome", ui.html_err);
+		else if (!pic) snprintf(bar, sizeof bar, "Drawing the HTML…   t text   o opens it in Chrome");
+		else if (ui.remote_refs && !ui.allow_remote)
+			snprintf(bar, sizeof bar, "HTML   %d remote image%s held back: i loads them   o Chrome   t text%s", ui.remote_refs,
+				ui.remote_refs == 1 ? "" : "s", ui.html_more ? "   longer than shown: o for the rest" : "");
+		else snprintf(bar, sizeof bar, "HTML%s   o opens it in Chrome   t text%s", ui.allow_remote ? ", remote images loaded" : "",
+			ui.html_more ? "   longer than shown: o for the rest" : "");
+		fill(r.x, y - 4, r.w, ui.lh + 6, ui.pal.panel);
+		draw_text_fit(ui.font, x, y - 1, bar, ui.html_err[0] && !pic ? ui.pal.urgent : dim, w);
+		y += ui.lh + 8;
+		if (pic) {
+			/* the page as Chrome drew it, scrolled a line height at a time */
+			if (!ui.html_busy && abs(ui.html_drawn_w - html_width()) > 8) {
+				ui.html_gen++;
+				start_render(); /* the pane changed width */
+			}
+			int px_x = r.x + 8, vw = r.w - 16, vh = r.y + r.h - y;
+			if (vh < 1) return;
+			int max_off = ui.html_h > vh ? ui.html_h - vh : 0;
+			int off = ui.read_top * ui.lh;
+			if (off > max_off) {
+				off = max_off;
+				ui.read_top = (max_off + ui.lh - 1) / ui.lh;
+			}
+			if (off < 0) off = ui.read_top = 0;
+			int cw = ui.html_w < vw ? ui.html_w : vw, chh = ui.html_h - off < vh ? ui.html_h - off : vh;
+			fill(px_x, y, vw, vh, (syn_rgb){255, 255, 255});
+			pixman_image_composite32(PIXMAN_OP_SRC, ui.html_img, NULL, dst, 0, off, 0, 0, px_x, y, cw, chh);
+			char note[64];
+			int nl = snprintf(note, sizeof note, "[html %dx%d]", ui.html_w, ui.html_h);
+			logged(note, (size_t)nl);
+			if (ui.html_h > vh) {
+				int bh = vh, th = bh * vh / ui.html_h, ty = y + bh * off / ui.html_h;
+				fill(r.x + r.w - 5, ty, 3, th < 12 ? 12 : th, ui.pal.accent_dim);
+			}
+			return;
+		}
+	}
 	int total = wrap(ui.font, text_str(&ui.body), w, NULL, 100000);
 	int fits = (r.y + r.h - y - 4) / ui.lh;
 	if (fits < 1) fits = 1;
@@ -828,7 +1068,8 @@ static void draw_footer(void) {
 	fill(r.x, r.y, r.w, r.h, ui.pal.panel);
 	fill(r.x, r.y, r.w, 1, ui.pal.border);
 	const char *keys = ui.composing ? "Tab next field   Ctrl+Enter send   Ctrl+V paste   Esc close"
-	                                : "↑↓ move   ←→ pane   Enter open   c new   r reply   F5 refresh   q quit";
+	                 : ui.has_html ? "↑↓ move   ←→ pane   Enter open   c new   r reply   o Chrome   i images   t text   F5   q quit"
+	                               : "↑↓ move   ←→ pane   Enter open   c new   r reply   o Chrome   F5 refresh   q quit";
 	int kw = text_width(ui.font, keys);
 	draw_text(ui.font, r.x + r.w - kw - 14, r.y + 5, keys, mix(ui.pal.text, ui.pal.panel, 40));
 	draw_text_fit(ui.font, r.x + 14, r.y + 5, ui.status, ui.status_bad ? ui.pal.urgent : ui.pal.text, r.w - kw - 50);
@@ -963,6 +1204,25 @@ static bool key_action(uint32_t key, bool repeat) {
 		return false;
 	case XKB_KEY_r:
 		if (ui.rd_uid) compose(true);
+		return false;
+	case XKB_KEY_o:
+		open_in_chrome();
+		return false;
+	case XKB_KEY_i:
+		if (ui.has_html && !ui.allow_remote) {
+			ui.allow_remote = true;
+			ui.view_text = false;
+			ui.html_gen++;
+			start_render();
+			set_status(false, "Loading the remote images for this message only");
+		}
+		return false;
+	case XKB_KEY_t:
+		if (ui.has_html) {
+			ui.view_text = !ui.view_text;
+			ui.read_top = 0;
+			if (!ui.view_text && !ui.html_img) start_render();
+		}
 		return false;
 	case XKB_KEY_Tab:
 	case XKB_KEY_Right:
@@ -1573,20 +1833,22 @@ static int write_png(const char *path, const uint32_t *px, int w, int h) {
 	return ok ? 0 : -1;
 }
 
-/* waits for the folders, the first page and its first message (or 25 s), draws once and saves the PNG */
+/* waits for the folders, the first page, its first message and that message's HTML drawing (or 45 s), draws once and
+ * saves the PNG */
 static int shot_run(void) {
-	int64_t until = now_ms() + 25000;
+	int64_t until = now_ms() + 45000;
 	for (;;) {
 		bool folders = true;
 		for (int a = 0; a < ui.cfg.n; a++) {
 			folders = folders && (ui.acc[a].loaded || ui.acc[a].failed) && (ui.acc[a].inbox_unseen >= 0 || ui.acc[a].failed);
 		}
 		bool page = !ui.page_loading;
-		bool body = !ui.body_loading;
+		bool body = !ui.body_loading && !ui.html_busy;
 		if ((folders && page && body) || now_ms() >= until) break;
-		struct pollfd p = {workers_fd(), POLLIN, 0};
-		poll(&p, 1, 250);
+		struct pollfd p[2] = {{workers_fd(), POLLIN, 0}, {ui.html_fd[0], POLLIN, 0}};
+		poll(p, 2, 250);
 		drain();
+		if (ui.html_busy) on_render();
 	}
 	uint32_t *px = calloc((size_t)ui.w * (size_t)ui.h, 4);
 	dst = pixman_image_create_bits(PIXMAN_x8r8g8b8, ui.w, ui.h, px, ui.w * 4);
@@ -1608,10 +1870,11 @@ static int window_loop(void) {
 	if (wayland_init() != 0) return 1;
 	while (ui.running) {
 		frame();
-		struct pollfd p[4] = {
+		struct pollfd p[5] = {
 			{wl_display_get_fd(ui.display), POLLIN, 0},
 			{workers_fd(), POLLIN, 0},
 			{ui.repeat_fd, POLLIN, 0},
+			{ui.html_fd[0], POLLIN, 0},
 			{ui.clip_fd, POLLIN, 0},
 		};
 		while (wl_display_prepare_read(ui.display) != 0) wl_display_dispatch_pending(ui.display);
@@ -1621,7 +1884,7 @@ static int window_loop(void) {
 		int timeout = (int)(60000 - (time(NULL) % 60) * 1000);
 		int64_t next_refresh = ui.last_refresh + REFRESH_MS - now;
 		if (next_refresh < timeout) timeout = next_refresh < 0 ? 0 : (int)next_refresh;
-		int n = poll(p, ui.clip_fd >= 0 ? 4 : 3, timeout);
+		int n = poll(p, ui.clip_fd >= 0 ? 5 : 4, timeout);
 		if (n > 0 && (p[0].revents & POLLIN)) {
 			if (wl_display_read_events(ui.display) != 0) break;
 		} else {
@@ -1631,7 +1894,8 @@ static int window_loop(void) {
 		if (p[0].revents & (POLLERR | POLLHUP)) break;
 		if (n > 0 && (p[1].revents & POLLIN)) drain();
 		if (n > 0 && (p[2].revents & POLLIN)) on_repeat();
-		if (n > 0 && ui.clip_fd >= 0 && (p[3].revents & (POLLIN | POLLHUP))) on_clip();
+		if (n > 0 && (p[3].revents & POLLIN)) on_render();
+		if (n > 0 && ui.clip_fd >= 0 && (p[4].revents & (POLLIN | POLLHUP))) on_clip();
 		if (n == 0) ui.dirty = true;
 		if (now_ms() - ui.last_refresh >= REFRESH_MS) refresh();
 	}
@@ -1641,6 +1905,7 @@ static int window_loop(void) {
 
 int ui_main(int argc, char **argv) {
 	int w = 1280, h = 800;
+	const char *acc_name = NULL, *folder = "INBOX";
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--shot") && i + 1 < argc) ui.shot = argv[++i];
 		else if (!strcmp(argv[i], "--size") && i + 1 < argc) {
@@ -1649,8 +1914,11 @@ int ui_main(int argc, char **argv) {
 				return 2;
 			}
 		} else if (!strcmp(argv[i], "--open") && i + 1 < argc) ui.open_n = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--account") && i + 1 < argc) acc_name = argv[++i];
+		else if (!strcmp(argv[i], "--folder") && i + 1 < argc) folder = argv[++i];
+		else if (!strcmp(argv[i], "--images")) ui.remote_always = true;
 		else {
-			fputs("usage: syn-mail window [--shot FILE.png] [--size WxH] [--open N]\n", stderr);
+			fputs("usage: syn-mail window [--shot FILE.png] [--size WxH] [--open N] [--account NAME] [--folder FOLDER] [--images]\n", stderr);
 			return 2;
 		}
 	}
@@ -1679,10 +1947,27 @@ int ui_main(int argc, char **argv) {
 		return 1;
 	}
 	for (int a = 0; a < ui.cfg.n; a++) workers_push(&(Job){.kind = JOB_FOLDERS, .acc = a});
-	open_folder(0, "INBOX", "Inbox");
+	int first = 0;
+	for (int a = 0; acc_name && a < ui.cfg.n; a++) {
+		if (!strcmp(ui.cfg.acc[a].name, acc_name)) first = a;
+	}
+	if (acc_name && strcmp(ui.cfg.acc[first].name, acc_name)) {
+		fprintf(stderr, "syn-mail: no account '%s' (see syn-mail list)\n", acc_name);
+		return 1;
+	}
+	if (strpbrk(folder, "\r\n")) {
+		fputs("syn-mail: a folder name cannot hold a line break\n", stderr);
+		return 2;
+	}
+	open_folder(first, folder, strcasecmp(folder, "INBOX") ? folder : "Inbox");
 	count_inboxes();
 	ui.pane = PANE_LIST;
 	int rc = ui.shot ? shot_run() : window_loop();
+	/* a drawing under way is let finish (10 s at most), so its folder does not outlive the window */
+	for (int64_t until = now_ms() + 10000; ui.html_busy && now_ms() < until;) {
+		struct pollfd p = {ui.html_fd[0], POLLIN, 0};
+		if (poll(&p, 1, 250) > 0) on_render();
+	}
 	workers_stop();
 	if (ui.drawlog) fclose(ui.drawlog);
 	fcft_destroy(ui.font);

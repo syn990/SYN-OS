@@ -17,4 +17,24 @@ int mime_header(const char *msg, size_t n, const char *name, Buf *out);
 void mime_words(const char *s, Buf *out);
 /* the readable text of a whole message */
 void mime_text(const char *msg, size_t n, Buf *out);
+
+/* The HTML of a message as it was made (G265): the first text/html part that is not an attachment, in UTF-8, and
+ * every part that carries a Content-ID (the images an HTML part names as cid:...), their bytes decoded. */
+#define MIME_MAX_PARTS 64
+typedef struct {
+	char cid[256];  /* the Content-ID without its angle brackets */
+	char type[96];  /* image/png, lower case, parameters dropped */
+	Buf data;
+} MimePart;
+
+typedef struct {
+	int found;
+	Buf html;
+	MimePart *part;
+	int np;
+} MimeHtml;
+
+/* 0 when the message has an HTML part; out is filled either way and freed with mime_html_free */
+int mime_html(const char *msg, size_t n, MimeHtml *out);
+void mime_html_free(MimeHtml *h);
 #endif

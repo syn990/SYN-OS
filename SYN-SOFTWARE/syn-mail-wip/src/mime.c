@@ -275,9 +275,9 @@ static void strip_html(const char *s, size_t n, Buf *out) {
 	}
 }
 
-/* the decoded body of one leaf part */
-static void leaf(const char *m, size_t n, const char *ct, Buf *out) {
-	Buf cte = {0}, raw = {0};
+/* the bytes of one leaf part, its transfer encoding undone */
+static void leaf_bytes(const char *m, size_t n, Buf *raw) {
+	Buf cte = {0};
 	header_raw(m, n, "Content-Transfer-Encoding", &cte);
 	size_t b = body_at(m, n);
 	const char *e = cte.p ? cte.p : "";
@@ -285,12 +285,19 @@ static void leaf(const char *m, size_t n, const char *ct, Buf *out) {
 		e++;
 	}
 	if (!strncasecmp(e, "base64", 6)) {
-		b64_decode(m + b, n - b, &raw);
+		b64_decode(m + b, n - b, raw);
 	} else if (!strncasecmp(e, "quoted-printable", 16)) {
-		qp_decode(m + b, n - b, 0, &raw);
+		qp_decode(m + b, n - b, 0, raw);
 	} else {
-		buf_put(&raw, m + b, n - b);
+		buf_put(raw, m + b, n - b);
 	}
+	buf_free(&cte);
+}
+
+/* the decoded body of one leaf part */
+static void leaf(const char *m, size_t n, const char *ct, Buf *out) {
+	Buf raw = {0};
+	leaf_bytes(m, n, &raw);
 	char cs[40];
 	param(ct, "charset", cs, sizeof cs);
 	Buf u = {0};
@@ -306,7 +313,6 @@ static void leaf(const char *m, size_t n, const char *ct, Buf *out) {
 	}
 	buf_free(&u);
 	buf_free(&raw);
-	buf_free(&cte);
 }
 
 /* finds the best text in m: want is "text/plain" first, then "text/html"; 0 when found */
@@ -367,4 +373,107 @@ void mime_text(const char *msg, size_t n, Buf *out) {
 		return;
 	}
 	buf_puts(out, "(no readable text in this message)\n");
+}
+
+/* ---------- the HTML part and the parts it names by Content-ID (multipart/related) ---------- */
+
+/* calls fn on every leaf of m, in order, with its Content-Type (text/plain when none is given) */
+static void each_leaf(const char *m, size_t n, int depth, void (*fn)(const char *, size_t, const char *, void *), void *ctx) {
+	if (depth > MIME_DEPTH) {
+		return;
+	}
+	Buf ct = {0};
+	if (header_raw(m, n, "Content-Type", &ct) != 0) {
+		buf_puts(&ct, "text/plain");
+	}
+	if (!strncasecmp(ct.p, "multipart/", 10)) {
+		char bd[200], delim[204];
+		param(ct.p, "boundary", bd, sizeof bd);
+		if (bd[0]) {
+			snprintf(delim, sizeof delim, "--%s", bd);
+			size_t dl = strlen(delim);
+			const char *end = m + n, *p = m + body_at(m, n);
+			const char *part = NULL;
+			while (p < end) {
+				const char *nl = memchr(p, '\n', (size_t)(end - p));
+				const char *le = nl ? nl : end;
+				if ((size_t)(le - p) >= dl && !strncmp(p, delim, dl)) {
+					if (part) {
+						const char *pe = p;
+						if (pe > part && pe[-1] == '\n') pe--;
+						if (pe > part && pe[-1] == '\r') pe--;
+						each_leaf(part, (size_t)(pe - part), depth + 1, fn, ctx);
+					}
+					if (le - p >= (long)dl + 2 && p[dl] == '-' && p[dl + 1] == '-') {
+						break;
+					}
+					part = nl ? nl + 1 : end;
+				}
+				p = nl ? nl + 1 : end;
+			}
+		}
+	} else {
+		fn(m, n, ct.p, ctx);
+	}
+	buf_free(&ct);
+}
+
+static void html_leaf(const char *m, size_t n, const char *ct, void *ctx) {
+	MimeHtml *h = ctx;
+	Buf cid = {0};
+	if (header_raw(m, n, "Content-ID", &cid) == 0 && cid.p && h->np < MIME_MAX_PARTS) {
+		/* <id@host>: the angle brackets and any space go */
+		const char *s = cid.p;
+		while (*s == ' ' || *s == '\t' || *s == '<') s++;
+		size_t l = strlen(s);
+		while (l && (s[l - 1] == '>' || s[l - 1] == ' ' || s[l - 1] == '\t')) l--;
+		if (l && l < sizeof h->part[0].cid) {
+			MimePart *p = &h->part[h->np++];
+			memset(p, 0, sizeof *p);
+			memcpy(p->cid, s, l);
+			p->cid[l] = 0;
+			size_t t = 0;
+			for (const char *c = ct; *c && *c != ';' && !isspace((unsigned char)*c) && t + 1 < sizeof p->type; c++) {
+				p->type[t++] = (char)tolower((unsigned char)*c);
+			}
+			p->type[t] = 0;
+			leaf_bytes(m, n, &p->data);
+		}
+	}
+	buf_free(&cid);
+	if (h->found || strncasecmp(ct, "text/html", 9)) {
+		return;
+	}
+	Buf cd = {0};
+	header_raw(m, n, "Content-Disposition", &cd);
+	if (!cd.p || strncasecmp(cd.p, "attachment", 10)) {
+		Buf raw = {0};
+		leaf_bytes(m, n, &raw);
+		char cs[40];
+		param(ct, "charset", cs, sizeof cs);
+		to_utf8(cs, raw.p ? raw.p : "", raw.n, &h->html);
+		if (!h->html.p) buf_puts(&h->html, "");
+		buf_free(&raw);
+		h->found = 1;
+	}
+	buf_free(&cd);
+}
+
+int mime_html(const char *msg, size_t n, MimeHtml *out) {
+	memset(out, 0, sizeof *out);
+	out->part = calloc(MIME_MAX_PARTS, sizeof *out->part);
+	if (!out->part) {
+		return -1;
+	}
+	each_leaf(msg, n, 0, html_leaf, out);
+	return out->found ? 0 : -1;
+}
+
+void mime_html_free(MimeHtml *h) {
+	for (int i = 0; h->part && i < h->np; i++) {
+		buf_free(&h->part[i].data);
+	}
+	free(h->part);
+	buf_free(&h->html);
+	memset(h, 0, sizeof *h);
 }

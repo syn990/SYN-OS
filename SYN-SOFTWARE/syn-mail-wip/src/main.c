@@ -7,6 +7,7 @@
 /* syn-mail: the command-line core (slice 1, G223). The window and the APK are built on these same modules. */
 #include "box.h"
 #include "config.h"
+#include "html.h"
 #include "imap.h"
 #include "mime.h"
 #include "msg.h"
@@ -42,7 +43,11 @@ static void usage(void) {
 	      "  folders NAME                  the account's folders\n"
 	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
 	      "  show NAME FOLDER UID          one message by UID as text\n"
-	      "  window [--shot FILE.png] [--size WxH]   the SYN-Mail window (--shot: draw once offscreen and save)\n"
+	      "  html NAME FOLDER UID [--remote] [--open] [--png FILE] [--width N]   one message's HTML as it was made, in a\n"
+	      "                                private page with its inline images; remote images held back unless --remote;\n"
+	      "                                --open: in Chrome; --png: drawn by headless Chrome, N pixels wide (800)\n"
+	      "  window [--shot FILE.png] [--size WxH] [--open N] [--account NAME] [--folder FOLDER] [--images]   the window\n"
+	      "                                (--shot: draw once offscreen and save; --images: remote images load, as i does)\n"
 	      "  export NAME FILE              the account and its keyring secrets as one file (mode 600) for the phone app\n",
 		stderr);
 }
@@ -645,6 +650,66 @@ static int cmd_show(int argc, char **argv) {
 	return rc;
 }
 
+static int cmd_html(int argc, char **argv) {
+	if (argc < 4) { usage(); return 2; }
+	unsigned long uid = strtoul(argv[3], NULL, 10);
+	int remote = 0, open_it = 0, width = 800;
+	const char *png = NULL;
+	for (int i = 4; i < argc; i++) {
+		if (!strcmp(argv[i], "--remote")) remote = 1;
+		else if (!strcmp(argv[i], "--open")) open_it = 1;
+		else if (!strcmp(argv[i], "--png") && i + 1 < argc) png = argv[++i];
+		else if (!strcmp(argv[i], "--width") && i + 1 < argc) width = atoi(argv[++i]);
+		else { usage(); return 2; }
+	}
+	if (!uid || width < 200 || width > 4000) { usage(); return 2; }
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = NULL;
+	Imap *im = box_in(&c, argv[1], &a);
+	int rc = 1;
+	if (im) {
+		Buf m = {0};
+		MimeHtml h = {0};
+		char err[512] = "", dir[4096], page[4200];
+		int refs = 0;
+		if (box_body(im, argv[2], uid, &m, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s: %s\n", a->name, err);
+		else if (mime_html(m.p, m.n, &h) != 0) fprintf(stderr, "syn-mail: no HTML part in this message (show reads its text)\n");
+		else if (html_sweep(), html_dir("open", dir, sizeof dir, err, sizeof err) != 0 ||
+			html_write(&h, remote, dir, page, sizeof page, &refs, err, sizeof err) != 0)
+			fprintf(stderr, "syn-mail: %s\n", err);
+		else {
+			printf("%s\n%d inline part%s, %d remote reference%s %s\n", page, h.np, h.np == 1 ? "" : "s", refs,
+				refs == 1 ? "" : "s", remote ? "allowed" : "held back");
+			rc = 0;
+			if (png) {
+				char shot[4300];
+				snprintf(shot, sizeof shot, "%s/render.png", dir);
+				if (html_render(page, width, remote, shot, err, sizeof err) != 0 || rename(shot, png) != 0) {
+					fprintf(stderr, "syn-mail: %s\n", err[0] ? err : strerror(errno));
+					rc = 1;
+				} else {
+					printf("drawn to %s\n", png);
+				}
+			}
+			if (open_it) {
+				if (html_open(page, err, sizeof err) != 0) {
+					fprintf(stderr, "syn-mail: %s\n", err);
+					rc = 1;
+				} else {
+					printf("opened in %s\n", html_browser());
+				}
+			}
+			if (png && !open_it) html_rmdir(dir); /* the page was only for the drawing */
+		}
+		mime_html_free(&h);
+		buf_free(&m);
+		imap_close(im);
+	}
+	config_free(&c);
+	return rc;
+}
+
 int main(int argc, char **argv) {
 	int i = 1;
 	if (i < argc && !strcmp(argv[i], "-v")) {
@@ -666,6 +731,7 @@ int main(int argc, char **argv) {
 	if (!strcmp(cmd, "folders")) return cmd_folders(n, v);
 	if (!strcmp(cmd, "headers")) return cmd_headers(n, v);
 	if (!strcmp(cmd, "show")) return cmd_show(n, v);
+	if (!strcmp(cmd, "html")) return cmd_html(n, v);
 	if (!strcmp(cmd, "window")) return ui_main(n, v);
 	if (!strcmp(cmd, "export")) return cmd_export(n, v);
 	usage();

@@ -49,6 +49,7 @@ add_executable(syn-mail
   src/config.c
   src/imap.c
   src/mime.c
+  src/html.c
   src/msg.c
   src/letter.c
   src/net.c

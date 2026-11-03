@@ -29,7 +29,12 @@ syn-mail send NAME TO SUBJECT [--attach FILE]... [--plain]   the text on stdin, 
 syn-mail folders NAME             the account's folders (modified UTF-7 names decoded)
 syn-mail headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first
 syn-mail show NAME FOLDER UID     one message by UID as text
-syn-mail window [--shot FILE.png] [--size WxH] [--open N]   the window
+syn-mail html NAME FOLDER UID [--remote] [--open] [--png FILE] [--width N]
+                                  one message's HTML as it was made, in a private page with its
+                                  inline images; remote images held back unless --remote; --open
+                                  puts it in a Chrome tab, --png has headless Chrome draw it
+syn-mail window [--shot FILE.png] [--size WxH] [--open N] [--account NAME] [--folder FOLDER] [--images]
+                                  the window
 ```
 
 Reading never marks mail read: folders are opened with EXAMINE and bodies
@@ -47,14 +52,30 @@ in place of the reader. The header shows each account's unread count; it
 refreshes every two minutes and on F5.
 
 Keys: arrows or h j k l move, Tab or left and right change pane, Enter
-opens, PgUp and PgDn page, c new message, r reply, F5 refresh, q or
+opens, PgUp and PgDn page, c new message, r reply, o open the message in
+Chrome, i load its remote images, t text or HTML, F5 refresh, q or
 Ctrl+Q quit. In compose, Tab moves between To, Subject and the text,
 Ctrl+V pastes, Ctrl+Enter sends, Esc drops it. The mouse clicks, double
 clicks and scrolls.
 
+HTML mail (G265) is shown as it was made. The HTML part (chosen over the
+plain one) goes into a private page, `$XDG_RUNTIME_DIR/syn-mail/` (folder
+700, files 600), with every part it names by `cid:` written beside it, and a
+headless Chrome (chromium, else google-chrome) draws it at the pane's width,
+off the window's thread; a pane under 640 pixels gets the page laid out at
+640 and drawn smaller, so nothing is cut off. The network is locked twice:
+the page's Content-Security-Policy lets no script run and no remote image,
+style or font load, and the drawing goes through a proxy to nowhere. DNS
+prefetch and meta refresh are off. A line above the page says how many remote
+images were held back; `i` loads them for that message only. `o` opens the
+same page (remote images as the reader has them) in a new Chrome tab. With no
+headless Chrome, or when the drawing fails, the reader shows the text, and
+`t` switches to the text at any time.
+
 `--shot` draws one frame offscreen once the first folder and message have
 loaded and saves it as a PNG; no compositor is needed. `--open N` opens the
-Nth message first.
+Nth message first, `--account` and `--folder` choose where, and `--images`
+reads every message with its remote images, as `i` does.
 
 `-v` traces the conversation with the server; sign-in lines are never shown.
 
@@ -89,12 +110,14 @@ Nth message first.
 | `src/smtp.c` | EHLO, STARTTLS on 587, AUTH PLAIN or XOAUTH2, one recipient, dot-stuffing |
 | `src/msg.c` | The outgoing message (from SYN-CASTER's fn_gmail.c): RFC 2047 headers, quoted names, base64 body, address and header-injection checks |
 | `src/letter.c` | The company letter (G265): the text twin and the HTML, tables and inline styles only, no images, scripts or links, the theme pinned to SYN-OS-BLUE; its notice is SYN-CASTER's fn_mail_disclaimer word for word |
-| `src/mime.c` | The incoming message: unfolded and decoded headers (B and Q words, any charset by iconv), multipart walked for text/plain, HTML reduced to text, base64 and quoted-printable |
+| `src/mime.c` | The incoming message: unfolded and decoded headers (B and Q words, any charset by iconv), multipart walked for text/plain, HTML reduced to text, base64 and quoted-printable; the HTML part and its Content-ID parts for the HTML view |
+| `src/html.c` | The HTML view: the guarded private page, cid: references resolved, the headless Chrome drawing, Chrome for `o`, the PNG read back |
 | `src/oauth.c` | The Google loopback sign-in and the refresh grant (libcurl, HTTPS only) |
 | `src/secret.c` | libsecret; a mode-600 test file instead when `SYN_MAIL_SECRETS_FILE` is set |
 | `src/config.c` | The accounts file, written atomically |
 | `tests/standin.py` | A stand-in IMAP, SMTP and token server on localhost with a throwaway certificate |
 | `tests/run.sh` | The tests: never the real keyring, config or mail |
+| `tests/pngcount.py` | Counts one colour's pixels in a PNG, for the HTML view's drawing checks |
 | `apk/` | The phone app: `build.sh`, `test.sh`, the core and the screens (above) |
 
 ## The phone app (apk/)
@@ -137,20 +160,22 @@ javac (`--release 17 -Werror`), d8, zipalign and apksigner, and puts
 Needs openssl, jansson, libsecret, curl, cmake; for the window
 wayland (and wayland-protocols, wayland-scanner), xkbcommon, fcft,
 pixman, libpng and ncursesw (syn_theme.c); python3 and the openssl
-command for the tests. The theme reader is built from
+command for the tests. To draw HTML mail: chromium or google-chrome (the
+reader falls back to the text without one; the drawing tests are skipped). The theme reader is built from
 `../syn-crypter-src/src/syn_theme.c`.
 
 ```
 make          # build/syn-mail
-make test     # 88 checks of the desktop client against the stand-in,
+make test     # 177 checks of the desktop client against the stand-in,
               # then 59 of the phone app's core (apk/test.sh, needs a JDK)
 make apk      # the phone app (needs the Android SDK: platform 36, build-tools 36.1.0)
 ```
 
 Test hooks (tests only): `SYN_MAIL_CONFIG`, `SYN_MAIL_SECRETS_FILE`,
 `SYN_MAIL_CAFILE`, `SYN_MAIL_TOKEN_URL`, `SYN_MAIL_AUTH_URL`,
-`SYN_MAIL_DRAWLOG` (every string the window draws, one a line) and
-`SYN_MAIL_FONT`.
+`SYN_MAIL_DRAWLOG` (every string the window draws, one a line),
+`SYN_MAIL_FONT`, and `SYN_MAIL_CHROME` and `SYN_MAIL_BROWSER` (the headless
+drawer and the browser `o` opens; `SYN_MAIL_CHROME=none` turns drawing off).
 
 ## Next
 

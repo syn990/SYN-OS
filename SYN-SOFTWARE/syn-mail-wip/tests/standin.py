@@ -8,7 +8,7 @@
 # A stand-in mail provider for the tests: IMAP (TLS), SMTP submission (TLS) and an OAuth token endpoint (HTTPS),
 # all on localhost with a throwaway certificate. No live traffic. Usage: standin.py DIR (DIR holds cert.pem, key.pem;
 # the ports go to DIR/ports, every received message to DIR/sent/N.eml, what was signed in to DIR/log).
-import base64, hashlib, http.server, json, os, shlex, socket, ssl, sys, threading, urllib.parse
+import base64, hashlib, http.server, json, os, shlex, socket, ssl, struct, sys, threading, urllib.parse, zlib
 
 D = sys.argv[1]
 USERS = {"pw@example.test": "s3cret pass\"word"}
@@ -41,6 +41,66 @@ MAILBOX = [
                                  .encode("latin-1")).decode())),
 ]
 
+# G265, the HTML reader: a plain HTTP server stands for the open web, so a test can see whether a remote image was
+# fetched (every request goes to DIR/pixel.log); its port goes to DIR/pixel_port, beside the three in DIR/ports
+class Pixel(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        log_px(self.path)
+        body = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        self.send_response(200); self.send_header("Content-Type", "image/gif"); self.send_header("Content-Length", str(len(body)))
+        self.end_headers(); self.wfile.write(body)
+    def log_message(self, *a):
+        pass
+
+def log_px(path):
+    with LOCK, open(os.path.join(D, "pixel.log"), "a") as f:
+        f.write(path + "\n")
+
+px = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Pixel)
+threading.Thread(target=px.serve_forever, daemon=True).start()
+PX = px.server_address[1]
+
+def solid_png(w, h, rgb):
+    raw = b"".join(b"\x00" + bytes(rgb) * w for _ in range(h))
+    chunk = lambda t, d: struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + \
+        chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+LOGO = solid_png(120, 60, (0x12, 0xab, 0x34))  # the inline image: a green the tests look for in the drawing
+open(os.path.join(D, "logo.png"), "wb").write(LOGO)
+PROMO = [
+    (False, msg("From: SYN Newsletter <news@example.test>\nSubject: The November letter\nDate: Mon, 02 Nov 2026 08:00:00 +0000\n"
+                "MIME-Version: 1.0\nContent-Type: multipart/alternative; boundary=\"alt\"",
+                "--alt\nContent-Type: text/plain; charset=UTF-8\n\nPLAIN TWIN of the letter.\n"
+                "--alt\nContent-Type: multipart/related; boundary=\"rel\"; type=\"text/html\"\n\n"
+                "--rel\nContent-Type: text/html; charset=ISO-8859-1\nContent-Transfer-Encoding: quoted-printable\n\n"
+                "<!DOCTYPE html><html><head><meta http-equiv=3D\"Content-Type\" content=3D\"text/html; charset=3Diso-8859-1\">"
+                "<meta http-equiv=3D\"refresh\" content=3D\"0; url=3Dhttp://127.0.0.1:%d/refresh\"></head>"
+                "<body style=3D\"margin:0;background:#ffffff\"><h1 style=3D\"color:#202020\">The November letter</h1>"
+                "<img src=3D\"cid:logo%%40syn.test\" width=3D\"120\" height=3D\"60\" alt=3D\"logo\">"
+                "<p>Caf=E9 news, tracked.</p><img src=3D\"http://127.0.0.1:%d/pixel.gif?u=3D1\" width=3D\"1\" height=3D\"1\">"
+                "<div style=3D\"background:url('http://127.0.0.1:%d/bg.png')\">x</div>"
+                "<script>document.body.style.background=3D'#ff0000'</script></body></html>\n"
+                "--rel\nContent-Type: image/png; name=logo.png\nContent-Transfer-Encoding: base64\nContent-ID: <logo@syn.test>\n"
+                "Content-Disposition: inline; filename=logo.png\n\n%s\n--rel--\n--alt--\n"
+                % (PX, PX, PX, base64.encodebytes(LOGO).decode().strip()))),
+    (True, msg("From: Plain Sender <plain@example.test>\nSubject: Only text\nDate: Mon, 02 Nov 2026 09:00:00 +0000\n"
+               "Content-Type: text/plain; charset=UTF-8", "Just text, <b>not</b> HTML.")),
+    (True, msg("From: SYN Newsletter <news@example.test>\nSubject: The refresh tricks\nDate: Sun, 01 Nov 2026 08:00:00 +0000\n"
+               "MIME-Version: 1.0\nContent-Type: text/html; charset=UTF-8",
+               # a meta refresh past a word match (G265, the exec's refusal of C251): entity-encoded values, and a
+               # tab or a newline before the =; and remote loads the count must hold back: a link's href, a srcset, a poster
+               "<html><head><meta http-equiv=\"&#114;efresh\" content=\"0; url=http://127.0.0.1:%d/refresh-dec\">"
+               "<meta HTTP-EQUIV=\"&#x72;efresh\" content=\"0; url=http://127.0.0.1:%d/refresh-hex\">"
+               "<meta http-equiv\t=\"refresh\" content=\"0; url=http://127.0.0.1:%d/refresh-tab\">"
+               "<meta http-equiv\n=refresh content=\"0; url=http://127.0.0.1:%d/refresh-nl\">"
+               "<link rel=\"stylesheet\" href=\"http://127.0.0.1:%d/style.css\"></head>"
+               "<body><p>Refresh tricks.</p><a href=\"https://example.test/read\">read</a>"
+               "<img srcset=\"cid-local.png 1x, http://127.0.0.1:%d/srcset.png 2x\" alt=\"s\">"
+               "<video poster=\"https://127.0.0.1:%d/poster.png\"></video></body></html>"
+               % (PX, PX, PX, PX, PX, PX, PX))),
+]
+
 # the folders, by their IMAP names; "&AMk-t&AOk-" is "Été" in modified UTF-7, "[Gmail]" cannot be selected
 FOLDERS = {
     "INBOX": MAILBOX,
@@ -49,8 +109,9 @@ FOLDERS = {
     "&AMk-t&AOk-": [],
     "[Gmail]": [],
     "Literal/1": [],
+    "Promo": PROMO,
 }
-UID0 = {"INBOX": 100, "Sent": 500, "&AMk-t&AOk-": 0, "[Gmail]": 0, "Literal/1": 0}
+UID0 = {"INBOX": 100, "Sent": 500, "&AMk-t&AOk-": 0, "[Gmail]": 0, "Literal/1": 0, "Promo": 700}
 
 def ctx():
     c = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -291,5 +352,7 @@ hs = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Token)
 hs.socket = ctx().wrap_socket(hs.socket, server_side=True)
 with open(os.path.join(D, "ports.tmp"), "w") as f:
     f.write("%d %d %d\n" % (pi, ps, hs.server_address[1]))
+with open(os.path.join(D, "pixel_port"), "w") as f:
+    f.write("%d\n" % PX)
 os.rename(os.path.join(D, "ports.tmp"), os.path.join(D, "ports"))
 hs.serve_forever()
