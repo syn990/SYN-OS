@@ -128,6 +128,13 @@ static struct {
 	int64_t last_draw;
 	thumb thumbs[48];
 	int thumb_next;
+	/* G228: the on-air speaker's portrait, decoded once per PNG and size */
+	struct {
+		const uint8_t *src;
+		int side;
+		pixman_image_t *img;
+		uint32_t *px;
+	} face;
 } ui = {.clip_fd = -1, .repeat_fd = -1, .sel = -1};
 
 /* ---------- drawing ---------- */
@@ -152,6 +159,17 @@ static syn_rgb ink_on(syn_rgb c) {
 	int l = luma(c);
 	int dt = abs(luma(ui.pal.text) - l), db = abs(luma(ui.pal.bg) - l);
 	return dt >= db ? ui.pal.text : ui.pal.bg;
+}
+
+/* G228: a speaker's #rrggbb colour, kept readable on the background;
+ * fallback when there is none */
+static syn_rgb speaker(const char *hex, syn_rgb fallback) {
+	unsigned r, g, b;
+	if (!hex || hex[0] != '#' || strlen(hex) != 7 || sscanf(hex + 1, "%2x%2x%2x", &r, &g, &b) != 3) {
+		return fallback;
+	}
+	syn_rgb c = {(short)r, (short)g, (short)b};
+	return abs(luma(c) - luma(ui.pal.bg)) < 60 ? mix(c, ui.pal.text, 50) : c;
 }
 
 static void fill(int x, int y, int w, int h, syn_rgb c) {
@@ -515,11 +533,17 @@ static int draw_msg(int ch, const hmsg *m, int x, int y, int w, bool draw, bool 
 		return h;
 	}
 
+	/* G228: each speaker in their own colour, a bar down the left of their
+	 * lines as in the web chat; the accent while their note is on air */
+	syn_rgb who = m->out ? p->accent : speaker(m->colour, p->text);
 	if (on_air) {
 		fill(x, y, w, h, p->accent_dim);
 		fill(x, y, 3, h, p->accent);
 	} else if (selected) {
 		fill(x, y, w, h, p->panel_hover);
+	}
+	if (!on_air && m->kind != HM_EVENT && (m->colour[0] || m->out)) {
+		fill(x, y, 3, h, who);
 	}
 	char when[8];
 	time_t ts = (time_t)(m->ts / 1000);
@@ -532,7 +556,7 @@ static int draw_msg(int ch, const hmsg *m, int x, int y, int w, bool draw, bool 
 		draw_text_fit(ui.font, col_from, ty, m->text ? m->text : "", dim, x + w - PAD - col_from);
 		return h;
 	}
-	draw_text_fit(ui.font, col_from, ty, m->from, m->out ? p->accent : p->text, col_body - col_from - ui.cw);
+	draw_text_fit(ui.font, col_from, ty, m->out ? m->from : hmsg_who(m), who, col_body - col_from - ui.cw);
 	syn_rgb sc = m->kind == HM_VOICE && !m->played && !m->out ? p->urgent : m->forwho[0] ? p->urgent : p->text;
 	if (m->kind == HM_TEXT) {
 		draw_text(ui.font, col_body, ty, summary, p->urgent);
@@ -670,10 +694,14 @@ static void draw_onair(rect r) {
 		int level, el;
 		const char *who = app_rx_name(&level, &el);
 		play_item *it = &app.queue[0];
+		const hmsg *rm = app_rx_msg();
 		x += draw_text(ui.font, x, y, it->kind == PI_REPLAY ? "REPLAY  " : "RX  ", p->accent);
-		snprintf(t, sizeof t, "%s%s%s", who, it->channel != app.active ? " in " : "",
-			it->channel != app.active ? app.chan[it->channel].name : "");
-		x += draw_text_fit(ui.font, x, y, t, p->text, r.w / 3) + PAD;
+		int nw = draw_text_fit(ui.font, x, y, who, speaker(rm ? rm->colour : NULL, p->text), r.w / 3);
+		if (it->channel != app.active) {
+			snprintf(t, sizeof t, " in %s", app.chan[it->channel].name);
+			nw += draw_text_fit(ui.font, x + nw, y, t, p->text, r.w / 3 - nw);
+		}
+		x += nw + PAD;
 		meter(x, y + 2, 120, ui.lh - 4, level, p->accent, p->accent_dim);
 		x += 130;
 		char d[16];
@@ -687,6 +715,73 @@ static void draw_onair(rect r) {
 		int w = text_width(ui.font, t);
 		draw_text(ui.font, r.x + r.w - w - PAD, y, t, p->urgent);
 	}
+}
+
+/* G228: while a note plays, the speaker's portrait in the top right of the
+ * history, framed in their colour with their name beneath; their initials
+ * on their colour when the server has no picture of them. */
+static void face_drop(void) {
+	if (ui.face.img) pixman_image_unref(ui.face.img);
+	free(ui.face.px);
+	ui.face.img = NULL;
+	ui.face.px = NULL;
+	ui.face.src = NULL;
+}
+
+static void draw_portrait(rect r) {
+	const hmsg *m = app_rx_msg();
+	int side = ui.lh * 6;
+	if (!m || r.w < side * 3 || r.h < side + ui.lh * 2) {
+		return;
+	}
+	syn_palette *p = &ui.pal;
+	syn_rgb c = speaker(m->colour, p->accent);
+	const portrait *pt = app_portrait(app_face(m));
+	const uint8_t *png = pt ? pt->png : NULL;
+	if (png != ui.face.src || side != ui.face.side) {
+		face_drop();
+		ui.face.side = side;
+		if (png) {
+			uint32_t bg = (uint32_t)p->panel.r << 16 | (uint32_t)p->panel.g << 8 | (uint32_t)p->panel.b;
+			ui.face.px = image_png_square(png, pt->n, side, bg);
+			ui.face.src = png;
+			if (ui.face.px) {
+				ui.face.img = pixman_image_create_bits(PIXMAN_x8r8g8b8, side, side, ui.face.px, side * 4);
+			}
+		}
+	}
+	/* the name under the card in a band of the speaker's colour: as wide as the card, wider (to the left, up to
+	 * twice the card) for a long name, so "Commander Data" is read whole */
+	const char *who = hmsg_who(m);
+	int cap = ui.lh + 4;
+	int cw = side + 4;
+	int x = r.x + r.w - cw - PAD, y = r.y + PAD;
+	int bw = text_width(ui.font, who) + 10;
+	bw = bw < cw ? cw : bw > cw * 2 ? cw * 2 : bw;
+	int bx = x + cw - bw;
+	fill(x, y, cw, side + 4, c);
+	fill(bx, y + side + 4, bw, cap, c);
+	if (ui.face.img) {
+		pixman_image_composite32(PIXMAN_OP_SRC, ui.face.img, NULL, dst, 0, 0, 0, 0, x + 2, y + 2, side, side);
+	} else {
+		syn_rgb under = mix(c, p->panel, 35);
+		fill(x + 2, y + 2, side, side, under);
+		char ini[8] = "";
+		const char *n = who;
+		int k = 0;
+		for (const char *q = n; *q && k < 2; q++) {
+			if ((q == n || q[-1] == ' ') && (unsigned char)*q < 0x80 && *q != ' ') {
+				ini[k++] = (char)(*q >= 'a' && *q <= 'z' ? *q - 32 : *q);
+			}
+		}
+		ini[k] = 0;
+		struct fcft_font *f = ui.font_big ? ui.font_big : ui.font;
+		int tw = text_width(f, ini);
+		draw_text(f, x + 2 + (side - tw) / 2, y + 2 + (side - f->height) / 2, ini, ink_on(under));
+	}
+	int tw = text_width(ui.font, who);
+	int tx = tw <= bw - 10 ? bx + (bw - tw) / 2 : bx + 5;
+	draw_text_fit(ui.font, tx, y + side + 4 + (cap - ui.lh) / 2, who, ink_on(c), bw - 10);
 }
 
 static void draw_input(void) {
@@ -818,6 +913,7 @@ static void draw_all(void) {
 	draw_header();
 	draw_sidebar();
 	draw_history();
+	draw_portrait(ui.r_hist);
 	draw_onair((rect){ui.r_hist.x, ui.r_hist.y + ui.r_hist.h, ui.r_hist.w, ui.r_input.y - ui.r_hist.y - ui.r_hist.h});
 	draw_input();
 	draw_ptt();
@@ -1819,6 +1915,7 @@ void ui_shutdown(void) {
 	if (ui.toplevel) xdg_toplevel_destroy(ui.toplevel);
 	if (ui.xdg_surface) xdg_surface_destroy(ui.xdg_surface);
 	if (ui.surface) wl_surface_destroy(ui.surface);
+	face_drop();
 	if (ui.font) fcft_destroy(ui.font);
 	if (ui.font_big) fcft_destroy(ui.font_big);
 	fcft_fini();

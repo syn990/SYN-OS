@@ -40,10 +40,11 @@
 #define MAX_QUEUE 32
 #define MAX_PENDING 32
 #define MAX_IMAGES_IN 8
+#define MAX_PORTRAITS 32
 
 typedef enum { SS_OFF, SS_CONNECTING, SS_LOGON, SS_ONLINE, SS_RETRY } sess_state;
 typedef enum { TB_IDLE, TB_CONNECTING, TB_SENDING, TB_RECEIVING, TB_DISABLED } talk_state;
-typedef enum { P_NONE, P_HELLO, P_TALK, P_OVER, P_SAY, P_PIC, P_LOC, P_PRESENCE } pend_kind;
+typedef enum { P_NONE, P_HELLO, P_TALK, P_OVER, P_SAY, P_PIC, P_LOC, P_PRESENCE, P_PORTRAIT } pend_kind;
 
 /* A growable list of opus packets; length 0 marks a lost one. */
 typedef struct {
@@ -165,6 +166,16 @@ typedef struct {
 
 #define BUSY_Q_MAX 256
 
+/* G228: a speaker's portrait, asked of the server once per id (a member, or
+ * the cast character they spoke for) when their note comes on */
+typedef struct {
+	char id[64];
+	bool answered;       /* the server replied (with or without a picture) */
+	uint8_t *png;        /* the PNG as the server keeps it; NULL if none */
+	size_t n;
+	int64_t asked;
+} portrait;
+
 typedef struct {
 	config cfg;
 	char member[128];         /* who the server says we are (the hello answer) */
@@ -186,6 +197,8 @@ typedef struct {
 
 	tx_state tx;
 	image_in images[MAX_IMAGES_IN];
+	portrait portraits[MAX_PORTRAITS];
+	int n_portraits, portrait_next;
 
 	struct {
 		uint8_t *thumb, *full;
@@ -249,6 +262,13 @@ talk_state app_talk_state(void);
 const char *app_session_label(int channel);
 /* who is on air right now ("" if nobody), and the level 0..100 */
 const char *app_rx_name(int *level, int *elapsed_ms);
+/* G228: the line on air (NULL if nobody): who spoke, as whom, in what colour */
+const hmsg *app_rx_msg(void);
+/* whose portrait goes with a line: the character, else the member */
+const char *app_face(const hmsg *m);
+/* a speaker's portrait PNG, NULL when there is none or it has not come;
+ * the entry itself (NULL if never asked) for its state */
+const portrait *app_portrait(const char *id);
 
 /* status as JSON for `syn-cast status` */
 char *app_status_json(void);

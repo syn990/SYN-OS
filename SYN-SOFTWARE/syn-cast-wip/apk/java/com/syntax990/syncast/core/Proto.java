@@ -154,6 +154,13 @@ public final class Proto {
 		return Json.write(m);
 	}
 
+	/** G228: a member's or a cast character's name, colour and portrait (PNG, base64) */
+	public static String portrait(int seq, String member) {
+		Map<String, Object> m = request("portrait", seq);
+		m.put("member", member);
+		return Json.write(m);
+	}
+
 	public static String historyPlay(int seq, String channel, String with, String message) {
 		Map<String, Object> m = request("history", seq);
 		address(m, channel, with, "with");

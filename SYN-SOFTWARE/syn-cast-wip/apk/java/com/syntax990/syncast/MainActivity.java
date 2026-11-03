@@ -88,6 +88,7 @@ public final class MainActivity extends Activity {
 	private long peekUntil;
 	private ListView list;
 	private Views.OnAir onAir;
+	private Views.Portrait portrait; /* G228 */
 	private Views.TalkButton talk;
 	private EditText input;
 	private final List<History.Msg> rows = new ArrayList<>();
@@ -437,7 +438,15 @@ public final class MainActivity extends Activity {
 			acts.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
 		}
 		root.addView(acts);
-		setContentView(root);
+		/* G228: whoever is talking, their portrait top right over the messages while the note plays */
+		android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+		frame.addView(root, new android.widget.FrameLayout.LayoutParams(-1, -1));
+		portrait = new Views.Portrait(this, pal);
+		android.widget.FrameLayout.LayoutParams pl = new android.widget.FrameLayout.LayoutParams(dp(96), dp(116),
+			Gravity.TOP | Gravity.END);
+		pl.rightMargin = dp(8);
+		frame.addView(portrait, pl);
+		setContentView(frame);
 		shownVersion = -1;
 		refresh();
 	}
@@ -504,6 +513,8 @@ public final class MainActivity extends Activity {
 		}
 		onAir.v = view;
 		onAir.invalidate();
+		portrait.setTranslationY(list.getTop() + dp(8));
+		portrait.show(view.rxName, view.rxColour, view.rxPortrait);
 		if (onlineBtn != null) {
 			onlineBtn.setText(view.offline ? "OFFLINE" : "ONLINE");
 			onlineBtn.setTextColor(view.offline ? pal.inkOn(pal.urgent) : pal.text);

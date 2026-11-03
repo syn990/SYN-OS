@@ -6,7 +6,7 @@ pkgdesc="SYN-OS push-to-talk on SYN-CAST channels: a native Wayland walkie-talki
 arch=('x86_64')
 url="https://github.com/Syntax990/SYN-OS"
 license=('MIT')
-depends=('wayland' 'libxkbcommon' 'fcft' 'pixman' 'libpulse' 'opus' 'rnnoise' 'libjpeg-turbo'
+depends=('wayland' 'libxkbcommon' 'fcft' 'pixman' 'libpulse' 'opus' 'rnnoise' 'libjpeg-turbo' 'libpng'
          'jansson' 'openssl' 'ncurses' 'terminus-font')
 makedepends=('cmake' 'wayland-protocols' 'tllist')
 optdepends=('libnotify: desktop notifications for texts while the window is in the background'

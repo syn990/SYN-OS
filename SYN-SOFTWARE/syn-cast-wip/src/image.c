@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <png.h>
 #include <turbojpeg.h>
 
 /* Box-filter downscale of RGB pixels. */
@@ -156,5 +157,55 @@ uint32_t *image_load_argb(const char *path, int max_w, int max_h, int *w, int *h
 	free(rgb);
 	*w = dw;
 	*h = dh;
+	return px;
+}
+
+uint32_t *image_png_square(const uint8_t *png, size_t n, int side, uint32_t bg) {
+	if (side < 1) {
+		return NULL;
+	}
+	png_image im;
+	memset(&im, 0, sizeof im);
+	im.version = PNG_IMAGE_VERSION;
+	if (!png_image_begin_read_from_memory(&im, png, n)) {
+		return NULL;
+	}
+	if (im.width < 1 || im.height < 1 || im.width > 8192 || im.height > 8192) {
+		png_image_free(&im);
+		return NULL;
+	}
+	im.format = PNG_FORMAT_RGB; /* alpha laid over the background */
+	png_color back = {(png_byte)(bg >> 16), (png_byte)(bg >> 8), (png_byte)bg};
+	uint8_t *rgb = malloc(PNG_IMAGE_SIZE(im));
+	if (!rgb || !png_image_finish_read(&im, &back, rgb, 0, NULL)) {
+		png_image_free(&im);
+		free(rgb);
+		return NULL;
+	}
+	int w = (int)im.width, h = (int)im.height, cut = w < h ? w : h;
+	int x0 = (w - cut) / 2, y0 = (h - cut) / 2;
+	uint8_t *sq = malloc((size_t)cut * cut * 3);
+	for (int y = 0; y < cut; y++) {
+		memcpy(sq + (size_t)y * cut * 3, rgb + ((size_t)(y0 + y) * w + x0) * 3, (size_t)cut * 3);
+	}
+	free(rgb);
+	uint8_t *d = cut == side ? sq : cut > side ? downscale(sq, cut, cut, side, side) : NULL;
+	if (!d) {
+		/* smaller than asked: nearest-neighbour up */
+		d = malloc((size_t)side * side * 3);
+		for (int y = 0; y < side; y++) {
+			for (int x = 0; x < side; x++) {
+				memcpy(d + ((size_t)y * side + x) * 3, sq + ((size_t)(y * cut / side) * cut + x * cut / side) * 3, 3);
+			}
+		}
+	}
+	uint32_t *px = malloc((size_t)side * side * 4);
+	for (int k = 0; k < side * side; k++) {
+		px[k] = 0xFF000000u | ((uint32_t)d[k * 3] << 16) | ((uint32_t)d[k * 3 + 1] << 8) | d[k * 3 + 2];
+	}
+	if (d != sq) {
+		free(d);
+	}
+	free(sq);
 	return px;
 }
