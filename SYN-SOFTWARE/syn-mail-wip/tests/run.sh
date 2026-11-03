@@ -230,7 +230,8 @@ CSP=$(printf '%s' "$H" | grep -o 'Content-Security-Policy" content="[^"]*"')
 has "the page's guard lets no script run" "$CSP" "default-src 'none'"
 hasnt "the page's guard lets no remote image in" "$CSP" "http"
 has "the page's guard keeps the inline image" "$CSP" "img-src data: file: blob:;"
-has "html switches a meta refresh off" "$H" 'http-equiv="x-refresh-off"'
+has "html switches a meta refresh off: the sender's http-equiv is renamed" "$H" 'x-http-equiv-off="refresh"'
+has "and so is the sender's charset meta, which the page's own utf-8 replaces" "$H" 'x-http-equiv-off="Content-Type"'
 has "html switches DNS prefetch off" "$H" 'x-dns-prefetch-control" content="off"'
 [ "$(stat -c %a "$(dirname "$PAGE")")" = 700 ] && [ "$(stat -c %a "$PAGE")" = 600 ] && [ "$(stat -c %a "$(dirname "$PAGE")/cid-1.png")" = 600 ] &&
 	ok "the page's folder is 700, its files 600" || no "the page's folder is 700, its files 600" "$(stat -c '%a %n' "$(dirname "$PAGE")" "$PAGE")"
@@ -243,6 +244,25 @@ O=$(XDG_RUNTIME_DIR="$R" "$BIN" html pw INBOX 102 2>&1); r=$?
 has "html leaves the attachment out" "$O" "0 inline parts"
 O=$(XDG_RUNTIME_DIR="$R" "$BIN" html pw Promo 702 2>&1); r=$?
 [ $r -ne 0 ] && has "html of a text-only message says there is none" "$O" "no HTML part" || no "html of a text-only message says there is none" "$O"
+# a meta refresh no word match catches (the exec's refusal of C251): every http-equiv the sender wrote is renamed,
+# whatever its value or the space before its =; only the page's own two guard metas keep the name
+O=$(XDG_RUNTIME_DIR="$R" "$BIN" html pw Promo 703 2>&1); r=$?
+H3=$(cat "$(printf '%s\n' "$O" | sed -n 1p)" 2>/dev/null)
+EQ=$(printf '%s' "$H3" | python3 -c 'import re,sys; print(len(re.findall(r"(?<!x-)http-equiv", sys.stdin.read(), re.I)))')
+[ $r -eq 0 ] && [ "$EQ" = 2 ] && ok "no http-equiv of the sender's survives, only the page's two guards" ||
+	no "no http-equiv of the sender's survives, only the page's two guards" "exit $r, $EQ left: $H3"
+has "an entity-encoded refresh (&#114;efresh) is renamed" "$H3" 'x-http-equiv-off="&#114;efresh"'
+has "a hex-encoded one in capitals (&#x72;efresh) is renamed" "$H3" 'x-http-equiv-off="&#x72;efresh"'
+has "one with a tab before the = is renamed" "$H3" "$(printf 'x-http-equiv-off\t="refresh"')"
+printf '%s' "$H3" | python3 -c 'import re,sys; sys.exit(0 if re.search(r"x-http-equiv-off\r?\n=refresh", sys.stdin.read()) else 1)' &&
+	ok "one with a newline before the = is renamed" || no "one with a newline before the = is renamed" "$H3"
+has "a link's href, a srcset's remote candidate and a video poster count as remote; a plain link does not" "$O" \
+	"0 inline parts, 3 remote references held back"
+# the sweep: a drawing's folder left past ten minutes goes, a fresh one and an open page under the hour stay,
+# and nothing else in the folder is touched
+mkdir -p "$R/syn-mail/render-stale" "$R/syn-mail/render-fresh" "$R/syn-mail/open-recent" "$R/syn-mail/keep-stale"
+touch -d '20 minutes ago' "$R/syn-mail/render-stale" "$R/syn-mail/keep-stale"
+touch -d '30 minutes ago' "$R/syn-mail/open-recent"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" >>"%s/browser.log"\n' "$T" >"$T/fake-browser"; chmod 700 "$T/fake-browser"
 O=$(XDG_RUNTIME_DIR="$R" SYN_MAIL_BROWSER="$T/fake-browser" "$BIN" html pw Promo 701 --open 2>&1); r=$?
 i=0; while [ ! -s "$T/browser.log" ] && [ $i -lt 100 ]; do i=$((i + 1)); python3 -c 'import time; time.sleep(0.05)'; done
@@ -250,7 +270,12 @@ U=$(cat "$T/browser.log" 2>/dev/null)
 [ $r -eq 0 ] && has "html --open hands Chrome the private page" "$U" "file://$R/syn-mail/open-" || no "html --open hands Chrome the private page" "$O $U"
 F=$(printf '%s' "$U" | sed -n 's|^file://||p' | head -1)
 [ -f "$F" ] && [ "$(stat -c %a "$F")" = 600 ] && ok "the page Chrome opens is mode 600" || no "the page Chrome opens is mode 600" "$F"
-O=$(SYN_MAIL_CHROME=none SYN_MAIL_DRAWLOG="$T/draw3" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot3.png" --folder Promo --open 2 2>&1)
+[ ! -e "$R/syn-mail/render-stale" ] && ok "the sweep clears a drawing's folder a crash left" || no "the sweep clears a drawing's folder a crash left" "$(ls "$R/syn-mail")"
+[ -d "$R/syn-mail/render-fresh" ] && [ -d "$R/syn-mail/open-recent" ] && [ -d "$R/syn-mail/keep-stale" ] &&
+	ok "the sweep leaves a fresh drawing, an open page under the hour and folders it did not make" ||
+	no "the sweep leaves a fresh drawing, an open page under the hour and folders it did not make" "$(ls "$R/syn-mail")"
+rmdir "$R/syn-mail/render-fresh" "$R/syn-mail/open-recent" "$R/syn-mail/keep-stale"
+O=$(SYN_MAIL_CHROME=none SYN_MAIL_DRAWLOG="$T/draw3" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot3.png" --folder Promo --open 3 2>&1)
 has "with no Chrome the window reads the HTML letter's plain twin" "$(cat "$T/draw3" 2>/dev/null)" "PLAIN TWIN of the letter."
 if CH=$(command -v chromium || command -v google-chrome-stable || command -v google-chrome); then
 	O=$(XDG_RUNTIME_DIR="$R" SYN_MAIL_CHROME="$CH" "$BIN" html pw Promo 701 --png "$T/blocked.png" --width 800 2>&1); r=$?
@@ -268,7 +293,7 @@ if CH=$(command -v chromium || command -v google-chrome-stable || command -v goo
 	has "no script ran in the drawing" "$G" " 0"
 	[ ! -s "$T/pixel.log" ] && ok "the remote image block holds: the web server saw nothing" || no "the remote image block holds: the web server saw nothing" "$(cat "$T/pixel.log")"
 	[ -z "$(ls "$R/syn-mail" | grep '^render-')" ] && ok "the drawing leaves no folder behind" || no "the drawing leaves no folder behind" "$(ls "$R/syn-mail")"
-	O=$(SYN_MAIL_CHROME="$CH" SYN_MAIL_DRAWLOG="$T/draw4" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot4.png" --folder Promo --open 2 --size 1280x800 2>&1)
+	O=$(SYN_MAIL_CHROME="$CH" SYN_MAIL_DRAWLOG="$T/draw4" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot4.png" --folder Promo --open 3 --size 1280x800 2>&1)
 	D4=$(cat "$T/draw4" 2>/dev/null)
 	has "the window shows the HTML as drawn" "$D4" "[html "
 	has "the window says the remote images are held back and how to load them" "$D4" "2 remote images held back: i loads them"
@@ -279,8 +304,12 @@ if CH=$(command -v chromium || command -v google-chrome-stable || command -v goo
 	O=$(XDG_RUNTIME_DIR="$R" SYN_MAIL_CHROME="$CH" "$BIN" html pw Promo 701 --remote --png "$T/remote.png" --width 600 2>&1)
 	has "with --remote the remote image is fetched (the test can see a fetch)" "$(cat "$T/pixel.log" 2>/dev/null)" "/pixel.gif?u=1"
 	hasnt "a meta refresh moves nothing, even with remote images on" "$(cat "$T/pixel.log" 2>/dev/null)" "/refresh"
+	O=$(XDG_RUNTIME_DIR="$R" SYN_MAIL_CHROME="$CH" "$BIN" html pw Promo 703 --remote --png "$T/tricks.png" --width 600 2>&1); r=$?
+	[ $r -eq 0 ] && [ -s "$T/tricks.png" ] && ok "headless Chrome draws the refresh tricks" || no "headless Chrome draws the refresh tricks" "$O"
+	has "with --remote the tricks letter's stylesheet is fetched (Chrome read the page)" "$(cat "$T/pixel.log" 2>/dev/null)" "/style.css"
+	hasnt "no encoded or spaced meta refresh moved the page, remote images on" "$(cat "$T/pixel.log" 2>/dev/null)" "/refresh"
 	: >"$T/pixel.log"
-	O=$(SYN_MAIL_CHROME="$CH" SYN_MAIL_DRAWLOG="$T/draw5" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot5.png" --folder Promo --open 2 --images 2>&1)
+	O=$(SYN_MAIL_CHROME="$CH" SYN_MAIL_DRAWLOG="$T/draw5" WAYLAND_DISPLAY= XDG_RUNTIME_DIR="$R" "$BIN" window --shot "$T/shot5.png" --folder Promo --open 3 --images 2>&1)
 	has "window --images loads the remote images, as i does" "$(cat "$T/draw5" 2>/dev/null)" "HTML, remote images loaded"
 	has "and the window's drawing fetched them" "$(cat "$T/pixel.log" 2>/dev/null)" "/pixel.gif?u=1"
 else

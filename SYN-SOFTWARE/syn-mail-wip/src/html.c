@@ -64,10 +64,26 @@ static int remote_at(const char *s, size_t n, size_t i) {
 	return ci_at(s, n, i, "http:") || ci_at(s, n, i, "https:") || ci_at(s, n, i, "//");
 }
 
+/* does the attribute whose name ends at s[i] have a remote value? Only when an = follows the name (after spaces);
+ * any: anywhere in the value (a srcset's candidates), else at its start */
+static int attr_remote(const char *s, size_t n, size_t i, int any) {
+	while (i < n && isspace((unsigned char)s[i])) i++;
+	if (i >= n || s[i] != '=') return 0;
+	i++;
+	while (i < n && isspace((unsigned char)s[i])) i++;
+	if (!any) return remote_at(s, n, i);
+	char q = i < n && (s[i] == '"' || s[i] == '\'') ? s[i++] : 0;
+	for (; i < n && (q ? s[i] != q : !isspace((unsigned char)s[i]) && s[i] != '>'); i++) {
+		if ((i == 0 || !isalnum((unsigned char)s[i - 1])) && remote_at(s, n, i)) return 1;
+	}
+	return 0;
+}
+
 void html_prepare(const MimeHtml *h, int remote, Buf *out, int *remote_refs) {
 	const char *s = h->html.p ? h->html.p : "";
 	size_t n = h->html.n, i = 0;
 	int refs = 0;
+	char tag[16] = "";
 	/* a byte order mark wins over any charset the page declares: the text is UTF-8 by now */
 	buf_puts(out, "\xEF\xBB\xBF");
 	if (n >= 3 && !memcmp(s, "\xEF\xBB\xBF", 3)) i = 3;
@@ -113,15 +129,29 @@ void html_prepare(const MimeHtml *h, int remote, Buf *out, int *remote_refs) {
 				continue;
 			}
 		} else if (ci_at(s, n, i, "http-equiv")) {
-			/* <meta http-equiv="refresh"> would move the page to an address of the sender's choosing */
-			size_t e = i + 10;
-			while (e < n && (s[e] == ' ' || s[e] == '=' || s[e] == '"' || s[e] == '\'')) e++;
-			if (ci_at(s, n, e, "refresh")) {
-				buf_put(out, s + i, e - i);
-				buf_puts(out, "x-refresh-off");
-				i = e + 7;
-				continue;
-			}
+			/* every http-equiv of the sender's is renamed, whatever its value: a refresh would move the page to an
+			 * address of the sender's choosing, and its value may come entity-encoded (&#114;efresh), with spaces,
+			 * tabs or newlines before the =, or in a case or a form no word match would catch. The page's own
+			 * guard metas are written above, before the sender's text, and are the only http-equiv left. */
+			buf_puts(out, "x-http-equiv-off");
+			i += 10;
+			continue;
+		}
+		if (s[i] == '<') {
+			/* the tag being read, for the attributes that only load something on one kind of element */
+			size_t k = i + 1, w = 0;
+			while (k < n && w + 1 < sizeof tag && (isalnum((unsigned char)s[k]) || s[k] == '-')) tag[w++] = (char)tolower((unsigned char)s[k++]);
+			tag[w] = 0;
+		} else if (s[i] == '>') {
+			tag[0] = 0;
+		}
+		if ((i == 0 || !isalnum((unsigned char)s[i - 1])) &&
+			((ci_at(s, n, i, "href") && !strcmp(tag, "link") && attr_remote(s, n, i + 4, 0)) ||
+				((ci_at(s, n, i, "srcset") || ci_at(s, n, i, "imagesrcset")) &&
+					attr_remote(s, n, i + (ci_at(s, n, i, "srcset") ? 6 : 11), 1)) ||
+				(ci_at(s, n, i, "poster") && attr_remote(s, n, i + 6, 0))))
+		{
+			refs++;
 		} else if ((i == 0 || !isalnum((unsigned char)s[i - 1])) &&
 			((ci_at(s, n, i, "src") && i + 3 < n && (s[i + 3] == '=' || isspace((unsigned char)s[i + 3])) &&
 				 remote_at(s, n, i + 3 + strspn(s + i + 3, " \t=")) ) ||
@@ -229,11 +259,15 @@ void html_sweep(void) {
 	time_t now = time(NULL);
 	struct dirent *e;
 	while ((e = readdir(d))) {
-		if (strncmp(e->d_name, "open-", 5)) continue;
+		/* a page Chrome was given lives an hour; a drawing's folder goes as soon as it is drawn, so one past ten
+		 * minutes (the draw gives up at RENDER_TIMEOUT_MS) was left by a crash */
+		int open = !strncmp(e->d_name, "open-", 5), render = !strncmp(e->d_name, "render-", 7);
+		if (!open && !render) continue;
 		char p[4200];
 		struct stat st;
 		snprintf(p, sizeof p, "%s/%s", base, e->d_name);
-		if (lstat(p, &st) == 0 && S_ISDIR(st.st_mode) && now - st.st_mtime > 3600) html_rmdir(p);
+		if (lstat(p, &st) == 0 && S_ISDIR(st.st_mode) && st.st_uid == getuid() && now - st.st_mtime > (open ? 3600 : 600))
+			html_rmdir(p);
 	}
 	closedir(d);
 }

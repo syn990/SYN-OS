@@ -86,6 +86,19 @@ PROMO = [
                 % (PX, PX, PX, base64.encodebytes(LOGO).decode().strip()))),
     (True, msg("From: Plain Sender <plain@example.test>\nSubject: Only text\nDate: Mon, 02 Nov 2026 09:00:00 +0000\n"
                "Content-Type: text/plain; charset=UTF-8", "Just text, <b>not</b> HTML.")),
+    (True, msg("From: SYN Newsletter <news@example.test>\nSubject: The refresh tricks\nDate: Sun, 01 Nov 2026 08:00:00 +0000\n"
+               "MIME-Version: 1.0\nContent-Type: text/html; charset=UTF-8",
+               # a meta refresh past a word match (G265, the exec's refusal of C251): entity-encoded values, and a
+               # tab or a newline before the =; and remote loads the count must hold back: a link's href, a srcset, a poster
+               "<html><head><meta http-equiv=\"&#114;efresh\" content=\"0; url=http://127.0.0.1:%d/refresh-dec\">"
+               "<meta HTTP-EQUIV=\"&#x72;efresh\" content=\"0; url=http://127.0.0.1:%d/refresh-hex\">"
+               "<meta http-equiv\t=\"refresh\" content=\"0; url=http://127.0.0.1:%d/refresh-tab\">"
+               "<meta http-equiv\n=refresh content=\"0; url=http://127.0.0.1:%d/refresh-nl\">"
+               "<link rel=\"stylesheet\" href=\"http://127.0.0.1:%d/style.css\"></head>"
+               "<body><p>Refresh tricks.</p><a href=\"https://example.test/read\">read</a>"
+               "<img srcset=\"cid-local.png 1x, http://127.0.0.1:%d/srcset.png 2x\" alt=\"s\">"
+               "<video poster=\"https://127.0.0.1:%d/poster.png\"></video></body></html>"
+               % (PX, PX, PX, PX, PX, PX, PX))),
 ]
 
 # the folders, by their IMAP names; "&AMk-t&AOk-" is "Été" in modified UTF-7, "[Gmail]" cannot be selected
