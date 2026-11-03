@@ -370,16 +370,15 @@ static void draw_header(void) {
 	/* badges, right-aligned */
 	char speed[16];
 	snprintf(speed, sizeof speed, "%.4gx", app.speed);
-	const char *badges[4] = {app.offline ? "OFFLINE" : "ONLINE", app.busy ? "BUSY" : "AVAILABLE",
-		capture_vox() ? "VOX" : NULL, speed};
+	const char *badges[3] = {app.offline ? "OFFLINE" : "ONLINE", capture_vox() ? "VOX" : NULL, speed};
 	int rx = ui.w - PAD;
-	for (int i = 3; i >= 0; i--) {
+	for (int i = 2; i >= 0; i--) {
 		if (!badges[i]) continue;
 		int bw = text_width(ui.font, badges[i]) + PAD;
 		rx -= bw;
-		bool hot = (i == 0 && app.offline) || (i == 1 && app.busy) || i == 2;
+		bool hot = (i == 0 && app.offline) || i == 1;
 		if (hot) {
-			fill(rx, 2, bw, h - 5, i <= 1 ? p->urgent : p->accent_dim);
+			fill(rx, 2, bw, h - 5, i == 0 ? p->urgent : p->accent_dim);
 		}
 		frame_rect(rx, 2, bw, h - 5, 1, hot ? p->accent : p->border);
 		draw_text(ui.font, rx + PAD / 2, PAD / 2, badges[i], hot ? p->text : mix(p->text, p->bg, 30));
@@ -427,10 +426,11 @@ static void draw_sidebar(void) {
 		syn_rgb dot = c->online ? p->accent : p->border;
 		fill(r.x + PAD, y + rh / 2 - 3, 6, 6, dot);
 		int nx = r.x + PAD + 12;
-		draw_text_fit(ui.font, nx, y + 3, c->name, act ? p->text : mix(p->text, p->bg, 20),
-			r.w - (nx - r.x) - rw - 2 * PAD - (c->muted ? ui.cw * 2 : 0));
+		/* G278: a room switched off is dimmed and marked OFF; its notes are kept for REPLAY */
+		draw_text_fit(ui.font, nx, y + 3, c->name, c->muted ? mix(p->text, p->bg, 55) : act ? p->text : mix(p->text, p->bg, 20),
+			r.w - (nx - r.x) - rw - 2 * PAD - (c->muted ? ui.cw * 4 : 0));
 		if (c->muted) {
-			draw_text(ui.font, r.x + r.w - rw - 2 * PAD - ui.cw * 2, y + 3, "M", p->urgent);
+			draw_text(ui.font, r.x + r.w - rw - 2 * PAD - ui.cw * 4, y + 3, "OFF", p->urgent);
 		}
 		draw_text(ui.font, r.x + r.w - rw - PAD, y + 3, right, c->unread ? p->urgent : mix(p->text, p->bg, 30));
 		if (ui.nchits < CFG_MAX_CHANNELS) {
@@ -790,7 +790,7 @@ static void draw_footer(rect r) {
 	}
 	draw_text_fit(ui.font, r.x + PAD, y,
 		"SPACE talk  ENTER send/replay  ^R last  ESC stop  TAB channel  "
-		"F2 speed  F3 busy  F4 mute  F5 vox  F6 offline  ^Q quit",
+		"F2 speed  F4 room on/off  F5 vox  F6 offline  ^Q quit",
 		mix(p->text, p->bg, 40), r.w - 2 * PAD);
 }
 
@@ -1353,11 +1353,8 @@ static bool key_action(uint32_t key, bool repeat) {
 	case XKB_KEY_F2:
 		app_cycle_speed();
 		return false;
-	case XKB_KEY_F3:
-		app_toggle_busy();
-		return false;
 	case XKB_KEY_F4:
-		app_toggle_mute();
+		app_toggle_room();
 		return false;
 	case XKB_KEY_F5:
 		app_toggle_vox();

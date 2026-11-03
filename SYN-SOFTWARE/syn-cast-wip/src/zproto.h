@@ -58,6 +58,7 @@ typedef enum {
 	ZEV_PRESENCE,
 	ZEV_JOIN,
 	ZEV_LEAVE,
+	ZEV_ROOMS,      /* G278: the member's rooms, each with its saved switch (off[] / on[]) */
 	ZEV_ERROR,      /* an error with no seq: revoked, not_logged_in, a bad packet */
 } zev_kind;
 
@@ -93,6 +94,10 @@ typedef struct {
 	struct { char channel[ZP_NAME_MAX]; char code[32]; } refused[ZP_MAX_CHANNELS];
 	int n_refused;
 	int held;                /* direct messages waiting, all peers together */
+	char off[ZP_MAX_CHANNELS][ZP_NAME_MAX]; /* G278: the rooms this member switched off (saved on the server) */
+	int n_off;
+	char on[ZP_MAX_CHANNELS][ZP_NAME_MAX];  /* rooms event: the rooms whose switch is on (an older server: none either way) */
+	int n_on;
 
 	/* join reply: channels[0]; talk reply and events: stream; over reply
 	 * and event: message, ms, packets; say, loc replies: message; pic
@@ -148,6 +153,8 @@ char *zp_pic(int seq, const char *channel, const char *to, const char *mime, int
 char *zp_loc(int seq, const char *channel, const char *to, double lat, double lon, double accuracy,
 	const char *address);
 char *zp_presence(int seq, const char *status, const char *text);
+/* G278: switch one of this member's rooms on or off; the server keeps it for every device of theirs */
+char *zp_room(int seq, const char *channel, bool on);
 char *zp_history(int seq, const char *channel, const char *with, int limit, const char *before);
 char *zp_history_play(int seq, const char *channel, const char *with, const char *message);
 

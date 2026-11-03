@@ -151,6 +151,14 @@ public final class Proto {
 		return Json.write(m);
 	}
 
+	/** G278: a room on or off for this member, saved on the server for all their devices (off: kept, never played aloud). */
+	public static String room(int seq, String channel, boolean on) {
+		Map<String, Object> m = request("room", seq);
+		m.put("channel", channel);
+		m.put("on", on);
+		return Json.write(m);
+	}
+
 	/** G192: every room the member belongs to, with who is inside (the tabs). */
 	public static String rooms(int seq) {
 		return Json.write(request("rooms", seq));

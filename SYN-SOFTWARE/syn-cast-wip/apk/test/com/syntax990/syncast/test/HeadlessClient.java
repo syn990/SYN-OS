@@ -300,13 +300,13 @@ public final class HeadlessClient implements Engine.Platform {
 				for (Engine.ChannelView c : v.channels) {
 					chans.add(Json.obj("name", c.name, "online", c.online, "state", c.state, "users_online",
 						(double) c.users, "unread", (double) c.unread, "error", c.error, "title", c.title,
-						"who", new ArrayList<Object>(c.who), "peer", c.peer));
+						"who", new ArrayList<Object>(c.who), "peer", c.peer, "off", c.muted));
 				}
 				List<Object> bar = new ArrayList<>(); /* G192: the rooms bar, left to right */
 				for (int k : v.order) bar.add(v.channels.get(k).name);
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
-					"busy", v.busy, "far", v.far, "speed", v.speed, "channels", chans, "bar", bar,
+					"far", v.far, "speed", v.speed, "channels", chans, "bar", bar,
 					"played_samples", (double) pf.playPlayed()));
 				break;
 			}
@@ -339,6 +339,8 @@ public final class HeadlessClient implements Engine.Platform {
 			case "channel": e.selectChannel(Integer.parseInt(arg)); break;
 			case "swipe": e.selectStep(Integer.parseInt(arg)); break;
 			case "replay": e.replayLast(); break;
+			case "unheard": e.replayUnheard(); break;
+			case "room": e.input("/room " + arg); break;   /* G278: this room on or off (the menu's tap) */
 			case "stop": e.stopPlayback(); break;
 			case "speed": e.cycleSpeed(); break;
 			case "offline": e.setOffline(true); break;

@@ -206,10 +206,8 @@ static void run(int fd, const char *line) {
 		app_replay_last();
 	} else if (is(line, "STOP", &arg)) {
 		app_stop_playback();
-	} else if (is(line, "BUSY", &arg)) {
-		app_toggle_busy();
-	} else if (is(line, "MUTE", &arg)) {
-		app_toggle_mute();
+	} else if (is(line, "ROOM", &arg)) {
+		app_toggle_room();
 	} else if (is(line, "VOX", &arg)) {
 		app_toggle_vox();
 	} else if (is(line, "OFFLINE", &arg)) {
