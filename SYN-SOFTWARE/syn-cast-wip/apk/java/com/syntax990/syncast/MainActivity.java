@@ -547,6 +547,8 @@ public final class MainActivity extends Activity {
 			for (int k : view.order) {
 				Engine.ChannelView c = view.channels.get(k);
 				boolean act = k == view.active;
+				/* a room switched off has no tab: the bar shows only what is on; MENU ▸ ROOMS lists every room with its switch */
+				if ((c.muted || c.left) && !act) continue;
 				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted || c.left ? " off" : "");
 				TextView tab = button(t, null);
 				final int idx = k;
