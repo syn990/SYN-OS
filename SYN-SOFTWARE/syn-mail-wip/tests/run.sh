@@ -246,6 +246,43 @@ printf 'Via OAuth\n' | "$BIN" send oa to@example.test 'Plain subject' >"$T/o" 2>
 O=$(printf 'x' | "$BIN" send pw 'to@example.test>
 RCPT TO:<x@y.z' 'S' 2>&1); r=$?
 [ $r -ne 0 ] && [ ! -e "$T/sent/3.eml" ] && ok "send refuses an address that would inject a command" || no "send refuses an address that would inject a command" "$O"
+# 8. attachments (G261): repeatable --attach, multipart/mixed, every byte back, names that cannot forge a header
+python3 -c 'import sys; open(sys.argv[1],"wb").write(b"%PDF-1.4\n" + bytes(range(256)) * 300 + b"\n%%EOF\n")' "$T/report.pdf"
+printf 'a,b\n1,2\n' >"$T/Relevé \"x\".csv"
+NL="$T/$(printf 'n\nBcc: evil@example.test\nX: y').txt"; printf 'nl\n' >"$NL"
+printf 'See attached.\n' | "$BIN" send pw to@example.test 'With files' --attach "$T/report.pdf" --attach "$T/Relevé \"x\".csv" --attach "$NL" >"$T/o" 2>&1; r=$?
+[ $r -eq 0 ] && has "send with three attachments" "$(cat "$T/o")" "3 attachments" || no "send with three attachments" "$(cat "$T/o")"
+A=$(python3 - "$T/sent/3.eml" "$T/report.pdf" "$T/Relevé \"x\".csv" "$NL" <<'PY'
+import email, email.policy, sys
+m = email.message_from_bytes(open(sys.argv[1], "rb").read(), policy=email.policy.default)
+print("type", m.get_content_type())
+parts = list(m.iter_parts())
+print("parts", len(parts))
+print("text", parts[0].get_content_type(), parts[0].get_content().strip())
+for p, f in zip(parts[1:], sys.argv[2:]):
+    same = p.get_payload(decode=True) == open(f, "rb").read()
+    print("file", p.get_content_type(), p.get_content_disposition(), p.get_filename(), "same" if same else "DIFFERENT")
+print("headers", ",".join(k for k in m.keys()), "|", ",".join(k for p in parts for k in p.keys()))
+PY
+)
+has "attached: the message is multipart/mixed" "$A" "type multipart/mixed"
+has "attached: text and three files" "$A" "parts 4"
+has "attached: the text part comes first, intact" "$A" "text text/plain See attached."
+has "attached: the PDF arrives byte for byte, typed and named" "$A" "file application/pdf attachment report.pdf same"
+has "attached: a non-ASCII name with a quote decodes, the bytes intact" "$A" "file text/csv attachment Relevé \"x\".csv same"
+hasnt "attached: a newline in a file name adds no header" "$(printf '%s' "$A" | grep '^headers')" "Bcc"
+has "attached: the name with newlines still round-trips" "$A" "attachment n
+Bcc: evil@example.test
+X: y.txt same"
+O=$(printf 'x' | "$BIN" send pw to@example.test 'S' --attach "$T/no-such.pdf" 2>&1); r=$?
+[ $r -ne 0 ] && [ ! -e "$T/sent/4.eml" ] && has "send refuses a missing attachment, sending nothing" "$O" "cannot open" || no "send refuses a missing attachment, sending nothing" "$O"
+O=$(printf 'x' | "$BIN" send pw to@example.test 'S' --attach "$T" 2>&1); r=$?
+[ $r -ne 0 ] && [ ! -e "$T/sent/4.eml" ] && has "send refuses a folder as an attachment" "$O" "not a plain file" || no "send refuses a folder as an attachment" "$O"
+O=$(printf 'x' | "$BIN" send pw to@example.test 'S' --attach 2>&1); r=$?
+[ $r -eq 2 ] && [ ! -e "$T/sent/4.eml" ] && ok "send --attach with no file is a usage error" || no "send --attach with no file is a usage error" "$O"
+E1=$(cat "$T/sent/1.eml" 2>/dev/null)
+hasnt "a send without --attach stays single-part text" "$E1" "multipart"
+
 python3 - "$SYN_MAIL_SECRETS_FILE" <<'PY'
 import json, sys; p = sys.argv[1]; s = json.load(open(p)); s["pw/password"] = "wrong"; json.dump(s, open(p, "w"))
 PY

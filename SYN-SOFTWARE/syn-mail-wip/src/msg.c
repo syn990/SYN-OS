@@ -12,6 +12,7 @@
 #include <openssl/rand.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
 static int ascii_plain(const char *s) {
 	for (; *s; s++) {
@@ -82,9 +83,72 @@ void msg_id(const char *from_addr, char *out, size_t n) {
 	snprintf(out, n, "<%ld.%s@%s>", (long)time(NULL), hex, at ? at + 1 : "syn-mail.invalid");
 }
 
+/* base64 of n bytes in lines of 76, each ended CRLF */
+static void b64_lines(Buf *out, const void *p, size_t n) {
+	Buf b = {0};
+	b64_encode(p, n, &b);
+	for (size_t i = 0; i < b.n; i += 76) {
+		buf_put(out, b.p + i, b.n - i < 76 ? b.n - i : 76);
+		buf_puts(out, "\r\n");
+	}
+	buf_free(&b);
+}
+
+const char *msg_type_for(const char *name) {
+	static const char *map[][2] = {
+		{".pdf", "application/pdf"}, {".txt", "text/plain"}, {".md", "text/markdown"}, {".csv", "text/csv"},
+		{".html", "text/html"}, {".htm", "text/html"}, {".json", "application/json"}, {".xml", "application/xml"},
+		{".png", "image/png"}, {".jpg", "image/jpeg"}, {".jpeg", "image/jpeg"}, {".gif", "image/gif"},
+		{".webp", "image/webp"}, {".svg", "image/svg+xml"}, {".zip", "application/zip"}, {".gz", "application/gzip"},
+		{".ogg", "audio/ogg"}, {".opus", "audio/ogg"}, {".mp3", "audio/mpeg"}, {".wav", "audio/wav"},
+		{".mp4", "video/mp4"}, {".ics", "text/calendar"},
+		{".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+		{".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+	};
+	const char *dot = name ? strrchr(name, '.') : NULL;
+	if (dot) {
+		for (size_t i = 0; i < sizeof map / sizeof map[0]; i++) {
+			if (!strcasecmp(dot, map[i][0])) {
+				return map[i][1];
+			}
+		}
+	}
+	return "application/octet-stream";
+}
+
+/* a file name safe to quote as it is: printable ASCII with no quote, backslash, slash or semicolon */
+static int name_plain(const char *s) {
+	if (!*s) {
+		return 0;
+	}
+	for (; *s; s++) {
+		if ((unsigned char)*s >= 0x7f || (unsigned char)*s < 0x20 || strchr("\"\\/;", *s)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+/* RFC 2231 / 5987 value: UTF-8'' then every byte outside attr-char as %XX */
+static void name_2231(Buf *out, const char *s) {
+	buf_puts(out, "UTF-8''");
+	for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+		if (isalnum(*p) || strchr("!#$&+-.^_`|~", *p)) {
+			buf_put(out, p, 1);
+		} else {
+			buf_printf(out, "%%%02X", *p);
+		}
+	}
+}
+
 int msg_build(const char *from_name, const char *from_addr, const char *to, const char *subject, const char *body,
 	const char *msgid, const char *reply_to, time_t when, Buf *out) {
-	if (!msg_addr_ok(from_addr) || !msg_addr_ok(to) || !msgid || !*msgid) {
+	return msg_build_attach(from_name, from_addr, to, subject, body, msgid, reply_to, when, NULL, 0, out);
+}
+
+int msg_build_attach(const char *from_name, const char *from_addr, const char *to, const char *subject,
+	const char *body, const char *msgid, const char *reply_to, time_t when, const MsgAttach *att, int natt, Buf *out) {
+	if (!msg_addr_ok(from_addr) || !msg_addr_ok(to) || !msgid || !*msgid || natt < 0 || (natt > 0 && !att)) {
 		return -1;
 	}
 	char date[64];
@@ -114,14 +178,47 @@ int msg_build(const char *from_name, const char *from_addr, const char *to, cons
 		buf_puts(out, "\r\nReferences: ");
 		buf_puts(out, reply_to);
 	}
-	buf_puts(out, "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n"
-		"Content-Transfer-Encoding: base64\r\nX-Mailer: SYN-Mail\r\n\r\n");
-	Buf b = {0};
-	b64_encode(body ? body : "", body ? strlen(body) : 0, &b);
-	for (size_t i = 0; i < b.n; i += 76) {
-		buf_put(out, b.p + i, b.n - i < 76 ? b.n - i : 76);
-		buf_puts(out, "\r\n");
+	const char *text = body ? body : "";
+	if (natt == 0) {
+		buf_puts(out, "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n"
+			"Content-Transfer-Encoding: base64\r\nX-Mailer: SYN-Mail\r\n\r\n");
+		b64_lines(out, text, strlen(text));
+		return 0;
 	}
-	buf_free(&b);
+	/* the boundary: '=' and '_' never both appear in base64 lines or the plain headers written here */
+	unsigned char r[12];
+	RAND_bytes(r, sizeof r);
+	char bound[64] = "=_SYN-Mail_";
+	for (size_t i = 0; i < sizeof r; i++) {
+		snprintf(bound + strlen(bound), 3, "%02x", r[i]);
+	}
+	buf_printf(out, "\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"%s\"\r\n"
+		"X-Mailer: SYN-Mail\r\n\r\nThis is a multi-part message in MIME format.\r\n", bound);
+	buf_printf(out, "--%s\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n", bound);
+	b64_lines(out, text, strlen(text));
+	for (int i = 0; i < natt; i++) {
+		const char *name = att[i].name && *att[i].name ? att[i].name : "attachment";
+		const char *type = att[i].type && *att[i].type ? att[i].type : msg_type_for(name);
+		for (const char *p = type; *p; p++) {
+			if (!isalnum((unsigned char)*p) && !strchr("/.+-", *p)) {
+				type = "application/octet-stream";
+				break;
+			}
+		}
+		buf_printf(out, "--%s\r\nContent-Type: %s", bound, type);
+		if (name_plain(name)) {
+			buf_printf(out, "; name=\"%s\"\r\nContent-Disposition: attachment; filename=\"%s\"\r\n", name, name);
+		} else {
+			/* always encoded here: a plain quote or backslash in the name must not end the quoted string */
+			buf_puts(out, "; name=\"=?UTF-8?B?");
+			b64_encode(name, strlen(name), out);
+			buf_puts(out, "?=\"\r\nContent-Disposition: attachment; filename*=");
+			name_2231(out, name);
+			buf_puts(out, "\r\n");
+		}
+		buf_puts(out, "Content-Transfer-Encoding: base64\r\n\r\n");
+		b64_lines(out, att[i].data, att[i].n);
+	}
+	buf_printf(out, "--%s--\r\n", bound);
 	return 0;
 }

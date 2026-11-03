@@ -36,7 +36,7 @@ static void usage(void) {
 	      "  list                          the accounts\n"
 	      "  check [NAME] [--last N]       sign in, count the inbox, list the last N (10)\n"
 	      "  read NAME N                   one message as text (N: sequence number from check)\n"
-	      "  send NAME TO SUBJECT          send the text on stdin from NAME to TO\n"
+	      "  send NAME TO SUBJECT [--attach FILE]...   send the text on stdin from NAME to TO, each FILE attached\n"
 	      "  folders NAME                  the account's folders\n"
 	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
 	      "  show NAME FOLDER UID          one message by UID as text\n"
@@ -385,31 +385,102 @@ static int cmd_read(int argc, char **argv) {
 	return rc;
 }
 
-static int cmd_send(int argc, char **argv) {
-	if (argc != 4) { usage(); return 2; }
-	Config c = {0};
-	if (load(&c) != 0) return 1;
-	Account *a = find(&c, argv[1]);
-	if (!a) { config_free(&c); return 1; }
-	if (!msg_addr_ok(argv[2])) {
-		fprintf(stderr, "syn-mail: not a plain address: %s\n", argv[2]);
-		config_free(&c);
-		return 2;
+#define SEND_MAX_ATTACH 16
+#define SEND_MAX_BYTES (18L << 20) /* raw; base64 makes it ~24 MiB, inside Gmail's 25 MB and IONOS's limits */
+
+/* one file into memory for attaching: a regular file, read whole; its name is the last part of the path */
+static int attach_load(const char *path, MsgAttach *at, long *total) {
+	FILE *f = fopen(path, "rb");
+	if (!f) {
+		fprintf(stderr, "syn-mail: cannot open %s: %s\n", path, strerror(errno));
+		return -1;
 	}
-	Buf body = {0};
+	struct stat st;
+	if (fstat(fileno(f), &st) != 0 || !S_ISREG(st.st_mode)) {
+		fprintf(stderr, "syn-mail: not a plain file: %s\n", path);
+		fclose(f);
+		return -1;
+	}
+	if (st.st_size > SEND_MAX_BYTES - *total) {
+		fprintf(stderr, "syn-mail: attachments over %ld MiB in all: %s\n", SEND_MAX_BYTES >> 20, path);
+		fclose(f);
+		return -1;
+	}
+	unsigned char *d = malloc(st.st_size ? (size_t)st.st_size : 1);
+	size_t got = d ? fread(d, 1, (size_t)st.st_size, f) : 0;
+	int bad = !d || got != (size_t)st.st_size || ferror(f);
+	fclose(f);
+	if (bad) {
+		fprintf(stderr, "syn-mail: could not read %s\n", path);
+		free(d);
+		return -1;
+	}
+	const char *base = strrchr(path, '/');
+	base = base ? base + 1 : path;
+	char *name = strndup(*base ? base : "attachment", 200);
+	at->name = name;
+	at->type = msg_type_for(name);
+	at->data = d;
+	at->n = got;
+	*total += (long)got;
+	return 0;
+}
+
+static int cmd_send(int argc, char **argv) {
+	const char *pos[3];
+	int npos = 0, natt = 0, rc = 2;
+	MsgAttach att[SEND_MAX_ATTACH];
+	long total = 0;
+	Config c = {0};
+	Buf body = {0}, m = {0};
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "--attach")) {
+			if (i + 1 >= argc) { usage(); goto done; }
+			if (natt == SEND_MAX_ATTACH) {
+				fprintf(stderr, "syn-mail: at most %d attachments\n", SEND_MAX_ATTACH);
+				goto done;
+			}
+			if (attach_load(argv[++i], &att[natt], &total) != 0) goto done;
+			natt++;
+		} else if (npos < 3) {
+			pos[npos++] = argv[i];
+		} else {
+			usage();
+			goto done;
+		}
+	}
+	if (npos != 3) { usage(); goto done; }
+	rc = 1;
+	if (load(&c) != 0) goto done;
+	Account *a = find(&c, pos[0]);
+	if (!a) goto done;
+	if (!msg_addr_ok(pos[1])) {
+		fprintf(stderr, "syn-mail: not a plain address: %s\n", pos[1]);
+		rc = 2;
+		goto done;
+	}
 	char chunk[4096];
 	size_t r;
 	while ((r = fread(chunk, 1, sizeof chunk, stdin)) > 0) buf_put(&body, chunk, r);
 	char mid[160];
 	msg_id(a->address, mid, sizeof mid);
-	Buf m = {0};
-	int rc = 1;
-	if (msg_build(a->display, a->address, argv[2], argv[3], body.p ? body.p : "", mid, NULL, time(NULL), &m) != 0) {
+	if (msg_build_attach(a->display, a->address, pos[1], pos[2], body.p ? body.p : "", mid, NULL, time(NULL),
+		att, natt, &m) != 0) {
 		fputs("syn-mail: the message could not be built\n", stderr);
 	} else {
 		char err[512] = "";
-		if (smtp_send(a, argv[2], m.p, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s\n", err);
-		else { printf("sent from %s to %s, %s\n", a->name, argv[2], mid); rc = 0; }
+		if (smtp_send(a, pos[1], m.p, err, sizeof err) != 0) fprintf(stderr, "syn-mail: %s\n", err);
+		else {
+			printf("sent from %s to %s, %s", a->name, pos[1], mid);
+			if (natt) printf(", %d attachment%s", natt, natt == 1 ? "" : "s");
+			printf("\n");
+			rc = 0;
+		}
+	}
+done:
+	for (int i = 0; i < natt; i++) {
+		free((void *)att[i].name);
+		free((void *)att[i].data);
 	}
 	buf_free(&m);
 	buf_free(&body);
