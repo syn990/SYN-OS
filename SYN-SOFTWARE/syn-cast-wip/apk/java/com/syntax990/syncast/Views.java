@@ -346,6 +346,29 @@ final class Views {
 			dim = paint(c, 13, false);
 		}
 
+		/** Code and file names stand out: anything in `backticks`, a path (~/x, /x/y, ./x), or a file name with a
+		 *  known extension is drawn on the panel colour in the accent-leaning ink, so a name like core.c or
+		 *  ~/.config/syn-caster/core.json reads as what it is. */
+		private static final java.util.regex.Pattern CODE = java.util.regex.Pattern.compile(
+			"`([^`]+)`|((?:~|\\.)?/[\\w./+-]+)|(\\b[\\w-]+\\.(?:c|h|py|md|json|sh|txt|log|pdf|png|jpg|jpeg|apk|java|kt|js|ts|html|css|yml|yaml|toml|cfg|conf|service|timer|dot|svg|jsonl|csv|ogg|wav|mp4|zip|tar|gz)\\b)");
+		static CharSequence styled(String text, Palette pal) {
+			java.util.regex.Matcher mt = CODE.matcher(text);
+			if (!mt.find()) return text;
+			android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+			int at = 0, ink = Palette.mix(pal.text, pal.accent, 35);
+			do {
+				sb.append(text, at, mt.start());
+				String piece = mt.group(1) != null ? mt.group(1) : mt.group();
+				int s0 = sb.length();
+				sb.append(piece);
+				sb.setSpan(new android.text.style.BackgroundColorSpan(pal.panel), s0, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				sb.setSpan(new android.text.style.ForegroundColorSpan(ink), s0, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+				at = mt.end();
+			} while (mt.find());
+			sb.append(text, at, text.length());
+			return sb;
+		}
+
 		private String summary() {
 			String tag = m.forwho.isEmpty() ? "" : "[private] ";
 			switch (m.kind) {
@@ -374,7 +397,8 @@ final class Views {
 			int bodyW = (int) Math.max(dp(getContext(), 60), W - 2 * pad - dp(getContext(), 8));
 			String text = m.kind == History.Kind.EVENT ? null : m.text;
 			if (m.kind == History.Kind.LOCATION && (text == null || text.isEmpty())) text = null;
-			body = text == null ? null : StaticLayout.Builder.obtain(text, 0, text.length(),
+			CharSequence shown = text == null ? null : (m.kind == History.Kind.TEXT ? styled(text, pal) : text);
+			body = shown == null ? null : StaticLayout.Builder.obtain(shown, 0, shown.length(),
 				m.kind == History.Kind.TEXT ? tp : dim, bodyW).setAlignment(Layout.Alignment.ALIGN_NORMAL).build();
 			thumb = m.kind == History.Kind.IMAGE && thumbs != null ? thumbs.thumb(m.id) : null;
 			float h = tp.getFontSpacing() + pad;
