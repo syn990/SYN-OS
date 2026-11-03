@@ -73,11 +73,20 @@ alias synos-install="doas zsh /usr/lib/syn-os/synos-install.zsh"
 
 # A punchset (a medium labelled SYNPUNCH carrying synos.conf) is what
 # synos-install reads first. Booted with syn.punch on the kernel line, the
-# install starts here by itself
+# install starts here by itself: on tty1's autologin, once per boot. Every
+# shell runs this file, so without that a serial or tty2 login started a
+# second install that zeroed the disk under the first, and leaving tty1's
+# shell after an install (getty logs it straight back in) started another
+# over the system just written. /run is empty each boot, and mkdir claims
+# it atomically
 if [[ -o interactive ]] && PunchDev=$(doas blkid -c /dev/null -o device -t LABEL=SYNPUNCH 2>/dev/null | head -n1) && [[ -n $PunchDev ]]; then
   printf "\n\033[1;31m[Punchset]\033[0m %s carries a synos.conf: synos-install takes its answers from it.\n" "$PunchDev"
   if grep -qw syn.punch /proc/cmdline; then
-    doas zsh /usr/lib/syn-os/synos-install.zsh
+    if [[ $TTY == /dev/tty1 ]] && doas mkdir /run/syn-punch 2>/dev/null; then
+      doas zsh /usr/lib/syn-os/synos-install.zsh
+    else
+      printf "\033[1;31m[Punchset]\033[0m The install runs once per boot, on tty1 (its log: /root/synos-install-*.log). Type synos-install to start another.\n"
+    fi
   fi
 fi
 alias synos-config="doas nano /etc/syn-os/synos.conf"

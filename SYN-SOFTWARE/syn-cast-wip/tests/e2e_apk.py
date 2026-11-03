@@ -166,6 +166,68 @@ def rooms_bar(srv, jim):
           jim.status())
 
 
+def rooms_on_off(srv, jim, alice, wav):
+    """G278: a room switched off keeps every voice message unheard and plays none; REPLAY plays this room's missed
+    ones oldest first, each once however often it is tapped; the switch is kept by the server across a restart."""
+    if not e2e.has_rooms_switch(srv):
+        print("rooms on/off: needs the SYN-CASTER server with the room request (G278): skipped")
+        return
+    idle = lambda: (lambda st: st["queue"] == 0 and st["talk"] == "idle")(jim.status())
+    off = lambda: jim.status()["channels"][0].get("off")
+    wait_for(idle, 8)
+    jim.cmd("channel 0")
+    jim.cmd("room off")
+    check("room off: the tab shows it off", wait_for(off, 3), jim.status()["channels"][0])
+    time.sleep(1.0)
+    check("room off: the server kept it (no refusal)", jim.log_count("the switch was not saved") == 0)
+
+    def say_missed(n):
+        heard0 = len([v for v in jim.voices(out=False) if not v.get("partial")])
+        for _ in range(n):
+            wait_for(lambda: alice.status()["talk"] == "idle", 6)
+            alice.ctl("say", wav)
+            want = heard0 + 1
+            wait_for(lambda: len([v for v in jim.voices(out=False) if not v.get("partial")]) >= want, 10)
+            heard0 = want
+            time.sleep(0.5)
+
+    p0 = jim.played_seconds()
+    say_missed(2)
+    time.sleep(1.0)
+    unheard = [v for v in jim.voices(out=False) if not v.get("played")]
+    check("room off: both voice messages are kept, unheard", len(unheard) == 2, [(v["id"], v.get("played")) for v in unheard])
+    check("room off: nothing played aloud", jim.played_seconds() - p0 < 0.1, jim.played_seconds() - p0)
+    check("room off: the tab counts the two unheard", jim.status()["channels"][0]["unread"] >= 2, jim.status()["channels"][0])
+    p1 = jim.played_seconds()
+    jim.cmd("replay")
+    jim.cmd("replay")
+    wait_for(lambda: jim.played_seconds() > p1, 4)
+    wait_for(idle, 12)
+    got = jim.played_seconds() - p1
+    check("REPLAY tapped twice plays the two missed voice messages once each", 3.8 < got < 4.6, got)
+    check("each is marked heard as it finishes", not [v for v in jim.voices(out=False) if not v.get("played")])
+
+    jim.stop()
+    jim.start()
+    check("room off: back after a restart, signed in", wait_for(jim.online, 10))
+    check("room off: the server gives the switch back on sign-in", wait_for(off, 4), jim.status()["channels"][0])
+    p2 = jim.played_seconds()
+    say_missed(1)
+    time.sleep(1.0)
+    check("room off after the restart: still nothing plays aloud", jim.played_seconds() - p2 < 0.1, jim.played_seconds() - p2)
+    jim.cmd("room on")
+    check("room on: the tab shows it on", wait_for(lambda: off() is False, 3), jim.status()["channels"][0])
+    wait_for(lambda: jim.played_seconds() > p2, 4)
+    wait_for(idle, 8)
+    got = jim.played_seconds() - p2
+    check("room on: the one missed while off plays, once", 1.8 < got < 2.4, got)
+    p3 = jim.played_seconds()
+    say_missed(1)
+    check("room on: a new voice message plays aloud again", wait_for(lambda: jim.played_seconds() - p3 > 1.8, 8),
+          jim.played_seconds() - p3)
+    wait_for(idle, 8)
+
+
 def direct_messages(srv, jim, alice, dave):
     """G193: a direct message gets its own tab (@dave), /msg answers on it, and what was missed while away (a direct
     message and a room's line) is fetched from the server's history on the way back, without doubling what was held."""
@@ -206,7 +268,8 @@ def direct_messages(srv, jim, alice, dave):
           and dm.count("just for jim") == 1 and dm.count("hello dave, from the phone") == 1, (room, dm))
     check("the room's missed line counts as unread on its tab", jim.status()["channels"][0]["unread"] >= 1, jim.status())
     jim.cmd("channel 0")
-    check("back to the room for the rest", int(jim.status()["active"]) == 0, jim.status())
+    # selectChannel is posted to the engine's thread, so the tab may move a moment after the command returns
+    check("back to the room for the rest", wait_for(lambda: int(jim.status()["active"]) == 0, 3), jim.status())
 
 
 def speakers(srv, jim, root, packets):
@@ -445,17 +508,9 @@ def main():
         check("APK 1.5x replay takes two thirds of the time", 0.6 < fast / one < 0.73, (one, fast))
         jim.cmd("speed")
 
-        jim.cmd("busy")
-        p2 = jim.played_seconds()
-        n0 = len(jim.voices(out=False))
-        alice.ctl("say", wav)
-        wait_for(lambda: len([v for v in jim.voices(out=False) if not v.get("partial")]) > n0, 8)
-        time.sleep(0.5)
-        last = [v for v in jim.history() if v["kind"] == "voice"][-1]
-        check("Busy on the APK keeps the message unplayed", not last["played"] and jim.played_seconds() - p2 < 0.1, last)
-        check("and the channel hears jim is busy", wait_for(lambda: alice.log_count("jim is busy") >= 1, 3))
-        jim.cmd("busy")
-        check("Available again plays what Busy kept", wait_for(lambda: jim.played_seconds() - p2 >= 1.9, 8))
+        # Busy was taken out of the app in 0.6.0 (Vox replaced it), so its three checks are gone with it.
+
+        rooms_on_off(srv, jim, alice, wav)
 
         other = e2e.Raw(srv, srv.token("jim"), device="phone", channels=["test"])
         check("a second hello as jim/phone replaces the APK's session", wait_for(lambda: not jim.online(), 6))

@@ -56,6 +56,8 @@ public final class Engine {
 		void captureBegin();
 		void captureEnd();
 		void captureVox(boolean on);
+		/** raw mode: frames come back as PCM through captureRawFrame(), untouched (no gain, no noise suppression), for the Vox filter */
+		void captureRaw(boolean on);
 		int captureLevel();
 		void tone(String meaning);
 		/** A small JPEG cut from a received picture (JPEG, PNG or WebP bytes), or null to show the picture itself. */
@@ -66,7 +68,7 @@ public final class Engine {
 		void log(String line);
 	}
 
-	public enum Talk { IDLE, CONNECTING, SENDING, RECEIVING, DISABLED }
+	public enum Talk { IDLE, CONNECTING, SENDING, RECEIVING, DISABLED, TAKING, CONVERTING }
 
 	private static final int PING_EVERY_MS = 25000;
 	/* the server pings every 20 s; the tests shorten this with -Dsyncast.deadAfterMs */
@@ -84,7 +86,7 @@ public final class Engine {
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY, PORTRAIT }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY, PORTRAIT, JOIN, LEAVE, VOX, VOXLIST, ROOM }
 
 	private static final class Pending {
 		int seq;
@@ -119,7 +121,12 @@ public final class Engine {
 	public static final class Channel {
 		public final String name;
 		int session;
-		public boolean online, muted;
+		public boolean online;
+		/** G278: the room is off for this member (saved on the server): nothing plays aloud, no tone, no
+		    notification, but every voice message is kept unheard for REPLAY */
+		public boolean muted;
+		/** switched off here (F4 / the ROOMS page): left for this session, not auto-joined again until switched on */
+		public boolean left;
 		/* G192: the room's own name from the server ("G192 rooms bar"), and gone: closed or taken away, so no tab
 		   (its history stays on the phone) */
 		public String title = "";
@@ -195,14 +202,44 @@ public final class Engine {
 	private final List<Item> queue = new ArrayList<>();
 	private boolean playing;
 	private double speed = 1.0;
-	private boolean busy;
-	private final java.util.List<long[]> busyQ = new java.util.ArrayList<>();
 	private boolean offline;
 	private boolean vox;
 	private String toast = "";
 	private long toastUntil;
 	private long historyVersion;
 	private String authError;
+
+	/* ---------- the Vox filter: the take, converted into a character's voice by SYN-VOX, then spoken as a file ---------- */
+	public static final class Voice {
+		public String id = "", name = "", kind = "";
+		public boolean ready, building;
+		public int speakers;
+	}
+	private String voxId = "", voxName = "Unfiltered";
+	private final List<Voice> voices = new ArrayList<>();
+	private long voicesAt;
+	private boolean taking, converting;
+	/** the boss lands in Crew, the operations room, once per run (2 Nov): the Lobby is the open space */
+	private boolean landed;
+	private long takeStarted;
+	private final java.io.ByteArrayOutputStream take = new java.io.ByteArrayOutputStream();
+	private static final int TAKE_MAX_MS = 90000;
+	/* the take on its way through the caster (protocol vox): the upload stream, what comes back, when it was sent */
+	private long voxStream = -1, voxSentAt;
+	private byte[] voxOut;
+	private final java.io.ByteArrayOutputStream voxIn = new java.io.ByteArrayOutputStream();
+	private static final int VOX_WAIT_MS = 150000;
+	/* a file (the converted take) spoken instead of the mic: paced like the desktop's say_tick */
+	private short[] sayPcm;
+	private int sayN, sayPos, saySent;
+	private long sayT0;
+	private Opus.Encoder sayEnc;
+	private static final int SAY_LEAD_MS = 200;
+	/* a converted take refused the floor (someone talking): kept and sent when the floor frees, for up to 45 s */
+	private short[] pendSay;
+	private int pendN;
+	private long pendRetryAt, pendUntil;
+	private boolean pendSaid;   /* the "waiting for the floor" line said once per take */
 
 	private Tx tx = Tx.IDLE;
 	private boolean txReleased, txEndSeen, txVox, txServerOver;
@@ -452,10 +489,12 @@ public final class Engine {
 		CountDownLatchWait.run(loop, () -> {
 			synchronized (Engine.this) {
 				if (tx != Tx.IDLE) txAbort(null);
+				keepUnheard = true;
 				while (!queue.isEmpty()) {
 					playing = true;
 					finishItem(false);
 				}
+				keepUnheard = false;
 				for (Session ss : sess) {
 					if (ss.ws != null) ss.ws.close();
 					ss.ws = null;
@@ -720,6 +759,24 @@ public final class Engine {
 			else onServerError(ss, o);
 			return;
 		}
+		if (type.equals("vox_done")) {
+			if (!converting || Json.lng(o, "stream") != voxStream) return;
+			converting = false;
+			voxStream = -1;
+			byte[] got = voxIn.toByteArray();
+			voxIn.reset();
+			if (!Json.bool(o, "ok") || got.length < 2) {
+				tone("FAIL");
+				toast(got.length < 2 && Json.bool(o, "ok") ? "no audio came back" : voxWhy(Json.str(o, "code"), Json.str(o, "text"), "vox"));
+				changed();
+				return;
+			}
+			short[] pcm = new short[got.length / 2];
+			for (int i = 0; i < pcm.length; i++) pcm[i] = (short) ((got[2 * i] & 0xff) | (got[2 * i + 1] << 8));
+			pf.log("vox " + voxId + " via the caster: " + pcm.length * 1000 / Opus.RATE + " ms in " + (System.currentTimeMillis() - voxSentAt) + " ms");
+			sayBegin(pcm, pcm.length);
+			return;
+		}
 		int ch = eventChannel(ss, o);
 		String from = Json.str(o, "from"), to = Json.str(o, "to");
 		switch (type) {
@@ -752,7 +809,7 @@ public final class Engine {
 				chan.get(ch).hist.add(m);
 				if (ch != active && !m.out) chan.get(ch).unread++;
 				if (!chan.get(ch).muted && !m.out) tone("ALERT");
-				if (!m.out) pf.notify(m.who() + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
+				if (!m.out && !chan.get(ch).muted) pf.notify(m.who() + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
 			}
 			break;
 		case "pic":
@@ -782,7 +839,7 @@ public final class Engine {
 				speaker(m, o);
 				m.sid = Json.str(o, "message");
 				chan.get(ch).hist.add(m);
-				tone("ALERT");
+				if (!chan.get(ch).muted) tone("ALERT");
 			}
 			break;
 		case "join":
@@ -858,6 +915,11 @@ public final class Engine {
 			Channel c = chan.get(ch);
 			if (!Json.str(r, "name").isEmpty()) c.title = Json.str(r, "name");
 			c.gone = false;
+			if (r.containsKey("off")) roomOff(ch, Json.bool(r, "off"));
+			if (c.left) {
+				c.online = false;
+				continue;
+			}
 			c.online = !r.containsKey("joined") || Json.bool(r, "joined");
 			if (!c.online && ss.state == SState.ONLINE) {
 				/* a session that named its channels (an older config): the room is joined here, never typed */
@@ -884,6 +946,7 @@ public final class Engine {
 			List<Integer> o = order();
 			if (!o.isEmpty()) active = o.get(0);
 		}
+		land();
 		changed();
 	}
 
@@ -948,6 +1011,22 @@ public final class Engine {
 		}
 		if (ss.wasOnline) tone("SUCCESS");
 		ss.wasOnline = true;
+		land();
+	}
+
+	/** Once per run, after the rooms are known: the active tab goes to Crew when it is there and online. */
+	private void land() {
+		if (landed || tx != Tx.IDLE) return;
+		for (int k = 0; k < chan.size(); k++) {
+			Channel c = chan.get(k);
+			if (c.name.equalsIgnoreCase("crew") && c.online && !c.gone && !c.left) {
+				active = k;
+				c.unread = 0;
+				landed = true;
+				changed();
+				return;
+			}
+		}
 	}
 
 	private void onReply(Session ss, Map<String, Object> o) {
@@ -996,6 +1075,7 @@ public final class Engine {
 					}
 				}
 				helloChannels(ss, o);
+				helloOff(ss, o.get("off"));
 				/* G193: the direct-message tabs ride on the session; a DM waiting gets its tab; each joined
 				   conversation asks the server for what was missed */
 				if (o.get("held") instanceof List) {
@@ -1098,6 +1178,78 @@ public final class Engine {
 			portraits.put(p.key, png);
 			break;
 		}
+		case JOIN:
+			if (p.channel >= 0 && p.channel < chan.size()) {
+				Channel c = chan.get(p.channel);
+				if (ok) {
+					c.left = false;
+					c.online = true;
+					c.error = "";
+					c.who.clear();
+					Object online = o.get("online");
+					if (online instanceof List) for (Object w : (List<?>) online) if (w instanceof String) c.who.add((String) w);
+					event(p.channel, "switched on, " + c.who.size() + " online");
+					fetchHistory(ss, p.channel);
+				} else {
+					c.error = code;
+					event(p.channel, "not joined: " + err);
+					toast(Rooms.title(c.name, c.title) + ": " + err);
+				}
+			}
+			break;
+		case VOXLIST: {
+			if (!ok) {
+				toast(voxWhy(code, err, "voices"));
+				break;
+			}
+			List<Voice> got = parseVoices(o.get("voices"));
+			synchronized (Engine.this) {
+				voices.clear();
+				voices.addAll(got);
+			}
+			voicesAt = System.currentTimeMillis();
+			break;
+		}
+		case VOX: {
+			if (!ok || voxOut == null) {
+				converting = false;
+				voxOut = null;
+				tone("FAIL");
+				toast(voxWhy(code, err, "vox"));
+				break;
+			}
+			voxStream = Json.lng(o, "stream");
+			/* the take up to the caster: raw s16 frames of 60 ms on the stream, then over */
+			int frame = Opus.FRAME * 2, n = 0;
+			for (int at = 0; at < voxOut.length; at += frame) {
+				byte[] chunk = java.util.Arrays.copyOfRange(voxOut, at, Math.min(voxOut.length, at + frame));
+				if (!sendBin(ss, Proto.binHeader(Proto.BIN_AUDIO, voxStream, n++), chunk)) break;
+			}
+			voxOut = null;
+			send(ss, Proto.over(++ss.seq, voxStream));
+			break;
+		}
+		case ROOM:
+			if (p.channel >= 0 && p.channel < chan.size()) {
+				Channel c = chan.get(p.channel);
+				boolean off = p.ref == 0;
+				if (!ok) {
+					/* the switch was flipped at once; the server said no, so it goes back */
+					if (c.muted == off) {
+						c.muted = !off;
+						if (!off) dropRoomQueue(p.channel); /* asked on, refused: off again, so its queue goes */
+					}
+					toast(Rooms.title(c.name, c.title) + ": the switch was not saved: " + err);
+				}
+			}
+			break;
+		case LEAVE:
+			if (!ok && p.channel >= 0 && p.channel < chan.size()) {
+				chan.get(p.channel).left = false;
+				chan.get(p.channel).online = true;
+				toast("could not leave: " + err);
+			}
+			break;
 		}
 		changed();
 	}
@@ -1108,6 +1260,10 @@ public final class Engine {
 		long id = Proto.be32(d, 1), seq = Proto.be32(d, 5);
 		byte[] data = new byte[d.length - Proto.HDR];
 		System.arraycopy(d, Proto.HDR, data, 0, data.length);
+		if (kind == Proto.BIN_AUDIO && converting && id == voxStream && voxStream >= 0) {
+			voxIn.write(data, 0, data.length);
+			return;
+		}
 		if (kind == Proto.BIN_AUDIO) {
 			for (Rx r : rx) {
 				if (r.ended || r.session != ss.idx || r.streamId != id) continue;
@@ -1143,9 +1299,9 @@ public final class Engine {
 			if (m != null) {
 				m.partial = false;
 				h.commit(m);
-				pf.notify(chan.get((int) in[0]).name, m.from + " sent a picture");
+				if (!chan.get((int) in[0]).muted) pf.notify(chan.get((int) in[0]).name, m.from + " sent a picture");
 			}
-			tone("ALERT");
+			if (!chan.get((int) in[0]).muted) tone("ALERT");
 			imagesIn.remove(id);
 			changed();
 		}
@@ -1207,7 +1363,7 @@ public final class Engine {
 			pf.log("voice file: " + e.getMessage());
 		}
 		rx.add(r);
-		if (cfg.autoPlay && !busy && !c.muted) {
+		if (cfg.autoPlay && !c.muted) {
 			Item it = new Item();
 			it.rx = r;
 			it.channel = ch;
@@ -1219,11 +1375,8 @@ public final class Engine {
 			it.began = System.currentTimeMillis();
 			r.queued = true;
 			queue.add(it);
-		} else {
-			c.unread++;
-			if (busy) busyQ.add(new long[] { ch, m.id });
 		}
-		if (!pf.focused()) pf.notify(c.name, from + (forwho.isEmpty() ? " is talking" : " is talking to you"));
+		if (!pf.focused() && !c.muted) pf.notify(c.name, from + (forwho.isEmpty() ? " is talking" : " is talking to you"));
 		changed();
 	}
 
@@ -1254,11 +1407,15 @@ public final class Engine {
 
 	/* ---------- the player ---------- */
 
+	/** G278: set while the queue is dropped without being heard (a room switched off, the engine stopping): the
+	    messages stay unheard, so REPLAY still has them. */
+	private boolean keepUnheard;
+
 	private void finishItem(boolean natural) {
 		if (!playing || queue.isEmpty()) return;
 		Item it = queue.remove(0);
 		History.Msg m = chan.get(it.channel).hist.find(it.msgId);
-		if (m != null && !m.played) {
+		if (m != null && !m.played && !keepUnheard) {
 			m.played = true;
 			chan.get(it.channel).hist.commit(m);
 		}
@@ -1378,6 +1535,9 @@ public final class Engine {
 
 	private void txReset() {
 		txHeld.clear();
+		sayPcm = null;
+		if (sayEnc != null) sayEnc.close();
+		sayEnc = null;
 		if (txFile != null) txFile.close();
 		txFile = null;
 		tx = Tx.IDLE;
@@ -1406,7 +1566,7 @@ public final class Engine {
 
 	private void txAbort(String why) {
 		if (tx == Tx.IDLE) return;
-		if (!txReleased && !txVox) pf.captureEnd();
+		if (!txReleased && !txVox && sayPcm == null) pf.captureEnd();
 		if (why != null) toast("talk ended: " + why);
 		txFinish();
 	}
@@ -1420,6 +1580,22 @@ public final class Engine {
 			return;
 		}
 		if (!ok) {
+			if (sayPcm != null && code.equals("busy")) {
+				/* the converted take waits for the floor instead of being lost */
+				if (pendSay == null) {
+					pendSay = sayPcm;
+					pendN = sayN;
+					if (!pendSaid) {
+						pendUntil = System.currentTimeMillis() + 45000;
+						toast((talker.isEmpty() ? "someone" : talker) + " is talking; your take goes out when the floor is free");
+						pendSaid = true;
+					}
+				}
+				pendRetryAt = System.currentTimeMillis() + 1500;
+				sayPcm = null; /* txReset must not drop the pending copy's encoder state; it is rebuilt on retry */
+				txReset();
+				return;
+			}
 			tone("FAIL");
 			toast("cannot talk: " + (code.equals("busy") && !talker.isEmpty() ? talker + " is talking" : err));
 			if (!txReleased && !txVox) pf.captureEnd();
@@ -1429,6 +1605,7 @@ public final class Engine {
 		Channel c = chan.get(txChannel);
 		txStreamId = streamId;
 		tx = Tx.SENDING;
+		if (sayPcm != null) pendSaid = false;
 		tone("START"); /* talk permit */
 		History.Msg m = new History.Msg();
 		m.kind = History.Kind.VOICE;
@@ -1461,9 +1638,34 @@ public final class Engine {
 
 	public void captureEnded() {
 		post(() -> {
+			if (taking) {
+				taking = false;
+				pf.captureRaw(false);
+				convertTake();
+				return;
+			}
 			if (tx == Tx.IDLE) return;
 			txEndSeen = true;
 			if (tx == Tx.SENDING) txFinish();
+		});
+	}
+
+	/** A raw 16 kHz frame of the take (the platform in raw mode). */
+	public void captureRawFrame(short[] pcm, int n, int level) {
+		post(() -> {
+			if (!taking) return;
+			txLevel = level;
+			byte[] b = new byte[n * 2];
+			for (int i = 0; i < n; i++) {
+				b[2 * i] = (byte) pcm[i];
+				b[2 * i + 1] = (byte) (pcm[i] >> 8);
+			}
+			take.write(b, 0, b.length);
+			if (System.currentTimeMillis() - takeStarted > TAKE_MAX_MS) {
+				toast("take limit reached");
+				pf.captureEnd();
+			}
+			pf.changed();
 		});
 	}
 
@@ -1486,6 +1688,11 @@ public final class Engine {
 
 	public void pttDown() {
 		post(() -> {
+			if (!voxId.isEmpty() && tx == Tx.IDLE && !txVox) {
+				takeBegin();
+				return;
+			}
+			if (taking) return;
 			if (tx != Tx.IDLE) {
 				if (txVox) {
 					txVox = false; /* the button takes over a VOX transmission */
@@ -1499,6 +1706,10 @@ public final class Engine {
 
 	public void pttUp() {
 		post(() -> {
+			if (taking) {
+				pf.captureEnd();
+				return;
+			}
 			if (tx == Tx.IDLE || txVox || txReleased) return;
 			txReleased = true;
 			pf.captureEnd();
@@ -1507,6 +1718,14 @@ public final class Engine {
 
 	public void pttToggle() {
 		post(() -> {
+			if (taking) {
+				pf.captureEnd();
+				return;
+			}
+			if (!voxId.isEmpty() && tx == Tx.IDLE) {
+				takeBegin();
+				return;
+			}
 			if (tx == Tx.IDLE) {
 				if (txBegin(false)) pf.captureBegin();
 			} else if (!txVox && !txReleased) {
@@ -1640,10 +1859,22 @@ public final class Engine {
 	}
 
 	private void replayNow(int channel, long msgId) {
-		if (channel < 0 || channel >= chan.size()) return;
+		replayNow(channel, msgId, false);
+	}
+
+	/** Whether that voice message is on air or waiting in the play queue already (G278: never twice). */
+	private boolean queued(int channel, long msgId) {
+		for (Item q : queue) if (q.channel == channel && q.msgId == msgId) return true;
+		return false;
+	}
+
+	/** append: after everything queued (a run of unheard, oldest first); else next, replacing a replay on air. */
+	private boolean replayNow(int channel, long msgId, boolean append) {
+		if (channel < 0 || channel >= chan.size()) return false;
+		if (append && queued(channel, msgId)) return false;
 		History h = chan.get(channel).hist;
 		History.Msg m = h.find(msgId);
-		if (m == null || m.kind != History.Kind.VOICE || m.partial) return;
+		if (m == null || m.kind != History.Kind.VOICE || m.partial) return false;
 		Item it = new Item();
 		it.replay = true;
 		it.channel = channel;
@@ -1657,16 +1888,67 @@ public final class Engine {
 			it.file = History.loadVoice(h.voice(msgId));
 		} catch (IOException e) {
 			toast("cannot read that voice message");
-			return;
+			return false;
 		}
-		if (playing && queue.get(0).replay) stopPlaybackNow(); /* a new replay replaces the one on air */
-		queue.add(playing ? 1 : 0, it);
+		if (append) {
+			queue.add(it);
+		} else {
+			if (playing && queue.get(0).replay) stopPlaybackNow(); /* a new replay replaces the one on air */
+			queue.add(playing ? 1 : 0, it);
+		}
 		changed();
+		return true;
 	}
 
+	/** G278: every unheard voice message in room ch, oldest first, after what is playing; skips any already queued.
+	    Each is marked heard as it finishes (the played flag, kept on disk), so STOP leaves the rest unheard. */
+	private int playMissed(int ch) {
+		if (ch < 0 || ch >= chan.size()) return 0;
+		int n = 0;
+		for (History.Msg m : new ArrayList<>(chan.get(ch).hist.msgs)) {
+			if (m.kind == History.Kind.VOICE && !m.out && !m.partial && !m.played && replayNow(ch, m.id, true)) n++;
+			if (queue.size() >= 64) break;
+		}
+		return n;
+	}
+
+	/** How many voice messages room ch holds unheard: the tab's count, from the saved flag. */
+	private int unheard(Channel c) {
+		int n = 0;
+		for (History.Msg m : c.hist.msgs) if (m.kind == History.Kind.VOICE && !m.out && !m.partial && !m.played) n++;
+		return n;
+	}
+
+	/** The server's word on a room's switch (hello's off list, the rooms event, the room answer). */
+	private void roomOff(int ch, boolean off) {
+		Channel c = chan.get(ch);
+		if (c.muted == off) return;
+		c.muted = off;
+		if (off) dropRoomQueue(ch); /* switched off elsewhere (the crew, another device): its queue waits for REPLAY too */
+		event(ch, off ? "switched off: voice messages are kept for REPLAY" : "switched on");
+	}
+
+	private void helloOff(Session ss, Object off) {
+		if (!(off instanceof List)) return;
+		java.util.Set<String> ids = new java.util.HashSet<>();
+		for (Object v : (List<?>) off) if (v instanceof String) ids.add(((String) v).toLowerCase(Locale.ROOT));
+		for (int k = 0; k < chan.size(); k++) {
+			Channel c = chan.get(k);
+			if (sess.get(c.session) == ss && c.peer.isEmpty()) roomOff(k, ids.contains(c.name.toLowerCase(Locale.ROOT)));
+		}
+	}
+
+	/** REPLAY: this room's unheard voice messages, oldest first, one after another; with none unheard, the last one. */
 	public void replayLast() {
 		post(() -> {
 			if (chan.isEmpty()) return;
+			int n = playMissed(active);
+			if (n > 0) {
+				toast("replaying " + n + " unheard");
+				changed();
+				return;
+			}
+			for (Item q : queue) if (q.channel == active && q.replay) return; /* its unheard are playing already */
 			List<History.Msg> v = chan.get(active).hist.msgs;
 			for (int k = v.size() - 1; k >= 0; k--) {
 				History.Msg m = v.get(k);
@@ -1763,48 +2045,478 @@ public final class Engine {
 		});
 	}
 
-	public void toggleBusy() {
+	/* ---------- the Vox filter ---------- */
+
+	public String voxId() {
+		return voxId;
+	}
+
+	public String voxName() {
+		return voxName;
+	}
+
+	/** The last list SYN-VOX gave (a copy); voxVoices() refreshes it. */
+	public synchronized List<Voice> voices() {
+		return new ArrayList<>(voices);
+	}
+
+	/** Unfiltered ("" or "raw"), or a voice id from the list (overwatch, zofia, vctk#40 ...). */
+	public void setVox(String id, String name) {
 		post(() -> {
-			busy = !busy;
-			toast(busy ? "Busy: incoming voice is kept, not played" : "Available");
-			if (!sess.isEmpty() && sess.get(0).state == SState.ONLINE) {
-				Session ss = sess.get(0);
-				int seq = ++ss.seq;
-				if (send(ss, Proto.presence(seq, busy ? "busy" : "online", null))) addPending(ss, seq, PKind.PRESENCE, -1, 0, false);
+			String v = id == null || id.equals("raw") ? "" : id;
+			if (taking || converting) {
+				toast("finish the take first");
+				return;
 			}
-			if (!busy) {
-				/* play the messages queued while busy, in order */
-				for (int i = busyQ.size() - 1; i >= 0; i--) {
-					long[] e = busyQ.get(i);
-					int ch = (int) e[0];
-					long mid = e[1];
-					if (ch >= 0 && ch < chan.size()) {
-						History.Msg mm = chan.get(ch).hist.find(mid);
-						Channel cc = chan.get(ch);
-						if (mm != null && !mm.partial && cc.unread > 0) cc.unread--;
-					}
-					replayNow(ch, mid);
+			voxId = v;
+			voxName = v.isEmpty() ? "Unfiltered" : (name == null || name.isEmpty() ? v : name);
+			toast(v.isEmpty() ? "Vox off: your own voice" : "Vox: " + voxName);
+			changed();
+		});
+	}
+
+	/** SYN-VOX: cfg.voxUrl when set, else plain HTTP to port 7791 on the cast server's host (the home network or the
+	 * link; no secret, only audio goes through). The cast protocol will carry it with the member token (a1's door). */
+	private String voxBase() {
+		if (!cfg.voxUrl.trim().isEmpty()) return cfg.voxUrl.trim().replaceAll("/+$", "");
+		String host = cfg.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", "").replaceFirst(":\\d+$", "");
+		return "http://" + host + ":7791/api/vox";
+	}
+
+	private java.net.HttpURLConnection voxOpen(String method, String url, String ctype, int readMs) throws IOException {
+		java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+		if (c instanceof javax.net.ssl.HttpsURLConnection && !cfg.certPem.trim().isEmpty()) {
+			javax.net.ssl.HttpsURLConnection h = (javax.net.ssl.HttpsURLConnection) c;
+			h.setSSLSocketFactory(Ws.pinned(cfg.certPem));
+			h.setHostnameVerifier((host, session) -> true); /* the pin is the trust, as for the WebSocket */
+		}
+		c.setRequestMethod(method);
+		c.setConnectTimeout(10000);
+		c.setReadTimeout(readMs);
+		if (!cfg.token.isEmpty()) c.setRequestProperty("Authorization", "Bearer " + cfg.token);
+		if (ctype != null) c.setRequestProperty("Content-Type", ctype);
+		return c;
+	}
+
+	private static byte[] readAll(java.io.InputStream in) throws IOException {
+		java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream();
+		byte[] b = new byte[16384];
+		for (int n; (n = in.read(b)) > 0;) o.write(b, 0, n);
+		return o.toByteArray();
+	}
+
+	/** Asks SYN-VOX (through the cast server) for the voices; the list lands in voices() and the view changes. */
+	public void voxVoices() {
+		if (!cfg.hasAccount()) return;
+		if (cfg.voxUrl.trim().isEmpty()) {
+			post(() -> {
+				Session ss = sess.isEmpty() ? null : sess.get(0);
+				if (ss == null || ss.state != SState.ONLINE) {
+					toast("not connected to the caster");
+					return;
 				}
-				busyQ.clear();
+				int seq = ++ss.seq;
+				if (send(ss, Proto.voxVoices(seq))) addPending(ss, seq, PKind.VOXLIST, -1, 0, false);
+			});
+			return;
+		}
+		connector.execute(() -> {
+			List<Voice> got = new ArrayList<>();
+			String why = "";
+			try {
+				java.net.HttpURLConnection c = voxOpen("GET", voxBase() + "/voices", null, 10000);
+				int code = c.getResponseCode();
+				byte[] body = readAll(code < 400 ? c.getInputStream() : c.getErrorStream() == null ? new java.io.ByteArrayInputStream(new byte[0]) : c.getErrorStream());
+				if (code != 200) {
+					why = "voices: HTTP " + code;
+				} else {
+					Object o = Json.parse(new String(body, java.nio.charset.StandardCharsets.UTF_8));
+					Object vs = o instanceof Map ? ((Map<?, ?>) o).get("voices") : null;
+					if (vs instanceof List) {
+						for (Object x : (List<?>) vs) {
+							if (!(x instanceof Map)) continue;
+							@SuppressWarnings("unchecked")
+							Map<String, Object> m = (Map<String, Object>) x;
+							Voice v = new Voice();
+							v.id = Json.str(m, "id");
+							v.name = Json.str(m, "name");
+							v.kind = Json.str(m, "kind");
+							v.ready = Json.bool(m, "ready");
+							v.building = Json.bool(m, "building");
+							v.speakers = (int) Json.lng(m, "speakers");
+							if (!v.id.isEmpty()) got.add(v);
+						}
+					}
+				}
+			} catch (IOException | RuntimeException e) {
+				why = "no voice converter: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+			}
+			final String w = why;
+			post(() -> {
+				if (!got.isEmpty()) {
+					synchronized (Engine.this) {
+						voices.clear();
+						voices.addAll(got);
+					}
+					voicesAt = System.currentTimeMillis();
+				}
+				if (!w.isEmpty()) toast(w);
+				changed();
+			});
+		});
+	}
+
+	/** The caster's vox codes in the boss's words. */
+	private static String voxWhy(String code, String err, String what) {
+		switch (code) {
+		case "unknown_type": return "the caster has no vox door yet";
+		case "down": return "SYN-VOX is not running on the host";
+		case "building": return err.isEmpty() ? "that voice is still building; try again in a minute" : err;
+		case "busy": return "a take is still being converted";
+		case "too_big": return "the take is too long (90 s at most)";
+		case "bad_format": case "bad_request": return what + ": " + (err.isEmpty() ? code : err);
+		default: return what + ": " + (err.isEmpty() ? code : err);
+		}
+	}
+
+	private static List<Voice> parseVoices(Object vs) {
+		List<Voice> got = new ArrayList<>();
+		if (vs instanceof List) {
+			for (Object x : (List<?>) vs) {
+				if (!(x instanceof Map)) continue;
+				@SuppressWarnings("unchecked")
+				Map<String, Object> m = (Map<String, Object>) x;
+				Voice v = new Voice();
+				v.id = Json.str(m, "id");
+				v.name = Json.str(m, "name");
+				v.kind = Json.str(m, "kind");
+				v.ready = Json.bool(m, "ready");
+				v.building = Json.bool(m, "building");
+				v.speakers = (int) Json.lng(m, "speakers");
+				if (!v.id.isEmpty()) got.add(v);
+			}
+		}
+		return got;
+	}
+
+	private void takeBegin() {
+		if (converting) {
+			toast("still converting the last take");
+			return;
+		}
+		Channel c = chan.isEmpty() ? null : chan.get(active);
+		if (c == null || !c.online) {
+			tone("FAIL");
+			toast(c == null ? "no room" : c.name + " is offline");
+			return;
+		}
+		if (playing && queue.get(0).replay) stopPlaybackNow();
+		taking = true;
+		take.reset();
+		takeStarted = System.currentTimeMillis();
+		pf.captureRaw(true);
+		pf.captureBegin();
+		tone("SUCCESS");
+		changed();
+	}
+
+	private static byte[] wav16k(byte[] pcm) {
+		java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(44 + pcm.length).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+		b.put("RIFF".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(36 + pcm.length)
+			.put("WAVEfmt ".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(16).putShort((short) 1).putShort((short) 1)
+			.putInt(Opus.RATE).putInt(Opus.RATE * 2).putShort((short) 2).putShort((short) 16)
+			.put("data".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(pcm.length).put(pcm);
+		return b.array();
+	}
+
+	/** 16-bit PCM out of a WAV (any rate SYN-VOX answers with is asked to be ours). */
+	private static short[] wavPcm(byte[] wav) {
+		java.nio.ByteBuffer b = java.nio.ByteBuffer.wrap(wav).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+		if (wav.length < 12 || b.getInt(0) != 0x46464952) return null;
+		int at = 12;
+		while (at + 8 <= wav.length) {
+			int id = b.getInt(at), len = b.getInt(at + 4);
+			if (id == 0x61746164) { /* data */
+				int n = Math.min(len, wav.length - at - 8) / 2;
+				short[] pcm = new short[n];
+				for (int i = 0; i < n; i++) pcm[i] = b.getShort(at + 8 + 2 * i);
+				return pcm;
+			}
+			at += 8 + len + (len & 1);
+		}
+		return null;
+	}
+
+	private void convertTake() {
+		byte[] pcm = take.toByteArray();
+		take.reset();
+		int ms = pcm.length / 2 * 1000 / Opus.RATE;
+		if (ms < 300) {
+			toast("too short");
+			changed();
+			return;
+		}
+		final String id = voxId, name = voxName;
+		converting = true;
+		toast("converting " + Views_dur(ms) + " into " + name + " …");
+		changed();
+		if (cfg.voxUrl.trim().isEmpty()) {
+			/* home to the caster: the take goes up the cast protocol, the caster asks SYN-VOX and sends the result back */
+			Session ss = sess.isEmpty() ? null : sess.get(0);
+			if (ss == null || ss.state != SState.ONLINE) {
+				converting = false;
+				tone("FAIL");
+				toast("not connected to the caster");
+				changed();
+				return;
+			}
+			voxOut = pcm;
+			voxIn.reset();
+			voxStream = -1;
+			voxSentAt = System.currentTimeMillis();
+			int seq = ++ss.seq;
+			if (!send(ss, Proto.vox(seq, id, 4, Opus.RATE, ms))) {
+				converting = false;
+				voxOut = null;
+				toast("not connected");
+				changed();
+				return;
+			}
+			addPending(ss, seq, PKind.VOX, -1, 0, false);
+			return;
+		}
+		connector.execute(() -> {
+			short[] out = null;
+			String why = "";
+			long t0 = System.currentTimeMillis();
+			try {
+				java.net.HttpURLConnection c = voxOpen("POST", voxBase() + "/convert?voice=" + java.net.URLEncoder.encode(id, "UTF-8") + "&rate=" + Opus.RATE, "audio/wav", 120000);
+				c.setDoOutput(true);
+				byte[] wav = wav16k(pcm);
+				c.setFixedLengthStreamingMode(wav.length);
+				try (java.io.OutputStream os = c.getOutputStream()) {
+					os.write(wav);
+				}
+				int code = c.getResponseCode();
+				if (code == 200) {
+					out = wavPcm(readAll(c.getInputStream()));
+					if (out == null) why = "the converter sent no audio";
+				} else {
+					String body = c.getErrorStream() == null ? "" : new String(readAll(c.getErrorStream()), java.nio.charset.StandardCharsets.UTF_8);
+					why = code == 503 ? name + " is still building its voice; try again in a minute"
+						: code == 502 ? "SYN-VOX is not running on the host"
+						: code == 401 ? "the cast server refused the token for vox"
+						: "converter: HTTP " + code + (body.isEmpty() ? "" : " " + body.replaceAll("\\s+", " ").trim());
+				}
+			} catch (IOException | RuntimeException e) {
+				why = "no voice converter: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+			}
+			final short[] res = out;
+			final String w = why;
+			final long dt = System.currentTimeMillis() - t0;
+			post(() -> {
+				converting = false;
+				if (res == null) {
+					tone("FAIL");
+					toast(w);
+					changed();
+					return;
+				}
+				pf.log("vox " + id + ": " + ms + " ms converted in " + dt + " ms");
+				sayBegin(res, res.length);
+			});
+		});
+	}
+
+	private static String Views_dur(long ms) {
+		return String.format(Locale.ROOT, "%d:%02d", ms / 60000, (ms / 1000) % 60);
+	}
+
+	/** Speaks PCM (16 kHz mono) on the room as a transmission, paced in real time. */
+	private void sayBegin(short[] pcm, int n) {
+		if (!txBegin(false)) {
+			if (pendSay == null) toast(toast.isEmpty() ? "cannot talk now" : toast);
+			return;
+		}
+		sayPcm = pcm;
+		sayN = n;
+		sayPos = saySent = 0;
+		sayEnc = new Opus.Encoder();
+		sayT0 = System.currentTimeMillis();
+	}
+
+	private void sayTick() {
+		if (sayPcm == null || txEndSeen || tx == Tx.IDLE) return;
+		long due = (System.currentTimeMillis() - sayT0 + SAY_LEAD_MS) / Opus.FRAME_MS + 1;
+		short[] frame = new short[Opus.FRAME];
+		while (saySent < due && sayPos < sayN) {
+			int t = Math.min(sayN - sayPos, Opus.FRAME);
+			System.arraycopy(sayPcm, sayPos, frame, 0, t);
+			java.util.Arrays.fill(frame, t, Opus.FRAME, (short) 0);
+			sayPos += t;
+			byte[] p = sayEnc.encode(frame);
+			if (p != null) {
+				txLevel = 60;
+				if (tx == Tx.STARTING) {
+					if (txHeld.size() < HELD_MAX) txHeld.add(p);
+				} else if (tx == Tx.SENDING) {
+					txSendPacket(p);
+				}
+			}
+			saySent++;
+		}
+		if (sayPos >= sayN) {
+			txEndSeen = true;
+			if (tx == Tx.SENDING) txFinish();
+		}
+	}
+
+	/* ---------- replay all unheard, rooms on and off ---------- */
+
+	/** Every voice message not heard yet, oldest first, across the rooms you are in, queued after what is playing. */
+	public void replayUnheard() {
+		post(() -> {
+			List<Object[]> all = new ArrayList<>();
+			for (int k : order()) {
+				Channel c = chan.get(k);
+				if (c.left) continue;
+				for (History.Msg m : c.hist.msgs) {
+					if (m.kind == History.Kind.VOICE && !m.out && !m.partial && !m.played) all.add(new Object[] {m.ts, k, m.id});
+				}
+			}
+			all.sort((a, b) -> Long.compare((Long) a[0], (Long) b[0]));
+			int n = 0;
+			for (Object[] e : all) {
+				int k = (Integer) e[1];
+				History h = chan.get(k).hist;
+				History.Msg m = h.find((Long) e[2]);
+				if (m == null || queued(k, m.id)) continue; /* G278: already on air or waiting: never twice */
+				Item it = new Item();
+				it.replay = true;
+				it.channel = k;
+				it.msgId = m.id;
+				it.from = m.from;
+				try {
+					it.file = History.loadVoice(h.voice(m.id));
+				} catch (IOException ex) {
+					continue;
+				}
+				queue.add(it);
+				n++;
+				if (queue.size() >= 32) break;
+			}
+			toast(n == 0 ? "nothing unheard" : "replaying " + n + " unheard");
+			changed();
+		});
+	}
+
+	/** G278: room k on or off for this member, saved on the server for every device of theirs. Off keeps the room
+	    joined, so every voice message still arrives and is kept unheard; nothing plays aloud, no tone, no notification.
+	    On plays what was missed there, oldest first. */
+	public void toggleRoom(int k) {
+		post(() -> {
+			if (k < 0 || k >= chan.size()) return;
+			Channel c = chan.get(k);
+			if (!c.peer.isEmpty()) {
+				toast("a direct message has no switch");
+				return;
+			}
+			Session ss = sess.get(c.session);
+			if (ss.state != SState.ONLINE) {
+				toast("not connected: the switch is kept on the server, try again online");
+				return;
+			}
+			boolean on = c.muted;
+			int seq = ++ss.seq;
+			if (!send(ss, Proto.room(seq, c.name, on))) return;
+			addPending(ss, seq, PKind.ROOM, k, on ? 1 : 0, false);
+			c.muted = !on;
+			if (on) {
+				int n = playMissed(k);
+				event(k, n > 0 ? "switched on: playing " + n + " missed" : "switched on");
+			} else {
+				dropRoomQueue(k);
+				event(k, "switched off: voice messages are kept for REPLAY");
 			}
 			changed();
 		});
 	}
 
-	public void toggleMute() {
+	/** A room switched off: what of it waits in the queue (or is on air) comes out, still unheard. */
+	private void dropRoomQueue(int k) {
+		keepUnheard = true;
+		if (playing && !queue.isEmpty() && queue.get(0).channel == k) stopPlaybackNow();
+		keepUnheard = false;
+		for (int i = queue.size() - 1; i >= (playing ? 1 : 0); i--) {
+			Item it = queue.get(i);
+			if (it.channel != k) continue;
+			queue.remove(i);
+			if (it.dec != null) it.dec.close();
+			if (!it.replay) {
+				it.rx.queued = false;
+				if (it.rx.ended) rxFree(it.rx);
+			}
+		}
+	}
+
+	/** /leave and /join: out of room k for this session (kept as a member), or in again. */
+	private void toggleJoin(int k) {
 		post(() -> {
-			if (chan.isEmpty()) return;
-			Channel c = chan.get(active);
-			c.muted = !c.muted;
-			toast(c.name + (c.muted ? " muted" : " unmuted"));
+			if (k < 0 || k >= chan.size()) return;
+			Channel c = chan.get(k);
+			if (!c.peer.isEmpty()) {
+				toast("a direct message has no switch");
+				return;
+			}
+			Session ss = sess.get(c.session);
+			if (ss.state != SState.ONLINE) {
+				toast("not connected");
+				return;
+			}
+			if (tx != Tx.IDLE && txChannel == k) txAbort("room switched off");
+			int seq = ++ss.seq;
+			if (!c.left && c.online) {
+				if (send(ss, Proto.leave(seq, c.name, false))) {
+					addPending(ss, seq, PKind.LEAVE, k, 0, false);
+					c.left = true;
+					c.online = false;
+					c.who.clear();
+					event(k, "switched off");
+				}
+			} else {
+				if (send(ss, Proto.join(seq, c.name))) {
+					addPending(ss, seq, PKind.JOIN, k, 0, false);
+					c.left = false;
+					event(k, "switching on …");
+				}
+			}
+			changed();
 		});
 	}
 
-	public void toggleVox() {
+	/** /join NAME: a room the server has (a ticket's g-number, a meeting) that is not on the bar yet. */
+	public void joinRoom(String name) {
+		post(() -> {
+			String id = name.trim().toLowerCase(Locale.ROOT);
+			if (id.isEmpty()) return;
+			int k = -1;
+			for (int i = 0; i < chan.size(); i++) if (chan.get(i).name.equalsIgnoreCase(id)) k = i;
+			if (k < 0) k = channelAdd(id);
+			if (k < 0) return;
+			Channel c = chan.get(k);
+			c.gone = false;
+			c.left = true;
+			c.online = false;
+			toggleJoin(k);
+			active = k;
+		});
+	}
+
+	public void toggleVoxActivation() {
 		post(() -> {
 			vox = !vox;
 			pf.captureVox(vox);
-			toast(vox ? "VOX on: talking opens the channel" : "VOX off");
+			toast(vox ? "hands-free on: talking opens the channel" : "hands-free off");
 		});
 	}
 
@@ -1819,9 +2531,38 @@ public final class Engine {
 		String arg = w.length > 1 ? w[1] : "";
 		switch (w[0]) {
 		case "replay": replayLast(); break;
-		case "busy": toggleBusy(); break;
-		case "mute": toggleMute(); break;
-		case "vox": toggleVox(); break;
+		case "unheard": replayUnheard(); break;
+		case "vox": {
+			String a = arg.trim();
+			if (a.isEmpty() || a.equalsIgnoreCase("list")) {
+				voxVoices();
+				StringBuilder sb = new StringBuilder("vox: " + voxName + ". Voices:");
+				for (Voice v : voices()) sb.append(' ').append(v.id);
+				post(() -> toast(sb.toString()));
+			} else if (a.equalsIgnoreCase("off") || a.equalsIgnoreCase("raw")) {
+				setVox("", "");
+			} else {
+				Voice hit = null;
+				for (Voice v : voices()) if (v.id.equalsIgnoreCase(a) || v.name.equalsIgnoreCase(a)) hit = v;
+				if (hit == null) for (Voice v : voices()) if (v.name.toLowerCase(Locale.ROOT).contains(a.toLowerCase(Locale.ROOT))) hit = v;
+				setVox(hit == null ? a : hit.id, hit == null ? a : hit.name);
+			}
+			break;
+		}
+		case "handsfree": toggleVoxActivation(); break;
+		case "join": joinRoom(arg); break;
+		case "leave": post(() -> toggleJoin(active)); break;
+		case "room": {
+			/* /room, /room on, /room off: this room's switch (G278) */
+			String a = arg.trim().toLowerCase(Locale.ROOT);
+			post(() -> {
+				if (active < 0 || active >= chan.size()) return;
+				boolean off = chan.get(active).muted;
+				if (a.isEmpty() || (a.equals("on") && off) || (a.equals("off") && !off)) toggleRoom(active);
+				else toast("already " + a);
+			});
+			break;
+		}
 		case "speed": cycleSpeed(); break;
 		case "msg": {
 			/* G193: /msg NAME opens the direct messages with NAME; /msg NAME TEXT sends it there too */
@@ -1844,7 +2585,7 @@ public final class Engine {
 			break;
 		}
 		default:
-			post(() -> toast("/msg NAME [TEXT]  /replay  /busy  /mute  /vox  /speed  /loc LAT LON [ADDRESS]"));
+			post(() -> toast("/msg NAME [TEXT]  /replay  /unheard  /vox NAME|off|list  /join ROOM  /leave  /handsfree  /speed  /loc LAT LON [ADDRESS]"));
 		}
 	}
 
@@ -1865,7 +2606,7 @@ public final class Engine {
 		}
 		if (tx != Tx.IDLE && now - txStarted > cfg.maxTalkSeconds * 1000L) {
 			toast("talk time limit (" + cfg.maxTalkSeconds + " s) reached");
-			if (txVox) {
+			if (txVox || sayPcm != null) {
 				txFinish();
 			} else {
 				txReleased = true;
@@ -1873,6 +2614,31 @@ public final class Engine {
 				txStarted = now;
 			}
 		}
+		if (converting && voxSentAt > 0 && cfg.voxUrl.trim().isEmpty() && now - voxSentAt > VOX_WAIT_MS) {
+			converting = false;
+			voxStream = -1;
+			voxOut = null;
+			toast("the caster did not answer the vox take");
+			changed();
+		}
+		if (pendSay != null && tx == Tx.IDLE && !taking && !converting && now >= pendRetryAt) {
+			short[] p = pendSay;
+			int n = pendN;
+			if (now > pendUntil) {
+				pendSay = null;
+				pendSaid = false;
+				tone("FAIL");
+				toast("the floor stayed busy; your take was not sent");
+				changed();
+			} else {
+				pendRetryAt = now + 1500;
+				if (!chan.isEmpty() && chan.get(active).online) {
+					sayBegin(p, n);
+					if (sayPcm != null) pendSay = null; /* on the air (or waiting for the server); a busy answer re-pends it */
+				}
+			}
+		}
+		sayTick();
 		playerTick();
 		for (Map.Entry<Long, long[]> e : new ArrayList<>(imagesIn.entrySet())) {
 			if (now - e.getValue()[2] > 120000) {
@@ -1888,14 +2654,14 @@ public final class Engine {
 			toast = "";
 			changed();
 		}
-		if (tx != Tx.IDLE || playing) pf.changed(); /* meters and clocks */
+		if (tx != Tx.IDLE || playing || taking || converting) pf.changed(); /* meters and clocks */
 	}
 
 	/* ---------- what the UI reads ---------- */
 
 	public static final class ChannelView {
 		public String name, state, error;
-		public boolean online, muted;
+		public boolean online, muted, left;
 		public int users, unread;
 		/* G192: the room's name to show, who is inside (by member id), a ticket's room */
 		public String title;
@@ -1914,6 +2680,10 @@ public final class Engine {
 		public List<Integer> order = new ArrayList<>();
 		public Talk talk;
 		public boolean busy, vox, offline;
+		/* the Vox filter */
+		public String voxId = "", voxName = "Unfiltered";
+		public boolean taking, converting;
+		public long takeElapsed;
 		/** G273: signed in by the way in from outside (the home address did not answer) */
 		public boolean far;
 		public double speed;
@@ -1945,9 +2715,13 @@ public final class Engine {
 		for (Session ss : sess) if (ss.state == SState.ONLINE && ss.far) v.far = true;
 		v.toast = toast;
 		v.active = active;
-		v.busy = busy;
 		v.offline = offline;
 		v.vox = vox;
+		v.voxId = voxId;
+		v.voxName = voxName;
+		v.taking = taking;
+		v.converting = converting;
+		v.takeElapsed = taking ? System.currentTimeMillis() - takeStarted : 0;
 		v.speed = speed;
 		v.queue = Math.max(0, queue.size() - (playing ? 1 : 0));
 		v.historyVersion = historyVersion;
@@ -1959,25 +2733,29 @@ public final class Engine {
 			cv.name = c.name;
 			cv.online = c.online;
 			cv.muted = c.muted;
+			cv.left = c.left;
 			cv.users = c.who.size();
 			cv.title = Rooms.title(c.name, c.title);
 			cv.who.addAll(c.who);
 			cv.ticket = isTicketRoom(c.name);
 			cv.peer = c.peer;
-			cv.unread = c.unread;
+			cv.unread = c.unread + unheard(c); /* G278: texts since last looked, plus voice messages not heard yet */
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;
 			v.channels.add(cv);
 		}
-		if (tx == Tx.STARTING) v.talk = Talk.CONNECTING;
+		if (taking) v.talk = Talk.TAKING;
+		else if (converting) v.talk = Talk.CONVERTING;
+		else if (tx == Tx.STARTING) v.talk = Talk.CONNECTING;
 		else if (tx == Tx.SENDING) v.talk = Talk.SENDING;
 		else if (playing) v.talk = Talk.RECEIVING;
 		else if (chan.isEmpty() || !chan.get(active).online) v.talk = Talk.DISABLED;
 		else v.talk = Talk.IDLE;
+		if (taking) v.txLevel = Math.max(txLevel, pf.captureLevel());
 		if (tx != Tx.IDLE) {
 			v.txDest = chan.get(txChannel).name;
 			v.txElapsed = System.currentTimeMillis() - txStarted;
-			v.txLevel = Math.max(txLevel, pf.captureLevel());
+			v.txLevel = sayPcm != null ? txLevel : Math.max(txLevel, pf.captureLevel());
 			v.txOpening = tx == Tx.STARTING;
 		}
 		if (playing) {
@@ -2038,6 +2816,8 @@ public final class Engine {
 	private String stateLabel(int k) {
 		Session ss = sess.get(chan.get(k).session);
 		if (!ss.chans.contains(k)) return "NOT JOINED";
+		if (chan.get(k).left) return "OUT";
+		if (chan.get(k).muted) return "OFF";
 		switch (ss.state) {
 		case OFF: return offline ? "OFFLINE" : ss.refused ? "REFUSED" : "OFF";
 		case CONNECTING: return "CONNECTING";

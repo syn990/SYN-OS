@@ -22,7 +22,7 @@
         <provider android:authorities="com.syntax990.synlauncher.theme" />
     </queries>
 
-    <application
+    <application android:usesCleartextTraffic="true"
         android:label="SYN-CAST"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

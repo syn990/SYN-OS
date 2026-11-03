@@ -194,6 +194,7 @@ public final class CastService extends Service implements Engine.Platform {
 	@Override public void captureBegin() { audio.captureBegin(); }
 	@Override public void captureEnd() { audio.captureEnd(); }
 	@Override public void captureVox(boolean on) { audio.captureVox(on); }
+	@Override public void captureRaw(boolean on) { audio.captureRaw(on); }
 	@Override public int captureLevel() { return audio.captureLevel(); }
 	@Override public void tone(String meaning) { audio.tone(meaning); }
 

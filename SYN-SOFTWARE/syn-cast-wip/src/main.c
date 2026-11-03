@@ -7,7 +7,7 @@
  *   syn-cast --headless         no window (the control socket still works)
  *   syn-cast setup              write the account and channel config
  *   syn-cast ptt down|up|toggle, say, text, image, loc, to, channel,
- *           replay, stop, busy, mute, vox, speed, status, quit
+ *           replay, stop, room, vox, speed, status, quit
  *                              drive the running instance
  *   syn-cast decode IN.spt OUT.wav   a stored voice message to WAV
  *
@@ -49,7 +49,7 @@ static void usage(FILE *f) {
 		"Commands for the running instance (a labwc keybind can call these):\n"
 		"  ptt down|up|toggle   say FILE.wav   text MESSAGE   image FILE.jpg\n"
 		"  loc LAT LON [ADDRESS]   channel NAME   replay   stop\n"
-		"  busy   mute   vox   speed   offline   online   status   quit\n",
+		"  room   vox   speed   offline   online   status   quit\n",
 		VERSION);
 }
 
@@ -280,7 +280,7 @@ static int decode(const char *in, const char *out) {
 /* ---------- main ---------- */
 
 static const char *const VERBS[] = {"ptt", "say", "text", "image", "loc", "channel", "replay",
-	"stop", "busy", "mute", "vox", "speed", "offline", "online", "status", "snapshot", "quit"};
+	"stop", "room", "vox", "speed", "offline", "online", "status", "snapshot", "quit"};
 
 int main(int argc, char **argv) {
 	if (argc == 1) {

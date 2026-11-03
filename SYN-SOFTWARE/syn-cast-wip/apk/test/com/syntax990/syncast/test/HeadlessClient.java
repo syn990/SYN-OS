@@ -151,6 +151,14 @@ public final class HeadlessClient implements Engine.Platform {
 
 	/* ---------- the "microphone": a 600 Hz tone while talking ---------- */
 
+	/** Vox raw mode (0.6.0): frames go to the engine as PCM instead of Opus */
+	private volatile boolean raw;
+
+	@Override
+	public void captureRaw(boolean on) {
+		raw = on;
+	}
+
 	private void capture() {
 		short[] frame = new short[Opus.FRAME];
 		double phase = 0;
@@ -170,8 +178,11 @@ public final class HeadlessClient implements Engine.Platform {
 						frame[k] = (short) (3277 * Math.sin(phase));
 						phase += 2 * Math.PI * 600 / Opus.RATE;
 					}
-					byte[] p = enc.encode(frame);
-					if (p != null) engine.capturePacket(p, 66);
+					if (raw) engine.captureRawFrame(frame, frame.length, 66);
+					else {
+						byte[] p = enc.encode(frame);
+						if (p != null) engine.capturePacket(p, 66);
+					}
 					boolean stop;
 					synchronized (mic) {
 						stop = !want;
@@ -290,7 +301,7 @@ public final class HeadlessClient implements Engine.Platform {
 				for (Engine.ChannelView c : v.channels) {
 					chans.add(Json.obj("name", c.name, "online", c.online, "state", c.state, "users_online",
 						(double) c.users, "unread", (double) c.unread, "error", c.error, "title", c.title,
-						"who", new ArrayList<Object>(c.who), "peer", c.peer));
+						"who", new ArrayList<Object>(c.who), "peer", c.peer, "off", c.muted));
 				}
 				List<Object> bar = new ArrayList<>(); /* G192: the rooms bar, left to right */
 				for (int k : v.order) bar.add(v.channels.get(k).name);
@@ -336,9 +347,10 @@ public final class HeadlessClient implements Engine.Platform {
 			case "channel": e.selectChannel(Integer.parseInt(arg)); break;
 			case "swipe": e.selectStep(Integer.parseInt(arg)); break;
 			case "replay": e.replayLast(); break;
+			case "unheard": e.replayUnheard(); break;
+			case "room": e.input("/room " + arg); break;   /* G278: this room on or off (the menu's tap) */
 			case "stop": e.stopPlayback(); break;
 			case "speed": e.cycleSpeed(); break;
-			case "busy": e.toggleBusy(); break;
 			case "offline": e.setOffline(true); break;
 			case "online": e.setOffline(false); break;
 			case "quit":

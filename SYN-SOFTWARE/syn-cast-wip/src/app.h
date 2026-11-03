@@ -44,7 +44,7 @@
 
 typedef enum { SS_OFF, SS_CONNECTING, SS_LOGON, SS_ONLINE, SS_RETRY } sess_state;
 typedef enum { TB_IDLE, TB_CONNECTING, TB_SENDING, TB_RECEIVING, TB_DISABLED } talk_state;
-typedef enum { P_NONE, P_HELLO, P_TALK, P_OVER, P_SAY, P_PIC, P_LOC, P_PRESENCE, P_PORTRAIT } pend_kind;
+typedef enum { P_NONE, P_HELLO, P_TALK, P_OVER, P_SAY, P_PIC, P_LOC, P_PRESENCE, P_PORTRAIT, P_ROOM } pend_kind;
 
 /* A growable list of opus packets; length 0 marks a lost one. */
 typedef struct {
@@ -97,7 +97,7 @@ typedef struct {
 	char error[160];
 	history hist;
 	int unread;
-	bool muted;
+	bool muted;              /* G278: switched off (saved on the server): no sound, no alert, notes kept */
 } channel;
 
 typedef struct {
@@ -190,9 +190,6 @@ typedef struct {
 	int qn;
 	bool playing;             /* queue[0] is on air */
 	double speed;             /* replay speed: 1, 1.25, 1.5 */
-	bool busy;                /* Busy status: incoming voice is kept, not played */
-	struct { int channel; uint64_t msg_id; } busy_q[BUSY_Q_MAX];
-	int busy_qn;
 	bool offline;             /* switched off: no session until switched back on */
 
 	tx_state tx;
@@ -249,8 +246,8 @@ void app_replay(int channel, uint64_t msg_id);
 void app_replay_last(void);
 void app_stop_playback(void);
 void app_cycle_speed(void);
-void app_toggle_busy(void);
-void app_toggle_mute(void);
+void app_toggle_room(void);
+int app_play_missed(int channel);
 void app_toggle_vox(void);
 void app_set_offline(bool off);
 void app_toast(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

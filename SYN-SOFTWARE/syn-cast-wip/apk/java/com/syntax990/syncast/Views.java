@@ -30,6 +30,7 @@ import com.syntax990.syncast.core.History;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 final class Views {
@@ -135,14 +136,14 @@ final class Views {
 			String host = v.far ? "from outside" : v.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", "");
 			/* badges from the right */
 			float rx = W - pad;
-			String[] badges = {v.busy ? "BUSY" : "AVAILABLE", v.vox ? "VOX" : null, speedLabel(v.speed)};
+			String[] badges = {v.voxId.isEmpty() ? "VOX OFF" : "VOX " + v.voxName.toUpperCase(Locale.ROOT), v.vox ? "HANDS-FREE" : null, speedLabel(v.speed)};
 			for (int i = badges.length - 1; i >= 0; i--) {
 				if (badges[i] == null) continue;
 				float w = tp.measureText(badges[i]) + pad;
 				rx -= w;
-				boolean hot = (i == 0 && v.busy) || i == 1;
+				boolean hot = (i == 0 && !v.voxId.isEmpty()) || i == 1;
 				if (hot) {
-					fill.setColor(i == 0 ? pal.urgent : pal.accentDim);
+					fill.setColor(pal.accentDim);
 					cv.drawRect(rx, 4, rx + w, H - 5, fill);
 				}
 				fill.setStyle(Paint.Style.STROKE);
@@ -294,7 +295,26 @@ final class Views {
 				label = "RECEIVING " + (v.rxName == null ? "" : v.rxName);
 				sub = "tap STOP to cut it short";
 				break;
+			case TAKING:
+				bg = pal.urgent;
+				fg = pal.inkOn(pal.urgent);
+				edge = pal.text;
+				label = "TAKING " + dur(v.takeElapsed);
+				sub = "as " + v.voxName + (toggle ? "  tap to finish" : "  let go to finish");
+				break;
+			case CONVERTING:
+				bg = pal.accentDim;
+				label = "CONVERTING…";
+				sub = "into " + v.voxName + ", then it goes out";
+				break;
 			default:
+				if (!v.voxId.isEmpty()) {
+					bg = pressed ? pal.panelHover : pal.panel;
+					edge = pal.urgent;
+					label = toggle ? "TAP TO TAKE" : "HOLD TO TAKE";
+					sub = "as " + v.voxName + " -> " + dest;
+					break;
+				}
 				bg = pressed ? pal.panelHover : pal.panel;
 				label = toggle ? "TAP TO TALK" : "HOLD TO TALK";
 				sub = "-> " + dest;
@@ -314,7 +334,7 @@ final class Views {
 			text(cv, label, b.centerX() - big.measureText(label) / 2, ly, big, fg);
 			text(cv, sub, b.centerX() - small.measureText(sub) / 2, ly + big.getFontSpacing(), small,
 				Palette.mix(fg, bg, 25));
-			if (st == Engine.Talk.SENDING) {
+			if (st == Engine.Talk.SENDING || st == Engine.Talk.TAKING) {
 				meter(cv, b.left + m, b.bottom - m - dp(getContext(), 4), b.width() - 2 * m, dp(getContext(), 4),
 					v.txLevel, fg, Palette.mix(pal.accent, pal.bg, 40), fill, dp(getContext(), 4));
 			}
@@ -530,6 +550,150 @@ final class Views {
 			fill.setColor(colour);
 			cv.drawRoundRect(card, r, r, fill);
 			fill.setStyle(Paint.Style.FILL);
+		}
+	}
+
+	/* ---------- the terminal: the menu drawn as a text screen where the chat was ---------- */
+
+	interface TermTap {
+		void tap(int line);
+	}
+
+	/** One line of the terminal screen: text, how it is drawn, and whether a tap on it means something. */
+	static final class TermLine {
+		final String text;
+		final int kind;      /* 0 plain, 1 heading, 2 item, 3 selected item, 4 dim, 5 rule, 6 title bar */
+		final Object tag;
+		TermLine(String text, int kind, Object tag) {
+			this.text = text;
+			this.kind = kind;
+			this.tag = tag;
+		}
+	}
+
+	static final class Terminal extends View {
+		Palette pal;
+		TermTap onTap;
+		private final TextPaint tp, bold;
+		private final Paint fill = new Paint();
+		private List<TermLine> lines = new java.util.ArrayList<>();
+		private long shownAt;      /* the reveal: lines appear top to bottom over a third of a second */
+		private int scroll;        /* lines scrolled off the top */
+		private float dragY = -1;
+		private int dragStart;
+		private boolean moved;
+		private static final int REVEAL_MS = 320;
+
+		Terminal(Context c, Palette pal) {
+			super(c);
+			this.pal = pal;
+			tp = paint(c, 14, false);
+			bold = paint(c, 14, true);
+			setBackgroundColor(pal.bg);
+		}
+
+		void show(List<TermLine> l, boolean reveal) {
+			lines = l;
+			if (reveal) shownAt = System.currentTimeMillis();
+			int rows = Math.max(1, (int) (getHeight() / tp.getFontSpacing()) - 1);
+			if (scroll > Math.max(0, lines.size() - rows)) scroll = Math.max(0, lines.size() - rows);
+			invalidate();
+		}
+
+		void top() {
+			scroll = 0;
+		}
+
+		@SuppressLint("ClickableViewAccessibility")
+		@Override
+		public boolean onTouchEvent(MotionEvent e) {
+			float lh = tp.getFontSpacing();
+			switch (e.getActionMasked()) {
+			case MotionEvent.ACTION_DOWN:
+				dragY = e.getY();
+				dragStart = scroll;
+				moved = false;
+				return true;
+			case MotionEvent.ACTION_MOVE: {
+				int d = (int) ((dragY - e.getY()) / lh);
+				if (Math.abs(dragY - e.getY()) > lh) moved = true;
+				int rows = Math.max(1, (int) (getHeight() / lh) - 1);
+				scroll = Math.max(0, Math.min(Math.max(0, lines.size() - rows), dragStart + d));
+				invalidate();
+				return true;
+			}
+			case MotionEvent.ACTION_UP: {
+				if (!moved && onTap != null) {
+					int row = (int) ((e.getY() - dp(getContext(), 4)) / lh) + scroll;
+					if (row >= 0 && row < lines.size() && (lines.get(row).kind == 2 || lines.get(row).kind == 3)) {
+						performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+						onTap.tap(row);
+					}
+				}
+				return true;
+			}
+			default:
+				return true;
+			}
+		}
+
+		@Override
+		protected void onDraw(Canvas cv) {
+			int W = getWidth(), H = getHeight();
+			cv.drawColor(pal.bg);
+			float lh = tp.getFontSpacing(), pad = dp(getContext(), 8), y = dp(getContext(), 4);
+			long age = System.currentTimeMillis() - shownAt;
+			int rows = Math.max(1, (int) (H / lh) - 1);
+			int visible = lines.size();
+			if (age < REVEAL_MS) visible = (int) (lines.size() * age / REVEAL_MS) + 1;
+			for (int i = scroll; i < Math.min(lines.size(), scroll + rows); i++) {
+				TermLine l = lines.get(i);
+				boolean shown = i < visible;
+				float top = y + (i - scroll) * lh;
+				if (!shown) {
+					/* the cursor on the line being written */
+					fill.setColor(pal.accent);
+					cv.drawRect(pad, top + 2, pad + tp.measureText("█"), top + lh - 2, fill);
+					break;
+				}
+				switch (l.kind) {
+				case 6: /* title bar: inverted */
+					fill.setColor(pal.accent);
+					cv.drawRect(0, top, W, top + lh, fill);
+					text(cv, fit(l.text, bold, W - 2 * pad), pad, top, bold, pal.inkOn(pal.accent));
+					break;
+				case 1:
+					text(cv, fit(l.text, bold, W - 2 * pad), pad, top, bold, pal.accent);
+					break;
+				case 3: /* the selected item: a bar */
+					fill.setColor(pal.accentDim);
+					cv.drawRect(pad / 2, top + 1, W - pad / 2, top + lh - 1, fill);
+					fill.setColor(pal.accent);
+					cv.drawRect(pad / 2, top + 1, pad / 2 + dp(getContext(), 3), top + lh - 1, fill);
+					text(cv, fit(l.text, bold, W - 2 * pad), pad, top, bold, pal.text);
+					break;
+				case 2:
+					text(cv, fit(l.text, tp, W - 2 * pad), pad, top, tp, pal.text);
+					break;
+				case 4:
+					text(cv, fit(l.text, tp, W - 2 * pad), pad, top, tp, Palette.mix(pal.text, pal.bg, 45));
+					break;
+				case 5: {
+					StringBuilder sb = new StringBuilder();
+					int n = Math.max(4, (int) ((W - 2 * pad) / tp.measureText("─")));
+					for (int k = 0; k < n; k++) sb.append('─');
+					text(cv, sb.toString(), pad, top, tp, pal.border);
+					break;
+				}
+				default:
+					text(cv, fit(l.text, tp, W - 2 * pad), pad, top, tp, pal.text);
+				}
+			}
+			/* the blinking prompt at the foot */
+			boolean on = (System.currentTimeMillis() / 500) % 2 == 0;
+			text(cv, "> " + (on ? "█" : " "), pad, H - lh - dp(getContext(), 2), tp, pal.accent);
+			if (age < REVEAL_MS) postInvalidateDelayed(16);
+			else postInvalidateDelayed(500);
 		}
 	}
 }

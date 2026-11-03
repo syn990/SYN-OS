@@ -48,6 +48,8 @@ final class AndroidAudio {
 	private volatile int gen;
 	volatile boolean speaker = true;
 	volatile boolean noiseSuppression = true;
+	/** the Vox filter's take: plain MIC source, no suppression, no gain; frames go back as PCM */
+	volatile boolean raw;
 	volatile double voxThreshold = 0.5;
 
 	AndroidAudio(Context ctx) {
@@ -222,20 +224,21 @@ final class AndroidAudio {
 	}
 
 	private AudioRecord openMic() {
+		boolean rawTake = raw;
 		int min = AudioRecord.getMinBufferSize(Opus.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 		@SuppressWarnings("MissingPermission")
-		AudioRecord r = new AudioRecord(noiseSuppression ? MediaRecorder.AudioSource.VOICE_COMMUNICATION
+		AudioRecord r = new AudioRecord(noiseSuppression && !rawTake ? MediaRecorder.AudioSource.VOICE_COMMUNICATION
 			: MediaRecorder.AudioSource.MIC, Opus.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
 			Math.max(min, Opus.FRAME * 2 * 4));
 		if (r.getState() != AudioRecord.STATE_INITIALIZED) {
 			r.release();
 			return null;
 		}
-		if (noiseSuppression && NoiseSuppressor.isAvailable()) {
+		if (noiseSuppression && !rawTake && NoiseSuppressor.isAvailable()) {
 			NoiseSuppressor ns = NoiseSuppressor.create(r.getAudioSessionId());
 			if (ns != null) ns.setEnabled(true);
 		}
-		if (AutomaticGainControl.isAvailable()) {
+		if (!rawTake && AutomaticGainControl.isAvailable()) {
 			AutomaticGainControl agc = AutomaticGainControl.create(r.getAudioSessionId());
 			if (agc != null) agc.setEnabled(true);
 		}
@@ -292,10 +295,12 @@ final class AndroidAudio {
 						break;
 					}
 					int raw = levelOf(frame, frame.length);  /* VOX listens to the microphone itself */
-					gain.process(frame, frame.length);
+					boolean take = this.raw;
+					if (!take) gain.process(frame, frame.length);
 					int lv = levelOf(frame, frame.length);  /* the meter shows what is sent */
 					micLevel = lv;
-					byte[] pkt = enc.encode(frame);
+					byte[] pkt = take ? null : enc.encode(frame);
+					if (take) engine.captureRawFrame(frame.clone(), frame.length, lv);
 					boolean w, v, pressed;
 					synchronized (mic) {
 						w = want;
@@ -368,6 +373,10 @@ final class AndroidAudio {
 			want = false;
 			mic.notifyAll();
 		}
+	}
+
+	void captureRaw(boolean on) {
+		raw = on;
 	}
 
 	void captureVox(boolean on) {

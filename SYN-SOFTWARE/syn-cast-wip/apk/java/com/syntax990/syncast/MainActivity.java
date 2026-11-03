@@ -101,6 +101,12 @@ public final class MainActivity extends Activity {
 	private boolean volumeDown;
 	private EditText setupCert;
 	private TextView onlineBtn;
+	/* the terminal: the menu drawn as a text screen in the chat's place, and back to the chat when done */
+	private LinearLayout root;
+	private Views.Terminal term;
+	private String termPage;          /* null: the chat is showing */
+	private final List<Runnable> termActs = new ArrayList<>();
+	private final java.util.Map<String, Integer> bankSpeaker = new java.util.HashMap<>();
 
 	/* ---------- the service ---------- */
 
@@ -181,7 +187,12 @@ public final class MainActivity extends Activity {
 
 	@Override
 	public void onBackPressed() {
-		moveTaskToBack(true); /* the radio stays on; EXIT is in the notification and settings */
+		if (termPage != null) {
+			if (termPage.equals("main")) closeTerminal();
+			else terminal("main");
+			return;
+		}
+		moveTaskToBack(true); /* the radio stays on; EXIT is in the notification and the menu */
 	}
 
 	/* ---------- styling helpers ---------- */
@@ -339,7 +350,8 @@ public final class MainActivity extends Activity {
 	}
 
 	private void buildMain() {
-		LinearLayout root = new LinearLayout(this);
+		root = new LinearLayout(this);
+		term = null;
 		root.setOrientation(LinearLayout.VERTICAL);
 		root.setBackgroundColor(pal.bg);
 
@@ -429,7 +441,7 @@ public final class MainActivity extends Activity {
 
 		LinearLayout acts = new LinearLayout(this);
 		acts.setPadding(dp(4), 0, dp(4), dp(4));
-		String[] names = {"REPLAY", "STOP", "SPEED", "BUSY", "MUTE", "ONLINE", "SET"};
+		String[] names = {"REPLAY", "UNHEARD", "STOP", "VOX", "ONLINE", "MENU"};
 		for (String n : names) {
 			TextView b = button(n, v -> action(n));
 			b.setTextSize(12);
@@ -449,6 +461,7 @@ public final class MainActivity extends Activity {
 		setContentView(frame);
 		shownVersion = -1;
 		refresh();
+		if (termPage != null) terminal(termPage); /* a rebuild (theme, settings) keeps the menu open */
 	}
 
 	/* ---------- refreshing ---------- */
@@ -525,7 +538,7 @@ public final class MainActivity extends Activity {
 		String tabKey = view.active + ":" + view.channels.size() + ":" + view.order;
 		StringBuilder sb = new StringBuilder(tabKey);
 		for (Engine.ChannelView c : view.channels) {
-			sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted).append(c.title);
+			sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted).append(c.left).append(c.title);
 		}
 		if (!sb.toString().equals(shownTabs)) {
 			shownTabs = sb.toString();
@@ -534,7 +547,7 @@ public final class MainActivity extends Activity {
 			for (int k : view.order) {
 				Engine.ChannelView c = view.channels.get(k);
 				boolean act = k == view.active;
-				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted ? " M" : "");
+				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted || c.left ? " off" : "");
 				TextView tab = button(t, null);
 				final int idx = k;
 				tab.setOnClickListener(v -> {
@@ -549,7 +562,8 @@ public final class MainActivity extends Activity {
 					return true;
 				});
 				tab.setBackground(box(act ? pal.accentDim : pal.bg, act ? pal.accent : pal.border));
-				tab.setTextColor(c.online ? pal.text : Palette.mix(pal.text, pal.bg, 50));
+				/* G278: a room switched off is dimmed; it still counts what came in, for REPLAY */
+				tab.setTextColor(c.online && !c.muted ? pal.text : Palette.mix(pal.text, pal.bg, 50));
 				tabs.addView(tab);
 				if (act) activeTab = tab;
 			}
@@ -566,6 +580,7 @@ public final class MainActivity extends Activity {
 		} else {
 			peek.setText("");
 		}
+		if (termPage != null && term != null) renderTerminal(false);
 		boolean playingChanged = view.playingMsgId != shownPlaying;
 		if (view.historyVersion != shownVersion || view.active != shownChannel || playingChanged || view.rxName != null) {
 			if (view.historyVersion != shownVersion || view.active != shownChannel) {
@@ -592,16 +607,213 @@ public final class MainActivity extends Activity {
 		Engine e = svc.engine();
 		switch (n) {
 		case "REPLAY": e.replayLast(); break;
+		case "UNHEARD": e.replayUnheard(); break;
 		case "STOP": e.stopPlayback(); break;
-		case "SPEED": e.cycleSpeed(); break;
-		case "BUSY": e.toggleBusy(); break;
-		case "MUTE": e.toggleMute(); break;
+		case "VOX": if ("vox".equals(termPage)) closeTerminal(); else terminal("vox"); break;
 		case "ONLINE":
 			/* the switch: offline frees the account for another client */
 			e.setOffline(view == null || !view.offline);
 			break;
-		case "SET": settings(); break;
+		case "MENU": if (termPage != null) closeTerminal(); else terminal("main"); break;
 		default: break;
+		}
+	}
+
+	/* ---------- the terminal menu ---------- */
+
+	private void terminal(String page) {
+		if (root == null || list == null) return;
+		if (term == null) {
+			term = new Views.Terminal(this, pal);
+			term.onTap = row -> {
+				Runnable r = row < termActs.size() ? termActs.get(row) : null;
+				if (r != null) r.run();
+			};
+		}
+		boolean opening = termPage == null;
+		termPage = page;
+		int at = root.indexOfChild(list);
+		if (at >= 0) {
+			ViewGroup.LayoutParams lp = list.getLayoutParams();
+			root.removeViewAt(at);
+			root.addView(term, at, lp);
+		}
+		if (page.equals("vox")) svc.engine().voxVoices();
+		term.top();
+		renderTerminal(true);
+		if (!opening) return;
+	}
+
+	private void closeTerminal() {
+		if (termPage == null || term == null) return;
+		termPage = null;
+		int at = root.indexOfChild(term);
+		if (at >= 0) {
+			ViewGroup.LayoutParams lp = term.getLayoutParams();
+			root.removeViewAt(at);
+			root.addView(list, at, lp);
+		}
+		shownVersion = -1; /* the chat redraws from the engine */
+		refresh();
+	}
+
+	private Views.TermLine line(String text, int kind, Runnable act) {
+		termActs.add(act);
+		return new Views.TermLine(text, kind, act);
+	}
+
+	private static String pad(String s, int w) {
+		StringBuilder b = new StringBuilder(s);
+		while (b.length() < w) b.append(' ');
+		return b.toString();
+	}
+
+	private void renderTerminal(boolean reveal) {
+		if (term == null || termPage == null || svc == null || svc.engine() == null) return;
+		Engine e = svc.engine();
+		Engine.View v = view != null ? view : e.snapshot();
+		Config c = svc.config();
+		List<Views.TermLine> L = new ArrayList<>();
+		termActs.clear();
+		switch (termPage) {
+		case "vox": {
+			L.add(line("SYN-CAST ▸ VOX FILTER", 6, null));
+			L.add(line("Your take comes back in this voice: pitch, pace and stress kept, the timbre changed.", 4, null));
+			L.add(line("Hold TAKE, speak, let go; it converts, then goes out to the room.", 4, null));
+			L.add(line("", 0, null));
+			List<Engine.Voice> vs = e.voices();
+			String cur = v.voxId;
+			L.add(line((cur.isEmpty() ? "● " : "○ ") + "UNFILTERED  your own voice", cur.isEmpty() ? 3 : 2, () -> { e.setVox("", ""); terminal("vox"); }));
+			String[][] groups = {{"character", "CHARACTERS  the crew's pool"}, {"voice", "VOICES  the other Piper voices"}, {"bank", "BANKS  many speakers, pick a number"}};
+			for (String[] g : groups) {
+				boolean any = false;
+				for (Engine.Voice x : vs) if (x.kind.equals(g[0])) any = true;
+				if (!any) continue;
+				L.add(line("", 0, null));
+				L.add(line(g[1], 1, null));
+				for (Engine.Voice x : vs) {
+					if (!x.kind.equals(g[0])) continue;
+					if (x.kind.equals("bank")) {
+						int sp = bankSpeaker.containsKey(x.id) ? bankSpeaker.get(x.id) : 0;
+						String id = x.id + "#" + sp;
+						boolean on = cur.equals(id);
+						L.add(line((on ? "● " : "○ ") + x.name + "  #" + sp, on ? 3 : 2, () -> { e.setVox(id, x.name + " #" + sp); terminal("vox"); }));
+						if (on || cur.startsWith(x.id + "#")) {
+							L.add(line("    ◂ previous speaker", 2, () -> { bankSpeaker.put(x.id, (sp - 1 + x.speakers) % x.speakers); e.setVox(x.id + "#" + ((sp - 1 + x.speakers) % x.speakers), x.name + " #" + ((sp - 1 + x.speakers) % x.speakers)); terminal("vox"); }));
+							L.add(line("    next speaker ▸", 2, () -> { bankSpeaker.put(x.id, (sp + 1) % x.speakers); e.setVox(x.id + "#" + ((sp + 1) % x.speakers), x.name + " #" + ((sp + 1) % x.speakers)); terminal("vox"); }));
+						}
+					} else {
+						boolean on = cur.equals(x.id);
+						String st = x.building ? "  building…" : x.ready ? "" : "  (builds on first take)";
+						L.add(line((on ? "● " : x.building ? "◌ " : "○ ") + x.name + st, on ? 3 : 2, () -> { e.setVox(x.id, x.name); terminal("vox"); }));
+					}
+				}
+			}
+			if (vs.isEmpty()) {
+				L.add(line("", 0, null));
+				L.add(line("No voices yet: SYN-VOX on the host is not answering, or the cast server has no vox door.", 4, null));
+			}
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line("BACK TO THE CHAT", 2, this::closeTerminal));
+			break;
+		}
+		case "rooms": {
+			L.add(line("SYN-CAST ▸ ROOMS", 6, null));
+			L.add(line("Tap a room to switch it on or off. Off: nothing plays aloud and no alert, but every voice message is kept; switch it on, or REPLAY there, to hear what you missed.", 4, null));
+			L.add(line("/join NAME in the chat adds a ticket's room (g227) or a meeting room.", 4, null));
+			L.add(line("", 0, null));
+			for (int k : v.order) {
+				Engine.ChannelView ch = v.channels.get(k);
+				final int idx = k;
+				boolean on = ch.online && !ch.left && !ch.muted;
+				String right = on ? ch.users + " inside" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
+				L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 24) + right + (ch.unread > 0 ? "  *" + ch.unread : ""), on ? 3 : 2, () -> { e.toggleRoom(idx); terminal("rooms"); }));
+			}
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line("BACK", 2, () -> terminal("main")));
+			break;
+		}
+		case "settings": {
+			L.add(line("SYN-CAST ▸ SETTINGS", 6, null));
+			L.add(line("Tap a line to flip it. It is saved at once.", 4, null));
+			L.add(line("", 0, null));
+			Object[][] opts = {
+				{"Tap to start and stop talking (instead of hold)", c.pttToggle, (Runnable) () -> c.pttToggle = !c.pttToggle},
+				{"Play incoming messages as they arrive", c.autoPlay, (Runnable) () -> c.autoPlay = !c.autoPlay},
+				{"Noise suppression (not on Vox takes)", c.noiseSuppression, (Runnable) () -> c.noiseSuppression = !c.noiseSuppression},
+				{"Volume-down key talks (while the app is open)", c.volumeKeyPtt, (Runnable) () -> c.volumeKeyPtt = !c.volumeKeyPtt},
+				{"Play through the loudspeaker", c.speaker, (Runnable) () -> c.speaker = !c.speaker},
+				{"Notifications when the app is in the background", c.notify, (Runnable) () -> c.notify = !c.notify},
+				{"Tones (talk permit, end of message)", c.tones, (Runnable) () -> c.tones = !c.tones},
+				{"Hands-free: talking opens the channel, no button", c.vox, (Runnable) () -> c.vox = !c.vox},
+			};
+			for (Object[] o : opts) {
+				final Runnable flip = (Runnable) o[2];
+				L.add(line(((Boolean) o[1] ? "[x] " : "[ ] ") + o[0], 2, () -> { flip.run(); saveConfig(c); terminal("settings"); }));
+			}
+			int pct = (int) Math.round(c.voxThreshold * 100);
+			L.add(line("", 0, null));
+			L.add(line("HANDS-FREE SENSITIVITY  " + bar(pct) + " " + pct + "%", 1, null));
+			L.add(line("    ◂ less sensitive", 2, () -> { c.voxThreshold = Math.max(0, c.voxThreshold - 0.1); saveConfig(c); terminal("settings"); }));
+			L.add(line("    more sensitive ▸", 2, () -> { c.voxThreshold = Math.min(1, c.voxThreshold + 0.1); saveConfig(c); terminal("settings"); }));
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line("BACK", 2, () -> terminal("main")));
+			break;
+		}
+		case "theme": {
+			L.add(line("SYN-CAST ▸ THEME", 6, null));
+			L.add(line("", 0, null));
+			List<String> names = new ArrayList<>(Palette.names(this));
+			boolean follow = c.theme.isEmpty();
+			L.add(line((follow ? "● " : "○ ") + "FOLLOW SYN-OS", follow ? 3 : 2, () -> { c.theme = ""; saveConfig(c); build(); }));
+			for (String n : names) {
+				boolean on = n.equals(c.theme);
+				L.add(line((on ? "● " : "○ ") + n, on ? 3 : 2, () -> { c.theme = n; saveConfig(c); build(); }));
+			}
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line("BACK", 2, () -> terminal("main")));
+			break;
+		}
+		default: {
+			int on = 0, off = 0;
+			for (int k : v.order) { Engine.ChannelView ch = v.channels.get(k); if (ch.online && !ch.left && !ch.muted) on++; else off++; }
+			L.add(line("SYN-CAST ▸ MENU", 6, null));
+			L.add(line(v.user.isEmpty() ? "" : v.user + " @ " + v.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", ""), 4, null));
+			L.add(line("", 0, null));
+			L.add(line(pad("VOX FILTER", 18) + v.voxName, 2, () -> terminal("vox")));
+			L.add(line(pad("ROOMS", 18) + on + " on · " + off + " off", 2, () -> terminal("rooms")));
+			L.add(line(pad("REPLAY UNHEARD", 18) + "every room's voice messages you have not heard", 2, () -> { e.replayUnheard(); closeTerminal(); }));
+			L.add(line(pad("REPLAY SPEED", 18) + Views.speedLabel(v.speed), 2, () -> { e.cycleSpeed(); main.postDelayed(() -> { refresh(); renderTerminal(false); }, 80); }));
+			L.add(line(pad("HANDS-FREE", 18) + (v.vox ? "on" : "off"), 2, () -> { e.toggleVoxActivation(); main.postDelayed(() -> { refresh(); renderTerminal(false); }, 80); }));
+			L.add(line(pad("SETTINGS", 18) + "talk mode, playback, tones…", 2, () -> terminal("settings")));
+			L.add(line(pad("THEME", 18) + (c.theme.isEmpty() ? "FOLLOW SYN-OS" : c.theme), 2, () -> terminal("theme")));
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line(pad("EXIT", 18) + "leave the channel and close", 2, () -> {
+				startService(new Intent(this, CastService.class).setAction(CastService.ACTION_EXIT));
+				finishAndRemoveTask();
+			}));
+			L.add(line("BACK TO THE CHAT", 2, this::closeTerminal));
+		}
+		}
+		term.show(L, reveal);
+	}
+
+	private static String bar(int pct) {
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < 10; i++) b.append(i * 10 < pct ? '█' : '░');
+		return b.toString();
+	}
+
+	private void saveConfig(Config c) {
+		c.channels = new ArrayList<>(); /* G192: every room the member belongs to; none typed */
+		try {
+			svc.save(c);
+		} catch (IOException ignored) {
 		}
 	}
 
@@ -772,87 +984,7 @@ public final class MainActivity extends Activity {
 
 	/* ---------- settings ---------- */
 
-	private void settings() {
-		Config c = svc.config();
-		ScrollView sv = new ScrollView(this);
-		LinearLayout col = new LinearLayout(this);
-		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(16), dp(8), dp(16), dp(8));
-		col.setBackgroundColor(pal.bg);
-		sv.addView(col);
-		col.addView(label("ROOMS: the tabs at the top are every room you belong to, ticket rooms included, opening "
-			+ "and closing by themselves. Swipe the messages to move between them; hold a tab to see who is inside, and tap a name there "
-			+ "to message them. Direct messages get their own tab (@name); /msg NAME in the text box opens one.",
-			pal.text, 12));
-		/* G266: the server can be changed while signed in (it was only on the sign-in form, so a phone away from
-		 * home kept dialling the home address with no way to give it another); the token is kept. */
-		col.addView(label("SERVER", pal.accent, 12));
-		EditText srv = field("wss://HOST:PORT/cast/v1", false);
-		srv.setText(c.server);
-		col.addView(srv);
-		col.addView(label("SERVER CERTIFICATE (PEM, pinned; empty trusts the system store)", pal.accent, 12));
-		EditText pem = field("-----BEGIN CERTIFICATE----- ...", false);
-		pem.setSingleLine(false);
-		pem.setMinLines(2);
-		pem.setText(c.certPem);
-		col.addView(pem);
-		CheckBox toggle = check(col, "Tap to start and stop talking (instead of hold)", c.pttToggle);
-		CheckBox auto = check(col, "Play incoming messages as they arrive", c.autoPlay);
-		CheckBox ns = check(col, "Noise suppression", c.noiseSuppression);
-		CheckBox vol = check(col, "Volume-down key talks (while the app is open)", c.volumeKeyPtt);
-		CheckBox spk = check(col, "Play through the loudspeaker", c.speaker);
-		CheckBox note = check(col, "Notifications when the app is in the background", c.notify);
-		CheckBox tones = check(col, "Tones (talk permit, end of message)", c.tones);
-		CheckBox vox = check(col, "VOX: talking opens the channel, no button", c.vox);
-		col.addView(label("VOX SENSITIVITY", pal.accent, 12));
-		SeekBar sens = new SeekBar(this);
-		sens.setMax(100);
-		sens.setProgress((int) Math.round(c.voxThreshold * 100));
-		col.addView(sens);
-		final String follow = "FOLLOW SYN-OS";
-		final String[] theme = {c.theme};
-		TextView th = button("THEME: " + (theme[0].isEmpty() ? follow : theme[0]), null);
-		th.setOnClickListener(v -> {
-			List<String> names = new java.util.ArrayList<>(Palette.names(this));
-			names.add(0, follow);
-			new AlertDialog.Builder(this).setItems(names.toArray(new String[0]), (d, w) -> {
-				theme[0] = w == 0 ? "" : names.get(w);
-				th.setText("THEME: " + names.get(w));
-			}).show();
-		});
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-		lp.topMargin = dp(12);
-		col.addView(th, lp);
-		AlertDialog[] dlg = new AlertDialog[1];
-		TextView exit = button("EXIT (leave the channel)", v -> {
-			dlg[0].dismiss();
-			startService(new Intent(this, CastService.class).setAction(CastService.ACTION_EXIT));
-			finishAndRemoveTask();
-		});
-		col.addView(exit, lp);
-		dlg[0] = new AlertDialog.Builder(this).setView(sv).setPositiveButton("SAVE", (d, w) -> {
-			c.channels = new ArrayList<>(); /* G192: every room the member belongs to; none typed */
-			c.pttToggle = toggle.isChecked();
-			c.autoPlay = auto.isChecked();
-			c.noiseSuppression = ns.isChecked();
-			c.volumeKeyPtt = vol.isChecked();
-			c.speaker = spk.isChecked();
-			c.notify = note.isChecked();
-			c.tones = tones.isChecked();
-			c.vox = vox.isChecked();
-			c.voxThreshold = sens.getProgress() / 100.0;
-			c.theme = theme[0];
-			String s = srv.getText().toString().trim();
-			if (!s.isEmpty()) c.server = s.contains("/cast/") ? s : s.replaceFirst("/+$", "") + Proto.PATH;
-			c.certPem = pem.getText().toString().trim();
-			try {
-				svc.save(c);
-			} catch (IOException ignored) {
-			}
-			build();
-		}).setNegativeButton("CANCEL", null).create();
-		dlg[0].show();
-	}
+	/* G266 (main): the server and certificate fields of the old settings dialog are not in the terminal menu yet. */
 
 	/** A tab's words: a ticket room's "G192 SYN-CAST rooms bar..." cut to fit, a fixed room's name as it is. */
 	private static String tabTitle(Engine.ChannelView c) {
@@ -887,17 +1019,6 @@ public final class MainActivity extends Activity {
 			svc.engine().selectChannel(k);
 			thumbs.evictAll();
 		}).setNegativeButton("CLOSE", null).show();
-	}
-
-	private CheckBox check(LinearLayout col, String text, boolean on) {
-		CheckBox b = new CheckBox(this);
-		b.setText(text);
-		b.setChecked(on);
-		b.setTextColor(pal.text);
-		b.setTypeface(android.graphics.Typeface.MONOSPACE);
-		b.setTextSize(13);
-		col.addView(b);
-		return b;
 	}
 
 	/* ---------- hardware talk keys ---------- */

@@ -69,7 +69,7 @@ public final class Ws {
 	}
 
 	/** A socket factory trusting only the pinned certificate(s) in pem. */
-	private static SSLSocketFactory pinned(String pem) throws IOException {
+	static SSLSocketFactory pinned(String pem) throws IOException {
 		try {
 			CertificateFactory cf = CertificateFactory.getInstance("X.509");
 			KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());

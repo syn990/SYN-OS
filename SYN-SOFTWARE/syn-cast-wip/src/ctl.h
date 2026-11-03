@@ -11,7 +11,7 @@
  *     LOC <lat> <lon> [address]         send a location
  *     CHANNEL <name>                    select a channel
  *     REPLAY | STOP                     replay the last message, stop playback
- *     BUSY | MUTE | VOX | SPEED         toggles, as in the window
+ *     ROOM | VOX | SPEED                toggles, as in the window (ROOM: the room on or off)
  *     OFFLINE | ONLINE                  close the session (the account is free
  *                                       for another client) or open it again
  *     STATUS                            JSON

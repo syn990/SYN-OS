@@ -44,6 +44,8 @@ public final class Config {
 	public boolean speaker = true;
 	public int historyDays = 30, historyMb = 256;
 	public String theme = "";
+	/** the Vox filter's converter (SYN-VOX): "" means http://HOST:7791/api/vox on the cast server's host, until the cast protocol carries it */
+	public String voxUrl = "";
 
 	/** A server and a token or an invite: enough to say hello. */
 	public boolean hasAccount() {
@@ -89,6 +91,7 @@ public final class Config {
 		if (o.containsKey("history_days")) historyDays = (int) Json.lng(o, "history_days");
 		if (o.containsKey("history_mb")) historyMb = (int) Json.lng(o, "history_mb");
 		if (o.containsKey("theme")) theme = Json.str(o, "theme");
+		if (o.containsKey("vox_url")) voxUrl = Json.str(o, "vox_url");
 	}
 
 	public void save(File f) throws IOException {
@@ -97,7 +100,7 @@ public final class Config {
 			"ptt_mode", pttToggle ? "toggle" : "hold", "auto_play", autoPlay, "noise_suppression", noiseSuppression,
 			"vox", vox, "vox_threshold", voxThreshold, "max_talk_seconds", (double) maxTalkSeconds,
 			"notify", notify, "tones", tones, "volume_key_ptt", volumeKeyPtt,
-			"speaker", speaker, "history_days", (double) historyDays, "history_mb", (double) historyMb, "theme", theme);
+			"speaker", speaker, "history_days", (double) historyDays, "history_mb", (double) historyMb, "theme", theme, "vox_url", voxUrl);
 		File tmp = new File(f.getPath() + ".tmp");
 		try (FileOutputStream out = new FileOutputStream(tmp)) {
 			out.write(Json.write(o).getBytes(StandardCharsets.UTF_8));

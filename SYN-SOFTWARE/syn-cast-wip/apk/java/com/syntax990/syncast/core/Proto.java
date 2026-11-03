@@ -101,6 +101,23 @@ public final class Proto {
 		return Json.write(m);
 	}
 
+	/** The Vox filter through the caster: a take to convert into `voice`; answered with a stream id the take is sent on
+	 * (raw s16 mono at `rate`, 60 ms binary audio frames, then over); the answer comes back the same way and ends with
+	 * a vox_done event. */
+	public static String vox(int seq, String voice, int topk, int rate, int ms) {
+		Map<String, Object> m = request("vox", seq);
+		m.put("voice", voice);
+		m.put("topk", (double) topk);
+		m.put("rate", (double) rate);
+		m.put("ms", (double) ms);
+		return Json.write(m);
+	}
+
+	/** The voices SYN-VOX offers, through the caster: answered ok with "voices": [{id, name, kind, ready, building, speakers}]. */
+	public static String voxVoices(int seq) {
+		return Json.write(request("vox_voices", seq));
+	}
+
 	public static String over(int seq, long stream) {
 		Map<String, Object> m = request("over", seq);
 		m.put("stream", (double) stream);
@@ -131,6 +148,14 @@ public final class Proto {
 		m.put("lon", lon);
 		m.put("accuracy", acc);
 		if (address != null && !address.isEmpty()) m.put("address", address);
+		return Json.write(m);
+	}
+
+	/** G278: a room on or off for this member, saved on the server for all their devices (off: kept, never played aloud). */
+	public static String room(int seq, String channel, boolean on) {
+		Map<String, Object> m = request("room", seq);
+		m.put("channel", channel);
+		m.put("on", on);
 		return Json.write(m);
 	}
 
