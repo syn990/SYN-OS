@@ -13,15 +13,19 @@ phone app (`apk/`).**
 ## Commands
 
 ```
-syn-mail [-v] add NAME ADDRESS --preset google|ionos [--display NAME]
+syn-mail [-v] add NAME ADDRESS --preset google|ionos [--display NAME] [--title TITLE]
+syn-mail title NAME [TITLE]       the title under the name in the account's signature (none: clear it)
 syn-mail password NAME            the mailbox password from stdin (no echo on a terminal) into the keyring
 syn-mail login NAME [--no-browser] Google: one sign-in in the browser; the refresh token goes to the keyring
 syn-mail list
 syn-mail check [NAME] [--last N]  sign in, count the inbox and the unread, list the newest N (10)
 syn-mail read NAME N              one message as text
-syn-mail send NAME TO SUBJECT [--attach FILE]...   the text on stdin, from NAME to TO; each
-                                  --attach adds one file (16 at most, 18 MiB in all), sent as
-                                  multipart/mixed with the file base64 and its type from its extension
+syn-mail send NAME TO SUBJECT [--attach FILE]... [--plain]   the text on stdin, from NAME to TO, as a
+                                  signed company letter: multipart/alternative, the text twin then the
+                                  rendered HTML (signature block, Syntax Corporation footer and notice, in
+                                  the pinned SYN-OS-BLUE look); each --attach adds one file (16 at most,
+                                  18 MiB in all), the letter first inside multipart/mixed; --plain sends
+                                  the text alone, unsigned, as before
 syn-mail folders NAME             the account's folders (modified UTF-7 names decoded)
 syn-mail headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first
 syn-mail show NAME FOLDER UID     one message by UID as text
@@ -84,6 +88,7 @@ Nth message first.
 | `src/ui.c` | The window: Wayland, pixman, fcft, xkbcommon, the theme, and `--shot` through libpng |
 | `src/smtp.c` | EHLO, STARTTLS on 587, AUTH PLAIN or XOAUTH2, one recipient, dot-stuffing |
 | `src/msg.c` | The outgoing message (from SYN-CASTER's fn_gmail.c): RFC 2047 headers, quoted names, base64 body, address and header-injection checks |
+| `src/letter.c` | The company letter (G265): the text twin and the HTML, tables and inline styles only, no images, scripts or links, the theme pinned to SYN-OS-BLUE; its notice is SYN-CASTER's fn_mail_disclaimer word for word |
 | `src/mime.c` | The incoming message: unfolded and decoded headers (B and Q words, any charset by iconv), multipart walked for text/plain, HTML reduced to text, base64 and quoted-printable |
 | `src/oauth.c` | The Google loopback sign-in and the refresh grant (libcurl, HTTPS only) |
 | `src/secret.c` | libsecret; a mode-600 test file instead when `SYN_MAIL_SECRETS_FILE` is set |

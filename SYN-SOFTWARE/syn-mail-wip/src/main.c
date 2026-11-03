@@ -30,13 +30,15 @@
 
 static void usage(void) {
 	fputs("usage: syn-mail [-v] COMMAND\n"
-	      "  add NAME ADDRESS --preset google|ionos [--display NAME]   add an account\n"
+	      "  add NAME ADDRESS --preset google|ionos [--display NAME] [--title TITLE]   add an account\n"
+	      "  title NAME [TITLE]            the title under the name in the account's signature (none: clear it)\n"
 	      "  password NAME                 store the account's password in the keyring (read from stdin)\n"
 	      "  login NAME [--no-browser]     Google: sign in once in the browser; the token goes to the keyring\n"
 	      "  list                          the accounts\n"
 	      "  check [NAME] [--last N]       sign in, count the inbox, list the last N (10)\n"
 	      "  read NAME N                   one message as text (N: sequence number from check)\n"
-	      "  send NAME TO SUBJECT [--attach FILE]...   send the text on stdin from NAME to TO, each FILE attached\n"
+	      "  send NAME TO SUBJECT [--attach FILE]... [--plain]   send the text on stdin from NAME to TO, each FILE\n"
+	      "                                attached, as a signed company letter (text and HTML); --plain: the text alone\n"
 	      "  folders NAME                  the account's folders\n"
 	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
 	      "  show NAME FOLDER UID          one message by UID as text\n"
@@ -67,10 +69,11 @@ static int cmd_add(int argc, char **argv) {
 		usage();
 		return 2;
 	}
-	const char *preset = NULL, *display = "";
+	const char *preset = NULL, *display = "", *title = "";
 	for (int i = 3; i < argc; i++) {
 		if (!strcmp(argv[i], "--preset") && i + 1 < argc) preset = argv[++i];
 		else if (!strcmp(argv[i], "--display") && i + 1 < argc) display = argv[++i];
+		else if (!strcmp(argv[i], "--title") && i + 1 < argc) title = argv[++i];
 		else { usage(); return 2; }
 	}
 	if (!preset) {
@@ -92,6 +95,7 @@ static int cmd_add(int argc, char **argv) {
 	str_copy(a->name, sizeof a->name, argv[1]);
 	str_copy(a->address, sizeof a->address, argv[2]);
 	str_copy(a->display, sizeof a->display, display);
+	str_copy(a->title, sizeof a->title, title);
 	if (config_preset(a, preset) != 0) {
 		fprintf(stderr, "syn-mail: no preset '%s'\n", preset);
 		config_free(&c);
@@ -426,9 +430,41 @@ static int attach_load(const char *path, MsgAttach *at, long *total) {
 	return 0;
 }
 
+/* the account's signature title, set or cleared (G265) */
+static int cmd_title(int argc, char **argv) {
+	if (argc < 2 || argc > 3) { usage(); return 2; }
+	const char *t = argc == 3 ? argv[2] : "";
+	for (const char *p = t; *p; p++) {
+		if ((unsigned char)*p < 0x20) {
+			fputs("syn-mail: a title is one line\n", stderr);
+			return 2;
+		}
+	}
+	Config c = {0};
+	if (load(&c) != 0) return 1;
+	Account *a = find(&c, argv[1]);
+	int rc = 1;
+	if (a) {
+		str_copy(a->title, sizeof a->title, t);
+		char err[256] = "";
+		rc = config_save(&c, err, sizeof err) != 0;
+		if (rc) fprintf(stderr, "syn-mail: %s\n", err);
+		else if (*a->title) printf("%s signs as %s, %s\n", a->name, *a->display ? a->display : a->address, a->title);
+		else printf("%s signs with no title\n", a->name);
+	}
+	config_free(&c);
+	return rc;
+}
+
+/* who signs the account's letters: its display name, else its address, with its title, for the company */
+static MsgSign account_sign(const Account *a) {
+	return (MsgSign){.name = *a->display ? a->display : a->address, .title = a->title, .company = LETTER_COMPANY,
+		.address = a->address};
+}
+
 static int cmd_send(int argc, char **argv) {
 	const char *pos[3];
-	int npos = 0, natt = 0, rc = 2;
+	int npos = 0, natt = 0, rc = 2, plain = 0;
 	MsgAttach att[SEND_MAX_ATTACH];
 	long total = 0;
 	Config c = {0};
@@ -442,6 +478,8 @@ static int cmd_send(int argc, char **argv) {
 			}
 			if (attach_load(argv[++i], &att[natt], &total) != 0) goto done;
 			natt++;
+		} else if (!strcmp(argv[i], "--plain")) {
+			plain = 1;
 		} else if (npos < 3) {
 			pos[npos++] = argv[i];
 		} else {
@@ -464,8 +502,9 @@ static int cmd_send(int argc, char **argv) {
 	while ((r = fread(chunk, 1, sizeof chunk, stdin)) > 0) buf_put(&body, chunk, r);
 	char mid[160];
 	msg_id(a->address, mid, sizeof mid);
-	if (msg_build_attach(a->display, a->address, pos[1], pos[2], body.p ? body.p : "", mid, NULL, time(NULL),
-		att, natt, &m) != 0) {
+	MsgSign sign = account_sign(a);
+	if (msg_build_letter(a->display, a->address, pos[1], pos[2], body.p ? body.p : "", mid, NULL, time(NULL),
+		att, natt, plain ? NULL : &sign, &m) != 0) {
 		fputs("syn-mail: the message could not be built\n", stderr);
 	} else {
 		char err[512] = "";
@@ -623,6 +662,7 @@ int main(int argc, char **argv) {
 	if (!strcmp(cmd, "check")) return cmd_check(n, v);
 	if (!strcmp(cmd, "read")) return cmd_read(n, v);
 	if (!strcmp(cmd, "send")) return cmd_send(n, v);
+	if (!strcmp(cmd, "title")) return cmd_title(n, v);
 	if (!strcmp(cmd, "folders")) return cmd_folders(n, v);
 	if (!strcmp(cmd, "headers")) return cmd_headers(n, v);
 	if (!strcmp(cmd, "show")) return cmd_show(n, v);

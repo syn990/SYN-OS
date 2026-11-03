@@ -60,6 +60,7 @@ int config_load(Config *c, char *err, size_t errn) {
 			jstr(o, "name", a->name, sizeof a->name);
 			jstr(o, "address", a->address, sizeof a->address);
 			jstr(o, "display_name", a->display, sizeof a->display);
+			jstr(o, "title", a->title, sizeof a->title);
 			jstr(o, "imap_host", a->imap_host, sizeof a->imap_host);
 			jstr(o, "smtp_host", a->smtp_host, sizeof a->smtp_host);
 			a->imap_port = (int)json_integer_value(json_object_get(o, "imap_port"));
@@ -87,11 +88,13 @@ int config_save(const Config *c, char *err, size_t errn) {
 	json_t *arr = json_array();
 	for (int i = 0; i < c->n; i++) {
 		const Account *a = &c->acc[i];
-		json_array_append_new(arr, json_pack("{s:s, s:s, s:s, s:s, s:i, s:s, s:i, s:s}",
+		json_t *o = json_pack("{s:s, s:s, s:s, s:s, s:i, s:s, s:i, s:s}",
 			"name", a->name, "address", a->address, "display_name", a->display,
 			"imap_host", a->imap_host, "imap_port", a->imap_port,
 			"smtp_host", a->smtp_host, "smtp_port", a->smtp_port,
-			"auth", a->auth == AUTH_OAUTH ? "oauth" : "password"));
+			"auth", a->auth == AUTH_OAUTH ? "oauth" : "password");
+		if (a->title[0]) json_object_set_new(o, "title", json_string(a->title));
+		json_array_append_new(arr, o);
 	}
 	json_t *root = json_pack("{s:o}", "accounts", arr);
 	char tmp[PATH_MAX + 8];
