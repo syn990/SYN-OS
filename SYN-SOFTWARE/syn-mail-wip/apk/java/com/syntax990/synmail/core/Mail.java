@@ -31,6 +31,8 @@ public final class Mail {
 	/** One message, read. */
 	public static final class Letter {
 		public String from = "", to = "", subject = "", date = "", messageId = "", text = "";
+		/** the HTML part and its inline pictures, for the reader's page; null for a plain text message */
+		public Mime.Html html;
 	}
 
 	private Imap open(Account a) throws IOException {
@@ -70,6 +72,7 @@ public final class Mail {
 		l.date = h.get("date");
 		l.messageId = h.get("message-id");
 		l.text = Mime.text(raw);
+		l.html = Mime.html(raw);
 		return l;
 	}
 

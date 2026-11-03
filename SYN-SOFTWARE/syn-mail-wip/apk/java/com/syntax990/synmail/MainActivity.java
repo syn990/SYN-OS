@@ -2,7 +2,9 @@
  *   SYN-Mail on the phone: the accounts, their folders, a page of messages,
  *   a message read, a reply or a new message sent, and an account added by
  *   app password or imported from the PC's `syn-mail export` file (sent
- *   over SYN-Link with `syn-link send`). Mail is only ever read with
+ *   over SYN-Link with `syn-link send`). An HTML message is shown as it
+ *   was made, its inline pictures in place and remote ones held back until
+ *   allowed for that message (G265). Mail is only ever read with
  *   EXAMINE and BODY.PEEK: nothing is marked read, moved or deleted.
  *   All network work runs off the main thread; a screen that has been
  *   left is not redrawn by a late answer.
@@ -29,12 +31,18 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.syntax990.synmail.core.Account;
+import com.syntax990.synmail.core.HtmlPage;
 import com.syntax990.synmail.core.Imap;
 import com.syntax990.synmail.core.Mail;
 import com.syntax990.synmail.core.Msg;
@@ -117,6 +125,11 @@ public final class MainActivity extends Activity {
 
 	/** a fresh screen: header, status line, the body to fill, the buttons at the foot */
 	private LinearLayout[] frame(String where) {
+		return frame(where, true);
+	}
+
+	/** scroll false: the body fills the screen unscrolled, for a view that scrolls itself (the HTML page) */
+	private LinearLayout[] frame(String where, boolean scroll) {
 		gen++;
 		LinearLayout root = new LinearLayout(this);
 		root.setOrientation(LinearLayout.VERTICAL);
@@ -129,11 +142,15 @@ public final class MainActivity extends Activity {
 		status.setPadding(pad, pad / 2, pad, pad / 2);
 		status.setVisibility(View.GONE);
 		root.addView(status);
-		ScrollView sv = new ScrollView(this);
 		LinearLayout body = new LinearLayout(this);
 		body.setOrientation(LinearLayout.VERTICAL);
-		sv.addView(body);
-		root.addView(sv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+		if (scroll) {
+			ScrollView sv = new ScrollView(this);
+			sv.addView(body);
+			root.addView(sv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+		} else {
+			root.addView(body, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+		}
 		LinearLayout foot = new LinearLayout(this);
 		foot.setOrientation(LinearLayout.HORIZONTAL);
 		foot.setPadding(pad / 2, pad / 2, pad / 2, pad / 2);
@@ -266,23 +283,111 @@ public final class MainActivity extends Activity {
 	private void read(Account a, Imap.Folder fo, long uid) {
 		LinearLayout[] f = frame(a.name + " / " + fo.name);
 		work("Opening…", m -> m.open(a, fo.raw, uid), l -> {
+			if (l.html != null) {
+				// an HTML message is shown as its sender made it, on a screen of its own that the page scrolls
+				here = () -> letter(a, l, false);
+				here.run();
+				return;
+			}
+			letterHead(f[0], l);
 			int pad = Views.dp(this, 12);
-			TextView subj = Views.text(this, pal, l.subject.isEmpty() ? "(no subject)" : l.subject, 17, true, pal.text);
-			subj.setPadding(pad, pad, pad, pad / 2);
-			f[0].addView(subj);
-			TextView meta = Views.text(this, pal, "From  " + l.from + "\nTo    " + l.to + "\nDate  " + Views.when(l.date), 13, false,
-				Palette.mix(pal.text, pal.bg, 25));
-			meta.setPadding(pad, 0, pad, pad);
-			meta.setTextIsSelectable(true);
-			f[0].addView(meta);
-			f[0].addView(Views.rule(this, pal));
 			TextView body = Views.text(this, pal, l.text, 14, false, pal.text);
 			body.setPadding(pad, pad, pad, pad);
 			body.setTextIsSelectable(true);
 			f[0].addView(body);
-			addButton(f[1], "Reply", true, v -> go(() -> compose(a, Msg.bareAddr(l.from), Msg.reSubject(l.subject),
-				"\n\n" + Msg.quoted(l.from, l.date, l.text), l.messageId.isEmpty() ? null : l.messageId)));
+			replyButton(f[1], a, l);
 		});
+	}
+
+	private void letterHead(LinearLayout into, Mail.Letter l) {
+		int pad = Views.dp(this, 12);
+		TextView subj = Views.text(this, pal, l.subject.isEmpty() ? "(no subject)" : l.subject, 17, true, pal.text);
+		subj.setPadding(pad, pad, pad, pad / 2);
+		into.addView(subj);
+		TextView meta = Views.text(this, pal, "From  " + l.from + "\nTo    " + l.to + "\nDate  " + Views.when(l.date), 13, false,
+			Palette.mix(pal.text, pal.bg, 25));
+		meta.setPadding(pad, 0, pad, pad);
+		meta.setTextIsSelectable(true);
+		into.addView(meta);
+		into.addView(Views.rule(this, pal));
+	}
+
+	private void replyButton(LinearLayout foot, Account a, Mail.Letter l) {
+		addButton(foot, "Reply", true, v -> go(() -> compose(a, Msg.bareAddr(l.from), Msg.reSubject(l.subject),
+			"\n\n" + Msg.quoted(l.from, l.date, l.text), l.messageId.isEmpty() ? null : l.messageId)));
+	}
+
+	/** an HTML letter in a web view that runs no script, reads no file and loads nothing from the network unless
+	 *  remote pictures were allowed for this one message; a tapped link opens outside, in the browser */
+	private void letter(Account a, Mail.Letter l, boolean remote) {
+		LinearLayout[] f = frame(a.name, false);
+		letterHead(f[0], l);
+		HtmlPage.Made pg = HtmlPage.make(l.html, remote);
+		WebView w = new WebView(this);
+		WebSettings ws = w.getSettings();
+		ws.setJavaScriptEnabled(false);
+		ws.setAllowFileAccess(false);
+		ws.setAllowContentAccess(false);
+		ws.setBlockNetworkLoads(!remote);
+		ws.setLoadsImagesAutomatically(true);
+		ws.setUseWideViewPort(true);
+		ws.setLoadWithOverviewMode(true);
+		ws.setBuiltInZoomControls(true);
+		ws.setDisplayZoomControls(false);
+		ws.setSaveFormData(false);
+		ws.setGeolocationEnabled(false);
+		ws.setSupportMultipleWindows(false);
+		ws.setJavaScriptCanOpenWindowsAutomatically(false);
+		ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
+		w.setBackgroundColor(0xffffffff);
+		w.setWebViewClient(new WebViewClient() {
+			@Override
+			public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+				// the page never moves; a link the reader taps goes to the browser
+				Uri u = r.getUrl();
+				String sch = u.getScheme() == null ? "" : u.getScheme().toLowerCase(java.util.Locale.ROOT);
+				if (r.hasGesture() && (sch.equals("https") || sch.equals("http") || sch.equals("mailto"))) {
+					try {
+						startActivity(new Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE));
+					} catch (RuntimeException e) {
+						say("No app opens that link", true);
+					}
+				}
+				return true;
+			}
+
+			@Override
+			public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+				// the second lock beside the policy: nothing from the network unless allowed for this message
+				String sch = r.getUrl().getScheme() == null ? "" : r.getUrl().getScheme().toLowerCase(java.util.Locale.ROOT);
+				if (remote && (sch.equals("https") || sch.equals("http"))) return null;
+				if (sch.equals("data") || sch.equals("about")) return null;
+				return new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
+			}
+		});
+		f[0].addView(w, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+		w.loadDataWithBaseURL(null, pg.page, "text/html", "utf-8", null);
+		if (!remote && pg.remoteRefs > 0) {
+			say(HtmlPage.heldBack(pg.remoteRefs) + ". Show pictures loads them from the sender's servers, for this message only.", false);
+			addButton(f[1], "Show pictures", false, v -> {
+				here = () -> letter(a, l, true);
+				here.run();
+			});
+		}
+		addButton(f[1], "Text", false, v -> go(() -> letterText(a, l)));
+		replyButton(f[1], a, l);
+	}
+
+	/** the same letter as plain text */
+	private void letterText(Account a, Mail.Letter l) {
+		LinearLayout[] f = frame(a.name);
+		letterHead(f[0], l);
+		int pad = Views.dp(this, 12);
+		TextView body = Views.text(this, pal, l.text, 14, false, pal.text);
+		body.setPadding(pad, pad, pad, pad);
+		body.setTextIsSelectable(true);
+		f[0].addView(body);
+		replyButton(f[1], a, l);
 	}
 
 	/* ---------- writing ---------- */
