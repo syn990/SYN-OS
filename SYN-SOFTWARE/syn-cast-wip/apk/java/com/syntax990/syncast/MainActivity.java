@@ -577,7 +577,7 @@ public final class MainActivity extends Activity {
 		if (pk >= 0 && pk < view.channels.size()) {
 			Engine.ChannelView c = view.channels.get(pk);
 			peek.setText((pk == view.active ? "In here: " : "In " + tabTitle(c) + ": ")
-				+ (c.who.isEmpty() ? "nobody else" : String.join(", ", c.who)));
+				+ (c.who.isEmpty() ? "nobody else" : whoNames(c.who)));
 		} else {
 			peek.setText("");
 		}
@@ -1012,6 +1012,13 @@ public final class MainActivity extends Activity {
 	/* ---------- settings ---------- */
 
 	/* G266 (main): the server and certificate fields of the old settings dialog are not in the terminal menu yet. */
+
+	/** The names of who is inside, as the server names them (the bot's account reads Crew, a member their card's name). */
+	private String whoNames(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		for (String id : ids) { if (sb.length() > 0) sb.append(", "); sb.append(svc != null && svc.engine() != null ? svc.engine().displayName(id) : id); }
+		return sb.toString();
+	}
 
 	/** The directory's groups: 0 system (the fixed rooms), 1 crew (c-<role>), 2 people (p-<member>, direct messages), 3 other. */
 	static int roomGroup(Engine.ChannelView ch) {

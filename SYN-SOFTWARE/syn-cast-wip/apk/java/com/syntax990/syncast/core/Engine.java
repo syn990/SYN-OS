@@ -251,6 +251,7 @@ public final class Engine {
 
 	/* G228: portraits by member or character id, PNG bytes (empty: none), each asked for once per run */
 	private final Map<String, byte[]> portraits = new HashMap<>();
+	private final Map<String, String> names = new HashMap<>();   /* member or character id -> the name the server gives (portrait answer) */
 	private final Set<String> portraitAsked = new HashSet<>();
 	private final Map<Long, long[]> imagesIn = new java.util.HashMap<>(); /* blob -> {channel, msgId, when} */
 	private byte[] imgFull, imgThumb;
@@ -1176,6 +1177,7 @@ public final class Engine {
 			if (!ok) pf.log("portrait of " + p.key + " refused: " + err);
 			else pf.log("portrait of " + p.key + ": " + (png.length > 0 ? png.length + " bytes" : "none"));
 			portraits.put(p.key, png);
+			if (ok && !Json.str(o, "name").isEmpty()) names.put(p.key, Json.str(o, "name"));
 			break;
 		}
 		case JOIN:
@@ -2776,6 +2778,14 @@ public final class Engine {
 
 	/** A copy of a channel's messages, newest last. */
 	/** G228: a speaker's portrait as fetched (null: not fetched yet; empty: the server has none). */
+	/** The name people see for a member or character id: the server's, once asked for (the portrait request carries it), else the id. */
+	public synchronized String displayName(String id) {
+		String n = names.get(id);
+		if (n != null) return n;
+		for (Channel c : chan) { Session ss = sess.get(c.session); if (ss != null && ss.state == SState.ONLINE) { wantPortrait(ss, id); break; } }
+		return id;
+	}
+
 	public synchronized byte[] portrait(String id) {
 		return portraits.get(id);
 	}
