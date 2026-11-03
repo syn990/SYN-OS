@@ -22,7 +22,7 @@ typedef struct {
 extern const char LETTER_COMPANY[];
 extern const char LETTER_NOTICE[];
 
-/* the pinned company look: SYN-OS-BLUE, written here, never read from the desktop's current theme, so every letter
+/* the pinned company look: SYN-OS-M141, written here, never read from the desktop's current theme, so every letter
  * looks the same whatever the desktop wears */
 extern const char LETTER_THEME[];
 

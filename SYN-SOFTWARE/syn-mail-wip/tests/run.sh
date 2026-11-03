@@ -428,8 +428,9 @@ has "letter: the signature names the sender" "$HT" "Pat &quot;the&quot; Tester</
 has "letter: the signature carries the title" "$HT" "Chief Engineer</div>"
 has "letter: signed for Syntax Corporation" "$HT" "Syntax Corporation</div>"
 has "letter: the footer carries the notice" "$HT" "NOTICE OF GENERATED WORKS AND DISCLAIMER OF WARRANTY."
-has "letter: the pinned SYN-OS-BLUE accent" "$HT" "#0986d3"
-has "letter: the pinned SYN-OS-BLUE panel" "$HT" "background-color:#020c2b"
+has "letter: the pinned SYN-OS-M141 accent" "$HT" "#e00000"
+hasnt "letter: no SYN-OS-BLUE left" "$HT" "#0986d3"
+has "letter: the pinned SYN-OS-M141 panel" "$HT" "background-color:#1a0000"
 has "letter: laid out in tables" "$HT" '<table role="presentation"'
 hasnt "letter: no style sheet (inline styles only)" "$HT" "<style"
 hasnt "letter: no images" "$HT" "<img"
@@ -437,7 +438,7 @@ hasnt "letter: nothing fetched from outside" "$HT" "src="
 hasnt "letter: no links" "$HT" "href="
 SYN_THEME_NAME=SYN-OS-HALO-CRIMSON printf 'x\n' | SYN_THEME_NAME=SYN-OS-HALO-CRIMSON "$BIN" send pw to@example.test 'T' >/dev/null 2>&1
 H6=$(python3 -c 'import email,email.policy,sys; m=email.message_from_bytes(open(sys.argv[1],"rb").read(),policy=email.policy.default); print(m.get_body(("html",)).get_content())' "$T/sent/6.eml" 2>&1)
-has "letter: the theme stays pinned whatever the desktop wears" "$H6" "#0986d3"
+has "letter: the theme stays pinned whatever the desktop wears" "$H6" "#e00000"
 O=$("$BIN" title pw 2>&1); r=$?
 [ $r -eq 0 ] && has "title with none clears it" "$O" "signs with no title" || no "title with none clears it" "$O"
 hasnt "a cleared title leaves the config" "$(cat "$SYN_MAIL_CONFIG")" '"title"'

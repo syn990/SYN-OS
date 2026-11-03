@@ -23,7 +23,7 @@ syn-mail read NAME N              one message as text
 syn-mail send NAME TO SUBJECT [--attach FILE]... [--plain]   the text on stdin, from NAME to TO, as a
                                   signed company letter: multipart/alternative, the text twin then the
                                   rendered HTML (signature block, Syntax Corporation footer and notice, in
-                                  the pinned SYN-OS-BLUE look); each --attach adds one file (16 at most,
+                                  the pinned SYN-OS-M141 look); each --attach adds one file (16 at most,
                                   18 MiB in all), the letter first inside multipart/mixed; --plain sends
                                   the text alone, unsigned, as before
 syn-mail folders NAME             the account's folders (modified UTF-7 names decoded)
@@ -109,7 +109,7 @@ reads every message with its remote images, as `i` does.
 | `src/ui.c` | The window: Wayland, pixman, fcft, xkbcommon, the theme, and `--shot` through libpng |
 | `src/smtp.c` | EHLO, STARTTLS on 587, AUTH PLAIN or XOAUTH2, one recipient, dot-stuffing |
 | `src/msg.c` | The outgoing message (from SYN-CASTER's fn_gmail.c): RFC 2047 headers, quoted names, base64 body, address and header-injection checks |
-| `src/letter.c` | The company letter (G265): the text twin and the HTML, tables and inline styles only, no images, scripts or links, the theme pinned to SYN-OS-BLUE; its notice is SYN-CASTER's fn_mail_disclaimer word for word |
+| `src/letter.c` | The company letter (G265): the text twin and the HTML, tables and inline styles only, no images, scripts or links, the theme pinned to SYN-OS-M141; its notice is SYN-CASTER's fn_mail_disclaimer word for word |
 | `src/mime.c` | The incoming message: unfolded and decoded headers (B and Q words, any charset by iconv), multipart walked for text/plain, HTML reduced to text, base64 and quoted-printable; the HTML part and its Content-ID parts for the HTML view |
 | `src/html.c` | The HTML view: the guarded private page, cid: references resolved, the headless Chrome drawing, Chrome for `o`, the PNG read back |
 | `src/oauth.c` | The Google loopback sign-in and the refresh grant (libcurl, HTTPS only) |

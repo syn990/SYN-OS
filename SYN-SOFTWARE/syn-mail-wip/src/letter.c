@@ -5,7 +5,7 @@
  *   License    : MIT License
  * ------------------------------------------------------------------------ */
 /* G265: the company letter. Every mail syn-mail sends goes as a text twin and a rendered HTML letter in the pinned
- * SYN-OS-BLUE look, with a full signature block and the Syntax Corporation footer. HTML mail is read by clients that
+ * SYN-OS-M141 look, with a full signature block and the Syntax Corporation footer. HTML mail is read by clients that
  * strip <style>, block images and rewrite links, so this keeps to what all of them show alike: nested tables, inline
  * styles, web-safe font fallbacks, colours as plain hex, no images (remote or inline), no scripts, no links. */
 #include "letter.h"
@@ -28,17 +28,19 @@ const char LETTER_NOTICE[] =
 	"loss or damage arising from their use. Verify independently before acting. Copyright 2026 Syntax "
 	"Corporation. All rights reserved.";
 
-const char LETTER_THEME[] = "SYN-OS-BLUE";
+const char LETTER_THEME[] = "SYN-OS-M141";
 
-/* SYN-OS-BLUE (~/.config/syn-os/themes/SYN-OS-BLUE.theme), pinned */
+/* SYN-OS-M141 (~/.config/syn-os/themes/SYN-OS-M141.theme), pinned (the boss, 3 Nov 03:08: "SYN-OS-M141 pls not blue"),
+ * the same colours as SYN-CASTER's crew letter (src/fn_gmail.c): change both together. C_MUTED is not in the theme: a
+ * neutral grey between its text and its border, for the address and the notice */
 #define C_BG "#000000"
-#define C_BG_ALT "#00071d"
-#define C_PANEL "#020c2b"
-#define C_ACCENT "#0986d3"
-#define C_ACCENT_DIM "#1a2f5c"
+#define C_BG_ALT "#0a0a0a"
+#define C_PANEL "#1a0000"
+#define C_ACCENT "#e00000"
+#define C_ACCENT_DIM "#4d0000"
 #define C_TEXT "#ffffff"
-#define C_MUTED "#a9b4c8" /* the text colour dimmed over the panel, for the notice */
-#define C_BORDER "#5c5b5a"
+#define C_MUTED "#b3b3b3"
+#define C_BORDER "#555555"
 /* the desktop's text font (Roboto) with the fallbacks every client has; the mark in a monospace every client has
  * (Terminus is a bitmap font: Chrome draws nothing at sizes it lacks, so it is left out) */
 #define F_TEXT "Roboto,'Segoe UI',Helvetica,Arial,sans-serif"
