@@ -46,12 +46,14 @@ def build_core():
 class Jim:
     """The APK engine in a JVM, one command per line."""
 
-    def __init__(self, root, srv, channels, name="jim", token=None, invite=None):
+    def __init__(self, root, srv, channels, name="jim", token=None, invite=None, extra=None, jvm=()):
         self.dir = os.path.join(root, name)
         os.makedirs(self.dir)
         self.cfg = os.path.join(self.dir, "config.json")
         cfg = {"server": srv.url(), "cert_pem": open(srv.cert).read(), "device": "phone", "channels": channels,
                "tones": False}
+        cfg.update(extra or {})
+        self.jvm = list(jvm)
         if invite:
             cfg["invite"] = invite
         else:
@@ -66,7 +68,7 @@ class Jim:
         self.log = open(self.log_path, "a")
         self.proc = subprocess.Popen(
             ["java", "--enable-native-access=ALL-UNNAMED", f"-Dsyncast.jni={os.path.join(HOST, 'libsyncast-host.so')}",
-             "-Xmx256m", "-Dsyncast.deadAfterMs=22000", "-cp", os.path.join(HOST, "classes"),
+             "-Xmx256m", "-Dsyncast.deadAfterMs=22000", *self.jvm, "-cp", os.path.join(HOST, "classes"),
              "com.syntax990.syncast.test.HeadlessClient", self.cfg, os.path.join(self.dir, "data"), self.playout],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, text=True, bufsize=1)
 
@@ -212,6 +214,53 @@ def decode(spt, out):
     return e2e.wav_info(out)
 
 
+def way_in_from_outside(root, srv):
+    """G273: the home address does not answer (off the home Wi-Fi), so the APK signs in by the way in from outside the
+    server gave it; and it keeps that way in, learned from hello's ok, in its config."""
+    print("the way in from outside (G273)")
+    dead = f"wss://127.0.0.1:{e2e.free_port()}{e2e.PATH}"
+    carol = Jim(root, srv, ["test"], name="carol", extra={"server": dead, "remote": srv.url()},
+                jvm=["-Dsyncast.remotePinned=true"])
+    try:
+        check("with the home address dead, the APK signs in by the way in from outside",
+              wait_for(carol.online, 15), carol.status())
+        check("and says it is on from outside", carol.status().get("far") is True, carol.status())
+        check("the try at home was made first and failed", carol.log_count("connect: ") >= 1, carol.log_count("connect: "))
+        check("the sign-in is logged as from outside", carol.log_count(", from outside") >= 1,
+              carol.log_count(", from outside"))
+    finally:
+        carol.stop()
+    usage = subprocess.run([*srv.argv], capture_output=True, text=True)
+    if "--remote-log" not in usage.stdout + usage.stderr:
+        print("  (this server has no --remote-log: the learning check is skipped)")
+        return
+    tlog = os.path.join(root, "cast-tunnel.log")
+    with open(tlog, "w") as f:
+        f.write("INF |  https://abc-def-ghi.trycloudflare.com  |\n")
+    port = e2e.free_port()
+    log = open(os.path.join(root, "server-remote.log"), "w")
+    proc = subprocess.Popen([*srv.argv, "serve", "--data", srv.data, "--port", str(port), "--cert", srv.cert,
+                             "--key", srv.key, "--remote-log", tlog], stdout=log, stderr=log)
+    bob = None
+    try:
+        wait_for(lambda: subprocess.run(["sh", "-c", f"exec 3<>/dev/tcp/127.0.0.1/{port}"]).returncode == 0, 5)
+        bob = Jim(root, srv, ["test"], name="bob", extra={"server": f"wss://127.0.0.1:{port}{e2e.PATH}"})
+        check("signed in at home, the APK is told the way in from outside and keeps it",
+              wait_for(lambda: bob.config().get("remote") == "wss://abc-def-ghi.trycloudflare.com/cast/v1", 10),
+              bob.config().get("remote"))
+        with open(tlog, "a") as f:
+            f.write("INF |  https://new-name-here.trycloudflare.com  |\n")
+        check("a new address from the server replaces it",
+              wait_for(lambda: bob.config().get("remote") == "wss://new-name-here.trycloudflare.com/cast/v1", 12),
+              bob.config().get("remote"))
+        check("and the APK never logs it", bob.log_count("trycloudflare") == 0)
+    finally:
+        if bob:
+            bob.stop()
+        proc.terminate()
+        proc.wait()
+
+
 def main():
     if not e2e.find_server():
         print("no SYN-CAST protocol v1 server found ($SYN_CASTER, syn-caster on PATH, or $CASTD_REF): skipped")
@@ -339,17 +388,7 @@ def main():
         check("APK 1.5x replay takes two thirds of the time", 0.6 < fast / one < 0.73, (one, fast))
         jim.cmd("speed")
 
-        jim.cmd("busy")
-        p2 = jim.played_seconds()
-        n0 = len(jim.voices(out=False))
-        alice.ctl("say", wav)
-        wait_for(lambda: len([v for v in jim.voices(out=False) if not v.get("partial")]) > n0, 8)
-        time.sleep(0.5)
-        last = [v for v in jim.history() if v["kind"] == "voice"][-1]
-        check("Busy on the APK keeps the message unplayed", not last["played"] and jim.played_seconds() - p2 < 0.1, last)
-        check("and the channel hears jim is busy", wait_for(lambda: alice.log_count("jim is busy") >= 1, 3))
-        jim.cmd("busy")
-        check("Available again plays what Busy kept", wait_for(lambda: jim.played_seconds() - p2 >= 1.9, 8))
+        # Busy was taken out of the app in 0.6.0 (Vox replaced it), so its three checks are gone with it.
 
         other = e2e.Raw(srv, srv.token("jim"), device="phone", channels=["test"])
         check("a second hello as jim/phone replaces the APK's session", wait_for(lambda: not jim.online(), 6))
@@ -390,6 +429,8 @@ def main():
         time.sleep(4)
         check("and is tried exactly once", eve.log_count("sign-in refused") == 1, eve.log_count("sign-in refused"))
         eve.stop()
+
+        way_in_from_outside(root, srv)
     finally:
         rc = [jim.stop(), alice.stop()]
         srv.stop()

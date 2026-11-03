@@ -151,6 +151,14 @@ public final class HeadlessClient implements Engine.Platform {
 
 	/* ---------- the "microphone": a 600 Hz tone while talking ---------- */
 
+	/** Vox raw mode (0.6.0): frames go to the engine as PCM instead of Opus */
+	private volatile boolean raw;
+
+	@Override
+	public void captureRaw(boolean on) {
+		raw = on;
+	}
+
 	private void capture() {
 		short[] frame = new short[Opus.FRAME];
 		double phase = 0;
@@ -170,8 +178,11 @@ public final class HeadlessClient implements Engine.Platform {
 						frame[k] = (short) (3277 * Math.sin(phase));
 						phase += 2 * Math.PI * 600 / Opus.RATE;
 					}
-					byte[] p = enc.encode(frame);
-					if (p != null) engine.capturePacket(p, 66);
+					if (raw) engine.captureRawFrame(frame, frame.length, 66);
+					else {
+						byte[] p = enc.encode(frame);
+						if (p != null) engine.capturePacket(p, 66);
+					}
 					boolean stop;
 					synchronized (mic) {
 						stop = !want;
@@ -295,7 +306,7 @@ public final class HeadlessClient implements Engine.Platform {
 				for (int k : v.order) bar.add(v.channels.get(k).name);
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
-					"busy", v.busy, "speed", v.speed, "channels", chans, "bar", bar,
+					"busy", v.busy, "far", v.far, "speed", v.speed, "channels", chans, "bar", bar,
 					"played_samples", (double) pf.playPlayed()));
 				break;
 			}
@@ -330,7 +341,6 @@ public final class HeadlessClient implements Engine.Platform {
 			case "replay": e.replayLast(); break;
 			case "stop": e.stopPlayback(); break;
 			case "speed": e.cycleSpeed(); break;
-			case "busy": e.toggleBusy(); break;
 			case "offline": e.setOffline(true); break;
 			case "online": e.setOffline(false); break;
 			case "quit":
