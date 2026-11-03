@@ -166,7 +166,7 @@ reader falls back to the text without one; the drawing tests are skipped). The t
 
 ```
 make          # build/syn-mail
-make test     # 137 checks of the desktop client against the stand-in,
+make test     # 165 checks of the desktop client against the stand-in,
               # then 59 of the phone app's core (apk/test.sh, needs a JDK)
 make apk      # the phone app (needs the Android SDK: platform 36, build-tools 36.1.0)
 ```
