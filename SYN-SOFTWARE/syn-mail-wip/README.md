@@ -124,7 +124,7 @@ reads every message with its remote images, as `i` does.
 
 A plain APK, no Gradle, built like syn-cast's: `apk/build.sh` runs aapt2,
 javac (`--release 17 -Werror`), d8, zipalign and apksigner, and puts
-`SYN-MAIL-APK-0.1.0.apk` in `~/Apps/SYN-Mail/`. The key is
+`SYN-MAIL-APK-0.2.0.apk` in `~/Apps/SYN-Mail/`. The key is
 `~/.config/syn-mail/apk-signing.jks` (made on the first build). Android 8
 (API 26) and up.
 
@@ -139,6 +139,12 @@ javac (`--release 17 -Werror`), d8, zipalign and apksigner, and puts
   25 messages ("Older" for the next), the reader with Reply, Write, and
   Add account (Gmail by app password, IONOS by mailbox password). Colours
   follow the SYN-OS theme through the launcher, as in syn-cast.
+- HTML mail is shown as made, the phone's twin of the desktop's `html.c`:
+  a WebView with script, files and network off; pictures sent with the
+  message (cid:) put inline as data; every sender http-equiv renamed and
+  our own Content-Security-Policy first; remote pictures held back and
+  counted, shown only on Show pictures for that one message. Text shows
+  the plain body instead.
 - Secrets are sealed with AES-256-GCM under a key held in the Android
   Keystore (`syn-mail-secrets`); only the sealed text is stored. No
   backup (allowBackup false, no_backup.xml). No secret is in the APK.
@@ -167,7 +173,7 @@ reader falls back to the text without one; the drawing tests are skipped). The t
 ```
 make          # build/syn-mail
 make test     # 177 checks of the desktop client against the stand-in,
-              # then 59 of the phone app's core (apk/test.sh, needs a JDK)
+              # then 82 of the phone app's core (apk/test.sh, needs a JDK)
 make apk      # the phone app (needs the Android SDK: platform 36, build-tools 36.1.0)
 ```
 

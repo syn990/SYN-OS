@@ -14,9 +14,11 @@
 package com.syntax990.synmail;
 
 import com.syntax990.synmail.core.Account;
+import com.syntax990.synmail.core.HtmlPage;
 import com.syntax990.synmail.core.Imap;
 import com.syntax990.synmail.core.Mail;
 import com.syntax990.synmail.core.MailException;
+import com.syntax990.synmail.core.Mime;
 import com.syntax990.synmail.core.Msg;
 import com.syntax990.synmail.core.OAuth;
 import com.syntax990.synmail.core.Secrets;
@@ -260,6 +262,42 @@ public final class CoreTest {
 		refused("a recipient with a line break is refused, nothing sent", "not one plain mail address", () -> mail.send(pw, "a@b.cc>\r\nRCPT TO:<x@y.zz", "S", "x", null));
 		refused("two recipients are refused", "not one plain mail address", () -> mail.send(pw, "a@b.cc, c@d.ee", "S", "x", null));
 		check("nothing was sent for the refused recipients", sentCount() == n2, null);
+
+		// 8b. the reader's page (G265, the phone beside C251): the HTML as made, cid pictures inline, remote held back
+		Mail.Letter pr = mail.open(pw, "Promo", 701);
+		check("page: the HTML part is found in multipart/related", pr.html != null && pr.html.html.contains("The November letter"), String.valueOf(pr.html));
+		check("page: the HTML part is decoded from ISO-8859-1", pr.html != null && pr.html.html.contains("Café news"), pr.html == null ? null : pr.html.html);
+		check("page: the inline part is kept by its Content-ID", pr.html != null && pr.html.parts.size() == 1 && pr.html.parts.get(0).cid.equals("logo@syn.test")
+			&& pr.html.parts.get(0).type.equals("image/png") && pr.html.parts.get(0).data.length > 8 && (pr.html.parts.get(0).data[1] & 0xff) == 'P', null);
+		check("page: the plain twin is still the letter's text", pr.text.contains("PLAIN TWIN"), pr.text);
+		HtmlPage.Made held = HtmlPage.make(pr.html, false);
+		String hp = held.page;
+		check("page: a byte order mark comes first", hp.charAt(0) == '\uFEFF', null);
+		check("page: the doctype stays first, the guard right after it", hp.startsWith("\uFEFF<!DOCTYPE html><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\""), hp.substring(0, Math.min(120, hp.length())));
+		has("page: cid:logo%40syn.test becomes the picture's own bytes", hp, "src=\"data:image/png;base64," + Base64.getEncoder().encodeToString(pr.html.parts.get(0).data) + "\"");
+		hasnt("page: no cid: reference is left", hp, "cid:");
+		has("page held: the policy allows no remote picture", hp, "img-src data:; style-src 'unsafe-inline'; font-src data:;");
+		hasnt("page held: no http: in the policy", hp.substring(0, hp.indexOf("x-dns-prefetch")), "http:");
+		has("page: the policy allows no script, form post or base change", hp, "default-src 'none';");
+		has("page: form-action and base-uri are shut", hp, "base-uri 'none'; form-action 'none'");
+		check("page: the sender's refresh and Content-Type metas are renamed", hp.split("http-equiv=", -1).length - 1 == 2 && hp.contains("x-http-equiv-off=\"refresh\""), hp);
+		check("page: the pixel and the url() background are counted", held.remoteRefs == 2, String.valueOf(held.remoteRefs));
+		has("page: the remote addresses stay as written (blocked, not rewritten)", hp, "http://");
+		check("page: the hold is said in words", HtmlPage.heldBack(2).equals("2 remote pictures held back") && HtmlPage.heldBack(1).equals("1 remote picture held back"), HtmlPage.heldBack(1));
+		HtmlPage.Made shown = HtmlPage.make(pr.html, true);
+		has("page allowed: the policy lets remote pictures in", shown.page, "img-src data: http: https:;");
+		has("page allowed: still no script", shown.page, "default-src 'none';");
+		Mail.Letter tr = mail.open(pw, "Promo", 703);
+		HtmlPage.Made trick = HtmlPage.make(tr.html, false);
+		check("page: entity-encoded, upper-case, tab and newline http-equivs are all renamed", trick.page.split("(?i)http-equiv", -1).length - 1 == 2 + 4
+			&& trick.page.split("x-http-equiv-off", -1).length - 1 == 4 && !trick.page.contains("HTTP-EQUIV"), trick.page);
+		check("page: a link's href, a srcset candidate and a poster are counted, an <a href> is not", trick.remoteRefs == 3, String.valueOf(trick.remoteRefs));
+		check("page: a plain text message has no page", mail.open(pw, "Promo", 702).html == null, null);
+		Mime.Html odd = Mime.html(("Content-Type: multipart/related; boundary=b\n\n--b\nContent-Type: text/html\n\n<img src=\"cid:A1\"><img src='cid:missing'>\n"
+			+ "--b\nContent-Type: image/gif; x=1\nContent-ID: <a1>\nContent-Transfer-Encoding: base64\n\nR0lGODlh\n--b--\n").getBytes(StandardCharsets.ISO_8859_1));
+		String op = HtmlPage.make(odd, false).page;
+		check("page: a Content-ID matches regardless of case, parameters dropped from its type", op.contains("src=\"data:image/gif;base64,R0lGODlh\""), op);
+		has("page: an unknown cid is left as it was", op, "src='cid:missing'");
 
 		// 9. TLS: an unknown certificate, and a certificate for another name, are refused
 		Account other = Account.preset("ionos", "pw", "pw@example.test", false);

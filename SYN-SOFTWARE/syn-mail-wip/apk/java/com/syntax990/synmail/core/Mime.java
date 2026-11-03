@@ -2,7 +2,8 @@
  *   Reading a message, as the desktop's mime.c does: header fields
  *   unfolded, RFC 2047 encoded words, quoted-printable and base64, charsets,
  *   and the best text of a multipart message (text/plain first, else HTML
- *   reduced to text; attachments skipped). A message is handled as bytes
+ *   reduced to text; attachments skipped); and, for the reader's page, the
+ *   HTML part as it was made with the parts it names by Content-ID. A message is handled as bytes
  *   (ISO-8859-1 in a String, one char a byte) until its charset is known.
  *
  *   SYN-OS     : The Syntax Operating System
@@ -15,8 +16,10 @@ package com.syntax990.synmail.core;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -238,53 +241,132 @@ public final class Mime {
 		return out.toString();
 	}
 
-	private static String leaf(String m, String ct) {
+	/** a leaf's body as text in its charset, the transfer encoding undone */
+	private static String decoded(String m, String ct) {
+		return new String(raw(m), charset(param(ct, "charset")));
+	}
+
+	/** a leaf's body as bytes, the transfer encoding undone */
+	private static byte[] raw(String m) {
 		Headers h = headers(m);
 		String cte = h.get("content-transfer-encoding").trim().toLowerCase(Locale.ROOT);
 		String body = m.substring(bodyAt(m));
-		byte[] raw = cte.startsWith("base64") ? b64(body) : cte.startsWith("quoted-printable") ? qp(body, false) : bytes(body);
-		String u = new String(raw, charset(param(ct, "charset")));
-		if (ct.toLowerCase(Locale.ROOT).startsWith("text/html")) return stripHtml(u);
+		return cte.startsWith("base64") ? b64(body) : cte.startsWith("quoted-printable") ? qp(body, false) : bytes(body);
+	}
+
+	private static String leaf(String m, String ct, boolean asHtml) {
+		String u = decoded(m, ct);
+		if (ct.toLowerCase(Locale.ROOT).startsWith("text/html")) return asHtml ? u : stripHtml(u);
 		return u.replace("\r", "");
 	}
 
-	private static String walk(String m, String want, int depth) {
+	/** the parts of a multipart block, in order, each with its own header */
+	private static List<String> children(String m, String ct) {
+		List<String> out = new ArrayList<>();
+		String bd = param(ct, "boundary");
+		if (bd.isEmpty()) return out;
+		String delim = "--" + bd;
+		int p = bodyAt(m), part = -1;
+		while (p < m.length()) {
+			int nl = m.indexOf('\n', p);
+			int le = nl < 0 ? m.length() : nl;
+			if (m.startsWith(delim, p) && le - p >= delim.length()) {
+				if (part >= 0) {
+					int pe = p;
+					if (pe > part && m.charAt(pe - 1) == '\n') pe--;
+					if (pe > part && m.charAt(pe - 1) == '\r') pe--;
+					out.add(m.substring(part, pe));
+				}
+				if (m.startsWith(delim + "--", p)) break;
+				part = nl < 0 ? m.length() : nl + 1;
+			}
+			p = nl < 0 ? m.length() : nl + 1;
+		}
+		return out;
+	}
+
+	private static String contentType(Headers h) {
+		return h.has("content-type") ? h.get("content-type") : "text/plain";
+	}
+
+	private static String walk(String m, String want, int depth, boolean asHtml) {
 		if (depth > DEPTH) return null;
 		Headers h = headers(m);
-		String ct = h.has("content-type") ? h.get("content-type") : "text/plain";
+		String ct = contentType(h);
 		String lct = ct.toLowerCase(Locale.ROOT);
 		if (lct.startsWith("multipart/")) {
-			String bd = param(ct, "boundary");
-			if (bd.isEmpty()) return null;
-			String delim = "--" + bd;
-			int p = bodyAt(m), part = -1;
-			while (p < m.length()) {
-				int nl = m.indexOf('\n', p);
-				int le = nl < 0 ? m.length() : nl;
-				if (m.startsWith(delim, p) && le - p >= delim.length()) {
-					if (part >= 0) {
-						int pe = p;
-						if (pe > part && m.charAt(pe - 1) == '\n') pe--;
-						if (pe > part && m.charAt(pe - 1) == '\r') pe--;
-						String r = walk(m.substring(part, pe), want, depth + 1);
-						if (r != null) return r;
-					}
-					if (m.startsWith(delim + "--", p)) break;
-					part = nl < 0 ? m.length() : nl + 1;
-				}
-				p = nl < 0 ? m.length() : nl + 1;
+			for (String c : children(m, ct)) {
+				String r = walk(c, want, depth + 1, asHtml);
+				if (r != null) return r;
 			}
 			return null;
 		}
-		if (lct.startsWith(want) && !h.get("content-disposition").toLowerCase(Locale.ROOT).startsWith("attachment")) return leaf(m, ct);
+		if (lct.startsWith(want) && !h.get("content-disposition").toLowerCase(Locale.ROOT).startsWith("attachment")) return leaf(m, ct, asHtml);
 		return null;
+	}
+
+	/** a part an HTML page names as cid:ID, its bytes decoded */
+	public static final class Part {
+		public final String cid, type;
+		public final byte[] data;
+
+		Part(String cid, String type, byte[] data) {
+			this.cid = cid;
+			this.type = type;
+			this.data = data;
+		}
+	}
+
+	/** the HTML of a message as it was made (G265), in a Java string, and every part that carries a Content-ID */
+	public static final class Html {
+		public final String html;
+		public final List<Part> parts;
+
+		Html(String html, List<Part> parts) {
+			this.html = html;
+			this.parts = parts;
+		}
+	}
+
+	public static final int MAX_PARTS = 64;
+	/** no one inline part above this is kept: the page is held in memory */
+	public static final int MAX_PART_BYTES = 8 << 20;
+
+	private static void cidParts(String m, int depth, List<Part> out) {
+		if (depth > DEPTH || out.size() >= MAX_PARTS) return;
+		Headers h = headers(m);
+		String ct = contentType(h);
+		if (ct.toLowerCase(Locale.ROOT).startsWith("multipart/")) {
+			for (String c : children(m, ct)) cidParts(c, depth + 1, out);
+			return;
+		}
+		String id = h.get("content-id").trim();
+		if (id.startsWith("<")) id = id.substring(1);
+		if (id.endsWith(">")) id = id.substring(0, id.length() - 1);
+		id = id.trim();
+		if (id.isEmpty() || id.length() > 255) return;
+		int semi = ct.indexOf(';');
+		String type = (semi < 0 ? ct : ct.substring(0, semi)).trim().toLowerCase(Locale.ROOT);
+		byte[] b = raw(m);
+		if (b.length > MAX_PART_BYTES) return;
+		out.add(new Part(id, type, b));
+	}
+
+	/** the first text/html part that is not an attachment, with the message's inline parts; null when there is none */
+	public static Html html(byte[] msg) {
+		String m = latin(msg);
+		String h = walk(m, "text/html", 0, true);
+		if (h == null) return null;
+		List<Part> parts = new ArrayList<>();
+		cidParts(m, 0, parts);
+		return new Html(h, parts);
 	}
 
 	/** the readable text of a whole message */
 	public static String text(byte[] msg) {
 		String m = latin(msg);
-		String r = walk(m, "text/plain", 0);
-		if (r == null) r = walk(m, "text/html", 0);
+		String r = walk(m, "text/plain", 0, false);
+		if (r == null) r = walk(m, "text/html", 0, false);
 		return r == null ? "(no readable text in this message)\n" : r;
 	}
 }
