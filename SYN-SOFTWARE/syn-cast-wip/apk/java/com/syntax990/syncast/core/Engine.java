@@ -666,7 +666,7 @@ public final class Engine {
 		boolean invite = !cfg.invite.isEmpty();
 		int seq = ++ss.seq;
 		addPending(ss, seq, PKind.HELLO, -1, 0, invite);
-		send(ss, Proto.hello(seq, cfg.token, cfg.invite, cfg.device, names));
+		send(ss, Proto.hello(seq, cfg.token, cfg.invite, cfg.user, cfg.password, cfg.device, names));
 		ss.state = SState.LOGON;
 	}
 
@@ -1064,7 +1064,7 @@ public final class Engine {
 				if (!tok.isEmpty()) {
 					/* the invite is spent: from now on the token signs in */
 					cfg.token = tok;
-					cfg.invite = "";
+					cfg.invite = ""; cfg.password = "";   /* the token stands in for the password from here */
 					save = true;
 					pf.log("invite accepted: member token " + Json.str(o, "token_id") + " kept");
 				}
@@ -1117,7 +1117,7 @@ public final class Engine {
 					authError = err;
 					ss.refused = true;
 					if (p.invite && !cfg.invite.isEmpty()) {
-						cfg.invite = "";
+						cfg.invite = ""; cfg.password = "";
 						if (cfgFile != null) {
 							try {
 								cfg.save(cfgFile);

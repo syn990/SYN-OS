@@ -288,13 +288,20 @@ public final class MainActivity extends Activity {
 		root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
 
 		col.addView(label("Sign in to SYN-CAST", pal.accent, 18));
-		col.addView(label("The crew's own radio. Paste the one-time invite code you were given; the member token it "
-			+ "earns stays on this phone. Everything you send goes to the whole selected room, or only to the member on a direct-message tab (@name).", pal.text, 13));
+		col.addView(label("The Syntax Corporation's radio. Sign in with your username and password, or a one-time invite code; "
+			+ "the member token it earns stays on this phone.", pal.text, 13));
 		col.addView(label("SERVER", pal.accent, 12));
 		EditText server = field("wss://HOST:PORT/cast/v1", false);
 		server.setText(c.server);
 		col.addView(server);
-		col.addView(label(c.token.isEmpty() ? "INVITE CODE" : "INVITE CODE (empty keeps the token you have)", pal.accent, 12));
+		col.addView(label("USERNAME", pal.accent, 12));
+		EditText userF = field("your member name", false);
+		userF.setText(c.user);
+		col.addView(userF);
+		col.addView(label("PASSWORD", pal.accent, 12));
+		EditText passF = field("your password", true);
+		col.addView(passF);
+		col.addView(label(c.token.isEmpty() ? "OR AN INVITE CODE" : "OR AN INVITE CODE (empty keeps the token you have)", pal.accent, 12));
 		EditText invite = field("one-time code from syn-caster cast invite", false);
 		invite.setText(c.invite);
 		col.addView(invite);
@@ -324,10 +331,12 @@ public final class MainActivity extends Activity {
 				n.invite = code;
 				n.token = "";
 			}
+			String u = userF.getText().toString().trim(), pw = passF.getText().toString();
+			if (!u.isEmpty() && !pw.isEmpty()) { n.user = u; n.password = pw; n.invite = ""; n.token = ""; }
 			n.channels.clear(); /* G192: never typed: every room the member belongs to, as tabs */
 			n.certPem = setupCert.getText().toString().trim();
-			if (n.server.isEmpty() || (n.invite.isEmpty() && n.token.isEmpty())) {
-				err.setText("The server and an invite code are needed.");
+			if (n.server.isEmpty() || (n.invite.isEmpty() && n.token.isEmpty() && (n.user.isEmpty() || n.password.isEmpty()))) {
+				err.setText("The server, and a username and password or an invite code, are needed.");
 				return;
 			}
 			try {

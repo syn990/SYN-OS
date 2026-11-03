@@ -24,6 +24,7 @@ public final class Config {
 	public String member = "";          /* the member id the server answered hello with */
 	public String token = "";           /* the member token, kept after an invite */
 	public String invite = "";          /* a one-time invite code; spent on the first hello */
+	public String user = "", password = "";   /* a username and password: the server answers with the token to keep; the password is dropped then */
 	public String device = "phone";
 	public String certPem = "";         /* the server's own certificate, pinned; "" trusts the system store */
 	/* G273: the way in from outside, wss://NAME/cast/v1, as the server last gave it (hello's remote, or a server
@@ -68,6 +69,8 @@ public final class Config {
 		if (o.containsKey("member")) member = Json.str(o, "member");
 		if (o.containsKey("token")) token = Json.str(o, "token");
 		if (o.containsKey("invite")) invite = Json.str(o, "invite");
+		if (o.containsKey("user")) user = Json.str(o, "user");
+		if (o.containsKey("password")) password = Json.str(o, "password");
 		if (o.containsKey("device") && !Json.str(o, "device").isEmpty()) device = Json.str(o, "device");
 		if (o.containsKey("cert_pem")) certPem = Json.str(o, "cert_pem");
 		if (o.containsKey("remote")) remote = Json.str(o, "remote");
@@ -95,7 +98,7 @@ public final class Config {
 	}
 
 	public void save(File f) throws IOException {
-		Map<String, Object> o = Json.obj("server", server, "member", member, "token", token, "invite", invite,
+		Map<String, Object> o = Json.obj("server", server, "member", member, "token", token, "invite", invite, "user", user, "password", password,
 			"device", device, "cert_pem", certPem, "remote", remote, "channels", new ArrayList<Object>(channels),
 			"ptt_mode", pttToggle ? "toggle" : "hold", "auto_play", autoPlay, "noise_suppression", noiseSuppression,
 			"vox", vox, "vox_threshold", voxThreshold, "max_talk_seconds", (double) maxTalkSeconds,

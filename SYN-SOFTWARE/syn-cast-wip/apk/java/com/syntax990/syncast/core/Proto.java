@@ -68,9 +68,15 @@ public final class Proto {
 
 	/** An invite code the first time (the answer carries the token to keep), the token after. channels null: every one the member belongs to. */
 	public static String hello(int seq, String token, String invite, String device, List<String> channels) {
+		return hello(seq, token, invite, null, null, device, channels);
+	}
+
+	/** A username and password sign the member in when there is no token yet (the answer carries the token to keep). */
+	public static String hello(int seq, String token, String invite, String user, String password, String device, List<String> channels) {
 		Map<String, Object> m = request("hello", seq);
 		m.put("v", (double) VERSION);
-		if (invite != null && !invite.isEmpty()) m.put("invite", invite);
+		if ((token == null || token.isEmpty()) && user != null && !user.isEmpty() && password != null && !password.isEmpty()) { m.put("user", user); m.put("password", password); }
+		else if (invite != null && !invite.isEmpty()) m.put("invite", invite);
 		else m.put("token", token == null ? "" : token);
 		m.put("device", device == null || device.isEmpty() ? "phone" : device);
 		m.put("client", CLIENT);
