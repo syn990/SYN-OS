@@ -7,6 +7,7 @@
 /* Lifted from SYN-CASTER's fn_gmail.c (G204): the same checks and the same plain RFC 5322 text, so the crew's mail and
  * SYN-Mail's read alike. */
 #include "msg.h"
+#include "letter.h"
 
 #include <ctype.h>
 #include <openssl/rand.h>
@@ -148,6 +149,28 @@ int msg_build(const char *from_name, const char *from_addr, const char *to, cons
 
 int msg_build_attach(const char *from_name, const char *from_addr, const char *to, const char *subject,
 	const char *body, const char *msgid, const char *reply_to, time_t when, const MsgAttach *att, int natt, Buf *out) {
+	return msg_build_letter(from_name, from_addr, to, subject, body, msgid, reply_to, when, att, natt, NULL, out);
+}
+
+/* a fresh boundary: '=' and '_' never both appear in base64 lines or the plain headers written here */
+static void boundary(char *b, size_t n, const char *tag) {
+	unsigned char r[12];
+	RAND_bytes(r, sizeof r);
+	snprintf(b, n, "=_SYN-Mail_%s_", tag);
+	for (size_t i = 0; i < sizeof r; i++) {
+		snprintf(b + strlen(b), 3, "%02x", r[i]);
+	}
+}
+
+/* one text part, UTF-8 in base64 */
+static void text_part(Buf *out, const char *bound, const char *type, const char *text, size_t n) {
+	buf_printf(out, "--%s\r\nContent-Type: %s; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n", bound, type);
+	b64_lines(out, text, n);
+}
+
+int msg_build_letter(const char *from_name, const char *from_addr, const char *to, const char *subject,
+	const char *body, const char *msgid, const char *reply_to, time_t when, const MsgAttach *att, int natt,
+	const MsgSign *sign, Buf *out) {
 	if (!msg_addr_ok(from_addr) || !msg_addr_ok(to) || !msgid || !*msgid || natt < 0 || (natt > 0 && !att)) {
 		return -1;
 	}
@@ -179,23 +202,32 @@ int msg_build_attach(const char *from_name, const char *from_addr, const char *t
 		buf_puts(out, reply_to);
 	}
 	const char *text = body ? body : "";
-	if (natt == 0) {
+	if (natt == 0 && !sign) {
 		buf_puts(out, "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n"
 			"Content-Transfer-Encoding: base64\r\nX-Mailer: SYN-Mail\r\n\r\n");
 		b64_lines(out, text, strlen(text));
 		return 0;
 	}
-	/* the boundary: '=' and '_' never both appear in base64 lines or the plain headers written here */
-	unsigned char r[12];
-	RAND_bytes(r, sizeof r);
-	char bound[64] = "=_SYN-Mail_";
-	for (size_t i = 0; i < sizeof r; i++) {
-		snprintf(bound + strlen(bound), 3, "%02x", r[i]);
+	char mix[64] = "", alt[64] = "";
+	if (natt) boundary(mix, sizeof mix, "mix");
+	if (sign) boundary(alt, sizeof alt, "alt");
+	buf_printf(out, "\r\nMIME-Version: 1.0\r\nContent-Type: multipart/%s; boundary=\"%s\"\r\n"
+		"X-Mailer: SYN-Mail\r\n\r\nThis is a multi-part message in MIME format.\r\n",
+		natt ? "mixed" : "alternative", natt ? mix : alt);
+	if (sign) {
+		/* the letter: its text twin first, the rendered HTML last (the one a client shows when it can) */
+		if (natt) buf_printf(out, "--%s\r\nContent-Type: multipart/alternative; boundary=\"%s\"\r\n\r\n", mix, alt);
+		Buf t = {0}, h = {0};
+		letter_text(text, sign, &t);
+		letter_html(subj, text, sign, &h);
+		text_part(out, alt, "text/plain", t.p ? t.p : "", t.n);
+		text_part(out, alt, "text/html", h.p ? h.p : "", h.n);
+		buf_free(&t);
+		buf_free(&h);
+		buf_printf(out, "--%s--\r\n", alt);
+	} else {
+		text_part(out, mix, "text/plain", text, strlen(text));
 	}
-	buf_printf(out, "\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"%s\"\r\n"
-		"X-Mailer: SYN-Mail\r\n\r\nThis is a multi-part message in MIME format.\r\n", bound);
-	buf_printf(out, "--%s\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n", bound);
-	b64_lines(out, text, strlen(text));
 	for (int i = 0; i < natt; i++) {
 		const char *name = att[i].name && *att[i].name ? att[i].name : "attachment";
 		const char *type = att[i].type && *att[i].type ? att[i].type : msg_type_for(name);
@@ -205,7 +237,7 @@ int msg_build_attach(const char *from_name, const char *from_addr, const char *t
 				break;
 			}
 		}
-		buf_printf(out, "--%s\r\nContent-Type: %s", bound, type);
+		buf_printf(out, "--%s\r\nContent-Type: %s", mix, type);
 		if (name_plain(name)) {
 			buf_printf(out, "; name=\"%s\"\r\nContent-Disposition: attachment; filename=\"%s\"\r\n", name, name);
 		} else {
@@ -219,6 +251,6 @@ int msg_build_attach(const char *from_name, const char *from_addr, const char *t
 		buf_puts(out, "Content-Transfer-Encoding: base64\r\n\r\n");
 		b64_lines(out, att[i].data, att[i].n);
 	}
-	buf_printf(out, "--%s--\r\n", bound);
+	if (natt) buf_printf(out, "--%s--\r\n", mix);
 	return 0;
 }

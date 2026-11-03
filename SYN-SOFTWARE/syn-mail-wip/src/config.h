@@ -14,6 +14,7 @@ typedef struct {
 	char name[64];      /* short name: ionos, google */
 	char address[128];  /* the mailbox, also the login */
 	char display[128];  /* the From name, may be empty */
+	char title[128];    /* the signature's title line (G265), may be empty */
 	char imap_host[128];
 	int imap_port;      /* 993: TLS from the start */
 	char smtp_host[128];

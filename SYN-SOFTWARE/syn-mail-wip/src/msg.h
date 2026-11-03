@@ -6,6 +6,7 @@
  * ------------------------------------------------------------------------ */
 #ifndef SYN_MAIL_MSG_H
 #define SYN_MAIL_MSG_H
+#include "letter.h"
 #include "util.h"
 #include <time.h>
 
@@ -30,4 +31,10 @@ const char *msg_type_for(const char *name);
  * its name plain and quoted when it is safe ASCII, else RFC 2231 (filename*=UTF-8''...) so no header can be forged */
 int msg_build_attach(const char *from_name, const char *from_addr, const char *to, const char *subject,
 	const char *body, const char *msgid, const char *reply_to, time_t when, const MsgAttach *att, int natt, Buf *out);
+/* as msg_build_attach; with sign the text goes as a company letter (G265): multipart/alternative, the text twin with
+ * its signature and notice, then the rendered HTML letter; inside multipart/mixed, first, when there are files.
+ * sign NULL is msg_build_attach exactly */
+int msg_build_letter(const char *from_name, const char *from_addr, const char *to, const char *subject,
+	const char *body, const char *msgid, const char *reply_to, time_t when, const MsgAttach *att, int natt,
+	const MsgSign *sign, Buf *out);
 #endif

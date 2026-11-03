@@ -236,7 +236,7 @@ has "sent: From carries the quoted display name" "$E" 'From: "Pat \"the\" Tester
 has "sent: non-ASCII subject is RFC 2047 encoded" "$E" "Subject: =?UTF-8?B?"
 hasnt "sent: a newline in the subject cannot add a header" "$(printf '%s' "$E" | grep -i '^Bcc:')" "Bcc"
 has "sent: Message-ID at the sender's domain" "$E" "@example.test>"
-B=$(python3 -c 'import email,sys; m=email.message_from_bytes(open(sys.argv[1],"rb").read()); print(m.get_payload(decode=True).decode()); print(m["Subject"] and str(email.header.make_header(email.header.decode_header(m["Subject"]))))' "$T/sent/1.eml" 2>&1)
+B=$(python3 -c 'import email,email.policy,sys; m=email.message_from_bytes(open(sys.argv[1],"rb").read(),policy=email.policy.default); print(m.get_body(("plain",)).get_content()); print(m["Subject"])' "$T/sent/1.eml" 2>&1)
 has "sent: the body arrives intact" "$B" "Hello,
 .leading dot line
 Café."
@@ -258,7 +258,8 @@ m = email.message_from_bytes(open(sys.argv[1], "rb").read(), policy=email.policy
 print("type", m.get_content_type())
 parts = list(m.iter_parts())
 print("parts", len(parts))
-print("text", parts[0].get_content_type(), parts[0].get_content().strip())
+print("text", parts[0].get_content_type(), m.get_body(("plain",)).get_content().split("\n")[0])
+print("alt", ",".join(p.get_content_type() for p in parts[0].iter_parts()))
 for p, f in zip(parts[1:], sys.argv[2:]):
     same = p.get_payload(decode=True) == open(f, "rb").read()
     print("file", p.get_content_type(), p.get_content_disposition(), p.get_filename(), "same" if same else "DIFFERENT")
@@ -267,7 +268,8 @@ PY
 )
 has "attached: the message is multipart/mixed" "$A" "type multipart/mixed"
 has "attached: text and three files" "$A" "parts 4"
-has "attached: the text part comes first, intact" "$A" "text text/plain See attached."
+has "attached: the letter comes first, its text intact" "$A" "text multipart/alternative See attached."
+has "attached: the letter inside is the text twin then the HTML" "$A" "alt text/plain,text/html"
 has "attached: the PDF arrives byte for byte, typed and named" "$A" "file application/pdf attachment report.pdf same"
 has "attached: a non-ASCII name with a quote decodes, the bytes intact" "$A" "file text/csv attachment Relevé \"x\".csv same"
 hasnt "attached: a newline in a file name adds no header" "$(printf '%s' "$A" | grep '^headers')" "Bcc"
@@ -280,8 +282,57 @@ O=$(printf 'x' | "$BIN" send pw to@example.test 'S' --attach "$T" 2>&1); r=$?
 [ $r -ne 0 ] && [ ! -e "$T/sent/4.eml" ] && has "send refuses a folder as an attachment" "$O" "not a plain file" || no "send refuses a folder as an attachment" "$O"
 O=$(printf 'x' | "$BIN" send pw to@example.test 'S' --attach 2>&1); r=$?
 [ $r -eq 2 ] && [ ! -e "$T/sent/4.eml" ] && ok "send --attach with no file is a usage error" || no "send --attach with no file is a usage error" "$O"
-E1=$(cat "$T/sent/1.eml" 2>/dev/null)
-hasnt "a send without --attach stays single-part text" "$E1" "multipart"
+# 9. the company letter (G265): text twin and rendered HTML, signature, footer and notice, the pinned theme
+printf 'Plain only.\n' | "$BIN" send pw to@example.test 'Plain' --plain >"$T/o" 2>&1; r=$?
+E4=$(cat "$T/sent/4.eml" 2>/dev/null)
+[ $r -eq 0 ] && hasnt "send --plain stays single-part text" "$E4" "multipart" || no "send --plain stays single-part text" "$(cat "$T/o")"
+P4=$(python3 -c 'import email,sys; print(email.message_from_bytes(open(sys.argv[1],"rb").read()).get_payload(decode=True).decode())' "$T/sent/4.eml" 2>&1)
+hasnt "send --plain carries no signature" "$P4" "Syntax Corporation"
+O=$("$BIN" title pw 'Chief Engineer' 2>&1); r=$?
+[ $r -eq 0 ] && has "title sets the signature's title" "$O" 'Pat "the" Tester, Chief Engineer' || no "title sets the signature's title" "$O"
+has "the title is kept in the config" "$(cat "$SYN_MAIL_CONFIG")" '"title": "Chief Engineer"'
+O=$("$BIN" title pw "$(printf 'a\nb')" 2>&1); r=$?
+[ $r -eq 2 ] && ok "a title with a newline is refused" || no "a title with a newline is refused" "$O"
+printf 'Dear <Captain> & crew,\n\nSecond "para".\nLine two </p><script>x()</script>\n' |
+	"$BIN" send pw to@example.test 'A <b> test' >"$T/o" 2>&1; r=$?
+[ $r -eq 0 ] && ok "send a company letter" || no "send a company letter" "$(cat "$T/o")"
+python3 - "$T/sent/5.eml" "$T/plain5" "$T/html5" "$T/type5" <<'PY'
+import email, email.policy, sys
+m = email.message_from_bytes(open(sys.argv[1], "rb").read(), policy=email.policy.default)
+open(sys.argv[4], "w").write(m.get_content_type() + " " + ",".join(p.get_content_type() for p in m.iter_parts()))
+open(sys.argv[2], "w").write(m.get_body(("plain",)).get_content())
+open(sys.argv[3], "w").write(m.get_body(("html",)).get_content())
+PY
+TY=$(cat "$T/type5" 2>/dev/null); PL=$(cat "$T/plain5" 2>/dev/null); HT=$(cat "$T/html5" 2>/dev/null)
+has "letter: multipart/alternative, the text twin first, the HTML last" "$TY" "multipart/alternative text/plain,text/html"
+has "letter: the text twin carries the body" "$PL" "Dear <Captain> & crew,"
+has "letter: the text twin signs below the standard delimiter" "$PL" '-- 
+Pat "the" Tester
+Chief Engineer
+Syntax Corporation
+pw@example.test'
+has "letter: the text twin ends with the notice" "$PL" "NOTICE OF GENERATED WORKS AND DISCLAIMER OF WARRANTY."
+has "letter: the HTML escapes the body" "$HT" "Dear &lt;Captain&gt; &amp; crew,"
+hasnt "letter: no tag in the body reaches the HTML" "$HT" "<script"
+has "letter: a blank line starts a new paragraph, a newline is a break" "$HT" "Second &quot;para&quot;.<br>"
+has "letter: the subject is escaped in the title" "$HT" "<title>A &lt;b&gt; test</title>"
+has "letter: the signature names the sender" "$HT" "Pat &quot;the&quot; Tester</div>"
+has "letter: the signature carries the title" "$HT" "Chief Engineer</div>"
+has "letter: signed for Syntax Corporation" "$HT" "Syntax Corporation</div>"
+has "letter: the footer carries the notice" "$HT" "NOTICE OF GENERATED WORKS AND DISCLAIMER OF WARRANTY."
+has "letter: the pinned SYN-OS-BLUE accent" "$HT" "#0986d3"
+has "letter: the pinned SYN-OS-BLUE panel" "$HT" "background-color:#020c2b"
+has "letter: laid out in tables" "$HT" '<table role="presentation"'
+hasnt "letter: no style sheet (inline styles only)" "$HT" "<style"
+hasnt "letter: no images" "$HT" "<img"
+hasnt "letter: nothing fetched from outside" "$HT" "src="
+hasnt "letter: no links" "$HT" "href="
+SYN_THEME_NAME=SYN-OS-HALO-CRIMSON printf 'x\n' | SYN_THEME_NAME=SYN-OS-HALO-CRIMSON "$BIN" send pw to@example.test 'T' >/dev/null 2>&1
+H6=$(python3 -c 'import email,email.policy,sys; m=email.message_from_bytes(open(sys.argv[1],"rb").read(),policy=email.policy.default); print(m.get_body(("html",)).get_content())' "$T/sent/6.eml" 2>&1)
+has "letter: the theme stays pinned whatever the desktop wears" "$H6" "#0986d3"
+O=$("$BIN" title pw 2>&1); r=$?
+[ $r -eq 0 ] && has "title with none clears it" "$O" "signs with no title" || no "title with none clears it" "$O"
+hasnt "a cleared title leaves the config" "$(cat "$SYN_MAIL_CONFIG")" '"title"'
 
 python3 - "$SYN_MAIL_SECRETS_FILE" <<'PY'
 import json, sys; p = sys.argv[1]; s = json.load(open(p)); s["pw/password"] = "wrong"; json.dump(s, open(p, "w"))

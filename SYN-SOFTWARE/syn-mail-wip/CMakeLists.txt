@@ -50,6 +50,7 @@ add_executable(syn-mail
   src/imap.c
   src/mime.c
   src/msg.c
+  src/letter.c
   src/net.c
   src/oauth.c
   src/secret.c

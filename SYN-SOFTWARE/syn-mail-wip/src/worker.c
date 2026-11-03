@@ -103,7 +103,11 @@ static void run(Worker *w, Job *j) {
 		char mid[160];
 		msg_id(w->a->address, mid, sizeof mid);
 		Buf m = {0};
-		if (msg_build(w->a->display, w->a->address, j->to, j->subject, j->body, mid, j->reply_to, time(NULL), &m) != 0) {
+		/* the window's mail goes as the same signed company letter as `syn-mail send` (G265) */
+		MsgSign sign = {.name = *w->a->display ? w->a->display : w->a->address, .title = w->a->title,
+			.company = LETTER_COMPANY, .address = w->a->address};
+		if (msg_build_letter(w->a->display, w->a->address, j->to, j->subject, j->body, mid, j->reply_to, time(NULL),
+			NULL, 0, &sign, &m) != 0) {
 			str_copy(r->err, sizeof r->err, "the message could not be built");
 		} else {
 			r->ok = smtp_send(w->a, j->to, m.p, r->err, sizeof r->err) == 0;
