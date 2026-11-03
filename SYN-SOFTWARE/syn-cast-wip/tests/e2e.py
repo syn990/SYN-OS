@@ -252,6 +252,15 @@ def spt_packets(path):
 
 # ---------- a raw protocol v1 client ----------
 
+def has_rooms_switch(srv):
+    """G278: whether this server keeps each room's on/off (its hello answer carries "off"); asked once, kept"""
+    if not hasattr(srv, "rooms_switch"):
+        probe = Raw(srv, srv.token("dave"), device="probe", channels=[])
+        srv.rooms_switch = bool(probe.hello and probe.hello.get("type") == "ok" and "off" in probe.hello)
+        probe.close()
+    return srv.rooms_switch
+
+
 class Raw:
     def __init__(self, srv, token, device="phone", channels=None, invite=None):
         from websockets.sync.client import connect
@@ -464,19 +473,55 @@ def main():
         check("1.5x replay takes two thirds of the time", 0.6 < fast / one < 0.73, (one, fast))
         bob.ctl("speed")
 
-        # Busy: kept, not played, and told to the channel as presence
-        bob.ctl("busy")
-        p2 = bob.played_seconds()
-        n0 = len(bob.voices("test", out=False))
-        alice.ctl("say", wav)
-        wait_for(lambda: len([v for v in bob.voices("test", out=False) if not v.get("partial")]) > n0, 8)
-        time.sleep(0.5)
-        kept = [v for v in bob.history("test") if v["kind"] == "voice"][-1]
-        check("Busy keeps the message unplayed", not kept.get("played") and bob.played_seconds() - p2 < 0.1, kept)
-        check("and the channel hears bob is busy", wait_for(lambda: alice.log_count("bob is busy") >= 1, 3))
-        bob.ctl("busy")
-        check("Available again plays what Busy kept", wait_for(lambda: bob.played_seconds() - p2 >= 1.9, 8))
-        check("and tells the channel", wait_for(lambda: alice.log_count("bob is online") >= 1, 3))
+        # G278: a room switched off keeps every note unplayed, saved on the server so a restart keeps it; Replay or
+        # switching it on plays what was missed, oldest first, each once. (Busy and Mute are gone.)
+        if has_rooms_switch(srv):
+            chan = lambda: next(c for c in bob.status()["channels"] if c["name"] == "test")
+            settle = lambda: wait_for(lambda: bob.status()["queue"] == 0 and bob.status()["talk"] == "idle", 8)
+            bob.ctl("channel", "test")
+            bob.ctl("room")
+            check("room off: the status says off", wait_for(lambda: chan()["off"], 3), chan())
+            rooms = os.path.join(srv.data, "members", "bob", "rooms.json")
+            check("and the server keeps it for bob",
+                  wait_for(lambda: os.path.exists(rooms) and '"test"' in open(rooms).read(), 3))
+            p2 = bob.played_seconds()
+            for _ in range(2):
+                n0 = len([v for v in bob.voices("test", out=False) if not v.get("partial")])
+                alice.ctl("say", wav)
+                wait_for(lambda: len([v for v in bob.voices("test", out=False) if not v.get("partial")]) > n0, 8)
+                wait_for(lambda: alice.status()["talk"] == "idle", 5)
+            time.sleep(0.5)
+            kept = [v for v in bob.history("test") if v["kind"] == "voice" and not v.get("out")][-2:]
+            check("an off room keeps both messages unplayed", len(kept) == 2 and not any(v.get("played") for v in kept)
+                  and bob.played_seconds() - p2 < 0.1, kept)
+            bob.stop()
+            bob.start()
+            check("after a restart the room is still off (the server's switch)",
+                  wait_for(lambda: bob.status() and bob.online() and chan()["off"], 10), bob.status())
+            p3 = bob.played_seconds()
+            bob.ctl("replay")
+            bob.ctl("replay")
+            time.sleep(0.3)
+            settle()
+            check("Replay tapped twice plays the two missed once each, oldest first",
+                  3.7 < bob.played_seconds() - p3 < 4.4, bob.played_seconds() - p3)
+            check("and marks them heard", all(v.get("played") for v in
+                  [v for v in bob.history("test") if v["kind"] == "voice" and not v.get("out")][-2:]))
+            n0 = len([v for v in bob.voices("test", out=False) if not v.get("partial")])
+            alice.ctl("say", wav)
+            wait_for(lambda: len([v for v in bob.voices("test", out=False) if not v.get("partial")]) > n0, 8)
+            time.sleep(0.5)
+            p4 = bob.played_seconds()
+            bob.ctl("room")
+            check("room on: the status says on", wait_for(lambda: not chan()["off"], 3), chan())
+            check("switching on plays the one missed", wait_for(lambda: bob.played_seconds() - p4 >= 1.9, 8))
+            settle()
+            p5 = bob.played_seconds()
+            alice.ctl("say", wav)
+            check("and live voice plays aloud again", wait_for(lambda: bob.played_seconds() - p5 >= 1.9, 8))
+            settle()
+        else:
+            print("rooms on/off: needs the SYN-CASTER server with the room request (G278): skipped")
 
         # another session of the same member and device replaces this one (4003); it takes the place back once
         other = Raw(srv, srv.token("bob"), device="window", channels=["test"])

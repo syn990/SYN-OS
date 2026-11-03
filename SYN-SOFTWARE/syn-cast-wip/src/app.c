@@ -468,18 +468,13 @@ static void rx_start(int s, const zevent *ev) {
 		LOG("cannot write %s", path);
 	}
 
-	if (app.cfg.auto_play && !app.busy && !c->muted) {
+	if (app.cfg.auto_play && !c->muted) { /* G278: a room switched off plays nothing aloud; every note is kept */
 		play_item it = {.kind = PI_LIVE, .rx = slot, .channel = ch, .msg_id = r->msg_id, .began = now_ms()};
 		str_copy(it.from, sizeof it.from, ev->from);
 		r->queued = true;
 		player_push(&it);
 	} else {
 		c->unread++;
-		if (app.busy && app.busy_qn < BUSY_Q_MAX) {
-			app.busy_q[app.busy_qn].channel = ch;
-			app.busy_q[app.busy_qn].msg_id = r->msg_id;
-			app.busy_qn++;
-		}
 	}
 	LOG("%s: voice from %s%s%s", c->name, ev->from, ev->to[0] ? " for " : "", ev->to);
 	app.dirty = true;
@@ -648,18 +643,64 @@ void app_stop_playback(void) {
 	}
 }
 
-void app_replay(int channel, uint64_t msg_id) {
+/* A stored voice message as a replay item; false when it cannot be played. */
+static bool replay_item(int channel, uint64_t msg_id, play_item *it) {
 	hmsg *m = msg(channel, msg_id);
 	if (!m || m->kind != HM_VOICE || m->partial) {
-		return;
+		return false;
 	}
-	play_item it = {.kind = PI_REPLAY, .channel = channel, .msg_id = msg_id};
-	str_copy(it.from, sizeof it.from, m->from);
-	it.duration_ms = m->duration_ms;
+	*it = (play_item){.kind = PI_REPLAY, .channel = channel, .msg_id = msg_id};
+	str_copy(it->from, sizeof it->from, m->from);
+	it->duration_ms = m->duration_ms;
 	char path[1200];
 	history_voice_path(&app.chan[channel].hist, msg_id, path, sizeof path);
-	if (hv_load(path, &it.file) != 0) {
+	if (hv_load(path, &it->file) != 0) {
 		app_toast("cannot read that voice message");
+		return false;
+	}
+	return true;
+}
+
+/* Whether this message is on air or waiting in the play queue already. */
+static bool queued(int channel, uint64_t msg_id) {
+	for (int i = 0; i < app.qn; i++) {
+		if (app.queue[i].channel == channel && app.queue[i].msg_id == msg_id) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* G278: this room's voice messages not yet heard, oldest first, put at the end of the play queue one after another
+ * (each is marked heard as it finishes); one already queued or on air is not queued twice. Returns how many. */
+int app_play_missed(int channel) {
+	if (channel < 0 || channel >= app.n_chan) {
+		return 0;
+	}
+	history *h = &app.chan[channel].hist;
+	int n = 0;
+	for (size_t k = 0; k < h->n && app.qn < MAX_QUEUE; k++) {
+		hmsg *m = &h->v[k];
+		if (m->kind != HM_VOICE || m->out || m->partial || m->played || queued(channel, m->id)) {
+			continue;
+		}
+		play_item it;
+		if (!replay_item(channel, m->id, &it)) {
+			continue;
+		}
+		app.queue[app.qn++] = it;
+		n++;
+	}
+	if (n) {
+		app.chan[channel].unread = 0;
+		app.dirty = true;
+	}
+	return n;
+}
+
+void app_replay(int channel, uint64_t msg_id) {
+	play_item it;
+	if (!replay_item(channel, msg_id, &it)) {
 		return;
 	}
 	if (app.playing && app.queue[0].kind == PI_REPLAY) {
@@ -678,7 +719,21 @@ void app_replay(int channel, uint64_t msg_id) {
 }
 
 void app_replay_last(void) {
+	if (app.n_chan == 0) {
+		return;
+	}
+	/* G278: what this room has not heard comes first, in order; only with nothing missed is the last one replayed */
+	int n = app_play_missed(app.active);
+	if (n) {
+		app_toast("replaying %d unheard", n);
+		return;
+	}
 	history *h = &app.chan[app.active].hist;
+	for (int i = 0; i < app.qn; i++) {
+		if (app.queue[i].kind == PI_REPLAY && app.queue[i].channel == app.active) {
+			return; /* this room's replay is playing already: a second tap does not double it */
+		}
+	}
 	for (size_t k = h->n; k-- > 0;) {
 		if (h->v[k].kind == HM_VOICE && !h->v[k].out && !h->v[k].partial) {
 			app_replay(app.active, h->v[k].id);
@@ -1141,9 +1196,13 @@ static void image_in_data(const zp_bin *b) {
 			history_commit(h, m);
 			char line[200];
 			snprintf(line, sizeof line, "%s sent an image", m->from);
-			notify(app.chan[in->channel].name, line);
+			if (!app.chan[in->channel].muted) {
+				notify(app.chan[in->channel].name, line);
+			}
 		}
-		tone("ALERT");
+		if (!app.chan[in->channel].muted) {
+			tone("ALERT");
+		}
 		memset(in, 0, sizeof *in);
 		app.dirty = true;
 		return;
@@ -1170,8 +1229,14 @@ static void hello_channels(int s, const zevent *ev) {
 		c->users_online = zc->online;
 		memcpy(c->who, zc->who, sizeof c->who);
 		c->error[0] = 0;
+		bool off = false; /* G278: the server keeps each room's switch, so a restart or another device keeps it */
+		for (int i = 0; i < ev->n_off; i++) {
+			off = off || strcmp(ev->off[i], zc->id) == 0;
+		}
+		c->muted = off;
 		if (!was) {
-			add_event(ch, "connected, %d online", zc->online);
+			add_event(ch, off ? "connected, %d online; switched off, voice messages kept" : "connected, %d online",
+				zc->online);
 		}
 	}
 	for (int k = 0; k < ev->n_refused; k++) {
@@ -1270,6 +1335,12 @@ static void on_reply(int s, const zevent *ev) {
 			LOG("presence refused: %s", ev->error);
 		}
 		break;
+	case P_ROOM:
+		if (!ev->ok && p.channel >= 0 && p.channel < app.n_chan) {
+			app.chan[p.channel].muted = p.ref == 0; /* not saved: back as it was */
+			app_toast("%s: the switch was not saved: %s", app.chan[p.channel].name, ev->error);
+		}
+		break;
 	default:
 		break;
 	}
@@ -1312,11 +1383,11 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 			}
 			if (!app.chan[ch].muted) {
 				tone("ALERT");
+				char title[200];
+				snprintf(title, sizeof title, "%s%s%s", ev.from, ev.to[0] ? " (private) in " : " in ",
+					app.chan[ch].name);
+				notify(title, ev.text);
 			}
-			char title[200];
-			snprintf(title, sizeof title, "%s%s%s", ev.from, ev.to[0] ? " (private) in " : " in ",
-				app.chan[ch].name);
-			notify(title, ev.text);
 		}
 		break;
 	case ZEV_PIC:
@@ -1487,37 +1558,45 @@ void app_cycle_speed(void) {
 	app_toast("replay speed %.2gx", app.speed);
 }
 
-void app_toggle_busy(void) {
-	app.busy = !app.busy;
-	app_toast(app.busy ? "Busy: incoming voice is kept, not played" : "Available");
-	if (app.n_sess && app.sess[0].state == SS_ONLINE) {
-		int seq = next_seq(0);
-		if (session_send(0, zp_presence(seq, app.busy ? "busy" : "online", NULL))) {
-			add_pending(0, seq, P_PRESENCE, -1, 0);
-		}
-	}
-	if (!app.busy) {
-		/* play the messages queued while busy, in order */
-		for (int i = app.busy_qn - 1; i >= 0; i--) {
-			hmsg *m = msg(app.busy_q[i].channel, app.busy_q[i].msg_id);
-			if (m && !m->partial) {
-				channel *c = &app.chan[app.busy_q[i].channel];
-				if (c->unread > 0) c->unread--;
-			}
-			app_replay(app.busy_q[i].channel, app.busy_q[i].msg_id);
-		}
-		app.busy_qn = 0;
-	}
-	app.dirty = true;
-}
-
-void app_toggle_mute(void) {
+/* G278: the selected room on or off, saved on the server for this member (every device of theirs, and the crew's
+ * `channel on|off`, see the same switch). Off: nothing plays aloud, no alert, no notification, every note is kept.
+ * On: what was missed plays, oldest first. */
+void app_toggle_room(void) {
 	if (app.n_chan == 0) {
 		return;
 	}
-	channel *c = &app.chan[app.active];
-	c->muted = !c->muted;
-	app_toast("%s %s", c->name, c->muted ? "muted" : "unmuted");
+	int k = app.active;
+	channel *c = &app.chan[k];
+	session *ss = &app.sess[c->session];
+	if (ss->state != SS_ONLINE || !c->online) {
+		app_toast("%s: not connected; the switch is kept on the server, try again online", c->name);
+		return;
+	}
+	bool on = c->muted;
+	int seq = next_seq(c->session);
+	if (!session_send(c->session, zp_room(seq, c->name, on))) {
+		app_toast("%s: the switch was not sent", c->name);
+		return;
+	}
+	add_pending(c->session, seq, P_ROOM, k, on ? 1 : 0);
+	c->muted = !on;
+	if (on) {
+		int n = app_play_missed(k);
+		add_event(k, n ? "switched on: playing %d missed" : "switched on", n);
+		app_toast("%s on", c->name);
+	} else {
+		/* what is still waiting to play from this room stays unheard, for REPLAY */
+		for (int i = app.qn - 1; i >= (app.playing ? 1 : 0); i--) {
+			if (app.queue[i].channel == k && app.queue[i].kind == PI_REPLAY) {
+				hv_free(&app.queue[i].file);
+				memmove(app.queue + i, app.queue + i + 1, sizeof app.queue[0] * (size_t)(app.qn - i - 1));
+				app.qn--;
+			}
+		}
+		add_event(k, "switched off: voice messages are kept for REPLAY");
+		app_toast("%s off: voice messages are kept for REPLAY", c->name);
+	}
+	app.dirty = true;
 }
 
 void app_toggle_vox(void) {
@@ -1559,7 +1638,7 @@ const char *app_session_label(int ch) {
 
 const char *const APP_HELP =
 	"/img FILE.jpg   "
-	"/loc LAT LON [ADDRESS]   /say FILE.wav   /replay   /busy   /mute   /vox   /speed";
+	"/loc LAT LON [ADDRESS]   /say FILE.wav   /replay   /room   /vox   /speed";
 
 void app_input(const char *line) {
 	char err[200] = "";
@@ -1600,10 +1679,8 @@ void app_input(const char *line) {
 		}
 	} else if (strcmp(cmd, "replay") == 0) {
 		app_replay_last();
-	} else if (strcmp(cmd, "busy") == 0) {
-		app_toggle_busy();
-	} else if (strcmp(cmd, "mute") == 0) {
-		app_toggle_mute();
+	} else if (strcmp(cmd, "room") == 0) {
+		app_toggle_room();
 	} else if (strcmp(cmd, "vox") == 0) {
 		app_toggle_vox();
 	} else if (strcmp(cmd, "speed") == 0) {
@@ -1784,7 +1861,6 @@ char *app_status_json(void) {
 	json_object_set_new(o, "server", json_string(app.cfg.server));
 	static const char *TB[] = {"idle", "connecting", "sending", "receiving", "disabled"};
 	json_object_set_new(o, "talk", json_string(TB[app_talk_state()]));
-	json_object_set_new(o, "busy", json_boolean(app.busy));
 	json_object_set_new(o, "offline", json_boolean(app.offline));
 	json_object_set_new(o, "vox", json_boolean(capture_vox()));
 	json_object_set_new(o, "speed", json_real(app.speed));
@@ -1801,7 +1877,7 @@ char *app_status_json(void) {
 		json_object_set_new(j, "state", json_string(app_session_label(k)));
 		json_object_set_new(j, "users_online", json_integer(c->users_online));
 		json_object_set_new(j, "unread", json_integer(c->unread));
-		json_object_set_new(j, "muted", json_boolean(c->muted));
+		json_object_set_new(j, "off", json_boolean(c->muted)); /* G278: switched off, notes kept */
 		json_object_set_new(j, "messages", json_integer((json_int_t)c->hist.n));
 		json_object_set_new(j, "history", json_string(c->hist.dir));
 		const char *e = app.sess[c->session].error;

@@ -82,7 +82,7 @@ public final class Engine {
 
 	private enum SState { OFF, CONNECTING, LOGON, ONLINE, RETRY }
 
-	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY, JOIN, LEAVE, VOX, VOXLIST }
+	private enum PKind { HELLO, TALK, OVER, SAY, PIC, LOC, PRESENCE, ROOMS, HISTORY, JOIN, LEAVE, VOX, VOXLIST, ROOM }
 
 	private static final class Pending {
 		int seq;
@@ -116,7 +116,10 @@ public final class Engine {
 	public static final class Channel {
 		public final String name;
 		int session;
-		public boolean online, muted;
+		public boolean online;
+		/** G278: the room is off for this member (saved on the server): nothing plays aloud, no tone, no
+		    notification, but every voice message is kept unheard for REPLAY */
+		public boolean muted;
 		/** switched off here (F4 / the ROOMS page): left for this session, not auto-joined again until switched on */
 		public boolean left;
 		/* G192: the room's own name from the server ("G192 rooms bar"), and gone: closed or taken away, so no tab
@@ -193,8 +196,6 @@ public final class Engine {
 	private final List<Item> queue = new ArrayList<>();
 	private boolean playing;
 	private double speed = 1.0;
-	private boolean busy;
-	private final java.util.List<long[]> busyQ = new java.util.ArrayList<>();
 	private boolean offline;
 	private boolean vox;
 	private String toast = "";
@@ -478,10 +479,12 @@ public final class Engine {
 		CountDownLatchWait.run(loop, () -> {
 			synchronized (Engine.this) {
 				if (tx != Tx.IDLE) txAbort(null);
+				keepUnheard = true;
 				while (!queue.isEmpty()) {
 					playing = true;
 					finishItem(false);
 				}
+				keepUnheard = false;
 				for (Session ss : sess) {
 					if (ss.ws != null) ss.ws.close();
 					ss.ws = null;
@@ -795,7 +798,7 @@ public final class Engine {
 				chan.get(ch).hist.add(m);
 				if (ch != active && !m.out) chan.get(ch).unread++;
 				if (!chan.get(ch).muted && !m.out) tone("ALERT");
-				if (!m.out) pf.notify(from + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
+				if (!m.out && !chan.get(ch).muted) pf.notify(from + (to.isEmpty() ? " in " + Rooms.title(chan.get(ch).name, chan.get(ch).title) : " (direct)"), m.text);
 			}
 			break;
 		case "pic":
@@ -823,7 +826,7 @@ public final class Engine {
 				m.forwho = to;
 				m.sid = Json.str(o, "message");
 				chan.get(ch).hist.add(m);
-				tone("ALERT");
+				if (!chan.get(ch).muted) tone("ALERT");
 			}
 			break;
 		case "join":
@@ -899,6 +902,7 @@ public final class Engine {
 			Channel c = chan.get(ch);
 			if (!Json.str(r, "name").isEmpty()) c.title = Json.str(r, "name");
 			c.gone = false;
+			if (r.containsKey("off")) roomOff(ch, Json.bool(r, "off"));
 			if (c.left) {
 				c.online = false;
 				continue;
@@ -1058,6 +1062,7 @@ public final class Engine {
 					}
 				}
 				helloChannels(ss, o);
+				helloOff(ss, o.get("off"));
 				/* G193: the direct-message tabs ride on the session; a DM waiting gets its tab; each joined
 				   conversation asks the server for what was missed */
 				if (o.get("held") instanceof List) {
@@ -1196,6 +1201,20 @@ public final class Engine {
 			send(ss, Proto.over(++ss.seq, voxStream));
 			break;
 		}
+		case ROOM:
+			if (p.channel >= 0 && p.channel < chan.size()) {
+				Channel c = chan.get(p.channel);
+				boolean off = p.ref == 0;
+				if (!ok) {
+					/* the switch was flipped at once; the server said no, so it goes back */
+					if (c.muted == off) {
+						c.muted = !off;
+						if (off) dropRoomQueue(p.channel);
+					}
+					toast(Rooms.title(c.name, c.title) + ": the switch was not saved: " + err);
+				}
+			}
+			break;
 		case LEAVE:
 			if (!ok && p.channel >= 0 && p.channel < chan.size()) {
 				chan.get(p.channel).left = false;
@@ -1252,9 +1271,9 @@ public final class Engine {
 			if (m != null) {
 				m.partial = false;
 				h.commit(m);
-				pf.notify(chan.get((int) in[0]).name, m.from + " sent a picture");
+				if (!chan.get((int) in[0]).muted) pf.notify(chan.get((int) in[0]).name, m.from + " sent a picture");
 			}
-			tone("ALERT");
+			if (!chan.get((int) in[0]).muted) tone("ALERT");
 			imagesIn.remove(id);
 			changed();
 		}
@@ -1295,7 +1314,7 @@ public final class Engine {
 			pf.log("voice file: " + e.getMessage());
 		}
 		rx.add(r);
-		if (cfg.autoPlay && !busy && !c.muted) {
+		if (cfg.autoPlay && !c.muted) {
 			Item it = new Item();
 			it.rx = r;
 			it.channel = ch;
@@ -1304,11 +1323,8 @@ public final class Engine {
 			it.began = System.currentTimeMillis();
 			r.queued = true;
 			queue.add(it);
-		} else {
-			c.unread++;
-			if (busy) busyQ.add(new long[] { ch, m.id });
 		}
-		if (!pf.focused()) pf.notify(c.name, from + (forwho.isEmpty() ? " is talking" : " is talking to you"));
+		if (!pf.focused() && !c.muted) pf.notify(c.name, from + (forwho.isEmpty() ? " is talking" : " is talking to you"));
 		changed();
 	}
 
@@ -1339,11 +1355,15 @@ public final class Engine {
 
 	/* ---------- the player ---------- */
 
+	/** G278: set while the queue is dropped without being heard (a room switched off, the engine stopping): the
+	    messages stay unheard, so REPLAY still has them. */
+	private boolean keepUnheard;
+
 	private void finishItem(boolean natural) {
 		if (!playing || queue.isEmpty()) return;
 		Item it = queue.remove(0);
 		History.Msg m = chan.get(it.channel).hist.find(it.msgId);
-		if (m != null && !m.played) {
+		if (m != null && !m.played && !keepUnheard) {
 			m.played = true;
 			chan.get(it.channel).hist.commit(m);
 		}
@@ -1787,10 +1807,22 @@ public final class Engine {
 	}
 
 	private void replayNow(int channel, long msgId) {
-		if (channel < 0 || channel >= chan.size()) return;
+		replayNow(channel, msgId, false);
+	}
+
+	/** Whether that voice message is on air or waiting in the play queue already (G278: never twice). */
+	private boolean queued(int channel, long msgId) {
+		for (Item q : queue) if (q.channel == channel && q.msgId == msgId) return true;
+		return false;
+	}
+
+	/** append: after everything queued (a run of unheard, oldest first); else next, replacing a replay on air. */
+	private boolean replayNow(int channel, long msgId, boolean append) {
+		if (channel < 0 || channel >= chan.size()) return false;
+		if (append && queued(channel, msgId)) return false;
 		History h = chan.get(channel).hist;
 		History.Msg m = h.find(msgId);
-		if (m == null || m.kind != History.Kind.VOICE || m.partial) return;
+		if (m == null || m.kind != History.Kind.VOICE || m.partial) return false;
 		Item it = new Item();
 		it.replay = true;
 		it.channel = channel;
@@ -1800,16 +1832,66 @@ public final class Engine {
 			it.file = History.loadVoice(h.voice(msgId));
 		} catch (IOException e) {
 			toast("cannot read that voice message");
-			return;
+			return false;
 		}
-		if (playing && queue.get(0).replay) stopPlaybackNow(); /* a new replay replaces the one on air */
-		queue.add(playing ? 1 : 0, it);
+		if (append) {
+			queue.add(it);
+		} else {
+			if (playing && queue.get(0).replay) stopPlaybackNow(); /* a new replay replaces the one on air */
+			queue.add(playing ? 1 : 0, it);
+		}
 		changed();
+		return true;
 	}
 
+	/** G278: every unheard voice message in room ch, oldest first, after what is playing; skips any already queued.
+	    Each is marked heard as it finishes (the played flag, kept on disk), so STOP leaves the rest unheard. */
+	private int playMissed(int ch) {
+		if (ch < 0 || ch >= chan.size()) return 0;
+		int n = 0;
+		for (History.Msg m : new ArrayList<>(chan.get(ch).hist.msgs)) {
+			if (m.kind == History.Kind.VOICE && !m.out && !m.partial && !m.played && replayNow(ch, m.id, true)) n++;
+			if (queue.size() >= 64) break;
+		}
+		return n;
+	}
+
+	/** How many voice messages room ch holds unheard: the tab's count, from the saved flag. */
+	private int unheard(Channel c) {
+		int n = 0;
+		for (History.Msg m : c.hist.msgs) if (m.kind == History.Kind.VOICE && !m.out && !m.partial && !m.played) n++;
+		return n;
+	}
+
+	/** The server's word on a room's switch (hello's off list, the rooms event, the room answer). */
+	private void roomOff(int ch, boolean off) {
+		Channel c = chan.get(ch);
+		if (c.muted == off) return;
+		c.muted = off;
+		event(ch, off ? "switched off: voice messages are kept for REPLAY" : "switched on");
+	}
+
+	private void helloOff(Session ss, Object off) {
+		if (!(off instanceof List)) return;
+		java.util.Set<String> ids = new java.util.HashSet<>();
+		for (Object v : (List<?>) off) if (v instanceof String) ids.add(((String) v).toLowerCase(Locale.ROOT));
+		for (int k = 0; k < chan.size(); k++) {
+			Channel c = chan.get(k);
+			if (sess.get(c.session) == ss && c.peer.isEmpty()) roomOff(k, ids.contains(c.name.toLowerCase(Locale.ROOT)));
+		}
+	}
+
+	/** REPLAY: this room's unheard voice messages, oldest first, one after another; with none unheard, the last one. */
 	public void replayLast() {
 		post(() -> {
 			if (chan.isEmpty()) return;
+			int n = playMissed(active);
+			if (n > 0) {
+				toast("replaying " + n + " unheard");
+				changed();
+				return;
+			}
+			for (Item q : queue) if (q.channel == active && q.replay) return; /* its unheard are playing already */
 			List<History.Msg> v = chan.get(active).hist.msgs;
 			for (int k = v.size() - 1; k >= 0; k--) {
 				History.Msg m = v.get(k);
@@ -2251,7 +2333,7 @@ public final class Engine {
 				int k = (Integer) e[1];
 				History h = chan.get(k).hist;
 				History.Msg m = h.find((Long) e[2]);
-				if (m == null) continue;
+				if (m == null || queued(k, m.id)) continue; /* G278: already on air or waiting: never twice */
 				Item it = new Item();
 				it.replay = true;
 				it.channel = k;
@@ -2271,8 +2353,57 @@ public final class Engine {
 		});
 	}
 
-	/** Room k on or off for this session: leave (kept as a member) or join again. */
+	/** G278: room k on or off for this member, saved on the server for every device of theirs. Off keeps the room
+	    joined, so every voice message still arrives and is kept unheard; nothing plays aloud, no tone, no notification.
+	    On plays what was missed there, oldest first. */
 	public void toggleRoom(int k) {
+		post(() -> {
+			if (k < 0 || k >= chan.size()) return;
+			Channel c = chan.get(k);
+			if (!c.peer.isEmpty()) {
+				toast("a direct message has no switch");
+				return;
+			}
+			Session ss = sess.get(c.session);
+			if (ss.state != SState.ONLINE) {
+				toast("not connected: the switch is kept on the server, try again online");
+				return;
+			}
+			boolean on = c.muted;
+			int seq = ++ss.seq;
+			if (!send(ss, Proto.room(seq, c.name, on))) return;
+			addPending(ss, seq, PKind.ROOM, k, on ? 1 : 0, false);
+			c.muted = !on;
+			if (on) {
+				int n = playMissed(k);
+				event(k, n > 0 ? "switched on: playing " + n + " missed" : "switched on");
+			} else {
+				dropRoomQueue(k);
+				event(k, "switched off: voice messages are kept for REPLAY");
+			}
+			changed();
+		});
+	}
+
+	/** A room switched off: what of it waits in the queue (or is on air) comes out, still unheard. */
+	private void dropRoomQueue(int k) {
+		keepUnheard = true;
+		if (playing && !queue.isEmpty() && queue.get(0).channel == k) stopPlaybackNow();
+		keepUnheard = false;
+		for (int i = queue.size() - 1; i >= (playing ? 1 : 0); i--) {
+			Item it = queue.get(i);
+			if (it.channel != k) continue;
+			queue.remove(i);
+			if (it.dec != null) it.dec.close();
+			if (!it.replay) {
+				it.rx.queued = false;
+				if (it.rx.ended) rxFree(it.rx);
+			}
+		}
+	}
+
+	/** /leave and /join: out of room k for this session (kept as a member), or in again. */
+	private void toggleJoin(int k) {
 		post(() -> {
 			if (k < 0 || k >= chan.size()) return;
 			Channel c = chan.get(k);
@@ -2319,7 +2450,7 @@ public final class Engine {
 			c.gone = false;
 			c.left = true;
 			c.online = false;
-			toggleRoom(k);
+			toggleJoin(k);
 			active = k;
 		});
 	}
@@ -2363,7 +2494,18 @@ public final class Engine {
 		}
 		case "handsfree": toggleVoxActivation(); break;
 		case "join": joinRoom(arg); break;
-		case "leave": post(() -> toggleRoom(active)); break;
+		case "leave": post(() -> toggleJoin(active)); break;
+		case "room": {
+			/* /room, /room on, /room off: this room's switch (G278) */
+			String a = arg.trim().toLowerCase(Locale.ROOT);
+			post(() -> {
+				if (active < 0 || active >= chan.size()) return;
+				boolean off = chan.get(active).muted;
+				if (a.isEmpty() || (a.equals("on") && off) || (a.equals("off") && !off)) toggleRoom(active);
+				else toast("already " + a);
+			});
+			break;
+		}
 		case "speed": cycleSpeed(); break;
 		case "msg": {
 			/* G193: /msg NAME opens the direct messages with NAME; /msg NAME TEXT sends it there too */
@@ -2480,7 +2622,7 @@ public final class Engine {
 		/** G192: the tabs, left to right, as indexes into channels (closed rooms have none) */
 		public List<Integer> order = new ArrayList<>();
 		public Talk talk;
-		public boolean busy, vox, offline;
+		public boolean vox, offline;
 		/* the Vox filter */
 		public String voxId = "", voxName = "Unfiltered";
 		public boolean taking, converting;
@@ -2513,7 +2655,6 @@ public final class Engine {
 		for (Session ss : sess) if (ss.state == SState.ONLINE && ss.far) v.far = true;
 		v.toast = toast;
 		v.active = active;
-		v.busy = busy;
 		v.offline = offline;
 		v.vox = vox;
 		v.voxId = voxId;
@@ -2538,7 +2679,7 @@ public final class Engine {
 			cv.who.addAll(c.who);
 			cv.ticket = isTicketRoom(c.name);
 			cv.peer = c.peer;
-			cv.unread = c.unread;
+			cv.unread = c.unread + unheard(c); /* G278: texts since last looked, plus voice messages not heard yet */
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;
 			v.channels.add(cv);
@@ -2603,7 +2744,8 @@ public final class Engine {
 	private String stateLabel(int k) {
 		Session ss = sess.get(chan.get(k).session);
 		if (!ss.chans.contains(k)) return "NOT JOINED";
-		if (chan.get(k).left) return "OFF";
+		if (chan.get(k).left) return "OUT";
+		if (chan.get(k).muted) return "OFF";
 		switch (ss.state) {
 		case OFF: return offline ? "OFFLINE" : ss.refused ? "REFUSED" : "OFF";
 		case CONNECTING: return "CONNECTING";

@@ -527,7 +527,7 @@ public final class MainActivity extends Activity {
 		String tabKey = view.active + ":" + view.channels.size() + ":" + view.order;
 		StringBuilder sb = new StringBuilder(tabKey);
 		for (Engine.ChannelView c : view.channels) {
-			sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted).append(c.title);
+			sb.append('|').append(c.online).append(c.users).append(c.unread).append(c.muted).append(c.left).append(c.title);
 		}
 		if (!sb.toString().equals(shownTabs)) {
 			shownTabs = sb.toString();
@@ -536,7 +536,7 @@ public final class MainActivity extends Activity {
 			for (int k : view.order) {
 				Engine.ChannelView c = view.channels.get(k);
 				boolean act = k == view.active;
-				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.left ? " off" : "");
+				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted || c.left ? " off" : "");
 				TextView tab = button(t, null);
 				final int idx = k;
 				tab.setOnClickListener(v -> {
@@ -551,7 +551,8 @@ public final class MainActivity extends Activity {
 					return true;
 				});
 				tab.setBackground(box(act ? pal.accentDim : pal.bg, act ? pal.accent : pal.border));
-				tab.setTextColor(c.online ? pal.text : Palette.mix(pal.text, pal.bg, 50));
+				/* G278: a room switched off is dimmed; it still counts what came in, for REPLAY */
+				tab.setTextColor(c.online && !c.muted ? pal.text : Palette.mix(pal.text, pal.bg, 50));
 				tabs.addView(tab);
 				if (act) activeTab = tab;
 			}
@@ -708,14 +709,14 @@ public final class MainActivity extends Activity {
 		}
 		case "rooms": {
 			L.add(line("SYN-CAST ▸ ROOMS", 6, null));
-			L.add(line("Tap a room to switch it on or off. Off: you are still a member, you just do not hear it here.", 4, null));
+			L.add(line("Tap a room to switch it on or off. Off: nothing plays aloud and no alert, but every voice message is kept; switch it on, or REPLAY there, to hear what you missed.", 4, null));
 			L.add(line("/join NAME in the chat adds a ticket's room (g227) or a meeting room.", 4, null));
 			L.add(line("", 0, null));
 			for (int k : v.order) {
 				Engine.ChannelView ch = v.channels.get(k);
 				final int idx = k;
-				boolean on = ch.online && !ch.left;
-				String right = on ? ch.users + " inside" : ch.left ? "off" : ch.state.toLowerCase(Locale.ROOT);
+				boolean on = ch.online && !ch.left && !ch.muted;
+				String right = on ? ch.users + " inside" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
 				L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 24) + right + (ch.unread > 0 ? "  *" + ch.unread : ""), on ? 3 : 2, () -> { e.toggleRoom(idx); terminal("rooms"); }));
 			}
 			L.add(line("", 0, null));
@@ -768,13 +769,13 @@ public final class MainActivity extends Activity {
 		}
 		default: {
 			int on = 0, off = 0;
-			for (int k : v.order) { Engine.ChannelView ch = v.channels.get(k); if (ch.online && !ch.left) on++; else off++; }
+			for (int k : v.order) { Engine.ChannelView ch = v.channels.get(k); if (ch.online && !ch.left && !ch.muted) on++; else off++; }
 			L.add(line("SYN-CAST ▸ MENU", 6, null));
 			L.add(line(v.user.isEmpty() ? "" : v.user + " @ " + v.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", ""), 4, null));
 			L.add(line("", 0, null));
 			L.add(line(pad("VOX FILTER", 18) + v.voxName, 2, () -> terminal("vox")));
 			L.add(line(pad("ROOMS", 18) + on + " on · " + off + " off", 2, () -> terminal("rooms")));
-			L.add(line(pad("REPLAY UNHEARD", 18) + "every voice message you have not heard", 2, () -> { e.replayUnheard(); closeTerminal(); }));
+			L.add(line(pad("REPLAY UNHEARD", 18) + "every room's voice messages you have not heard", 2, () -> { e.replayUnheard(); closeTerminal(); }));
 			L.add(line(pad("REPLAY SPEED", 18) + Views.speedLabel(v.speed), 2, () -> { e.cycleSpeed(); main.postDelayed(() -> { refresh(); renderTerminal(false); }, 80); }));
 			L.add(line(pad("HANDS-FREE", 18) + (v.vox ? "on" : "off"), 2, () -> { e.toggleVoxActivation(); main.postDelayed(() -> { refresh(); renderTerminal(false); }, 80); }));
 			L.add(line(pad("SETTINGS", 18) + "talk mode, playback, tones…", 2, () -> terminal("settings")));

@@ -136,6 +136,16 @@ int zp_parse(const char *json, size_t n, zevent *ev) {
 				}
 			}
 		}
+		json_t *off = json_object_get(o, "off");
+		if (json_is_array(off)) {
+			size_t k;
+			json_t *v;
+			json_array_foreach(off, k, v) {
+				if (json_is_string(v) && ev->n_off < ZP_MAX_CHANNELS) {
+					str_copy(ev->off[ev->n_off++], ZP_NAME_MAX, json_string_value(v));
+				}
+			}
+		}
 		json_t *held = json_object_get(o, "held");
 		if (json_is_array(held)) {
 			size_t k;
@@ -320,6 +330,13 @@ char *zp_presence(int seq, const char *status, const char *text) {
 	if (text && *text) {
 		json_object_set_new(o, "text", json_string(text));
 	}
+	return finish(o);
+}
+
+char *zp_room(int seq, const char *channel, bool on) {
+	json_t *o = request("room", seq);
+	json_object_set_new(o, "channel", json_string(channel));
+	json_object_set_new(o, "on", json_boolean(on));
 	return finish(o);
 }
 

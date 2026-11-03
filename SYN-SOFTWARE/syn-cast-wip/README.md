@@ -34,9 +34,12 @@ encoder settings came from the Zello Android app's channel side
   cuts its own thumbnail); received ones show inline, Enter opens the full
   picture.
 - **Locations**: `/loc LAT LON [ADDRESS]`; Enter on one opens the map.
-- **Busy** (F3): incoming voice is kept and counted, not played, and the
-  channel is told (presence `busy`); Available plays what was kept. **Mute**
-  (F4) does that for one channel.
+- **Rooms on and off** (F4, `/room`): a room switched off plays nothing aloud,
+  sounds no alert and sends no notification, but every voice message is kept,
+  unheard. Switching it on, or Replay there, plays what was missed, oldest
+  first, each marked heard as it finishes. The switch is saved on the server
+  for your account (`room` request; the crew's `channel on|off`), so every
+  device and a restart keep it. (G278; Busy and Mute are gone.)
 - **VOX** (F5): talking opens the channel, RNNoise decides what talking is.
 - **Losses**: the encoder sends in-band FEC, and lost packets (a gap in the
   frame sequence) are recovered from the next one or concealed.
@@ -66,7 +69,7 @@ syn-cast decode IN.spt OUT.wav
 syn-cast ptt down|up|toggle     syn-cast say FILE.wav     syn-cast text MESSAGE
 syn-cast image FILE.jpg         syn-cast loc LAT LON [ADDRESS]
 syn-cast channel NAME          syn-cast replay | stop
-syn-cast busy | mute | vox | speed      syn-cast offline | online      syn-cast status | quit
+syn-cast room | vox | speed      syn-cast offline | online      syn-cast status | quit
 ```
 
 The second group drives the running instance over
@@ -79,7 +82,7 @@ The second group drives the running instance over
 Keys in the window: Space talk (when the input is empty; Ctrl+Space always),
 Enter send / replay the selected message, Up/Down select, PgUp/PgDn scroll,
 Esc stop playback, Tab next channel, Ctrl+1..9 a channel, Ctrl+R replay last,
-F2 speed, F3 busy, F4 mute, F5 VOX, F6 online/offline, Ctrl+V paste, Ctrl+C copy,
+F2 speed, F4 room on/off, F5 VOX, F6 online/offline, Ctrl+V paste, Ctrl+C copy,
 Ctrl+Q quit.
 
 ## Config
@@ -148,7 +151,7 @@ so the phone encodes exactly as the REV found the Zello app does (16 kHz,
 60 ms, VOIP, VBR, in-band FEC, 20% loss, complexity 10). It does what the
 window does: channel tabs, hold or tap to talk, the talk-permit beep, live
 playback with a queue, history with replay at 1x/1.25x/1.5x, texts, images
-from the gallery, your location, Busy, mute, VOX, ONLINE/OFFLINE, the SYN-OS tones, and all
+from the gallery, your location, rooms on and off, VOX, ONLINE/OFFLINE, the SYN-OS tones, and all
 63 SYN-OS themes (the one live on the building machine is the default). A
 foreground service keeps the channel playing with the screen off; the
 volume-down key can be the talk button.
@@ -184,7 +187,7 @@ It needs the Android SDK (`platforms;android-36`, `build-tools;36.1.0`,
 Both speak SYN-CAST protocol v1 and are tested end to end against SYN-CASTER's
 C server (`syn-caster cast serve`), the APK's engine against the desktop's:
 hello with a token or an invite, every channel joined at once, talk/over with
-busy, say, pictures, locations, presence (Busy), replay, replacement (4003),
+busy, say, pictures, locations, presence, rooms on and off, replay, replacement (4003),
 refused and revoked tokens. Before this folder becomes `syn-cast-src`
 (WIP.md's "Making one real"):
 
