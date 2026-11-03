@@ -131,7 +131,8 @@ final class Views {
 			float ty = (H - tp.getFontSpacing()) / 2;
 			text(cv, "SYN-CAST", pad, ty, tp, pal.inkOn(pal.accent));
 			if (v == null) return;
-			String host = v.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", "");
+			/* G273: signed in by the way in from outside: say so, not the tunnel's name (the address is a door) */
+			String host = v.far ? "from outside" : v.server.replaceFirst("^wss?://", "").replaceFirst("/.*$", "");
 			/* badges from the right */
 			float rx = W - pad;
 			String[] badges = {v.busy ? "BUSY" : "AVAILABLE", v.vox ? "VOX" : null, speedLabel(v.speed)};

@@ -76,6 +76,9 @@ public final class Engine {
 	private static final int HELD_MAX = 50;
 	private static final long KICK_WINDOW_MS = 120000;
 	private static final int HISTORY_FETCH = 50;   /* G193: lines asked for per conversation on sign-in */
+	/* G273: the way in from outside is Cloudflare's, so it is checked against the system's trust store; the tests,
+	   whose "outside" is the same local server, keep the pinned certificate with -Dsyncast.remotePinned=true */
+	private static final boolean REMOTE_PINNED = Boolean.getBoolean("syncast.remotePinned");
 
 	/* ---------- state ---------- */
 
@@ -103,6 +106,7 @@ public final class Engine {
 		String error = "";
 		boolean wasOnline;
 		boolean refused;   /* sign-in refused: no retries until the account is fixed */
+		boolean far;       /* G273: this try (or this connection) is by the way in from outside, not the home address */
 		boolean kicked;    /* another session of this member and device replaced this one */
 		long lastKick;
 		final List<Pending> pend = new ArrayList<>();
@@ -540,7 +544,9 @@ public final class Engine {
 
 	private void connect(Session ss) {
 		ss.state = SState.CONNECTING;
-		final String url = cfg.server, pem = cfg.certPem;
+		final boolean far = ss.far && !cfg.remote.isEmpty();
+		ss.far = far;
+		final String url = far ? cfg.remote : cfg.server, pem = far && !REMOTE_PINNED ? "" : cfg.certPem;
 		connector.execute(() -> {
 			try {
 				Ws w = Ws.connect(url, pem, 10000);
@@ -550,7 +556,10 @@ public final class Engine {
 				post(() -> {
 					if (ss.state == SState.CONNECTING) {
 						ss.error = why;
-						pf.log("connect: " + why);
+						pf.log("connect" + (far ? " (from outside)" : "") + ": " + why);
+						/* G273: the home address and the way in from outside take turns until one answers; the one
+						   that answers is kept for the next connection */
+						if (!cfg.remote.isEmpty()) ss.far = !far;
 						retry(ss, 0);
 					}
 				});
@@ -785,6 +794,10 @@ public final class Engine {
 		case "rooms":
 			applyRooms(ss, o.get("rooms"));
 			break;
+		case "server":
+			/* G273: the way in from outside has a new address (a quick tunnel restarted) */
+			learnRemote(Json.str(o, "remote"));
+			break;
 		case "presence":
 			pf.log(Json.str(o, "member") + " is " + Json.str(o, "status")
 				+ (Json.str(o, "text").isEmpty() ? "" : ": " + Json.str(o, "text")));
@@ -793,6 +806,19 @@ public final class Engine {
 			break;
 		}
 		changed();
+	}
+
+	/** G273: a new way in from outside, kept in the config (never shown or logged: the address is a door). */
+	private void learnRemote(String remote) {
+		if (remote.isEmpty() || remote.equals(cfg.remote)) return;
+		cfg.remote = remote;
+		pf.log("the way in from outside changed");
+		if (cfgFile == null) return;
+		try {
+			cfg.save(cfgFile);
+		} catch (IOException e) {
+			pf.log("cannot write " + cfgFile + ": the new way in from outside is kept for this run only");
+		}
 	}
 
 	/** An error with no seq: the server's own word (a revoked token, a frame before hello, a bad packet). */
@@ -947,6 +973,13 @@ public final class Engine {
 						save = true;
 					}
 				}
+				String remote = Json.str(o, "remote");
+				if (!remote.isEmpty() && !remote.equals(cfg.remote)) {
+					/* G273: the server's way in from outside, kept for when the home address does not answer */
+					cfg.remote = remote;
+					save = true;
+					pf.log("the way in from outside is known");
+				}
 				String tok = Json.str(o, "token");
 				if (!tok.isEmpty()) {
 					/* the invite is spent: from now on the token signs in */
@@ -995,7 +1028,7 @@ public final class Engine {
 					}
 				}
 				if (held > 0) toast(held + " direct message" + (held == 1 ? "" : "s") + " waiting for you");
-				pf.log("hello: " + me() + ", session " + Json.str(o, "session"));
+				pf.log("hello: " + me() + ", session " + Json.str(o, "session") + (ss.far ? ", from outside" : ""));
 			} else {
 				String why = "sign-in refused: " + err;
 				if (Proto.tokenRefused(code)) {
@@ -1881,6 +1914,8 @@ public final class Engine {
 		public List<Integer> order = new ArrayList<>();
 		public Talk talk;
 		public boolean busy, vox, offline;
+		/** G273: signed in by the way in from outside (the home address did not answer) */
+		public boolean far;
 		public double speed;
 		public int queue;
 		/* transmitting */
@@ -1907,6 +1942,7 @@ public final class Engine {
 		v.configured = cfg.hasAccount();
 		v.user = me().equals("you") ? "" : me();
 		v.server = cfg.server;
+		for (Session ss : sess) if (ss.state == SState.ONLINE && ss.far) v.far = true;
 		v.toast = toast;
 		v.active = active;
 		v.busy = busy;

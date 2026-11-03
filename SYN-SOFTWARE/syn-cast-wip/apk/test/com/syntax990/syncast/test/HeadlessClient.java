@@ -296,7 +296,7 @@ public final class HeadlessClient implements Engine.Platform {
 				for (int k : v.order) bar.add(v.channels.get(k).name);
 				reply = Json.write(Json.obj("talk", v.talk.name().toLowerCase(), "queue", (double) v.queue,
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
-					"busy", v.busy, "speed", v.speed, "channels", chans, "bar", bar,
+					"busy", v.busy, "far", v.far, "speed", v.speed, "channels", chans, "bar", bar,
 					"played_samples", (double) pf.playPlayed(),
 					"rx_name", v.rxName == null ? "" : v.rxName, "rx_colour", v.rxColour, "rx_face", v.rxFace,
 					"rx_portrait", (double) (v.rxPortrait == null ? 0 : v.rxPortrait.length)));
