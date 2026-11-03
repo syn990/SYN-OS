@@ -62,6 +62,7 @@ import com.syntax990.syncast.core.Proto;
 import com.syntax990.syncast.core.Engine;
 import com.syntax990.syncast.core.History;
 import com.syntax990.syncast.core.Json;
+import com.syntax990.syncast.core.Rooms;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -547,15 +548,13 @@ public final class MainActivity extends Activity {
 			for (int k : view.order) {
 				Engine.ChannelView c = view.channels.get(k);
 				boolean act = k == view.active;
-				/* a room switched off has no tab: the bar shows only what is on; MENU ▸ ROOMS lists every room with its switch */
-				if ((c.muted || c.left) && !act) continue;
-				String t = tabTitle(c) + "  " + (c.online ? c.users : "-") + (c.unread > 0 ? " *" + c.unread : "") + (c.muted || c.left ? " off" : "");
+				/* the bar is one button, the room you are in; it opens the directory (ROOMS), as the MENU does */
+				if (!act) continue;
+				int waiting = 0; for (int q : view.order) waiting += view.channels.get(q).unread;
+				String t = "\u25BE ROOMS   " + tabTitle(c) + "  " + (c.online ? c.users : "-") + (waiting > 0 ? "   *" + waiting : "");
 				TextView tab = button(t, null);
 				final int idx = k;
-				tab.setOnClickListener(v -> {
-					svc.engine().selectChannel(idx);
-					thumbs.evictAll();
-				});
+				tab.setOnClickListener(v -> terminal("rooms"));
 				/* G192: hold a tab to see who is inside before going in */
 				tab.setOnLongClickListener(v -> {
 					peekAt = idx;
@@ -721,20 +720,46 @@ public final class MainActivity extends Activity {
 			break;
 		}
 		case "rooms": {
+			/* the directory, as Zello lists channels: grouped, a tap goes there (and switches it on) */
 			L.add(line("SYN-CAST ▸ ROOMS", 6, null));
+			L.add(line("Tap a room to go there. ○ is off: switch it on here or in SWITCHES; what you missed is kept for REPLAY.", 4, null));
+			String[] groups = { "SYSTEM", "CREW", "PEOPLE", "OTHER" };
+			for (int g = 0; g < 4; g++) {
+				boolean any = false;
+				for (int k : v.order) {
+					Engine.ChannelView ch = v.channels.get(k);
+					if (roomGroup(ch) != g) continue;
+					if (!any) { L.add(line("", 0, null)); L.add(line(groups[g], 1, null)); any = true; }
+					final int idx = k;
+					boolean on = ch.online && !ch.left && !ch.muted, here = k == v.active;
+					String right = on ? ch.users + " inside" : ch.muted ? "off" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
+					L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 22) + right + (ch.unread > 0 ? "  *" + ch.unread : ""), here ? 3 : 2, () -> {
+						if (!on) e.toggleRoom(idx);
+						svc.engine().selectChannel(idx);
+						closeTerminal();
+					}));
+				}
+			}
+			L.add(line("", 0, null));
+			L.add(line("─", 5, null));
+			L.add(line("SWITCHES: rooms on and off", 2, () -> terminal("switches")));
+			L.add(line("BACK", 2, () -> terminal("main")));
+			break;
+		}
+		case "switches": {
+			L.add(line("SYN-CAST ▸ ROOM SWITCHES", 6, null));
 			L.add(line("Tap a room to switch it on or off. Off: nothing plays aloud and no alert, but every voice message is kept; switch it on, or REPLAY there, to hear what you missed.", 4, null));
-			L.add(line("/join NAME in the chat adds a ticket's room (g227) or a meeting room.", 4, null));
 			L.add(line("", 0, null));
 			for (int k : v.order) {
 				Engine.ChannelView ch = v.channels.get(k);
 				final int idx = k;
 				boolean on = ch.online && !ch.left && !ch.muted;
-				String right = on ? ch.users + " inside" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
-				L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 24) + right + (ch.unread > 0 ? "  *" + ch.unread : ""), on ? 3 : 2, () -> { e.toggleRoom(idx); terminal("rooms"); }));
+				String right = on ? "on" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
+				L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 22) + right, on ? 3 : 2, () -> { e.toggleRoom(idx); terminal("switches"); }));
 			}
 			L.add(line("", 0, null));
 			L.add(line("─", 5, null));
-			L.add(line("BACK", 2, () -> terminal("main")));
+			L.add(line("BACK", 2, () -> terminal("rooms")));
 			break;
 		}
 		case "settings": {
@@ -987,6 +1012,15 @@ public final class MainActivity extends Activity {
 	/* ---------- settings ---------- */
 
 	/* G266 (main): the server and certificate fields of the old settings dialog are not in the terminal menu yet. */
+
+	/** The directory's groups: 0 system (the fixed rooms), 1 crew (c-<role>), 2 people (p-<member>, direct messages), 3 other. */
+	static int roomGroup(Engine.ChannelView ch) {
+		String id = ch.name.toLowerCase(Locale.ROOT);
+		if (!ch.peer.isEmpty() || id.startsWith("p-") || id.startsWith("dm-")) return 2;
+		if (id.startsWith("c-")) return 1;
+		if (Rooms.rank(id) < Rooms.RANK_TICKET) return 0;
+		return 3;
+	}
 
 	/** A tab's words: a ticket room's "G192 SYN-CAST rooms bar..." cut to fit, a fixed room's name as it is. */
 	private static String tabTitle(Engine.ChannelView c) {
