@@ -268,7 +268,8 @@ def direct_messages(srv, jim, alice, dave):
           and dm.count("just for jim") == 1 and dm.count("hello dave, from the phone") == 1, (room, dm))
     check("the room's missed line counts as unread on its tab", jim.status()["channels"][0]["unread"] >= 1, jim.status())
     jim.cmd("channel 0")
-    check("back to the room for the rest", int(jim.status()["active"]) == 0, jim.status())
+    # selectChannel is posted to the engine's thread, so the tab may move a moment after the command returns
+    check("back to the room for the rest", wait_for(lambda: int(jim.status()["active"]) == 0, 3), jim.status())
 
 
 def decode(spt, out):

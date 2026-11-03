@@ -1209,7 +1209,7 @@ public final class Engine {
 					/* the switch was flipped at once; the server said no, so it goes back */
 					if (c.muted == off) {
 						c.muted = !off;
-						if (off) dropRoomQueue(p.channel);
+						if (!off) dropRoomQueue(p.channel); /* asked on, refused: off again, so its queue goes */
 					}
 					toast(Rooms.title(c.name, c.title) + ": the switch was not saved: " + err);
 				}
@@ -1868,6 +1868,7 @@ public final class Engine {
 		Channel c = chan.get(ch);
 		if (c.muted == off) return;
 		c.muted = off;
+		if (off) dropRoomQueue(ch); /* switched off elsewhere (the crew, another device): its queue waits for REPLAY too */
 		event(ch, off ? "switched off: voice messages are kept for REPLAY" : "switched on");
 	}
 

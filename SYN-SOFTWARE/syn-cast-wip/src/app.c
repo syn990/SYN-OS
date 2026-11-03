@@ -1337,7 +1337,7 @@ static void on_reply(int s, const zevent *ev) {
 		break;
 	case P_ROOM:
 		if (!ev->ok && p.channel >= 0 && p.channel < app.n_chan) {
-			app.chan[p.channel].muted = p.ref == 0; /* not saved: back as it was */
+			app.chan[p.channel].muted = p.ref == 1; /* not saved: back as it was (asked on, so it was off) */
 			app_toast("%s: the switch was not saved: %s", app.chan[p.channel].name, ev->error);
 		}
 		break;
@@ -1345,6 +1345,37 @@ static void on_reply(int s, const zevent *ev) {
 		break;
 	}
 	app.dirty = true;
+}
+
+/* G278: what is still waiting to play from room k stays unheard, for REPLAY (the note on air plays out) */
+static void drop_room_queue(int k) {
+	for (int i = app.qn - 1; i >= (app.playing ? 1 : 0); i--) {
+		if (app.queue[i].channel == k && app.queue[i].kind == PI_REPLAY) {
+			hv_free(&app.queue[i].file);
+			memmove(app.queue + i, app.queue + i + 1, sizeof app.queue[0] * (size_t)(app.qn - i - 1));
+			app.qn--;
+		}
+	}
+}
+
+/* G278: the server's word on this session's rooms (the rooms event): a switch set by the crew's 'channel on|off' or
+ * another device is followed here within the server's 5 s; a room the event leaves out keeps its switch */
+static void rooms_switched(int s, const zevent *ev) {
+	for (int pass = 0; pass < 2; pass++) {
+		int n = pass ? ev->n_on : ev->n_off;
+		for (int i = 0; i < n; i++) {
+			int ch = channel_in_session(s, pass ? ev->on[i] : ev->off[i]);
+			bool off = pass == 0;
+			if (ch < 0 || app.chan[ch].muted == off) {
+				continue;
+			}
+			app.chan[ch].muted = off;
+			if (off) {
+				drop_room_queue(ch);
+			}
+			add_event(ch, off ? "switched off: voice messages are kept for REPLAY" : "switched on");
+		}
+	}
 }
 
 static void on_json(int s, const uint8_t *d, size_t n) {
@@ -1413,6 +1444,9 @@ static void on_json(int s, const uint8_t *d, size_t n) {
 		if (ch >= 0 && who_remove(&app.chan[ch], ev.member)) {
 			add_event(ch, "%s left", ev.member);
 		}
+		break;
+	case ZEV_ROOMS:
+		rooms_switched(s, &ev);
 		break;
 	case ZEV_PRESENCE:
 		LOG("%s is %s%s%s", ev.member, ev.status, ev.text && ev.text[0] ? ": " : "", ev.text ? ev.text : "");
@@ -1585,14 +1619,7 @@ void app_toggle_room(void) {
 		add_event(k, n ? "switched on: playing %d missed" : "switched on", n);
 		app_toast("%s on", c->name);
 	} else {
-		/* what is still waiting to play from this room stays unheard, for REPLAY */
-		for (int i = app.qn - 1; i >= (app.playing ? 1 : 0); i--) {
-			if (app.queue[i].channel == k && app.queue[i].kind == PI_REPLAY) {
-				hv_free(&app.queue[i].file);
-				memmove(app.queue + i, app.queue + i + 1, sizeof app.queue[0] * (size_t)(app.qn - i - 1));
-				app.qn--;
-			}
-		}
+		drop_room_queue(k);
 		add_event(k, "switched off: voice messages are kept for REPLAY");
 		app_toast("%s off: voice messages are kept for REPLAY", c->name);
 	}

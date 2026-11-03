@@ -58,6 +58,7 @@ typedef enum {
 	ZEV_PRESENCE,
 	ZEV_JOIN,
 	ZEV_LEAVE,
+	ZEV_ROOMS,      /* G278: the member's rooms, each with its saved switch (off[] / on[]) */
 	ZEV_ERROR,      /* an error with no seq: revoked, not_logged_in, a bad packet */
 } zev_kind;
 
@@ -95,6 +96,8 @@ typedef struct {
 	int held;                /* direct messages waiting, all peers together */
 	char off[ZP_MAX_CHANNELS][ZP_NAME_MAX]; /* G278: the rooms this member switched off (saved on the server) */
 	int n_off;
+	char on[ZP_MAX_CHANNELS][ZP_NAME_MAX];  /* rooms event: the rooms whose switch is on (an older server: none either way) */
+	int n_on;
 
 	/* join reply: channels[0]; talk reply and events: stream; over reply
 	 * and event: message, ms, packets; say, loc replies: message; pic

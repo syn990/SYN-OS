@@ -59,6 +59,7 @@ static const struct {
 } EVENTS[] = {
 	{"talk", ZEV_TALK},       {"over", ZEV_OVER},   {"say", ZEV_SAY},   {"pic", ZEV_PIC},
 	{"loc", ZEV_LOC},         {"presence", ZEV_PRESENCE}, {"join", ZEV_JOIN}, {"leave", ZEV_LEAVE},
+	{"rooms", ZEV_ROOMS},
 };
 
 int zp_parse(const char *json, size_t n, zevent *ev) {
@@ -193,6 +194,27 @@ int zp_parse(const char *json, size_t n, zevent *ev) {
 		ev->accuracy = get_num(o, "accuracy");
 		ev->text = dup_str(o, "address");
 		break;
+	case ZEV_ROOMS: {
+		/* G278: each room's saved switch, so a 'channel off' by the crew or another device reaches this one live */
+		json_t *rooms = json_object_get(o, "rooms");
+		size_t k;
+		json_t *v;
+		if (json_is_array(rooms)) {
+			json_array_foreach(rooms, k, v) {
+				const char *id = json_string_value(json_object_get(v, "channel"));
+				json_t *off = json_object_get(v, "off");
+				if (!id || !json_is_boolean(off)) {
+					continue;
+				}
+				if (json_is_true(off) && ev->n_off < ZP_MAX_CHANNELS) {
+					str_copy(ev->off[ev->n_off++], ZP_NAME_MAX, id);
+				} else if (!json_is_true(off) && ev->n_on < ZP_MAX_CHANNELS) {
+					str_copy(ev->on[ev->n_on++], ZP_NAME_MAX, id);
+				}
+			}
+		}
+		break;
+	}
 	case ZEV_PRESENCE:
 		get_str(o, "member", ev->member, sizeof ev->member);
 		get_str(o, "status", ev->status, sizeof ev->status);

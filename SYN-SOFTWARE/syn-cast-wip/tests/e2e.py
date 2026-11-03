@@ -148,6 +148,25 @@ class Server:
     def token(self, member):
         return self.cli("token", member)[0]
 
+    def crew(self, *args):
+        """G278: a crew call (syn-caster do ...) on this server's records, as the owner at a terminal would make it: its
+        own HOME whose workspace is this server's data; the first line back (OK, REFUSED, ERROR)"""
+        if self.argv[-1] != "cast":
+            return "SKIP the reference server has no crew calls"
+        home = os.path.join(os.path.dirname(self.data), "crew-home")
+        ws = os.path.join(home, ".local", "share", "syn-caster", "workspace")
+        if not os.path.exists(ws):
+            os.makedirs(os.path.dirname(ws), exist_ok=True)
+            os.symlink(self.data, ws)
+            for m in MEMBERS:
+                os.makedirs(os.path.join(self.data, "people"), exist_ok=True)
+                with open(os.path.join(self.data, "people", m + ".md"), "w") as f:
+                    f.write(f"# {m.title()}\n")
+        env = {k: v for k, v in os.environ.items() if not k.startswith("SYN_CASTER_")}
+        env.update(HOME=home, SYN_CASTER_ROLE="owner", XDG_CONFIG_HOME=os.path.join(home, ".config"))
+        r = subprocess.run([self.argv[0], "do", *args], capture_output=True, text=True, env=env, timeout=30)
+        return (r.stdout.strip().splitlines() or [r.stderr.strip()])[0]
+
     def invite(self, member):
         return self.cli("invite", member)[0]
 
@@ -519,6 +538,22 @@ def main():
             p5 = bob.played_seconds()
             alice.ctl("say", wav)
             check("and live voice plays aloud again", wait_for(lambda: bob.played_seconds() - p5 >= 1.9, 8))
+            settle()
+            # the crew's switch, on his word: the server tells his running app within its 5 s rooms beat
+            said = srv.crew("channel", "off", "test", "--for", "bob")
+            check("the crew's 'channel off --for bob' is saved", said.startswith("OK"), said)
+            check("and turns the desktop's room off live, within 6 s", wait_for(lambda: chan()["off"], 6), chan())
+            p6 = bob.played_seconds()
+            n0 = len([v for v in bob.voices("test", out=False) if not v.get("partial")])
+            alice.ctl("say", wav)
+            wait_for(lambda: len([v for v in bob.voices("test", out=False) if not v.get("partial")]) > n0, 8)
+            wait_for(lambda: alice.status()["talk"] == "idle", 5)
+            time.sleep(0.5)
+            check("where nothing plays aloud", bob.played_seconds() - p6 < 0.1, bob.played_seconds() - p6)
+            said = srv.crew("channel", "on", "test", "--for", "bob")
+            check("and 'channel on --for bob' turns it back on live", said.startswith("OK")
+                  and wait_for(lambda: not chan()["off"], 6), (said, chan()))
+            bob.ctl("replay")
             settle()
         else:
             print("rooms on/off: needs the SYN-CASTER server with the room request (G278): skipped")
