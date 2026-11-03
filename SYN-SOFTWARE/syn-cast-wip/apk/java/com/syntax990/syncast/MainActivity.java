@@ -784,6 +784,18 @@ public final class MainActivity extends Activity {
 			+ "and closing by themselves. Swipe the messages to move between them; hold a tab to see who is inside, and tap a name there "
 			+ "to message them. Direct messages get their own tab (@name); /msg NAME in the text box opens one.",
 			pal.text, 12));
+		/* G266: the server can be changed while signed in (it was only on the sign-in form, so a phone away from
+		 * home kept dialling the home address with no way to give it another); the token is kept. */
+		col.addView(label("SERVER", pal.accent, 12));
+		EditText srv = field("wss://HOST:PORT/cast/v1", false);
+		srv.setText(c.server);
+		col.addView(srv);
+		col.addView(label("SERVER CERTIFICATE (PEM, pinned; empty trusts the system store)", pal.accent, 12));
+		EditText pem = field("-----BEGIN CERTIFICATE----- ...", false);
+		pem.setSingleLine(false);
+		pem.setMinLines(2);
+		pem.setText(c.certPem);
+		col.addView(pem);
 		CheckBox toggle = check(col, "Tap to start and stop talking (instead of hold)", c.pttToggle);
 		CheckBox auto = check(col, "Play incoming messages as they arrive", c.autoPlay);
 		CheckBox ns = check(col, "Noise suppression", c.noiseSuppression);
@@ -830,6 +842,9 @@ public final class MainActivity extends Activity {
 			c.vox = vox.isChecked();
 			c.voxThreshold = sens.getProgress() / 100.0;
 			c.theme = theme[0];
+			String s = srv.getText().toString().trim();
+			if (!s.isEmpty()) c.server = s.contains("/cast/") ? s : s.replaceFirst("/+$", "") + Proto.PATH;
+			c.certPem = pem.getText().toString().trim();
 			try {
 				svc.save(c);
 			} catch (IOException ignored) {

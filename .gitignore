@@ -38,3 +38,4 @@ SYN-ISO-PROFILE/airootfs/usr/share/applications/syn-filemanager.desktop
 SYN-ISO-PROFILE/airootfs/usr/bin/dislocker*
 SYN-ISO-PROFILE/airootfs/usr/lib/libdislocker.so*
 SYN-ISO-PROFILE/airootfs/usr/share/man/man1/dislocker*
+__pycache__/

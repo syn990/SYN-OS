@@ -26,6 +26,10 @@ public final class Config {
 	public String invite = "";          /* a one-time invite code; spent on the first hello */
 	public String device = "phone";
 	public String certPem = "";         /* the server's own certificate, pinned; "" trusts the system store */
+	/* G273: the way in from outside, wss://NAME/cast/v1, as the server last gave it (hello's remote, or a server
+	   event). Tried when server cannot be reached (away from home Wi-Fi), with the system store: the tunnel's
+	   certificate is the provider's, not the pinned one. "" none yet. */
+	public String remote = "";
 	public List<String> channels = new ArrayList<>();   /* empty: every channel the member belongs to */
 
 	public boolean pttToggle;
@@ -64,6 +68,7 @@ public final class Config {
 		if (o.containsKey("invite")) invite = Json.str(o, "invite");
 		if (o.containsKey("device") && !Json.str(o, "device").isEmpty()) device = Json.str(o, "device");
 		if (o.containsKey("cert_pem")) certPem = Json.str(o, "cert_pem");
+		if (o.containsKey("remote")) remote = Json.str(o, "remote");
 		Object ch = o.get("channels");
 		if (ch instanceof List) {
 			channels.clear();
@@ -88,7 +93,7 @@ public final class Config {
 
 	public void save(File f) throws IOException {
 		Map<String, Object> o = Json.obj("server", server, "member", member, "token", token, "invite", invite,
-			"device", device, "cert_pem", certPem, "channels", new ArrayList<Object>(channels),
+			"device", device, "cert_pem", certPem, "remote", remote, "channels", new ArrayList<Object>(channels),
 			"ptt_mode", pttToggle ? "toggle" : "hold", "auto_play", autoPlay, "noise_suppression", noiseSuppression,
 			"vox", vox, "vox_threshold", voxThreshold, "max_talk_seconds", (double) maxTalkSeconds,
 			"notify", notify, "tones", tones, "volume_key_ptt", volumeKeyPtt,
