@@ -19,7 +19,9 @@ syn-mail login NAME [--no-browser] Google: one sign-in in the browser; the refre
 syn-mail list
 syn-mail check [NAME] [--last N]  sign in, count the inbox and the unread, list the newest N (10)
 syn-mail read NAME N              one message as text
-syn-mail send NAME TO SUBJECT     the text on stdin, from NAME to TO
+syn-mail send NAME TO SUBJECT [--attach FILE]...   the text on stdin, from NAME to TO; each
+                                  --attach adds one file (16 at most, 18 MiB in all), sent as
+                                  multipart/mixed with the file base64 and its type from its extension
 syn-mail folders NAME             the account's folders (modified UTF-7 names decoded)
 syn-mail headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first
 syn-mail show NAME FOLDER UID     one message by UID as text
