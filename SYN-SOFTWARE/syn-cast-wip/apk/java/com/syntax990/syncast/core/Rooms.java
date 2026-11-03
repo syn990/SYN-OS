@@ -4,7 +4,7 @@
  *   else as the server listed it. Pure: no Android, no engine state, so
  *   RoomsTest runs it on the desktop JVM.
  *
- *     Lobby (id ops), Crew, Alerts, Guests, Meeting Room, the HQs (*-hq),
+ *     Lobby (id ops), Crew, Meeting Room, Reminders, Alerts, Guests, the HQs (*-hq),
  *     g<n> ticket rooms by n, then the rest in arrival order.
  *
  *   Nobody makes a room from the app: the list is the server's.
@@ -25,7 +25,9 @@ public final class Rooms {
 	}
 
 	/** The fixed rooms, in the order they sit on the bar. */
-	public static final String[] FIXED = {"ops", "crew", "alerts", "guests", "meeting-room"};
+	public static final String[] FIXED = {"ops", "crew", "meeting-room", "reminders", "alerts", "guests"};
+	/** The fixed rooms' names on the bar, the boss's (2 Nov): Lobby, Crew, Meeting Room, Reminders, Alerts, Guests. */
+	public static final String[] FIXED_NAMES = {"Lobby", "Crew", "Meeting Room", "Reminders", "Alerts", "Guests"};
 	public static final int RANK_HQ = FIXED.length, RANK_TICKET = FIXED.length + 1, RANK_OTHER = FIXED.length + 2;
 
 	/** The rank a channel id sorts by: its place among the fixed rooms, then HQs, then tickets, then the rest. */
@@ -76,7 +78,7 @@ public final class Rooms {
 
 	/** What the tab says: the server's name, the Lobby for ops, the id when there is no name. */
 	public static String title(String id, String name) {
-		if (id != null && id.equalsIgnoreCase("ops")) return "Lobby";
+		if (id != null) for (int i = 0; i < FIXED.length; i++) if (FIXED[i].equalsIgnoreCase(id)) return FIXED_NAMES[i];
 		if (name == null || name.trim().isEmpty()) return id == null ? "" : id;
 		return name.trim();
 	}
