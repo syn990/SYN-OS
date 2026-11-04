@@ -2782,7 +2782,13 @@ public final class Engine {
 	public synchronized String displayName(String id) {
 		String n = names.get(id);
 		if (n != null) return n;
-		for (Channel c : chan) { Session ss = sess.get(c.session); if (ss != null && ss.state == SState.ONLINE) { wantPortrait(ss, id); break; } }
+		/* 0.7.5: the ask goes out on the engine's own thread, never the caller's: the who-is-here line asks from the
+		   UI thread, and a socket write there is NetworkOnMainThreadException (the crash loop of 4 Nov 00:55) */
+		if (id != null && !id.isEmpty() && !portraitAsked.contains(id)) loop.execute(() -> {
+			synchronized (Engine.this) {
+				for (Channel c : chan) { Session ss = sess.get(c.session); if (ss != null && ss.state == SState.ONLINE) { wantPortrait(ss, id); break; } }
+			}
+		});
 		return id;
 	}
 
