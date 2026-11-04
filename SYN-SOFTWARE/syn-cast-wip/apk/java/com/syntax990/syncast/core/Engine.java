@@ -2829,6 +2829,59 @@ public final class Engine {
 		return k < 0 || k >= chan.size() ? null : chan.get(k).hist.image(id, thumb);
 	}
 
+	/* ---------- a voice note as a file a person can keep (0.7.6, 4 Nov 2026: hold a voice line, Save audio or Info) ---------- */
+	/** the voice file of message id in room k; null when there is no such room (the file may not exist) */
+	public synchronized File voiceFile(int k, long id) {
+		return k < 0 || k >= chan.size() ? null : chan.get(k).hist.voice(id);
+	}
+	/** the room's title as the server names it, else its id */
+	public synchronized String roomTitle(int k) {
+		if (k < 0 || k >= chan.size()) return "";
+		Channel c = chan.get(k);
+		return c.title.isEmpty() ? c.name : c.title;
+	}
+	/** the file's header: {rate, frames per packet, frame ms, packets, lost packets, bytes}; throws when it is not a voice file */
+	public static int[] voiceFacts(File spt) throws IOException {
+		byte[] b = java.nio.file.Files.readAllBytes(spt.toPath());
+		if (b.length < 8 || b[0] != 'S' || b[1] != 'P' || b[2] != 'T' || b[3] != '1') throw new IOException("not a voice file");
+		int rate = (b[4] & 0xff) | ((b[5] & 0xff) << 8), fpp = b[6] & 0xff, fms = b[7] & 0xff, packets = 0, lost = 0;
+		for (int off = 8; off + 2 <= b.length;) {
+			int n = ((b[off] & 0xff) << 8) | (b[off + 1] & 0xff);
+			off += 2 + n;
+			if (off > b.length) break;
+			packets++;
+			if (n == 0) lost++;
+		}
+		return new int[] {rate, fpp, fms, packets, lost, b.length};
+	}
+	/** the voice file decoded to 16 kHz mono s16 PCM, lost packets filled by the decoder; at most 120 s */
+	public static short[] voicePcm(File spt) throws IOException {
+		List<byte[]> pk = History.loadVoice(spt);
+		short[] out = new short[Opus.RATE * 120];
+		int n = 0;
+		try (Opus.Decoder d = new Opus.Decoder()) {
+			short[] buf = new short[Opus.MAX_PACKET_SAMPLES * 24];
+			for (byte[] p : pk) {
+				if (p.length == 0) { d.lost(1); continue; }
+				int r = d.decode(p, buf);
+				if (r <= 0) continue;
+				if (n + r > out.length) break;
+				System.arraycopy(buf, 0, out, n, r);
+				n += r;
+			}
+		}
+		return java.util.Arrays.copyOf(out, n);
+	}
+	/** a WAV file (RIFF, PCM 16-bit mono at Opus.RATE) around the samples */
+	public static byte[] wavOf(short[] pcm) {
+		java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(44 + pcm.length * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+		b.put("RIFF".getBytes()).putInt(36 + pcm.length * 2).put("WAVE".getBytes());
+		b.put("fmt ".getBytes()).putInt(16).putShort((short) 1).putShort((short) 1).putInt(Opus.RATE).putInt(Opus.RATE * 2).putShort((short) 2).putShort((short) 16);
+		b.put("data".getBytes()).putInt(pcm.length * 2);
+		for (short s : pcm) b.putShort(s);
+		return b.array();
+	}
+
 	private String stateLabel(int k) {
 		Session ss = sess.get(chan.get(k).session);
 		if (!ss.chans.contains(k)) return "NOT JOINED";

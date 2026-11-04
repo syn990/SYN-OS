@@ -885,15 +885,98 @@ public final class MainActivity extends Activity {
 
 	private void menu(History.Msg m) {
 		List<String> items = new ArrayList<>();
-		if (m.kind == History.Kind.VOICE && !m.partial) items.add("Replay");
+		if (m.kind == History.Kind.VOICE && !m.partial) { items.add("Replay"); items.add("Save audio"); items.add("Info"); }
 		if (m.text != null && !m.text.isEmpty()) items.add("Copy text");
 		if (m.kind == History.Kind.IMAGE || m.kind == History.Kind.LOCATION) items.add("Open");
 		if (items.isEmpty()) return;
 		new AlertDialog.Builder(this).setItems(items.toArray(new String[0]), (d, w) -> {
 			String it = items.get(w);
 			if (it.equals("Copy text")) copy(m.text);
+			else if (it.equals("Save audio")) saveVoice(m);
+			else if (it.equals("Info")) voiceInfo(m);
 			else activate(m);
 		}).show();
+	}
+
+	/* ---------- a voice note kept or described (0.7.6, 4 Nov 2026): hold the line, Save audio or Info ---------- */
+	private static String safeName(String s) {
+		String t = s == null ? "" : s.replaceAll("[^A-Za-z0-9._-]+", "-").replaceAll("^-+|-+$", "");
+		return t.isEmpty() ? "x" : t;
+	}
+	private void say(String text) {
+		runOnUiThread(() -> android.widget.Toast.makeText(this, text, android.widget.Toast.LENGTH_LONG).show());
+	}
+	/** the voice note decoded to a WAV in Downloads/SYN-CAST (Android 10 and later: the Downloads collection; before: the app's own
+	    Downloads folder), named by room, speaker and time */
+	private void saveVoice(History.Msg m) {
+		int ch = view == null ? 0 : view.active;
+		File f = svc.engine().voiceFile(ch, m.id);
+		if (f == null || !f.exists()) { say("no audio on this phone for that message"); return; }
+		String room = svc.engine().roomTitle(ch);
+		new Thread(() -> {
+			try {
+				byte[] wav = Engine.wavOf(Engine.voicePcm(f));
+				String name = "SYN-CAST " + safeName(room) + " " + safeName(m.who()) + " "
+					+ new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(new java.util.Date(m.ts)) + ".wav";
+				String where;
+				if (android.os.Build.VERSION.SDK_INT >= 29) {
+					android.content.ContentValues cv = new android.content.ContentValues();
+					cv.put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name);
+					cv.put(android.provider.MediaStore.Downloads.MIME_TYPE, "audio/wav");
+					cv.put(android.provider.MediaStore.Downloads.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/SYN-CAST");
+					Uri u = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+					if (u == null) throw new IOException("Downloads refused the file");
+					try (java.io.OutputStream os = getContentResolver().openOutputStream(u)) {
+						if (os == null) throw new IOException("Downloads refused the file");
+						os.write(wav);
+					}
+					where = "Downloads/SYN-CAST/" + name;
+				} else {
+					File dir = new File(getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), "SYN-CAST");
+					if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("cannot make " + dir);
+					File out = new File(dir, name);
+					try (java.io.FileOutputStream os = new java.io.FileOutputStream(out)) { os.write(wav); }
+					where = out.getPath();
+				}
+				say("saved: " + where);
+			} catch (IOException | RuntimeException e) {
+				say("could not save: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+			}
+		}).start();
+	}
+	/** who, where, when, how long, how it is stored; with Save audio and Replay to hand */
+	private void voiceInfo(History.Msg m) {
+		int ch = view == null ? 0 : view.active;
+		File f = svc.engine().voiceFile(ch, m.id);
+		String room = svc.engine().roomTitle(ch);
+		new Thread(() -> {
+			StringBuilder s = new StringBuilder();
+			s.append("From: ").append(m.who());
+			if (!m.as.isEmpty() && !m.as.equals(m.who())) s.append(" (").append(m.as).append(")");
+			if (!m.from.isEmpty() && !m.from.equals(m.who()) && !m.from.equals(m.as)) s.append(", member ").append(m.from);
+			s.append(m.out ? ", sent from this phone" : "").append("\n");
+			s.append("Room: ").append(room).append("\n");
+			s.append("When: ").append(new java.text.SimpleDateFormat("EEE d MMM yyyy HH:mm:ss", Locale.ROOT).format(new java.util.Date(m.ts))).append("\n");
+			s.append("Length: ").append(Views.dur(m.durationMs)).append("\n");
+			if (f != null && f.exists()) {
+				try {
+					int[] k = Engine.voiceFacts(f);
+					s.append("Audio: Opus, ").append(k[0]).append(" Hz, ").append(k[3]).append(" packets of ").append(k[1] * k[2]).append(" ms");
+					if (k[4] > 0) s.append(", ").append(k[4]).append(" lost on the way");
+					s.append("\n").append("On this phone: ").append(k[5] < 2048 ? k[5] + " bytes" : (k[5] / 1024) + " KB").append(", ").append(f.getName()).append("\n");
+				} catch (IOException e) {
+					s.append("On this phone: ").append(f.getName()).append(" (unreadable: ").append(e.getMessage()).append(")\n");
+				}
+			} else s.append("On this phone: not kept\n");
+			s.append(m.played ? "Heard here" : "Not heard here yet").append("\n");
+			s.append("Message ").append(m.id);
+			if (!m.sid.isEmpty()) s.append(", server id ").append(m.sid);
+			String text = s.toString();
+			runOnUiThread(() -> new AlertDialog.Builder(this).setTitle("Voice note").setMessage(text)
+				.setPositiveButton("Save audio", (d, w) -> saveVoice(m))
+				.setNeutralButton("Replay", (d, w) -> activate(m))
+				.setNegativeButton("Close", null).show());
+		}).start();
 	}
 
 	private void showImage(History.Msg m) {
