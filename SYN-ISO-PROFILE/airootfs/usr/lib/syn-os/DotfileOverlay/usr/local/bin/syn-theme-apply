@@ -216,6 +216,13 @@ pkill -SIGUSR1 foot 2>/dev/null || true
 # equivalent. Applies on each app's next launch.) --------
 render "$TEMPLATES_DIR/gtk3.css.tmpl" "$HOME/.config/gtk-3.0/gtk.css"
 
+# -------- opencode (every palette as an opencode theme + the syn-theme TUI
+# plugin in tui.json; a running opencode switches live when current-theme is
+# written below, and a SYN-OS theme picked in its /themes comes back here) --------
+if [[ -d "$HOME/.config/opencode" ]] && (( $+commands[syn-theme-opencode] )); then
+  syn-theme-opencode >/dev/null || print -u2 "syn-theme-apply: syn-theme-opencode failed"
+fi
+
 mkdir -p "${CURRENT_FILE:h}"
 print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 
@@ -223,3 +230,4 @@ print "Theme applied: $SYN_THEME_NAME"
 print "  waybar, labwc, mako: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
 print "  qt6ct (falkon, syn-shell), gtk3 (audacity, etherape, virt-manager, virt-viewer): applies on next launch"
+print "  opencode: live (syn-theme plugin)"
