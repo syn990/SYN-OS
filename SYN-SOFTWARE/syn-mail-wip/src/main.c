@@ -38,7 +38,7 @@ static void usage(void) {
 	      "  list                          the accounts\n"
 	      "  check [NAME] [--last N]       sign in, count the inbox, list the last N (10)\n"
 	      "  read NAME N                   one message as text (N: sequence number from check)\n"
-	      "  send NAME TO SUBJECT [--attach FILE]... [--plain]   send the text on stdin from NAME to TO, each FILE\n"
+	      "  send NAME TO SUBJECT [--attach FILE]... [--plain] [--as NAME] [--from ADDR]   send the text on stdin from NAME to TO, each FILE\n"
 	      "                                attached, as a signed company letter (text and HTML); --plain: the text alone\n"
 	      "  folders NAME                  the account's folders\n"
 	      "  headers NAME [FOLDER] [--skip N] [--last N]   a page of a folder by UID, newest first\n"
@@ -470,6 +470,7 @@ static MsgSign account_sign(const Account *a) {
 static int cmd_send(int argc, char **argv) {
 	const char *pos[3];
 	int npos = 0, natt = 0, rc = 2, plain = 0;
+	const char *as_name = NULL, *as_addr = NULL;   /* --as NAME --from ADDR: send as one of the account's send-as identities (4 Nov 2026) */
 	MsgAttach att[SEND_MAX_ATTACH];
 	long total = 0;
 	Config c = {0};
@@ -485,6 +486,13 @@ static int cmd_send(int argc, char **argv) {
 			natt++;
 		} else if (!strcmp(argv[i], "--plain")) {
 			plain = 1;
+		} else if (!strcmp(argv[i], "--as")) {
+			if (i + 1 >= argc) { usage(); goto done; }
+			as_name = argv[++i];
+		} else if (!strcmp(argv[i], "--from")) {
+			if (i + 1 >= argc) { usage(); goto done; }
+			as_addr = argv[++i];
+			if (!msg_addr_ok(as_addr)) { fprintf(stderr, "syn-mail: not a plain address: %s\n", as_addr); goto done; }
 		} else if (npos < 3) {
 			pos[npos++] = argv[i];
 		} else {
@@ -508,7 +516,7 @@ static int cmd_send(int argc, char **argv) {
 	char mid[160];
 	msg_id(a->address, mid, sizeof mid);
 	MsgSign sign = account_sign(a);
-	if (msg_build_letter(a->display, a->address, pos[1], pos[2], body.p ? body.p : "", mid, NULL, time(NULL),
+	if (msg_build_letter(as_name ? as_name : a->display, as_addr ? as_addr : a->address, pos[1], pos[2], body.p ? body.p : "", mid, NULL, time(NULL),
 		att, natt, plain ? NULL : &sign, &m) != 0) {
 		fputs("syn-mail: the message could not be built\n", stderr);
 	} else {

@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+# ------------------------------------------------------------------------------
+#                    S Y N - T H E M E - O P E N C O D E
+#
+#   Every SYN-OS palette as an opencode theme, so opencode wears the
+#   desktop's theme and its /themes picker lists all of them.
+#
+#   Writes ~/.config/opencode/themes/<SYN_THEME_NAME>.json for every
+#   ~/.config/syn-os/themes/*.theme (only the files whose text changes,
+#   and drops a SYN-OS-*.json whose palette is gone), and makes sure
+#   ~/.config/opencode/tui.json loads the syn-theme plugin, which keeps
+#   opencode and the desktop on one theme both ways:
+#     desktop -> opencode   a running opencode switches when
+#                           ~/.config/syn-os/current-theme changes
+#     opencode -> desktop   a SYN-OS theme picked in opencode's /themes
+#                           is applied to the desktop with syn-theme-apply
+#                           (and from there reaches a linked phone)
+#
+#   Called by syn-theme-apply on every switch; does nothing when opencode
+#   has no config folder. Safe to run by hand.
+#
+#   Usage: syn-theme-opencode
+#
+#   SYN-OS     : The Syntax Operating System
+#   Component  : SYN-THEME-OPENCODE (Theming)
+#   Author     : William Hayward-Holland (Syntax990)
+#   License    : MIT License
+# ------------------------------------------------------------------------------
+import json
+import os
+import re
+import sys
+
+HOME = os.path.expanduser("~")
+PALETTES = os.path.join(HOME, ".config", "syn-os", "themes")
+OPENCODE = os.path.join(HOME, ".config", "opencode")
+OUT = os.path.join(OPENCODE, "themes")
+TUI = os.path.join(OPENCODE, "tui.json")
+PLUGIN = "/usr/lib/syn-os/opencode/syn-theme.ts"
+
+
+def palette(path):
+    p = {}
+    for line in open(path, encoding="utf-8"):
+        m = re.match(r'\s*(SYN_[A-Z_]+)=(["\']?)(.*?)\2\s*$', line)
+        if m:
+            p[m.group(1)] = m.group(3)
+    return p
+
+
+def rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def hexc(c):
+    return "#%02x%02x%02x" % tuple(max(0, min(255, round(v))) for v in c)
+
+
+def mix(a, b, t):
+    """a moved t of the way to b"""
+    a, b = rgb(a), rgb(b)
+    return hexc(tuple(x + (y - x) * t for x, y in zip(a, b)))
+
+
+def lum(h):
+    def ch(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb(h)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a, b):
+    x, y = sorted((lum(a), lum(b)), reverse=True)
+    return (x + 0.05) / (y + 0.05)
+
+
+def readable(c, bg, toward, want=4.0):
+    """c, moved toward `toward` only as far as it takes to read on bg"""
+    for i in range(21):
+        out = mix(c, toward, i / 20)
+        if contrast(out, bg) >= want:
+            return out
+    return toward
+
+
+def theme(p):
+    bg, alt, panel, hover = p["SYN_BG"], p["SYN_BG_ALT"], p["SYN_PANEL"], p["SYN_PANEL_HOVER"]
+    text, border, urgent, accent = p["SYN_TEXT"], p["SYN_BORDER"], p["SYN_URGENT"], p["SYN_ACCENT"]
+    light = p.get("SYN_THEME_MODE", "dark") == "light"
+    # the palettes carry no green or yellow; these sit with any of them
+    ok, warn = ("#1a7f37", "#9a6700") if light else ("#5fd787", "#e5c07b")
+    ink = readable(accent, bg, text)             # the accent where it is text
+    soft = readable(mix(ink, text, 0.45), bg, text)
+    muted = readable(mix(text, bg, 0.45), bg, text, 3.0)
+    ok, warn, bad = (readable(c, bg, text) for c in (ok, warn, urgent))
+    element = panel if panel.lower() != bg.lower() else hover
+    on_ink = bg if contrast(bg, ink) >= contrast(text, ink) else text
+    return {
+        "$schema": "https://opencode.ai/theme.json",
+        "theme": {
+            "primary": ink, "secondary": soft, "accent": ink,
+            "error": bad, "warning": warn, "success": ok, "info": ink,
+            "text": text, "textMuted": muted, "selectedListItemText": on_ink,
+            "background": bg, "backgroundPanel": alt, "backgroundElement": element, "backgroundMenu": element,
+            "border": border, "borderActive": ink, "borderSubtle": mix(border, bg, 0.5),
+            "diffAdded": ok, "diffRemoved": bad, "diffContext": muted, "diffHunkHeader": muted,
+            "diffHighlightAdded": ok, "diffHighlightRemoved": bad,
+            "diffAddedBg": mix(ok, bg, 0.82), "diffRemovedBg": mix(bad, bg, 0.82), "diffContextBg": alt,
+            "diffLineNumber": muted, "diffAddedLineNumberBg": mix(ok, bg, 0.88), "diffRemovedLineNumberBg": mix(bad, bg, 0.88),
+            "markdownText": text, "markdownHeading": ink, "markdownLink": ink, "markdownLinkText": soft,
+            "markdownCode": soft, "markdownBlockQuote": muted, "markdownEmph": warn, "markdownStrong": ink,
+            "markdownHorizontalRule": border, "markdownListItem": ink, "markdownListEnumeration": soft,
+            "markdownImage": ink, "markdownImageText": soft, "markdownCodeBlock": text,
+            "syntaxComment": muted, "syntaxKeyword": ink, "syntaxFunction": soft, "syntaxVariable": text,
+            "syntaxString": ok, "syntaxNumber": warn, "syntaxType": soft, "syntaxOperator": ink,
+            "syntaxPunctuation": text,
+        },
+    }
+
+
+def write_if_changed(path, text):
+    try:
+        if open(path, encoding="utf-8").read() == text:
+            return False
+    except OSError:
+        pass
+    tmp = path + ".new"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, path)
+    return True
+
+
+def strip_jsonc(text):
+    text = re.sub(r'("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/', lambda m: m.group(1) or "", text, flags=re.S)
+    return re.sub(r",(\s*[}\]])", r"\1", text)
+
+
+def load_plugin():
+    """tui.json lists the syn-theme plugin (made if missing; left alone if unreadable)"""
+    if not os.path.exists(PLUGIN):
+        return "plugin missing at " + PLUGIN
+    if not os.path.exists(TUI):
+        write_if_changed(TUI, json.dumps({"$schema": "https://opencode.ai/tui.json", "plugin": [PLUGIN]}, indent=2) + "\n")
+        return "tui.json made"
+    try:
+        cfg = json.loads(strip_jsonc(open(TUI, encoding="utf-8").read()) or "{}")
+    except ValueError:
+        return "tui.json unreadable, add " + PLUGIN + " to its plugin list by hand"
+    plugins = cfg.get("plugin") or []
+    if any((x[0] if isinstance(x, list) else x) == PLUGIN for x in plugins):
+        return ""
+    cfg["plugin"] = plugins + [PLUGIN]
+    write_if_changed(TUI, json.dumps(cfg, indent=2) + "\n")
+    return "tui.json now loads the plugin"
+
+
+def main():
+    if not os.path.isdir(OPENCODE) or not os.path.isdir(PALETTES):
+        return 0
+    os.makedirs(OUT, exist_ok=True)
+    names, changed = set(), 0
+    for f in sorted(os.listdir(PALETTES)):
+        if not f.endswith(".theme"):
+            continue
+        try:
+            p = palette(os.path.join(PALETTES, f))
+            name = p["SYN_THEME_NAME"]
+            body = json.dumps(theme(p), indent=2) + "\n"
+        except (KeyError, ValueError, OSError) as e:
+            print(f"syn-theme-opencode: skipped {f}: {e}", file=sys.stderr)
+            continue
+        names.add(name)
+        changed += write_if_changed(os.path.join(OUT, name + ".json"), body)
+    for f in os.listdir(OUT):
+        if f.startswith("SYN-OS-") and f.endswith(".json") and f[:-5] not in names:
+            os.remove(os.path.join(OUT, f))
+    note = load_plugin()
+    print(f"opencode: {len(names)} SYN-OS themes ({changed} rewritten){', ' + note if note else ''}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
