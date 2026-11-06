@@ -11,6 +11,9 @@
  *                                        cannot be spoken gets the zero-length frame alone, and the reason on stderr.
  *                                        <length> scales the voice's own pace (its VOICE inference length): 1.08 is 8%
  *                                        slower, 0.85 is 15% faster, LENGTH_MIN to LENGTH_MAX; the text has no tab.
+ *                                        "...\t<text>\t<length>\t<pitch>" also moves the voice up or down: 1.12 is
+ *                                        12% higher, 0.9 is 10% lower, PITCH_MIN to PITCH_MAX, the pace kept (the model
+ *                                        speaks pitch times longer and the audio is read pitch times faster).
  *   syn-speak --list                     one TSV row per voice in the store, without loading any model
  * Voices: the voice store holds one folder per voice, named by its id (vctk, libritts_r, data, m141), and the folder's
  * VOICE manifest says what it is, a voice bank (many speakers) or an own voice (one), and which files to load. A folder
@@ -116,6 +119,8 @@ static const VoiceModel MODELS[] = {
 #define KV_MAX 64       /* keys in one VOICE */
 #define LENGTH_MIN 0.5  /* a line's length field: twice as fast at most */
 #define LENGTH_MAX 2.0  /* and half as fast */
+#define PITCH_MIN 0.7   /* a line's pitch field: 30% lower at most */
+#define PITCH_MAX 1.4   /* and 40% higher */
 
 /* One folder of the voice store: what its VOICE says, and its model once loaded. */
 typedef struct {
@@ -558,9 +563,12 @@ static const SherpaOnnxOfflineTts *load_voice(const char *name, float *length) {
     return tts;
 }
 
-/* Speak one line at `length` times the voice's own length (1 for its own pace); audio frames go to stdout as they are
- * made, then the zero-length frame. Returns 0 on success. */
-static int speak_line(const SherpaOnnxOfflineTts *tts, float own_length, long sid, const char *text, double length) {
+/* Speak one line at `length` times the voice's own length (1 for its own pace) and `pitch` times its own pitch (1 for
+ * its own); audio frames go to stdout as they are made, then the zero-length frame. Returns 0 on success. The pitch is
+ * the resampler's: the model speaks pitch times slower and its audio is read pitch times faster, so the pace stays and
+ * the voice moves up (more than 1) or down (less). */
+static int speak_line(const SherpaOnnxOfflineTts *tts, float own_length, long sid, const char *text, double length,
+                      double pitch) {
     if (sid < 0 || sid >= SherpaOnnxOfflineTtsNumSpeakers(tts)) {
         fprintf(stderr, "syn-speak: speaker %ld out of range (the voice has %d)\n", sid, SherpaOnnxOfflineTtsNumSpeakers(tts));
         write_frame(NULL, 0);
@@ -569,9 +577,9 @@ static int speak_line(const SherpaOnnxOfflineTts *tts, float own_length, long si
     SherpaOnnxGenerationConfig gc;
     memset(&gc, 0, sizeof gc);
     gc.sid = (int32_t)sid;
-    double scale = own_length * length;
+    double scale = own_length * length * pitch;
     gc.speed = scale > 0 ? (float)(1.0 / scale) : 1.0f;  /* sherpa's speed is the inverse of VITS's length scale */
-    resample_reset((double)SherpaOnnxOfflineTtsSampleRate(tts));
+    resample_reset((double)SherpaOnnxOfflineTtsSampleRate(tts) * pitch);
     const SherpaOnnxGeneratedAudio *a = SherpaOnnxOfflineTtsGenerateWithConfig(tts, text, &gc, on_chunk, NULL);
     if (!a) {
         fprintf(stderr, "syn-speak: no audio generated\n");
@@ -597,6 +605,13 @@ static double length_of(const char *s) {
     return end == s || *end || !(k >= LENGTH_MIN && k <= LENGTH_MAX) ? -1 : k;
 }
 
+/* A line's pitch field, PITCH_MIN to PITCH_MAX; -1 for anything else. */
+static double pitch_of(const char *s) {
+    char *end;
+    double k = strtod(s, &end);
+    return end == s || *end || !(k >= PITCH_MIN && k <= PITCH_MAX) ? -1 : k;
+}
+
 static int serve(void) {
     voices_scan();  /* the index of the voice store, built at start */
     char *line = NULL;
@@ -607,6 +622,7 @@ static int serve(void) {
         char *t1 = strchr(line, '\t');
         char *t2 = t1 ? strchr(t1 + 1, '\t') : NULL;
         char *t3 = t2 ? strchr(t2 + 1, '\t') : NULL;  /* the optional fourth field, the length */
+        char *t4 = t3 ? strchr(t3 + 1, '\t') : NULL;  /* and the optional fifth, the pitch */
         if (!t2) {
             fprintf(stderr, "syn-speak: a request is \"<voice>\\t<speaker-id>\\t<text>\" or \"...\\t<text>\\t<length>\"\n");
             write_frame(NULL, 0);
@@ -615,6 +631,7 @@ static int serve(void) {
         *t1 = 0;
         *t2 = 0;
         if (t3) *t3 = 0;
+        if (t4) *t4 = 0;
         long sid = speaker_id(t1 + 1);
         if (sid < 0) {
             fprintf(stderr, "syn-speak: speaker %s is not a number\n", t1 + 1);
@@ -627,9 +644,15 @@ static int serve(void) {
             write_frame(NULL, 0);
             continue;
         }
+        double pitch = t4 ? pitch_of(t4 + 1) : 1.0;
+        if (pitch < 0) {
+            fprintf(stderr, "syn-speak: pitch %s is not a number from %.1f to %.1f\n", t4 + 1, PITCH_MIN, PITCH_MAX);
+            write_frame(NULL, 0);
+            continue;
+        }
         float own = 1.0f;
         const SherpaOnnxOfflineTts *tts = load_voice(line, &own);
-        if (tts) speak_line(tts, own, sid, t2 + 1, length);
+        if (tts) speak_line(tts, own, sid, t2 + 1, length, pitch);
         else write_frame(NULL, 0);
     }
     free(line);
@@ -679,7 +702,7 @@ int main(int argc, char **argv) {
     float own = 1.0f;
     const SherpaOnnxOfflineTts *tts = load_voice("vctk", &own);
     if (!tts) return 1;
-    int rc = speak_line(tts, own, sid, text, 1.0);
+    int rc = speak_line(tts, own, sid, text, 1.0, 1.0);
     free(in_buf);
     free(out_buf);
     return rc;

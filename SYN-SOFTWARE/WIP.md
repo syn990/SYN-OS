@@ -23,8 +23,6 @@ and a `CMakeLists.txt` that builds that.
 | [syn-boot-wip](syn-boot-wip/README.md) | Boot timeline for runit, which has no `systemd-analyze` |
 | [syn-lag-wip](syn-lag-wip/README.md) | Keypress-to-frame latency per app, measured |
 | [syn-fsn-wip](syn-fsn-wip/README.md) | The file system as a 3D picture you turn, zoom and click through: size, type, age and recent changes at a glance |
-| [syn-cast-wip](syn-cast-wip/README.md) | SYN-CAST: push-to-talk on Zello channels, the Zello app rebuilt from its APK as a native window, plus SYN-CAST-APK, its Android rewrite. Built and tested offline; waiting on a first live sign-in |
-| [syn-mail-wip](syn-mail-wip/README.md) | Mail client for both domains (Google by OAuth, IONOS by password); slice 1, the command-line core, is built and tested; the window and the APK follow |
 
 ## Shared work they're waiting on
 
@@ -55,3 +53,7 @@ When a tool does what its README says:
 5. Write its page in `SYN-ISO-PROFILE/airootfs/usr/share/syn-os/docs/tools/`
    and add it to the tool table in the top-level readme. The docs describe
    what's built, so this comes last.
+
+## Moved out
+
+SYN-CAST (the PC app and the Android app) and syn-mail live with their server in the SYN-CASTER repository, `cast/` and `caster/mail/` there; their history went with them (November 2026).
