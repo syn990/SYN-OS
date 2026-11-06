@@ -80,6 +80,7 @@ public final class Proto {
 		else m.put("token", token == null ? "" : token);
 		m.put("device", device == null || device.isEmpty() ? "phone" : device);
 		m.put("client", CLIENT);
+		m.put("live", true);   /* 5 Nov 2026: this build plays a live room (Ambient 1-3) outside its queue */
 		if (channels != null) m.put("channels", new ArrayList<Object>(channels));
 		return Json.write(m);
 	}

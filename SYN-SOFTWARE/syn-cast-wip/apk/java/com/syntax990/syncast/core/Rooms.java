@@ -4,6 +4,13 @@
  *   else as the server listed it. Pure: no Android, no engine state, so
  *   RoomsTest runs it on the desktop JVM.
  *
+ *   5 Nov 2026, the boss's new layout: the server names each room's group
+ *   (chat, service, crew, people, meeting) and the bar goes by it:
+ *     Chat (id ops), Service (s-<you>), one room per crew member (each
+ *     called after them), one per person, then booked meetings (only while
+ *     booked, only for the people in them). A room without a group (an
+ *     older server) falls back to the old order below.
+ *
  *     Lobby (id ops), Crew, Meeting Room, Reminders, Alerts, Guests, the HQs (*-hq),
  *     g<n> ticket rooms by n, then the rest in arrival order.
  *
@@ -26,8 +33,37 @@ public final class Rooms {
 
 	/** The fixed rooms, in the order they sit on the bar. */
 	public static final String[] FIXED = {"ops", "crew", "meeting-room", "reminders", "alerts", "guests"};
-	/** The fixed rooms' names on the bar, the boss's (2 Nov): Lobby, Crew, Meeting Room, Reminders, Alerts, Guests. */
-	public static final String[] FIXED_NAMES = {"Lobby", "Crew", "Meeting Room", "Reminders", "Alerts", "Guests"};
+	/** The fixed rooms' names on the bar, the boss's (2 Nov): Lobby, Crew, Meeting Room, Reminders, Alerts, Guests; ops is Chat since 5 Nov. */
+	public static final String[] FIXED_NAMES = {"Chat", "Crew", "Meeting Room", "Reminders", "Alerts", "Guests"};
+	/** The server's groups (5 Nov 2026), in bar order. */
+	public static final String[] GROUPS = {"chat", "service", "crew", "people", "meeting", "ambient"};
+
+	/** A group's place on the bar, or -1 when the server gave none (or one this build does not know). */
+	public static int groupRank(String group) {
+		if (group == null) return -1;
+		for (int i = 0; i < GROUPS.length; i++) if (GROUPS[i].equalsIgnoreCase(group)) return i;
+		return -1;
+	}
+
+	/** The bar's order when the server names groups: by group, then as the server listed them (stable). Rooms with no
+	 *  group go after, in the old order. */
+	public static List<Integer> order(List<String> ids, List<String> groups) {
+		List<Integer> out = new ArrayList<>();
+		for (int i = 0; i < ids.size(); i++) {
+			int at = out.size();
+			while (at > 0 && compareG(ids.get(i), groups.get(i), ids.get(out.get(at - 1)), groups.get(out.get(at - 1))) < 0) at--;
+			out.add(at, i);
+		}
+		return out;
+	}
+
+	private static int compareG(String a, String ga, String b, String gb) {
+		int ra = groupRank(ga), rb = groupRank(gb);
+		if (ra >= 0 && rb >= 0) return ra - rb;
+		if (ra >= 0) return -1;
+		if (rb >= 0) return 1;
+		return compare(a, b);
+	}
 	public static final int RANK_HQ = FIXED.length, RANK_TICKET = FIXED.length + 1, RANK_OTHER = FIXED.length + 2;
 
 	/** The rank a channel id sorts by: its place among the fixed rooms, then HQs, then tickets, then the rest. */
@@ -76,10 +112,11 @@ public final class Rooms {
 		return out;
 	}
 
-	/** What the tab says: the server's name, the Lobby for ops, the id when there is no name. */
+	/** What the tab says: the server's name (a 1-1 room is named after the other one, for you), else the fixed name,
+	 *  else the id. Chat for ops when the server still calls it SYN-LOBBY. */
 	public static String title(String id, String name) {
+		if (name != null && !name.trim().isEmpty() && !"SYN-LOBBY".equals(name.trim())) return name.trim();
 		if (id != null) for (int i = 0; i < FIXED.length; i++) if (FIXED[i].equalsIgnoreCase(id)) return FIXED_NAMES[i];
-		if (name == null || name.trim().isEmpty()) return id == null ? "" : id;
-		return name.trim();
+		return id == null ? "" : id;
 	}
 }

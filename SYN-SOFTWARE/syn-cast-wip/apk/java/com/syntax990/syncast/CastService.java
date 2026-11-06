@@ -197,6 +197,9 @@ public final class CastService extends Service implements Engine.Platform {
 	@Override public void captureRaw(boolean on) { audio.captureRaw(on); }
 	@Override public int captureLevel() { return audio.captureLevel(); }
 	@Override public void tone(String meaning) { audio.tone(meaning); }
+	@Override public void ambWrite(short[] pcm, int n) { audio.ambWrite(pcm, n); }
+	@Override public int ambQueued() { return audio.ambQueued(); }
+	@Override public void ambStop() { audio.ambStop(); }
 
 	/** A 160 px JPEG cut from a received picture, for the history view. */
 	@Override

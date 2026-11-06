@@ -115,6 +115,13 @@ public final class HeadlessClient implements Engine.Platform {
 		}
 	}
 
+	/* 5 Nov 2026: the Ambient lane, counted (the test reads ambient_samples and ambient_stops) */
+	private long ambSamples, ambStops;
+	@Override public synchronized void ambWrite(short[] pcm, int n) { ambSamples += n; }
+	@Override public synchronized void ambStop() { ambStops++; }
+	synchronized long ambSamples() { return ambSamples; }
+	synchronized long ambStops() { return ambStops; }
+
 	@Override
 	public int playQueued() {
 		synchronized (ring) {
@@ -309,6 +316,7 @@ public final class HeadlessClient implements Engine.Platform {
 					"active", (double) v.active, "offline", v.offline, "member", v.user, "auth_error", v.authError,
 					"busy", v.busy, "far", v.far, "speed", v.speed, "channels", chans, "bar", bar,
 					"played_samples", (double) pf.playPlayed(),
+					"ambient_samples", (double) pf.ambSamples(), "ambient_stops", (double) pf.ambStops(), "live_channel", (double) e.liveChannel(),
 					"rx_name", v.rxName == null ? "" : v.rxName, "rx_colour", v.rxColour, "rx_face", v.rxFace,
 					"rx_portrait", (double) (v.rxPortrait == null ? 0 : v.rxPortrait.length)));
 				break;

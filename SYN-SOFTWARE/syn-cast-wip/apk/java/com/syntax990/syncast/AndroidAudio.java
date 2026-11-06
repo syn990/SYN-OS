@@ -61,6 +61,7 @@ final class AndroidAudio {
 		engine = e;
 		final int my = ++gen;
 		new Thread(() -> drain(my), "syncast-playback").start();
+		new Thread(() -> ambDrain(my), "syncast-ambient").start();
 		new Thread(() -> capture(my, e), "syncast-capture").start();
 	}
 
@@ -68,6 +69,9 @@ final class AndroidAudio {
 		gen++;
 		synchronized (ring) {
 			ring.notifyAll();
+		}
+		synchronized (aring) {
+			aring.notifyAll();
 		}
 		synchronized (mic) {
 			mic.notifyAll();
@@ -210,6 +214,116 @@ final class AndroidAudio {
 			flush = true;
 			ring.notifyAll();
 		}
+	}
+
+	/* ---------- the Ambient bed (5 Nov 2026) ----------
+	   A second ring and AudioTrack beside the voices: the Ambient room's live packets, decoded by the engine. It takes
+	   no audio focus (it never ducks the phone's music, and the voices' focus never stops it); it ducks itself under
+	   the crew while a voice plays, and gives the speaker back after two seconds of nothing. Half a second is buffered
+	   before it starts or after it ran dry, so the network's jitter is not heard as gaps. */
+	private static final float AMB_GAIN = 1.0f, AMB_DUCKED = 0.3f;
+	private final Object aring = new Object();
+	private final short[] abuf = new short[Opus.RATE * 4];
+	private int ahead, alen;
+	private boolean aflush;
+
+	void ambWrite(short[] pcm, int n) {
+		synchronized (aring) {
+			n = Math.min(n, abuf.length - alen);
+			for (int k = 0; k < n; k++) abuf[(ahead + alen + k) % abuf.length] = pcm[k];
+			alen += n;
+			aring.notifyAll();
+		}
+	}
+
+	int ambQueued() {
+		synchronized (aring) {
+			return alen;
+		}
+	}
+
+	void ambStop() {
+		synchronized (aring) {
+			alen = 0;
+			aflush = true;
+			aring.notifyAll();
+		}
+	}
+
+	private boolean voicePlaying() {
+		synchronized (ring) {
+			return len > 0;
+		}
+	}
+
+	private void ambDrain(int my) {
+		short[] chunk = new short[Opus.RATE / 50];
+		AudioTrack track = null;
+		boolean primed = false;
+		float g = AMB_GAIN;
+		long idleSince = System.currentTimeMillis(), voiceAt = 0;
+		while (gen == my) {
+			int n = 0;
+			boolean doFlush;
+			synchronized (aring) {
+				if (!aflush && (alen == 0 || (!primed && alen < Opus.RATE / 2))) {
+					try {
+						aring.wait(track != null ? 100 : 500);
+					} catch (InterruptedException e) {
+						break;
+					}
+				}
+				doFlush = aflush;
+				aflush = false;
+				if (alen > 0 && (primed || alen >= Opus.RATE / 2)) {
+					primed = true;
+					n = Math.min(alen, chunk.length);
+					for (int k = 0; k < n; k++) chunk[k] = abuf[(ahead + k) % abuf.length];
+					ahead = (ahead + n) % abuf.length;
+					alen -= n;
+				} else if (alen == 0) primed = false;
+			}
+			if (doFlush && track != null) {
+				track.pause();
+				track.flush();
+				track.release();
+				track = null;
+				primed = false;
+				continue;
+			}
+			if (n == 0) {
+				if (track != null && System.currentTimeMillis() - idleSince > 2000) {
+					track.stop();
+					track.release();
+					track = null;
+				}
+				continue;
+			}
+			idleSince = System.currentTimeMillis();
+			if (voicePlaying()) voiceAt = idleSince;
+			float want = idleSince - voiceAt < 800 ? AMB_DUCKED : AMB_GAIN;
+			for (int k = 0; k < n; k++) {
+				g += (want - g) * 0.002f;   /* about 30 ms to settle: no click when a voice starts */
+				chunk[k] = (short) Math.max(-32768, Math.min(32767, Math.round(chunk[k] * g)));
+			}
+			if (track == null) {
+				try {
+					int min = AudioTrack.getMinBufferSize(Opus.RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+					track = new AudioTrack.Builder().setAudioAttributes(new AudioAttributes.Builder()
+							.setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+						.setAudioFormat(new AudioFormat.Builder().setSampleRate(Opus.RATE)
+							.setChannelMask(AudioFormat.CHANNEL_OUT_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
+						.setBufferSizeInBytes(Math.max(min, Opus.RATE * 2 / 5)).setTransferMode(AudioTrack.MODE_STREAM).build();
+					track.play();
+				} catch (RuntimeException e) {
+					Log.w(TAG, "ambient: " + e);
+					track = null;
+					continue;
+				}
+			}
+			track.write(chunk, 0, n);
+		}
+		if (track != null) track.release();
 	}
 
 	/* ---------- capture ---------- */

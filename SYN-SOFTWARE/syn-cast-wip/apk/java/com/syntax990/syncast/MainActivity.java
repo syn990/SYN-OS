@@ -731,9 +731,12 @@ public final class MainActivity extends Activity {
 		case "rooms": {
 			/* the directory, as Zello lists channels: grouped, a tap goes there (and switches it on) */
 			L.add(line("SYN-CAST ▸ ROOMS", 6, null));
-			L.add(line("Tap a room to go there. ○ is off: switch it on here or in SWITCHES; what you missed is kept for REPLAY.", 4, null));
-			String[] groups = { "SYSTEM", "CREW", "PEOPLE", "OTHER" };
-			for (int g = 0; g < 4; g++) {
+			L.add(line("TURN ROOMS ON OR OFF ▸", 2, () -> terminal("switches")));
+			L.add(line("Tap a room to go there. ● is on, ○ is off. To turn a room off, use TURN ROOMS ON OR OFF above; what you miss while it is off is kept for REPLAY.", 4, null));
+			L.add(line("Chat is everyone, people and crew together. Service is yours alone: your tickets, reminders and letters. Each crew member and each person has a room with you that only the two of you hear. A meeting's room shows here only while it is booked, and only for the people in it.", 4, null));
+			L.add(line("Ambient 1, 2 and 3 are sound only: music on a quiet, crackly phone line that plays all the time. Tap one to start it, tap it again to stop it. Starting one stops the other two. Nothing said there is answered or kept.", 4, null));
+			String[] groups = { "CHAT AND SERVICE", "CREW", "PEOPLE", "MEETINGS", "OTHER", "AMBIENT" };
+			for (int g = 0; g < 6; g++) {
 				boolean any = false;
 				for (int k : v.order) {
 					Engine.ChannelView ch = v.channels.get(k);
@@ -741,8 +744,14 @@ public final class MainActivity extends Activity {
 					if (!any) { L.add(line("", 0, null)); L.add(line(groups[g], 1, null)); any = true; }
 					final int idx = k;
 					boolean on = ch.online && !ch.left && !ch.muted, here = k == v.active;
-					String right = on ? ch.users + " inside" : ch.muted ? "off" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
+					boolean amb = "ambient".equals(ch.group);
+					String right = amb ? (k == e.liveChannel() ? "playing · tap to stop" : on ? "starting" : "off · tap to play") : on ? ch.users + " inside" : ch.muted ? "off" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
 					L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 22) + right + (ch.unread > 0 ? "  *" + ch.unread : ""), here ? 3 : 2, () -> {
+						if (amb) {   /* an Ambient room has nothing to show: a tap starts or stops it, here */
+							e.toggleRoom(idx);
+							terminal("rooms");
+							return;
+						}
 						if (!on) e.toggleRoom(idx);
 						svc.engine().selectChannel(idx);
 						closeTerminal();
@@ -751,7 +760,7 @@ public final class MainActivity extends Activity {
 			}
 			L.add(line("", 0, null));
 			L.add(line("─", 5, null));
-			L.add(line("SWITCHES: rooms on and off", 2, () -> terminal("switches")));
+			L.add(line("TURN ROOMS ON OR OFF", 2, () -> terminal("switches")));
 			L.add(line("BACK", 2, () -> terminal("main")));
 			break;
 		}
@@ -763,7 +772,7 @@ public final class MainActivity extends Activity {
 				Engine.ChannelView ch = v.channels.get(k);
 				final int idx = k;
 				boolean on = ch.online && !ch.left && !ch.muted;
-				String right = on ? "on" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
+				String right = "ambient".equals(ch.group) ? (on ? "on, playing" : "off") : on ? "on" : ch.muted ? "off, kept for REPLAY" : ch.left ? "out" : ch.state.toLowerCase(Locale.ROOT);
 				L.add(line((on ? "● " : "○ ") + pad(tabTitle(ch), 22) + right, on ? 3 : 2, () -> { e.toggleRoom(idx); terminal("switches"); }));
 			}
 			L.add(line("", 0, null));
@@ -1114,11 +1123,21 @@ public final class MainActivity extends Activity {
 
 	/** The directory's groups: 0 system (the fixed rooms), 1 crew (c-<role>), 2 people (p-<member>, direct messages), 3 other. */
 	static int roomGroup(Engine.ChannelView ch) {
+		/* 5 Nov 2026: the server says where a room sits; Chat and your Service first, then a room per crew member,
+		   per person, and booked meetings while they are booked */
+		switch (ch.group == null ? "" : ch.group) {
+			case "chat": case "service": return 0;
+			case "crew": return 1;
+			case "people": return 2;
+			case "meeting": return 3;
+			case "ambient": return 5;
+			default: break;
+		}
 		String id = ch.name.toLowerCase(Locale.ROOT);
 		if (!ch.peer.isEmpty() || id.startsWith("p-") || id.startsWith("dm-")) return 2;
 		if (id.startsWith("c-")) return 1;
 		if (Rooms.rank(id) < Rooms.RANK_TICKET) return 0;
-		return 3;
+		return 4;
 	}
 
 	/** A tab's words: a ticket room's "G192 SYN-CAST rooms bar..." cut to fit, a fixed room's name as it is. */

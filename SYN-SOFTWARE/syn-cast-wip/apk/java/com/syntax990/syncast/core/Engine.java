@@ -59,6 +59,10 @@ public final class Engine {
 		/** raw mode: frames come back as PCM through captureRawFrame(), untouched (no gain, no noise suppression), for the Vox filter */
 		void captureRaw(boolean on);
 		int captureLevel();
+		/* 5 Nov 2026: the Ambient rooms' bed, a second, quiet lane beside the voices, never queued, never kept */
+		default void ambWrite(short[] pcm, int n) {}
+		default int ambQueued() { return 0; }
+		default void ambStop() {}
 		void tone(String meaning);
 		/** A small JPEG cut from a received picture (JPEG, PNG or WebP bytes), or null to show the picture itself. */
 		byte[] thumbnail(byte[] picture);
@@ -130,6 +134,8 @@ public final class Engine {
 		/* G192: the room's own name from the server ("G192 rooms bar"), and gone: closed or taken away, so no tab
 		   (its history stays on the phone) */
 		public String title = "";
+		/** 5 Nov 2026: the server's group for the room: chat, service, crew, people, meeting ("" from an older server) */
+		public String group = "";
 		boolean gone;
 		/* G193: a direct-message conversation (dm-A-B) has the other member here; a room has "" */
 		public String peer = "";
@@ -490,6 +496,7 @@ public final class Engine {
 		CountDownLatchWait.run(loop, () -> {
 			synchronized (Engine.this) {
 				if (tx != Tx.IDLE) txAbort(null);
+				liveStop();
 				keepUnheard = true;
 				while (!queue.isEmpty()) {
 					playing = true;
@@ -782,10 +789,15 @@ public final class Engine {
 		String from = Json.str(o, "from"), to = Json.str(o, "to");
 		switch (type) {
 		case "talk":
-			rxStart(ss, ch, o, from, to);
+			if (Json.bool(o, "live")) liveStart(ss, ch, o);
+			else rxStart(ss, ch, o, from, to);
 			break;
 		case "over": {
 			long stream = Json.lng(o, "stream");
+			if (Json.bool(o, "live")) {
+				if (ss.idx == liveSession && stream == liveStream) liveStop();
+				break;
+			}
 			for (Rx r : new ArrayList<>(rx)) {
 				if (r.session == ss.idx && r.streamId == stream) rxEnd(r);
 			}
@@ -915,6 +927,7 @@ public final class Engine {
 			}
 			Channel c = chan.get(ch);
 			if (!Json.str(r, "name").isEmpty()) c.title = Json.str(r, "name");
+			if (r.containsKey("group")) c.group = Json.str(r, "group");
 			c.gone = false;
 			if (r.containsKey("off")) roomOff(ch, Json.bool(r, "off"));
 			if (c.left) {
@@ -958,15 +971,16 @@ public final class Engine {
 
 	/** G192: the bar's order: the fixed rooms (Lobby, Crew, Alerts, Guests, Meeting Room, the HQs), then ticket rooms by number; closed rooms left out. */
 	private List<Integer> order() {
-		List<String> ids = new ArrayList<>();
+		List<String> ids = new ArrayList<>(), groups = new ArrayList<>();
 		List<Integer> idx = new ArrayList<>();
 		for (int k = 0; k < chan.size(); k++) {
 			if (chan.get(k).gone) continue;
 			ids.add(chan.get(k).name);
+			groups.add(chan.get(k).group);
 			idx.add(k);
 		}
 		List<Integer> out = new ArrayList<>();
-		for (int r : Rooms.order(ids)) out.add(idx.get(r));
+		for (int r : Rooms.order(ids, groups)) out.add(idx.get(r));
 		return out;
 	}
 
@@ -988,6 +1002,7 @@ public final class Engine {
 				c.online = true;
 				c.gone = false;
 				if (!Json.str(zc, "name").isEmpty()) c.title = Json.str(zc, "name");
+				if (zc.containsKey("group")) c.group = Json.str(zc, "group");
 				c.who.clear();
 				Object online = zc.get("online");
 				if (online instanceof List) {
@@ -1266,6 +1281,10 @@ public final class Engine {
 			voxIn.write(data, 0, data.length);
 			return;
 		}
+		if (kind == Proto.BIN_AUDIO && id == liveStream && ss.idx == liveSession) {
+			liveFeed(seq, data);
+			return;
+		}
 		if (kind == Proto.BIN_AUDIO) {
 			for (Rx r : rx) {
 				if (r.ended || r.session != ss.idx || r.streamId != id) continue;
@@ -1405,6 +1424,59 @@ public final class Engine {
 	private void rxFree(Rx r) {
 		if (r.file != null) r.file.close();
 		rx.remove(r);
+	}
+
+	/* ---------- the Ambient rooms (5 Nov 2026) ----------
+	   The server rolls Ambient 1-3 like radio stations and sends a room's packets while its switch is on (talk with
+	   "live": true, then packets, over "off" when it is switched off). They never enter the queue, the history or a
+	   file: they are decoded here into the platform's second lane, which plays them quietly under the voices. One bed
+	   at a time: switching an Ambient room on switches the others off (toggleRoom). */
+	private long liveStream = -1, liveLast = -1;
+	private int liveSession = -1, liveChannel = -1;
+	private Opus.Decoder liveDec;
+	private final short[] livePcm = new short[Opus.MAX_PACKET_SAMPLES * 22];
+
+	private void liveStart(Session ss, int ch, Map<String, Object> o) {
+		int was = liveChannel;
+		liveStop();
+		if (was >= 0 && was != ch && was < chan.size() && !chan.get(was).muted) {
+			/* one bed at a time: the room that was playing goes off, on the server too */
+			int s2 = ++ss.seq;
+			if (send(ss, Proto.room(s2, chan.get(was).name, false))) { addPending(ss, s2, PKind.ROOM, was, 0, false); chan.get(was).muted = true; }
+		}
+		liveStream = Json.lng(o, "stream");
+		liveSession = ss.idx;
+		liveChannel = ch;
+		liveLast = -1;
+		liveDec = new Opus.Decoder();
+		pf.log("ambient: " + Json.str(o, "channel") + " rolling");
+		changed();
+	}
+
+	private void liveFeed(long seq, byte[] data) {
+		if (liveDec == null || data.length == 0) return;
+		if (liveLast >= 0 && seq <= liveLast) return;
+		if (liveLast >= 0 && seq > liveLast + 1) liveDec.lost((int) Math.min(seq - liveLast - 1, 20));
+		liveLast = seq;
+		if (pf.ambQueued() > Opus.RATE * 3) return;   /* the lane is full (the phone fell behind): skip on, never pile up */
+		int n = liveDec.decode(data, livePcm);
+		if (n > 0) pf.ambWrite(livePcm, n);
+	}
+
+	private void liveStop() {
+		if (liveStream < 0 && liveDec == null) return;
+		liveStream = -1;
+		liveSession = -1;
+		liveChannel = -1;
+		if (liveDec != null) liveDec.close();
+		liveDec = null;
+		pf.ambStop();
+		changed();
+	}
+
+	/** the Ambient room that plays now, -1 none */
+	public int liveChannel() {
+		return liveChannel;
 	}
 
 	/* ---------- the player ---------- */
@@ -2433,6 +2505,15 @@ public final class Engine {
 			if (!send(ss, Proto.room(seq, c.name, on))) return;
 			addPending(ss, seq, PKind.ROOM, k, on ? 1 : 0, false);
 			c.muted = !on;
+			if (on && "ambient".equals(c.group)) {
+				/* one bed at a time: the other Ambient rooms go off */
+				for (int x = 0; x < chan.size(); x++) {
+					Channel o = chan.get(x);
+					if (x == k || o.muted || !"ambient".equals(o.group) || o.session != c.session) continue;
+					int s2 = ++ss.seq;
+					if (send(ss, Proto.room(s2, o.name, false))) { addPending(ss, s2, PKind.ROOM, x, 0, false); o.muted = true; }
+				}
+			}
 			if (on) {
 				int n = playMissed(k);
 				event(k, n > 0 ? "switched on: playing " + n + " missed" : "switched on");
@@ -2671,6 +2752,8 @@ public final class Engine {
 		public boolean ticket;
 		/** G193: a direct-message tab: the other member ("" for a room) */
 		public String peer = "";
+		/** 5 Nov 2026: the server's group (chat, service, crew, people, meeting), "" when it gave none */
+		public String group = "";
 	}
 
 	public static final class View {
@@ -2741,6 +2824,7 @@ public final class Engine {
 			cv.who.addAll(c.who);
 			cv.ticket = isTicketRoom(c.name);
 			cv.peer = c.peer;
+			cv.group = c.group;
 			cv.unread = c.unread + unheard(c); /* G278: texts since last looked, plus voice messages not heard yet */
 			cv.state = stateLabel(k);
 			cv.error = sess.get(c.session).error;
