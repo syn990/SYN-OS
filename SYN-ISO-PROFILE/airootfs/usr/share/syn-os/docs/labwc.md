@@ -39,19 +39,15 @@ and External, though you can use them however you like.
 ![The root menu open over the desktop](./screenshots/menu-xml-root-open.png)
 *Placeholder, the menu open over the desktop.*
 
-**Terminal**, **SYN-SHELL** (the file manager), and **Applications** for
-everything else installed on the system.
-
-**SYN Apps**: every SYN app built or installed on this machine (SYN-TREK,
-SYN-BIOGENESIS, SYN-NETJUMPER and the rest). It lists any application
-whose desktop entry is named `SYN-something`, from
-`~/.local/share/applications` and `/usr/share/applications`, so it only
-shows what this machine actually has.
+**Terminal**, and **Applications** for everything installed on the system.
 
 **Capture**: screenshot the full screen or a selected area, and start or
 stop a screen recording.
 
-**SYN-OS Tools**: every tool this project builds, in one place. The
+**SYN-OS Tools**: the SYN apps first (SYN-TREK, SYN-BIOGENESIS,
+SYN-BIOGENESIS-3D, SYN-SHELL, SYN-MINECRAFT, SYN-TUBE, SYN-NETJUMPER;
+apart from SYN-SHELL they're built from their own repositories into
+`~/.local/bin`), then every tool this project builds, in one place. The
 Wi-Fi picker, volume mixer, system monitor, system logs, file sharing,
 encryption, directory mapping, the ISO builder, and this same
 documentation.

@@ -15,24 +15,9 @@
       </action>
     </item>
 
-    <item label=" SYN-SHELL">
-      <action name="Execute">
-        <command>syn-shell</command>
-      </action>
-    </item>
-
     <menu id="dynamic_apps"
           label="  Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
-
-    <!-- SYN Apps: every installed app whose desktop entry is named SYN-*
-         (SYN-TREK, SYN-BIOGENESIS, SYN-NETJUMPER ...), listed live by
-         syn-pipe-apps.zsh, so each host shows what is built on it. -->
-    <menu id="syn-apps-pipe"
-          label="  SYN Apps"
-          execute="/usr/lib/syn-os/syn-pipe-apps.zsh" />
-
-    <separator />
 
     <!-- BLACKARCH-MENU-START/END: inserted/removed here by
          syn-blackarch-toggle.zsh's Enable/Disable — not present until
@@ -85,7 +70,57 @@
          error) leaves the terminal open with the error visible instead
          of the window just vanishing. -->
     
+    <separator />
+
     <menu id="synos-tools" label="  SYN-OS Tools">
+      <!-- The SYN apps first, then SYN-OS's own tools. SYN-SHELL ships with
+           SYN-OS; the others are built from their own repositories into
+           ~/.local/bin (each repo's README), so on a machine without one
+           its entry does nothing. -->
+      <item label="SYN-TREK">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-trek"'</command>
+        </action>
+      </item>
+
+      <item label="SYN-BIOGENESIS">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-biogenesis"'</command>
+        </action>
+      </item>
+
+      <item label="SYN-BIOGENESIS-3D">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-biogenesis-3d"'</command>
+        </action>
+      </item>
+
+      <item label="SYN-SHELL">
+        <action name="Execute">
+          <command>syn-shell</command>
+        </action>
+      </item>
+
+      <item label="SYN-MINECRAFT">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-minecraft"'</command>
+        </action>
+      </item>
+
+      <item label="SYN-TUBE">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-tube"'</command>
+        </action>
+      </item>
+
+      <item label="SYN-NETJUMPER">
+        <action name="Execute">
+          <command>sh -c 'exec "$HOME/.local/bin/syn-netjumper"'</command>
+        </action>
+      </item>
+
+      <separator />
+
       <item label="Wi-Fi / Bluetooth">
         <action name="Execute">
           <command>foot -e /usr/lib/syn-os/syn-connect</command>
