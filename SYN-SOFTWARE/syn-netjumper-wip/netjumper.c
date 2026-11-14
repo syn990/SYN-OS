@@ -1235,6 +1235,12 @@ int main(int argc, char **argv)
 		g_print("Imported %d saved password%s into the keyring for SYN-NETJUMPER.\n", n, n == 1 ? "" : "s");
 		return 0;
 	}
+	/* No AT-SPI accessibility bridge: under a dbus-run-session desktop (SYN-OS's
+	   `synos` login) WebKit's page accessibility tree reaches atk-bridge with no
+	   registry behind it, and atk-bridge segfaults in spi_register_object_to_path
+	   the moment the pointer crosses the window (seen on the title bar). SYN-OS
+	   ships no screen reader; set NO_AT_BRIDGE=0 to have the bridge anyway. */
+	g_setenv("NO_AT_BRIDGE", "1", FALSE);
 	/* the first run's name for the desktop; a second run hands its addresses to the first */
 	GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_HANDLES_OPEN);
 	g_signal_connect(app, "startup", G_CALLBACK(on_startup), NULL);
