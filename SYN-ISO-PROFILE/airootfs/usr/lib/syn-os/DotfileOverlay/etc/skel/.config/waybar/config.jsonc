@@ -246,7 +246,7 @@
     "device": "intel_backlight",
     "format": "{percent}% ",
     "on-scroll-up": "brightnessctl set +5%",
-    "on-scroll-down": "brightnessctl set 5%-"
+    "on-scroll-down": "brightnessctl --min-value=$(( $(brightnessctl max) / 10 )) set 5%-"
   },
 
   "battery": {
