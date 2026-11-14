@@ -151,6 +151,10 @@ appsMedia=(
   obs-studio          # Free and open source software for video recording and live streaming
   falkon              # Lightweight web browser based on QtWebEngine
   gimp                # GNU Image Manipulation Program (raster graphics editor)
+  gst-plugins-base    # GStreamer playback for WebKitGTK pages (SYN-NETJUMPER, SYN-TUBE on YouTube):
+  gst-plugins-good    #   without autoaudiosink and these decoders a page with video
+  gst-plugins-bad     #   or sound crashes its web process
+  gst-libav           #   (H.264/AAC/Opus through FFmpeg)
 )
 
 # Combined array holding all packages for installation
