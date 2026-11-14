@@ -91,7 +91,7 @@ unframe() {
 
 tone() { [[ -x $NOTIFY ]] && "$NOTIFY" "$1" 2>/dev/null; return 0; }
 toast() { command -v notify-send >/dev/null && notify-send -a SYN-BAR "$1" "${2:-}"; return 0; }
-refresh() { pkill -RTMIN+$SIGNAL -x waybar 2>/dev/null; return 0; }
+refresh() { /usr/bin/pkill -RTMIN+$SIGNAL -x waybar 2>/dev/null; return 0; }
 die() { print -u2 -r -- "syn-bar-speak: $*"; exit 1; }
 
 # --- what's in use ------------------------------------------------------------

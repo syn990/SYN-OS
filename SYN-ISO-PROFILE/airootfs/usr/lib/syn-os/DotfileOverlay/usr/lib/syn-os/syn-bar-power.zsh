@@ -29,7 +29,7 @@ choice=$(printf 'Lock\nLog Out\nReboot\nPower Off' | rofi -dmenu -p "Power" \
 
 case "$choice" in
   Lock)      swaylock -f -c 1a0000 ;;
-  "Log Out") pkill labwc ;;
+  "Log Out") /usr/bin/pkill labwc ;;
   Reboot)    systemctl reboot ;;
   "Power Off") systemctl poweroff ;;
 esac

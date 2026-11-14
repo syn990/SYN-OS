@@ -91,6 +91,7 @@ desktopStack=(
   grim                # Screenshot utility for Wayland compositors
   slurp               # Selection utility for Wayland compositors (used with grim)
   archlinux-xdg-menu  # Arch Linux menu generator for XDG desktop entries (creates wmenu entries)
+  papirus-icon-theme  # Icon theme for the menu's Applications list (rc.xml <icon>; Papirus-Light on light themes)
   waybar              # Highly customizable Wayland status bar for wlroots-based compositors
   mako                # Lightweight Wayland notification daemon (renders notify-send toasts)
   libnotify           # Provides the notify-send binary itself (mako only renders what's sent to it)

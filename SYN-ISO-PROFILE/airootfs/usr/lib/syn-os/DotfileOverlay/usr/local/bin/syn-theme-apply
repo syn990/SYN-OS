@@ -120,7 +120,7 @@ makoctl reload 2>/dev/null || true
 
 # -------- wallpaper (restart swaybg with the theme's image, if set) --------
 if [[ -n "${SYN_WALLPAPER:-}" && -f "$SYN_WALLPAPER" ]]; then
-  pkill swaybg 2>/dev/null || true
+  /usr/bin/pkill swaybg 2>/dev/null || true
   swaybg -i "$SYN_WALLPAPER" >/dev/null 2>&1 &
   disown
 fi
@@ -134,7 +134,7 @@ print -r -- "${SYN_GLYPH:-●}" > "$HOME/.config/waybar/glyph"
 # backgrounds don't), and wlr/taskbar can go blank until a real restart.
 # A clean kill+relaunch is what actually applies a theme consistently
 # across every module, same pattern already used for swaybg above.
-pkill waybar 2>/dev/null || true
+/usr/bin/pkill waybar 2>/dev/null || true
 waybar >/dev/null 2>&1 &
 disown
 
@@ -179,7 +179,15 @@ render "$labwc_tmpl" "$labwc_theme_dir/themerc"
 # Scoped to just the first <name> after <theme> opens — an unanchored
 # match would also hit every <font><name> tag in the file and break fonts.
 sed -i "/<theme>/,/<\/theme>/{0,/<name>.*<\/name>/s||<name>${SYN_THEME_NAME}</name>|}" "$HOME/.config/labwc/rc.xml"
-labwc --reconfigure 2>/dev/null || pkill -SIGHUP labwc 2>/dev/null || true
+# Menu icon theme follows the palette's mode: Papirus-Dark on dark themes,
+# Papirus-Light on light ones. Added after <name> if an older rc.xml has none.
+menu_icons="Papirus-Dark"; [[ "${SYN_THEME_MODE:-dark}" == light ]] && menu_icons="Papirus-Light"
+if grep -q "<icon>" "$HOME/.config/labwc/rc.xml"; then
+  sed -i "/<theme>/,/<\/theme>/s|<icon>.*</icon>|<icon>${menu_icons}</icon>|" "$HOME/.config/labwc/rc.xml"
+else
+  sed -i "/<theme>/,/<\/theme>/{0,/<\/name>/s|</name>|</name>\n    <icon>${menu_icons}</icon>|}" "$HOME/.config/labwc/rc.xml"
+fi
+labwc --reconfigure 2>/dev/null || /usr/bin/pkill -SIGHUP labwc 2>/dev/null || true
 
 # -------- foot (rewrite [colors-dark] block, live via SIGUSR1) --------
 foot_ini="$HOME/.config/foot/foot.ini"
@@ -208,7 +216,7 @@ awk -v block="$new_block" '
 ' "$foot_ini" > "$foot_ini.new" && mv "$foot_ini.new" "$foot_ini"
 # foot has no config-reload signal — SIGUSR1 only toggles colors it already
 # loaded at startup, so only new windows pick up what was just written.
-pkill -SIGUSR1 foot 2>/dev/null || true
+/usr/bin/pkill -SIGUSR1 foot 2>/dev/null || true
 
 # -------- GTK3 (Audacity, EtherApe, virt-manager, virt-viewer — none Qt,
 # so qt6ct doesn't reach them. Overrides Adwaita-dark's named colors

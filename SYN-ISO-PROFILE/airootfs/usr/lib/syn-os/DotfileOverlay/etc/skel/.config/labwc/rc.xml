@@ -15,6 +15,9 @@
   <theme>
     <name>SYN-OS-RED</name>
     <titleLayout>NLIMC</titleLayout>
+    <!-- Icons in the menu (Applications list). syn-theme-apply switches
+         this to Papirus-Light on light themes. -->
+    <icon>Papirus-Dark</icon>
 
     <font place="ActiveWindow">
       <name>Terminus</name>
@@ -26,13 +29,13 @@
       <size>10</size>
     </font>
     <font place="MenuHeader">
-      <name>Terminus</name>
+      <name>Terminess Nerd Font</name>
       <size>10</size>
       <weight>Bold</weight>
     </font>
     <font place="MenuItem">
-      <name>Terminus</name>
-      <size>10</size>
+      <name>Terminess Nerd Font</name>
+      <size>11</size>
     </font>
     <font place="OnScreenDisplay">
       <name>Terminus</name>
