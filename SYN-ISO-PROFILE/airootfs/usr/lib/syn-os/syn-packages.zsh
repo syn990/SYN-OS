@@ -127,6 +127,7 @@ devToolkit=(
   binwalk             # Tool for searching a given binary image for embedded files
   hexedit             # View and edit files in hexadecimal or ASCII
   lshw                # Utility to extract detailed hardware configuration
+  opencode            # Terminal coding agent; wears the desktop theme (syn-theme-opencode + /usr/lib/syn-os/opencode/syn-theme.ts)
   yt-dlp              # Command-line audio/video downloader (youtube-dl fork)
   wayland-protocols   # Protocol XML used to generate syn-relay's screen-capture/input-inject code
 )

@@ -153,4 +153,6 @@ mkcd() {
 # =============================================================================
 # End of SYN-OS Configuration
 # =============================================================================
-export PATH="$HOME/bin:$PATH"
+# ~/.local/bin: per-user programs (Claude Code, SYN-NETJUMPER's make install,
+# the SYN apps' launchers).
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"

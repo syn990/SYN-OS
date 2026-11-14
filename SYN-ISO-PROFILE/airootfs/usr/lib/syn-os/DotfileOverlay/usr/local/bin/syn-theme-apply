@@ -234,8 +234,15 @@ fi
 mkdir -p "${CURRENT_FILE:h}"
 print -r -- "$SYN_THEME_NAME" > "$CURRENT_FILE"
 
+# -------- Claude Code (~/.claude/themes/syn-os.json from the palette just
+# recorded above; a running Claude Code repaints when the file changes) --------
+if [[ -d "$HOME/.claude" ]] && (( $+commands[syn-theme-claude] )); then
+  syn-theme-claude || print -u2 "syn-theme-apply: syn-theme-claude failed"
+fi
+
 print "Theme applied: $SYN_THEME_NAME"
 print "  waybar, labwc, mako: live"
 print "  foot: new windows only (existing terminals keep their old colors — foot has no live-reload signal)"
 print "  qt6ct (falkon, syn-shell), gtk3 (audacity, etherape, virt-manager, virt-viewer): applies on next launch"
 print "  opencode: live (syn-theme plugin)"
+print "  Claude Code: live (theme SYN-OS, custom:syn-os)"
