@@ -39,8 +39,14 @@ and External, though you can use them however you like.
 ![The root menu open over the desktop](./screenshots/menu-xml-root-open.png)
 *Placeholder, the menu open over the desktop.*
 
-**Applications**: a terminal, the file manager, and "All Applications" for
+**Terminal**, **SYN-SHELL** (the file manager), and **Applications** for
 everything else installed on the system.
+
+**SYN Apps**: every SYN app built or installed on this machine (SYN-TREK,
+SYN-BIOGENESIS, SYN-NETJUMPER and the rest). It lists any application
+whose desktop entry is named `SYN-something`, from
+`~/.local/share/applications` and `/usr/share/applications`, so it only
+shows what this machine actually has.
 
 **Capture**: screenshot the full screen or a selected area, and start or
 stop a screen recording.

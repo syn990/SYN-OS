@@ -7,23 +7,32 @@
          live pipe-menu (xdg_menu, regenerated from whatever's actually
          installed) — not a hand-sorted list, and not something to merge
          with the hand-placed items below it. -->
-    <separator label=" APPLICATIONS " />
+    <separator label="SYN-OS" />
 
-    <item label="Terminal">
+    <item label="  Terminal">
       <action name="Execute">
         <command>foot</command>
       </action>
     </item>
 
-    <item label="SYN-SHELL">
+    <item label=" SYN-SHELL">
       <action name="Execute">
         <command>syn-shell</command>
       </action>
     </item>
 
     <menu id="dynamic_apps"
-          label="All Applications"
+          label="  Applications"
           execute="xdg_menu --format openbox3-pipe --root-menu /etc/xdg/menus/arch-applications.menu" />
+
+    <!-- SYN Apps: every installed app whose desktop entry is named SYN-*
+         (SYN-TREK, SYN-BIOGENESIS, SYN-NETJUMPER ...), listed live by
+         syn-pipe-apps.zsh, so each host shows what is built on it. -->
+    <menu id="syn-apps-pipe"
+          label="  SYN Apps"
+          execute="/usr/lib/syn-os/syn-pipe-apps.zsh" />
+
+    <separator />
 
     <!-- BLACKARCH-MENU-START/END: inserted/removed here by
          syn-blackarch-toggle.zsh's Enable/Disable — not present until
@@ -37,7 +46,7 @@
          $XDG_RUNTIME_DIR), the same entry again to stop. Display & Screens
          is actual output configuration, not a launched action — that
          lives in Preferences below, not here. -->
-    <menu id="capture-menu" label="Capture">
+    <menu id="capture-menu" label=" Capture">
       <item label="Screenshot - full screen">
         <action name="Execute">
           <command>/usr/lib/syn-os/screenshot.zsh full</command>
@@ -75,9 +84,8 @@
          `; exec zsh` so an early failure (missing dependency, permission
          error) leaves the terminal open with the error visible instead
          of the window just vanishing. -->
-    <separator label=" SYN-OS TOOLS " />
-
-    <menu id="synos-tools" label="SYN-OS Tools">
+    
+    <menu id="synos-tools" label="  SYN-OS Tools">
       <item label="Wi-Fi / Bluetooth">
         <action name="Execute">
           <command>foot -e /usr/lib/syn-os/syn-connect</command>
@@ -281,9 +289,8 @@
          one level deep instead of sitting bare at root. Audio/Display/
          Themes are each a real dynamic pipe-menu (queries pactl/wlr-randr/
          theme dir live). -->
-    <separator label=" SETTINGS " />
-
-    <menu id="preferences-menu" label="Preferences">
+    
+    <menu id="preferences-menu" label="  Preferences">
       <!-- Desktop settings: live, cosmetic/hardware controls you tune to
            taste. Each of Audio/Display/Themes/Default Apps/Acoustic Monitor is a real dynamic
            pipe-menu (queries pactl/wlr-randr/theme dir/mimeapps live),
@@ -350,9 +357,8 @@
          which one a given tool landed in; they've all moved to SYN-OS
          Tools above, so everything left in this menu is genuinely about
          maintaining the running session, not launching a tool. -->
-    <separator label=" SYSTEM " />
-
-    <menu id="system-menu" label="System">
+    
+    <menu id="system-menu" label="  System">
       <item label="Lock Screen">
         <action name="Execute">
           <command>swaylock -f -c 1a0000</command>
@@ -483,9 +489,9 @@
     </menu>
 
     <!-- Power -->
-    <separator label=" POWER " />
+    <separator />
 
-    <menu id="power-menu" label="Power Options">
+    <menu id="power-menu" label="  Power">
       <item label="Reboot">
         <action name="Execute">
           <command>systemctl reboot</command>

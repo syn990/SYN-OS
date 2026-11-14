@@ -20,30 +20,43 @@ window.inactive.shadow.size:    0
 window.active.label.text.font:  Terminus 10
 window.label.text.justify:      left
 
-menu.title.text.font:           Terminus 10
+menu.title.text.font:           Terminess Nerd Font Mono Bold 9
 menu.title.text.justify:        left
 
-menu.items.font:                Terminus 10
+# Terminess is Terminus with Nerd Font glyphs patched in (ttf-terminus-nerd),
+# so the menu keeps the Terminus look and the glyph icons in menu.xml's
+# labels render at the same size as the text beside them.
+menu.items.font:                Terminess Nerd Font Mono 11
 
 # Default max is 200px — clips anything past ~28 characters at this font.
-# Several real entries run well past that (SYN-CRYPTER, SYN-NETSERVER,
-# "Record - select area / Stop", the longest Capture entries) — 340 was
-# tuned against the old menu's longest label and got outgrown the moment
-# Capture was added. 460 covers every current real label with margin.
-menu.width.min:                 200
+# 460 covers every current real label (SYN-CRYPTER's is the longest).
+menu.width.min:                 240
 menu.width.max:                 460
 
-menu.border.width:              5
-menu.overlap.x:                 -10
-menu.overlap.y:                 -10
+# A thin accent-dim frame, submenus opening flush against their parent,
+# and room around every row: the old 5px slab border, -10px overlap and
+# 1px rows were Openbox-era and read as cramped.
+menu.border.width:              1
+menu.border.color:              SYN_ACCENT_DIM
+menu.overlap.x:                 0
+menu.overlap.y:                 0
+menu.items.padding.x:           14
+menu.items.padding.y:           7
 
+# Section headings (labelled separators) are quiet dim captions on the
+# panel colour, not solid bars; plain separators are a 1px hairline.
 menu.title.bg:                  flat solid
-menu.title.bg.color:            SYN_BG_ALT
+menu.title.bg.color:            SYN_PANEL
 menu.title.text.color:          SYN_ACCENT
 
+menu.separator.width:           1
+menu.separator.padding.width:   10
+menu.separator.padding.height:  4
+menu.separator.color:           SYN_ACCENT_DIM
+
 menu.items.bg:                  flat solid
-menu.items.bg.color:            SYN_BG
-menu.items.text.color:          SYN_ACCENT
+menu.items.bg.color:            SYN_PANEL
+menu.items.text.color:          SYN_TEXT
 
 menu.items.active.bg:           flat solid
 menu.items.active.bg.color:     SYN_ACCENT
