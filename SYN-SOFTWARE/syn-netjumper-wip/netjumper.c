@@ -305,6 +305,8 @@ static char *live_theme_name(void)
 	return s ? s : g_strdup("SYN-OS-M141");
 }
 
+static void overlay_refresh_all(void);
+
 static void apply_theme(const char *name)
 {
 	char *file = g_strconcat(name, ".theme", NULL);
@@ -391,6 +393,156 @@ static void apply_theme(const char *name)
 	g_free(file);
 	g_free(G.theme_name);
 	G.theme_name = g_strdup(name);
+	overlay_refresh_all();
+}
+
+/* ---- SYN-TUBE: the desktop's theme laid over youtube.com ----
+   Not an app of its own: YouTube itself, in this browser, wearing the live
+   SYN-OS palette and Terminus. A user stylesheet limited to YouTube's hosts,
+   rebuilt in every tab when the desktop theme changes. YouTube colours its
+   pages through --yt-spec-* custom properties, so most of this sets those;
+   the rest covers what it paints directly. */
+static const char *const YT_HOSTS[] = {
+	"https://youtube.com/*", "https://*.youtube.com/*", NULL
+};
+
+static const char YT_CSS[] =
+	"html, html[dark], html:not([dark]), ytd-app, ytd-app[dark], tp-yt-iron-dropdown, ytd-popup-container {"
+	"  --yt-spec-base-background: %1$s; --yt-spec-raised-background: %2$s; --yt-spec-menu-background: %2$s;"
+	"  --yt-spec-general-background-a: %1$s; --yt-spec-general-background-b: %1$s; --yt-spec-general-background-c: %2$s;"
+	"  --yt-spec-brand-background-solid: %2$s; --yt-spec-brand-background-primary: %2$s; --yt-spec-brand-background-secondary: %3$s;"
+	"  --yt-spec-additive-background: %3$s; --yt-spec-10-percent-layer: %4$s; --yt-spec-outline: %4$s;"
+	"  --yt-spec-badge-chip-background: %3$s; --yt-spec-button-chip-background-hover: %5$s; --yt-spec-touch-response: %5$s;"
+	"  --yt-spec-text-primary: %6$s; --yt-spec-text-secondary: %7$s; --yt-spec-text-disabled: %4$s;"
+	"  --yt-spec-icon-active-other: %6$s; --yt-spec-icon-inactive: %7$s; --yt-spec-icon-disabled: %4$s;"
+	"  --yt-spec-call-to-action: %8$s; --yt-spec-themed-blue: %8$s; --yt-spec-brand-link-text: %8$s;"
+	"  --yt-spec-static-brand-red: %8$s; --yt-spec-red-indicator: %8$s; --yt-spec-brand-icon-active: %8$s;"
+	"  --yt-spec-mono-filled: %8$s; --yt-spec-static-overlay-background-brand: %8$s;"
+	"  --yt-spec-text-primary-inverse: %1$s; --yt-spec-inverted-background: %6$s;"
+	"  --yt-spec-wordmark-text: %8$s; --yt-spec-shadow: transparent;"
+	"}"
+	"html, body, ytd-app { background: %1$s !important; color: %6$s !important; }"
+	"html, body, ytd-app, ytd-app *, ytd-popup-container *, tp-yt-paper-dialog *, input, button, textarea,"
+	"  .ytp-tooltip-text, .ytp-menuitem, .ytp-menuitem *, .ytp-time-display, .ytp-chapter-title {"
+	"  font-family: \"Terminus\", monospace !important; letter-spacing: 0 !important; }"
+	"#masthead-container, ytd-masthead, #background.ytd-masthead, #frosted-glass,"
+	"  #guide-content, tp-yt-app-drawer #contentContainer, ytd-mini-guide-renderer { background: %2$s !important; }"
+	"ytd-masthead { border-bottom: 1px solid %8$s; }"
+	"ytd-searchbox #container, .ytSearchboxComponentInputBox, input#search { background: %1$s !important; color: %6$s !important; border-color: %4$s !important; border-radius: 0 !important; }"
+	"#search-icon-legacy, .ytSearchboxComponentSearchButton { background: %3$s !important; border-color: %4$s !important; border-radius: 0 !important; }"
+	"yt-chip-cloud-chip-renderer, .ytChipShapeChip { background: %3$s !important; color: %6$s !important; border-radius: 0 !important; }"
+	"yt-chip-cloud-chip-renderer[selected], .ytChipShapeActive { background: %8$s !important; color: %9$s !important; }"
+	"ytd-guide-entry-renderer[active] tp-yt-paper-item, ytd-guide-entry-renderer tp-yt-paper-item:hover { background: %5$s !important; }"
+	"ytd-guide-entry-renderer[active] yt-formatted-string, ytd-guide-entry-renderer[active] .title { color: %8$s !important; }"
+	"ytd-thumbnail, ytd-thumbnail img, #thumbnail, yt-image img, .yt-core-image, .ytThumbnailViewModelImage,"
+	"  #player-container-outer, .html5-video-player, ytd-player #container { border-radius: 0 !important; }"
+	"yt-button-shape button, .yt-spec-button-shape-next { border-radius: 0 !important; }"
+	"ytd-topbar-logo-renderer #logo-icon, ytd-topbar-logo-renderer yt-icon { display: none !important; }"
+	"ytd-topbar-logo-renderer #logo::after { content: \"SYN-TUBE\"; color: %8$s; font: bold 18px \"Terminus\", monospace; padding-left: 4px; }"
+	"#country-code { display: none !important; }"
+	".ytp-play-progress, .ytp-swatch-background-color, .ytp-volume-slider-handle, .ytp-volume-slider-handle::before,"
+	"  .ytp-settings-button.ytp-hd-quality-badge::after { background: %8$s !important; }"
+	".ytp-scrubber-button, .ytp-swatch-color { color: %8$s !important; background: %8$s !important; }"
+	".ytp-popup, .ytp-settings-menu, .ytp-panel { background: %2$s !important; border-radius: 0 !important; }"
+	"::selection { background: %8$s; color: %9$s; }"
+	"* { scrollbar-color: %8$s %2$s; }"
+	/* no adverts or sponsored items */
+	"ytd-ad-slot-renderer, ytd-in-feed-ad-layout-renderer, ytd-promoted-sparkles-web-renderer, ytd-promoted-video-renderer,"
+	"  ytd-compact-promoted-video-renderer, ytd-display-ad-renderer, ytd-action-companion-ad-renderer, ytd-banner-promo-renderer,"
+	"  ytd-statement-banner-renderer, ytd-player-legacy-desktop-watch-ads-renderer, ytd-search-pyv-renderer, ytd-merch-shelf-renderer,"
+	"  ytd-brand-video-singleton-renderer, ytd-brand-video-shelf-renderer, ytd-primetime-promo-renderer, #masthead-ad, #player-ads,"
+	"  ytd-rich-item-renderer:has(ytd-ad-slot-renderer), ytd-rich-item-renderer:has(feed-ad-metadata-view-model),"
+	"  ytd-rich-item-renderer:has(badge-shape[aria-label=\"Sponsored\"]), ytd-rich-section-renderer:has(ytd-statement-banner-renderer),"
+	"  .ytp-ad-module, .ytp-ad-overlay-container, .ytp-ad-image-overlay, .video-ads { display: none !important; }"
+	/* no Shorts */
+	"ytd-reel-shelf-renderer, ytd-rich-shelf-renderer[is-shorts], ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),"
+	"  grid-shelf-view-model:has(ytm-shorts-lockup-view-model), ytm-shorts-lockup-view-model, ytm-shorts-lockup-view-model-v2,"
+	"  ytd-video-renderer:has(a[href^=\"/shorts/\"]), ytd-rich-item-renderer:has(a[href^=\"/shorts/\"]),"
+	"  ytd-guide-entry-renderer:has(a[title=\"Shorts\"]), ytd-mini-guide-entry-renderer[aria-label=\"Shorts\"],"
+	"  yt-tab-shape[tab-title=\"Shorts\"] { display: none !important; }"
+	/* no algorithm: recommendations beside and after a video, trending/explore */
+	"#related, ytd-watch-next-secondary-results-renderer, .ytp-endscreen-content, .ytp-ce-element, .videowall-endscreen,"
+	"  .ytp-autonav-toggle-button-container, ytd-guide-section-renderer:has(a[href=\"/feed/trending\"]),"
+	"  ytd-guide-section-renderer:has(a[href^=\"/feed/explore\"]) { display: none !important; }"
+	/* the SYN button in YouTube's top bar */
+	"#syn-tube-button { font: bold 15px \"Terminus\", monospace; color: %9$s; background: %8$s; border: 0; border-radius: 0;"
+	"  padding: 6px 14px; margin: 0 12px; cursor: pointer; letter-spacing: 1px; }"
+	"#syn-tube-button:hover { filter: brightness(1.15); }";
+
+/* YouTube in its own dark mode, which the overlay's palette sits on: the dark
+   attribute now, and YouTube's own preference cookie (PREF f6=400) so later
+   pages are served dark. */
+static const char YT_DARK_JS[] =
+	"(function(){var d=document.documentElement;"
+	"function dark(){if(!d.hasAttribute('dark'))d.setAttribute('dark','');}"
+	"dark();new MutationObserver(dark).observe(d,{attributes:true,attributeFilter:['dark']});"
+	"var m=document.cookie.match(/(?:^|; )PREF=([^;]*)/),v=m?m[1]:'';"
+	"if(!/(^|&)f6=4/.test(v)){v=v.replace(/(^|&)f6=[^&]*/,'');v=(v?v+'&':'')+'f6=400';"
+	"document.cookie='PREF='+v+'; domain=.youtube.com; path=/; max-age=31536000; secure';}"
+	"})();";
+
+/* text that reads on the accent: the themes' own "selected text" can be the
+   accent itself (HALO, FLATLINE, MATRIX), which vanishes on an accent fill */
+static const char *on_accent(void)
+{
+	unsigned r = 0, g = 0, b = 0;
+	sscanf(G.accent + 1, "%2x%2x%2x", &r, &g, &b);
+	return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.55 ? "#000000" : "#ffffff";
+}
+
+/* YouTube without the algorithm or adverts, and the SYN button: the home
+   page's recommendations become the subscriptions feed; an advert in the
+   player is skipped; the button opens the same page in SYN-TUBE through
+   the syn-tube: address (see on_decide). */
+static const char YT_CLEAN_JS[] =
+	"(function(){"
+	"function home(){if(location.pathname==='/'&&!location.search)location.replace('/feed/subscriptions');}"
+	"home();window.addEventListener('yt-navigate-start',function(e){try{var u=e.detail.url||'';if(u==='/'||u==='/?')"
+	"{e.stopImmediatePropagation();location.replace('/feed/subscriptions');}}catch(_){}} ,true);"
+	"window.addEventListener('yt-navigate-finish',home);"
+	"setInterval(function(){var p=document.querySelector('.html5-video-player');"
+	"if(p&&(p.classList.contains('ad-showing')||p.classList.contains('ad-interrupting'))){var v=p.querySelector('video');"
+	"if(v){v.muted=true;if(isFinite(v.duration))v.currentTime=v.duration;}"
+	"var b=document.querySelector('.ytp-skip-ad-button,.ytp-ad-skip-button,.ytp-ad-skip-button-modern');if(b)b.click();}},300);"
+	"function route(){var u=new URL(location.href),p=u.pathname,q=u.searchParams,m;"
+	"if(p==='/watch'&&q.get('v'))return'watch/'+q.get('v');"
+	"if(p==='/results'&&q.get('search_query'))return'search/'+encodeURIComponent(q.get('search_query'));"
+	"if(p==='/playlist'&&q.get('list'))return'playlist/'+q.get('list');"
+	"if((m=p.match(/^\\/channel\\/(UC[\\w-]{22})/)))return'channel/'+m[1];"
+	"if(/^\\/(@|c\\/|user\\/)/.test(p)){var id=(document.querySelector('meta[itemprop=identifier]')||{}).content;"
+	"try{id=id||ytInitialData.metadata.channelMetadataRenderer.externalId;}catch(_){}if(id)return'channel/'+id;}"
+	"return'feed';}"
+	"function button(){if(document.getElementById('syn-tube-button'))return;var end=document.querySelector('ytd-masthead #end');"
+	"if(!end)return;var b=document.createElement('button');b.id='syn-tube-button';b.textContent='SYN';"
+	"b.title='Open this in SYN-TUBE';b.onclick=function(){location.href='syn-tube:'+route();};end.insertBefore(b,end.firstChild);}"
+	"setInterval(button,800);"
+	"})();";
+
+static void overlay_apply(WebKitUserContentManager *ucm)
+{
+	webkit_user_content_manager_remove_all_style_sheets(ucm);
+	char *css = g_strdup_printf(YT_CSS, G.bg, G.bg_alt, G.panel, G.border, G.hover, G.text,
+		G.border, G.accent, on_accent());
+	WebKitUserStyleSheet *sheet = webkit_user_style_sheet_new(css, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+		WEBKIT_USER_STYLE_LEVEL_USER, YT_HOSTS, NULL);
+	webkit_user_content_manager_add_style_sheet(ucm, sheet);
+	webkit_user_style_sheet_unref(sheet);
+	g_free(css);
+}
+
+static void overlay_refresh_all(void)
+{
+	if (!G.book) return;
+	int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(G.book));
+	for (int i = 0; i < n; i++) {
+		GtkWidget *page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(G.book), i);
+		if (!WEBKIT_IS_WEB_VIEW(page)) continue;
+		overlay_apply(webkit_web_view_get_user_content_manager(WEBKIT_WEB_VIEW(page)));
+		/* the new-tab page is HTML filled in with the palette: draw it again */
+		const char *uri = webkit_web_view_get_uri(WEBKIT_WEB_VIEW(page));
+		Tab *t = g_object_get_data(G_OBJECT(page), "tab");
+		if (t && (!uri || !*uri || g_str_equal(uri, "about:blank"))) load_home(t);
+	}
 }
 
 static gboolean poll_theme(gpointer unused)
@@ -664,6 +816,52 @@ static gboolean on_crash(WebKitWebView *web, WebKitWebProcessTerminationReason w
 	return FALSE;
 }
 
+/* ---- syn-tube:ROUTE, from the SYN button on YouTube ----
+   `syn-tube --no-open` starts SYN-TUBE's server if it isn't running and
+   prints its address; this tab then opens ADDRESS#/ROUTE (watch/ID,
+   channel/ID, search/Q, playlist/ID or feed). */
+typedef struct { WebKitWebView *web; char *route; } SynTubeJob;
+
+static void syn_tube_done(GObject *proc, GAsyncResult *res, gpointer data)
+{
+	SynTubeJob *j = data;
+	char *out = NULL;
+	GError *err = NULL;
+	if (g_subprocess_communicate_utf8_finish(G_SUBPROCESS(proc), res, &out, NULL, &err)
+			&& g_subprocess_get_successful(G_SUBPROCESS(proc)) && out && g_str_has_prefix(out, "http")) {
+		g_strstrip(out);
+		char *uri = g_strconcat(out, "#/", j->route, NULL);
+		webkit_web_view_load_uri(j->web, uri);
+		g_free(uri);
+	} else status_set("SYN-TUBE didn't start (run syn-tube in a terminal to see why).", FALSE);
+	if (err) g_error_free(err);
+	g_free(out);
+	g_object_unref(j->web);
+	g_free(j->route);
+	g_free(j);
+}
+
+static void syn_tube_open(WebKitWebView *web, const char *route)
+{
+	char *prog = g_find_program_in_path("syn-tube");
+	if (!prog) prog = g_build_filename(g_get_home_dir(), ".local", "bin", "syn-tube", NULL);
+	GError *err = NULL;
+	GSubprocess *p = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE, &err,
+		prog, "--no-open", NULL);
+	g_free(prog);
+	if (!p) {
+		status_set("SYN-TUBE isn't installed here.", FALSE);
+		g_error_free(err);
+		return;
+	}
+	status_set("Opening SYN-TUBE...", TRUE);
+	SynTubeJob *j = g_new0(SynTubeJob, 1);
+	j->web = g_object_ref(web);
+	j->route = g_strdup(*route ? route : "feed");
+	g_subprocess_communicate_utf8_async(p, NULL, NULL, syn_tube_done, j);
+	g_object_unref(p);
+}
+
 static gboolean on_decide(WebKitWebView *web, WebKitPolicyDecision *d, WebKitPolicyDecisionType type, gpointer unused)
 {
 	if (type == WEBKIT_POLICY_DECISION_TYPE_RESPONSE) {
@@ -682,6 +880,11 @@ static gboolean on_decide(WebKitWebView *web, WebKitPolicyDecision *d, WebKitPol
 		|| !g_ascii_strcasecmp(scheme, "file") || !g_ascii_strcasecmp(scheme, "data") || !g_ascii_strcasecmp(scheme, "blob");
 	g_free(scheme);
 	if (web_scheme) return FALSE;
+	if (g_str_has_prefix(uri, "syn-tube:")) {
+		syn_tube_open(web, uri + strlen("syn-tube:"));
+		webkit_policy_decision_ignore(d);
+		return TRUE;
+	}
 	/* mailto: and friends go to the desktop's own app, and only for a real click */
 	if (webkit_navigation_action_is_user_gesture(a)) gtk_show_uri_on_window(GTK_WINDOW(G.win), uri, GDK_CURRENT_TIME, NULL);
 	webkit_policy_decision_ignore(d);
@@ -727,6 +930,11 @@ static Tab *tab_new(const char *uri, WebKitWebView *related, gboolean focus)
 	webkit_user_content_manager_add_script(ucm, webkit_user_script_new(
 		AUTOFILL_JS, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_END, NULL, NULL));
 	webkit_user_content_manager_register_script_message_handler(ucm, "synpw");
+	overlay_apply(ucm);
+	webkit_user_content_manager_add_script(ucm, webkit_user_script_new(YT_DARK_JS,
+		WEBKIT_USER_CONTENT_INJECT_TOP_FRAME, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, YT_HOSTS, NULL));
+	webkit_user_content_manager_add_script(ucm, webkit_user_script_new(YT_CLEAN_JS,
+		WEBKIT_USER_CONTENT_INJECT_TOP_FRAME, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, YT_HOSTS, NULL));
 	g_signal_connect(ucm, "script-message-received::synpw", G_CALLBACK(on_script_message), t);
 	t->web = WEBKIT_WEB_VIEW(related
 		? g_object_new(WEBKIT_TYPE_WEB_VIEW, "related-view", related, "user-content-manager", ucm, NULL)
