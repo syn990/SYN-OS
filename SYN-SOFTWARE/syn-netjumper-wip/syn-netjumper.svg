@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYN-NETJUMPER: the web, a globe, in SYN red on black -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" fill="#000000"/>
+  <g fill="none" stroke="#E00000" stroke-width="5">
+    <circle cx="64" cy="64" r="46"/>
+    <ellipse cx="64" cy="64" rx="20" ry="46"/>
+    <line x1="64" y1="18" x2="64" y2="110"/>
+    <line x1="18" y1="64" x2="110" y2="64"/>
+    <path d="M26 40 H102"/>
+    <path d="M26 88 H102"/>
+  </g>
+</svg>
