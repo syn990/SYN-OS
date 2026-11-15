@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------------
+#   syn-shells: every shell on every SYN-OS machine of yours, in one list.
+#
+#   Two kinds of shell are shown, on this machine and on each host in
+#   ~/.config/syn-shells/hosts (one "ssh-alias hostname" a line; default:
+#   hpaio SYN-HPAIO and synbox synbox):
+#     kept    a tmux session: it survives the phone or the laptop dropping
+#             off, and you can come back to it from anywhere
+#     loose   a plain terminal shell (desktop terminal, phone SYN-SHELL,
+#             ssh login): it dies with the window that opened it
+#
+#   syn-shells                 the menu (fzf): Enter goes into a kept shell,
+#                              ctrl-n starts a new kept shell on that line's
+#                              machine, ctrl-x ends the shell on that line
+#   syn-shells ls              the list as a table
+#   syn-shells new [NAME] [--host H]     a new kept shell (attached at once)
+#   syn-shells go NAME [--host H]        into a kept shell
+#   syn-shells end NAME|PID [--host H]   end a kept shell, or hang up a loose one
+#   syn-shells --raw           this machine's shells as tab-separated lines
+#                              (what the other machines read over ssh)
+#
+#   Hosts are reached with ssh -o BatchMode=yes, 3 s to answer; a host that
+#   does not answer is listed as "not reachable", never waited on.
+# ------------------------------------------------------------------------
+set -u
+
+CONF=${XDG_CONFIG_HOME:-$HOME/.config}/syn-shells/hosts
+ME=$(hostname)
+
+hosts() {   # "alias hostname" lines
+    if [ -r "$CONF" ]; then grep -v '^\s*#' "$CONF" | awk 'NF>=1 {print $1, ($2 ? $2 : $1)}'
+    else printf '%s\n' "hpaio SYN-HPAIO" "synbox synbox"; fi
+}
+is_me() { [ "${1,,}" = "${ME,,}" ]; }
+
+# ---------- this machine's shells, one tab-separated line each ----------
+# kept   NAME  ATTACHED  CREATED  ACTIVITY  RUNNING  WINDOWS
+# loose  PID   TTY       STARTED  -         RUNNING  FROM
+raw() {
+    if command -v tmux >/dev/null && tmux ls >/dev/null 2>&1; then
+        # newer tmux (3.8) turns a tab in -F output into "_", so the fields go out with "|" and become tabs here
+        tmux list-sessions -F 'kept|#{session_name}|#{session_attached}|#{session_created}|#{session_activity}|#{pane_current_command}|#{session_windows}' | tr '|' '\t'
+    fi
+    local now; now=$(date +%s)
+    ps -eo pid=,sid=,ppid=,tpgid=,tty=,etimes=,comm= | while read -r pid sid ppid tpgid tty et comm; do
+        [ "$pid" = "$sid" ] || continue
+        case $tty in pts/*) ;; *) continue ;; esac
+        case $comm in zsh|bash|fish|sh|-zsh|-bash) ;; *) continue ;; esac
+        [ -O "/proc/$pid" ] || continue
+        local pcomm; pcomm=$(ps -o comm= -p "$ppid" 2>/dev/null)
+        case $pcomm in tmux*) continue ;; esac
+        local from=$pcomm
+        if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -qx 'SYN_LINK_PHONE=1'; then from=phone
+        else case $pcomm in sshd*) from=ssh ;; esac; fi
+        local run=$comm
+        [ "$tpgid" -gt 0 ] 2>/dev/null && [ "$tpgid" != "$pid" ] && run=$(ps -o comm= -p "$tpgid" 2>/dev/null || echo "$comm")
+        printf 'loose\t%s\t%s\t%s\t-\t%s\t%s\n' "$pid" "$tty" "$((now - et))" "$run" "$from"
+    done
+}
+
+# ---------- all machines ----------
+gather() {   # HOST-tagged raw lines; a dead host gives one "down" line
+    hosts | while read -r alias name; do
+        if is_me "$name"; then raw | sed "s/^/$name\t$alias\t/"
+        else
+            out=$(timeout 6 ssh -n -o BatchMode=yes -o ConnectTimeout=3 "$alias" syn-shells --raw 2>/dev/null)
+            rc=$?
+            if [ $rc -eq 0 ]; then [ -n "$out" ] && printf '%s\n' "$out" | sed "s/^/$name\t$alias\t/"
+            else printf '%s\t%s\tdown\t-\t-\t-\t-\t-\t-\n' "$name" "$alias"; fi
+        fi
+    done
+}
+
+ago() {   # seconds -> 3d / 5h / 12m / 40s
+    local s=$1
+    if [ "$s" -ge 86400 ]; then echo "$((s / 86400))d"; elif [ "$s" -ge 3600 ]; then echo "$((s / 3600))h"
+    elif [ "$s" -ge 60 ]; then echo "$((s / 60))m"; else echo "${s}s"; fi
+}
+
+table() {   # gathered lines -> aligned rows; field 1 (hidden by the menu) is "alias kind id"
+    local now; now=$(date +%s)
+    while IFS=$'\t' read -r host alias kind id a b c run extra; do
+        case $kind in
+            kept)  printf '%s %s %s\t%-10s kept   %-14s %-9s %-6s %-6s %-12s %s window(s)\n' "$alias" kept "$id" "$host" "$id" \
+                       "$([ "$a" -gt 0 ] && echo attached || echo free)" "$(ago $((now - b)))" "$(ago $((now - c)))" "$run" "$extra" ;;
+            loose) printf '%s %s %s\t%-10s loose  %-14s %-9s %-6s %-6s %-12s from %s\n' "$alias" loose "$id" "$host" "pid $id" "$a" \
+                       "$(ago $((now - b)))" "-" "$run" "$extra" ;;
+            down)  printf '%s %s %s\t%-10s (not reachable over ssh)\n' "$alias" down - "$host" ;;
+        esac
+    done
+}
+HEAD=$(printf '%-10s %-6s %-14s %-9s %-6s %-6s %-12s %s' MACHINE KIND NAME STATE AGE IDLE RUNNING '')
+
+sq() { local a out=""; for a in "$@"; do out+="'${a//\'/\'\\\'\'}' "; done; printf '%s' "$out"; }   # args quoted for any remote shell (zsh reads =word as a path)
+
+run_on() {   # run_on ALIAS CMD...: here or over ssh (with a terminal)
+    local alias=$1; shift
+    local name; name=$(hosts | awk -v a="$alias" '$1==a {print $2}')
+    if [ -z "$name" ] || is_me "$name"; then "$@"
+    elif [ -t 0 ]; then ssh -t "$alias" "$(sq "$@")"
+    else ssh -o BatchMode=yes "$alias" "$(sq "$@")"; fi
+}
+
+go() {   # go ALIAS NAME
+    local alias=$1 name=$2 host; host=$(hosts | awk -v a="$alias" '$1==a {print $2}')
+    if [ -z "$host" ] || is_me "$host"; then
+        if [ -n "${TMUX:-}" ]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+    else ssh -t "$alias" "$(sq tmux attach -t "=$name")"; fi
+}
+
+new() {   # new ALIAS [NAME]
+    local alias=$1 name=${2:-}
+    [ -n "$name" ] || name="$(date +%H%M)-$(tr -dc a-z </dev/urandom | head -c3)"
+    local host; host=$(hosts | awk -v a="$alias" '$1==a {print $2}')
+    if [ -z "$host" ] || is_me "$host"; then
+        if [ -n "${TMUX:-}" ]; then tmux new-session -d -s "$name" && tmux switch-client -t "=$name"; else tmux new-session -s "$name"; fi
+    else ssh -t "$alias" "$(sq tmux new-session -s "$name")"; fi
+}
+
+end() {   # end ALIAS kept|loose ID
+    local alias=$1 kind=$2 id=$3
+    if [ "$kind" = kept ]; then run_on "$alias" tmux kill-session -t "=$id"
+    else run_on "$alias" kill -HUP "$id"; fi
+}
+
+self_alias() { hosts | while read -r a n; do is_me "$n" && { echo "$a"; return; }; done; }
+
+menu() {
+    command -v fzf >/dev/null || { echo "syn-shells: the menu needs fzf; 'syn-shells ls' works without it" >&2; exit 1; }
+    while :; do
+        local rows; rows=$(gather | table)
+        local out; out=$(printf '%s\n' "$rows" | fzf --delimiter=$'\t' --with-nth=2 --no-sort --layout=reverse \
+            --header="$HEAD"$'\n'"Enter: go in   ctrl-n: new kept shell there   ctrl-x: end it   Esc: leave" \
+            --expect=enter,ctrl-n,ctrl-x) || return 0
+        local key line; key=$(sed -n 1p <<<"$out"); line=$(sed -n 2p <<<"$out")
+        [ -n "$line" ] || return 0
+        local alias kind id; read -r alias kind id <<<"${line%%$'\t'*}"
+        case $key in
+            enter)  if [ "$kind" = kept ]; then go "$alias" "$id"; return
+                    else echo "A loose shell cannot be entered from here (it belongs to its own window). ctrl-x ends it."; read -rp "Enter to go back " _; fi ;;
+            ctrl-n) [ "$kind" = down ] && continue; read -rp "Name for the new shell on $alias (empty: a time stamp): " nm; new "$alias" "$nm"; return ;;
+            ctrl-x) [ "$kind" = down ] && continue
+                    read -rp "End $kind shell $id on $alias? [y/N] " yn
+                    [ "${yn,,}" = y ] && end "$alias" "$kind" "$id" ;;
+        esac
+    done
+}
+
+host_opt() {   # parse --host H from "$@" into HOST_ALIAS, the rest into ARGS
+    HOST_ALIAS=$(self_alias); ARGS=()
+    while [ $# -gt 0 ]; do
+        case $1 in --host) HOST_ALIAS=$2; shift 2 ;; *) ARGS+=("$1"); shift ;; esac
+    done
+    [ -n "$HOST_ALIAS" ] || HOST_ALIAS=local
+}
+
+cmd=${1:-menu}; [ $# -gt 0 ] && shift
+case $cmd in
+    menu)  menu ;;
+    ls)    echo "$HEAD"; gather | table | cut -f2- ;;
+    --raw) raw ;;
+    new)   host_opt "$@"; new "$HOST_ALIAS" "${ARGS[0]:-}" ;;
+    go)    host_opt "$@"; [ -n "${ARGS[0]:-}" ] || { echo "usage: syn-shells go NAME [--host H]" >&2; exit 2; }; go "$HOST_ALIAS" "${ARGS[0]}" ;;
+    end)   host_opt "$@"; id=${ARGS[0]:-}; [ -n "$id" ] || { echo "usage: syn-shells end NAME|PID [--host H]" >&2; exit 2; }
+           if [[ $id =~ ^[0-9]+$ ]]; then end "$HOST_ALIAS" loose "$id"; else end "$HOST_ALIAS" kept "$id"; fi ;;
+    -h|--help|help) sed -n '3,26p' "$0" | sed 's/^#   \{0,1\}//; s/^#//' ;;
+    *)     echo "syn-shells: no command '$cmd' (syn-shells --help)" >&2; exit 2 ;;
+esac

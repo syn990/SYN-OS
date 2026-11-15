@@ -67,6 +67,7 @@ shellAndCLI=(
   zsh-syntax-highlighting   # Fish-shell like syntax highlighting for Zsh
   zsh-autosuggestions       # Fish-like fast/unobtrusive autosuggestions for Zsh
   fzf                       # Command-line fuzzy finder
+  tmux                      # Kept shells that survive a dropped phone/laptop (syn-shells)
   zoxide                    # Smarter cd command (directory jumper)
   ripgrep                   # Extremely fast grep alternative
   fd                        # Simple, fast and user-friendly alternative to 'find'
