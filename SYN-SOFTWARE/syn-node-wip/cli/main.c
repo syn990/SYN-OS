@@ -243,10 +243,16 @@ static int find_pairing_nodes(struct sockaddr_in *out, int max) {
 
 	struct sockaddr_in dst[17];
 	int nd = 0;
+	/* this machine's own addresses: a daemon here answers once per
+	 * interface, each time from a different one of them */
+	in_addr_t own[32];
+	int nown = 0;
 	struct ifaddrs *ifs, *it;
 	if (getifaddrs(&ifs) == 0) {
-		for (it = ifs; it && nd < 16; it = it->ifa_next) {
+		for (it = ifs; it; it = it->ifa_next) {
 			if (!it->ifa_addr || it->ifa_addr->sa_family != AF_INET) continue;
+			if (nown < 32) own[nown++] = ((struct sockaddr_in *)it->ifa_addr)->sin_addr.s_addr;
+			if (nd >= 16) continue;
 			if (!(it->ifa_flags & IFF_UP) || !(it->ifa_flags & IFF_BROADCAST) || !it->ifa_broadaddr) continue;
 			dst[nd] = *(struct sockaddr_in *)it->ifa_broadaddr;
 			dst[nd++].sin_port = htons(SN_UDP_PORT);
@@ -273,13 +279,17 @@ static int find_pairing_nodes(struct sockaddr_in *out, int max) {
 		ssize_t r = recvfrom(fd, pkt, sizeof(pkt), 0, (struct sockaddr *)&from, &flen);
 		if (r != 6 || memcmp(pkt, "SNPA", 4) != 0) continue;
 		from.sin_port = htons(sn_get16(pkt + 4));
-		bool dup = false;
+		bool dup = false, from_own = ntohl(from.sin_addr.s_addr) >> 24 == 127;
+		for (int k = 0; k < nown; k++) if (own[k] == from.sin_addr.s_addr) from_own = true;
 		for (int i = 0; i < n; i++) {
 			if (out[i].sin_port == from.sin_port) {
 				/* same daemon answering on several interfaces: keep one,
-				 * preferring a non-loopback address */
-				if (out[i].sin_addr.s_addr == from.sin_addr.s_addr ||
-						ntohl(out[i].sin_addr.s_addr) >> 24 == 127 || ntohl(from.sin_addr.s_addr) >> 24 == 127) {
+				 * preferring a non-loopback address. Two answers from this
+				 * machine's own addresses on one port are one daemon, however
+				 * many interfaces it has (LAN, VM bridges). */
+				bool out_own = ntohl(out[i].sin_addr.s_addr) >> 24 == 127;
+				for (int k = 0; k < nown; k++) if (own[k] == out[i].sin_addr.s_addr) out_own = true;
+				if (out[i].sin_addr.s_addr == from.sin_addr.s_addr || (out_own && from_own)) {
 					if (ntohl(out[i].sin_addr.s_addr) >> 24 == 127) out[i] = from;
 					dup = true;
 				}
