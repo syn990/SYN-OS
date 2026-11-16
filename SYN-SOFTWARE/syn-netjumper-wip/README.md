@@ -81,6 +81,14 @@ two outside services, and nothing else:
   Terminus. Pages use "Terminess Nerd Font" (Terminus as outlines, so it scales
   to any size) and fall back to the bitmap Terminus. Icon fonts (Font Awesome,
   Material Icons and similar) are left alone so icons still show.
+- **The WEBRTC button** turns WebRTC on for video calls and off again, and the
+  setting is kept. On reads "WEBRTC: ON" (calls work, and a site can learn your
+  public IP address), off reads "WEBRTC: OFF". The WebKitGTK Arch ships (2.54.2)
+  is built without WebRTC at all: `RTCPeerConnection` stays undefined even with
+  the setting on, in WebKit's own MiniBrowser too. So here the button reads
+  "WEBRTC: NOT IN ENGINE", and calls need a WebKitGTK built with
+  `-DENABLE_WEB_RTC=ON -DUSE_GSTREAMER_WEBRTC=ON` (the GStreamer WebRTC plugins
+  are already installed).
 - **Downloads** go straight to your Downloads folder and never replace a file.
 - Find on the page, zoom, full screen and WebKit's page inspector.
 - It wears the desktop's live SYN-OS theme and changes when the desktop does.
@@ -102,7 +110,7 @@ any page script, in every frame, that blurs these:
 | Audio | read-backs carry the same kind of tiny noise |
 | Fonts | canvas text is always Terminus and page text is forced to Terminus, so measuring text can't tell which fonts you have |
 | CPU | `navigator.hardwareConcurrency` is always 4 |
-| WebRTC | switched off, so it can't give away your local or public address |
+| WebRTC | off, so it can't give away your local or public address (see the WEBRTC button below) |
 
 What it does **not** hide: your IP address (use a VPN or Tor for that), the
 user agent (WebKitGTK on Linux is rare, so it stands out), the screen size,
@@ -141,8 +149,8 @@ Command line:
 - Syncing bookmarks or passwords between the PC and the phone.
 - Exporting bookmarks or passwords.
 - Not tested on a real site: logging in through a frame from another site
-  (on purpose, only the main page is filled), video calls (they need WebRTC,
-  which is off), and location (geoclue isn't installed).
+  (on purpose, only the main page is filled), video calls (this WebKitGTK has
+  no WebRTC), and location (geoclue isn't installed).
 
 This folder ends in `-wip` so the ISO builders leave it alone; renaming it to
 `-src` with a PKGBUILD and a `desktop/order` recipe is what would ship it.

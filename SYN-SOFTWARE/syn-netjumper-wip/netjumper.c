@@ -44,7 +44,7 @@ typedef struct {
 
 static struct {
 	GtkApplication *app;
-	GtkWidget *win, *book, *bar, *entry, *back, *ahead, *reload, *bookbtn, *status;
+	GtkWidget *win, *book, *bar, *entry, *back, *ahead, *reload, *bookbtn, *rtcbtn, *status;
 	GtkWidget *findbar, *findentry, *findcount;
 	GtkWidget *savebar, *savelabel;
 	char *save_origin, *save_user, *save_pass;
@@ -1840,6 +1840,65 @@ static gboolean on_delete(GtkWidget *w, GdkEvent *e, gpointer u)
 	return FALSE;
 }
 
+/* ---- the WEBRTC button: video calls need it, and it can give away your addresses, so it is off until you want it ---- */
+static gboolean rtc_on(void)
+{
+	char *p = data_file("webrtc-on");
+	gboolean on = g_file_test(p, G_FILE_TEST_EXISTS);
+	g_free(p);
+	return on;
+}
+
+/* Whether this WebKitGTK was built with WebRTC at all. Arch's webkit2gtk-4.1 2.54.2 wasn't:
+   it has no PeerConnection feature, and RTCPeerConnection stays undefined even with the
+   setting on (checked 16 Nov 2026, also in WebKit's own MiniBrowser). */
+static gboolean rtc_supported(void)
+{
+	static int known = -1;
+	if (known < 0) {
+		known = 0;
+		WebKitFeatureList *l = webkit_settings_get_all_features();
+		for (gsize i = 0; i < webkit_feature_list_get_length(l); i++)
+			if (strstr(webkit_feature_get_identifier(webkit_feature_list_get(l, i)), "PeerConnection")) known = 1;
+		webkit_feature_list_unref(l);
+	}
+	return known;
+}
+
+static void rtc_button(void)
+{
+	if (!rtc_supported()) {
+		gtk_button_set_label(GTK_BUTTON(G.rtcbtn), "WEBRTC: NOT IN ENGINE");
+		gtk_widget_set_tooltip_text(G.rtcbtn, "The WebKitGTK installed here was built without WebRTC, so video calls can't work "
+			"and no site can use WebRTC to learn your addresses. Press for details.");
+		return;
+	}
+	gboolean on = rtc_on();
+	gtk_button_set_label(GTK_BUTTON(G.rtcbtn), on ? "WEBRTC: ON" : "WEBRTC: OFF");
+	gtk_widget_set_tooltip_text(G.rtcbtn, on
+		? "WebRTC is on: video calls work, and a site can learn your public IP address. Press to turn it off."
+		: "WebRTC is off: no video calls, and no site can learn your addresses through it. Press to turn it on.");
+}
+
+static void on_webrtc(GtkWidget *w, gpointer u)
+{
+	if (!rtc_supported()) {
+		status_set("No WebRTC in this WebKitGTK (Arch builds it without). It needs a WebKitGTK built with WebRTC; see README.", FALSE);
+		return;
+	}
+	char *p = data_file("webrtc-on");
+	gboolean on = !rtc_on();
+	if (on) g_file_set_contents(p, "WebRTC is on (the WEBRTC button in SYN-NETJUMPER)\n", -1, NULL);
+	else g_unlink(p);
+	g_free(p);
+	g_object_set(G.settings, "enable-webrtc", on, NULL);
+	rtc_button();
+	Tab *t = current();
+	if (t && *shown_uri(t)) webkit_web_view_reload(t->web);   /* a page only sees the change when it loads again */
+	status_set(on ? "WebRTC on: video calls work. This page was reloaded; other tabs need RELOAD."
+		: "WebRTC off. This page was reloaded; other tabs need RELOAD.", FALSE);
+}
+
 /* ---- the window ---- */
 static GtkWidget *bar_button(const char *label, const char *tip, GCallback fn)
 {
@@ -2190,6 +2249,8 @@ static void build_window(GtkApplication *app)
 	g_signal_connect(G.entry, "activate", G_CALLBACK(on_entry_activate), NULL);
 	g_signal_connect_after(G.entry, "focus-in-event", G_CALLBACK(on_entry_focus), NULL);
 	GtkWidget *plus = bar_button("NEW TAB", "Open a new tab (Ctrl+T)", G_CALLBACK(on_new_tab));
+	G.rtcbtn = bar_button("WEBRTC: OFF", "", G_CALLBACK(on_webrtc));
+	rtc_button();
 	G.bookbtn = bar_button("BOOKMARK", "Keep this page in your bookmarks, or take it out again (Ctrl+D)", G_CALLBACK(on_bookmark));
 	GtkWidget *lib = bar_button("LIBRARY", "Bookmarks, history, saved passwords, site permissions and the bad-site list", G_CALLBACK(on_library));
 	gtk_box_pack_start(GTK_BOX(G.bar), brand, FALSE, FALSE, 0);
@@ -2199,6 +2260,7 @@ static void build_window(GtkApplication *app)
 	gtk_box_pack_start(GTK_BOX(G.bar), G.entry, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(G.bar), G.bookbtn, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(G.bar), lib, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(G.bar), G.rtcbtn, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(G.bar), plus, FALSE, FALSE, 0);
 
 	GtkEntryCompletion *c = gtk_entry_completion_new();
@@ -2315,7 +2377,7 @@ static void setup_engine(void)
 		"cursive-font-family", "Terminess Nerd Font", "fantasy-font-family", "Terminess Nerd Font",
 		/* no WebRTC: it can give away your addresses (browserleaks' WebRTC test); camera and
 		   microphone are there only so a site can ASK for them (see on_permission) */
-		"enable-webrtc", FALSE, "enable-media-stream", TRUE, NULL);
+		"enable-webrtc", rtc_on(), "enable-media-stream", TRUE, NULL);
 }
 
 static void open_addresses(GFile **files, int n)
