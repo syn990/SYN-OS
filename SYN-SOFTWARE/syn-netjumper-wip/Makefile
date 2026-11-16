@@ -1,6 +1,6 @@
 # SYN-NETJUMPER: `make`, then `make install` (into ~/.local unless PREFIX says otherwise)
 PREFIX ?= $(HOME)/.local
-PKGS = gtk+-3.0 webkit2gtk-4.1 libsecret-1
+PKGS = gtk+-3.0 webkit2gtk-4.1 libsecret-1 libsoup-3.0
 CFLAGS += -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter -Wno-deprecated-declarations $(shell pkg-config --cflags $(PKGS))
 LDLIBS += $(shell pkg-config --libs $(PKGS))
 
