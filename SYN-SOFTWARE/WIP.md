@@ -9,7 +9,8 @@ neither, so nothing here lands on an ISO half-finished.
 
 Every folder has a `README.md` with the design: what it does, its
 commands, the files it will have, the order to build it in, and what's
-still undecided. syn-surf starts as surf 2.1 itself. Each of the others
+still undecided. syn-surf starts as surf 2.1 itself. syn-dirstat is built
+and works, and waits only on being run on Windows. Each of the others
 has a `src/main.c` that knows its commands and says it isn't built yet,
 and a `CMakeLists.txt` that builds that.
 
@@ -23,6 +24,7 @@ and a `CMakeLists.txt` that builds that.
 | [syn-boot-wip](syn-boot-wip/README.md) | Boot timeline for runit, which has no `systemd-analyze` |
 | [syn-lag-wip](syn-lag-wip/README.md) | Keypress-to-frame latency per app, measured |
 | [syn-fsn-wip](syn-fsn-wip/README.md) | The file system as a 3D picture you turn, zoom and click through: size, type, age and recent changes at a glance |
+| [syn-dirstat-wip](syn-dirstat-wip/README.md) | Where a disk's space has gone, on Linux and Windows: a sortable tree list, a block map and a node graph, each in 2D or 3D. Built and working on Linux; the Windows program compiles but hasn't been run there |
 
 ## Shared work they're waiting on
 
