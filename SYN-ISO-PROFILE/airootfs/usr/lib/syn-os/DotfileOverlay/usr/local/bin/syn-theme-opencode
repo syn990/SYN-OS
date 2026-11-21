@@ -7,14 +7,12 @@
 #
 #   Writes ~/.config/opencode/themes/<SYN_THEME_NAME>.json for every
 #   ~/.config/syn-os/themes/*.theme (only the files whose text changes,
-#   and drops a SYN-OS-*.json whose palette is gone), and makes sure
-#   ~/.config/opencode/tui.json loads the syn-theme plugin, which keeps
-#   opencode and the desktop on one theme both ways:
-#     desktop -> opencode   a running opencode switches when
-#                           ~/.config/syn-os/current-theme changes
-#     opencode -> desktop   a SYN-OS theme picked in opencode's /themes
-#                           is applied to the desktop with syn-theme-apply
-#                           (and from there reaches a linked phone)
+#   and drops a SYN-OS-*.json whose palette is gone), and sets the desktop's
+#   current theme (~/.config/syn-os/current-theme) as opencode's theme in
+#   ~/.config/opencode/cli.json ("theme": {"name", "mode"}). opencode 2.x
+#   reloads cli.json while it runs, so a running opencode follows every
+#   desktop switch. (The 1.x syn-theme TUI plugin is gone: opencode 2.x has
+#   no plugin call to set a theme; its entry is dropped from cli.json.)
 #
 #   Called by syn-theme-apply on every switch; does nothing when opencode
 #   has no config folder. Safe to run by hand.
@@ -35,8 +33,9 @@ HOME = os.path.expanduser("~")
 PALETTES = os.path.join(HOME, ".config", "syn-os", "themes")
 OPENCODE = os.path.join(HOME, ".config", "opencode")
 OUT = os.path.join(OPENCODE, "themes")
-TUI = os.path.join(OPENCODE, "tui.json")
-PLUGIN = "/usr/lib/syn-os/opencode/syn-theme.ts"
+CLI = os.path.join(OPENCODE, "cli.json")
+CURRENT = os.path.join(HOME, ".config", "syn-os", "current-theme")
+OLD_PLUGIN = "/usr/lib/syn-os/opencode/syn-theme.ts"
 
 
 def palette(path):
@@ -138,30 +137,35 @@ def strip_jsonc(text):
     return re.sub(r",(\s*[}\]])", r"\1", text)
 
 
-def load_plugin():
-    """tui.json lists the syn-theme plugin (made if missing; left alone if unreadable)"""
-    if not os.path.exists(PLUGIN):
-        return "plugin missing at " + PLUGIN
-    if not os.path.exists(TUI):
-        write_if_changed(TUI, json.dumps({"$schema": "https://opencode.ai/tui.json", "plugin": [PLUGIN]}, indent=2) + "\n")
-        return "tui.json made"
+def wear(modes):
+    """cli.json wears the desktop's current theme (made if missing; left alone if unreadable)"""
     try:
-        cfg = json.loads(strip_jsonc(open(TUI, encoding="utf-8").read()) or "{}")
-    except ValueError:
-        return "tui.json unreadable, add " + PLUGIN + " to its plugin list by hand"
-    plugins = cfg.get("plugin") or []
-    if any((x[0] if isinstance(x, list) else x) == PLUGIN for x in plugins):
-        return ""
-    cfg["plugin"] = plugins + [PLUGIN]
-    write_if_changed(TUI, json.dumps(cfg, indent=2) + "\n")
-    return "tui.json now loads the plugin"
+        cur = open(CURRENT, encoding="utf-8").read().strip()
+    except OSError:
+        return "no current desktop theme"
+    if cur not in modes:
+        return "current theme " + cur + " has no palette"
+    cfg = {"$schema": "https://opencode.ai/v2/cli.json"}
+    if os.path.exists(CLI):
+        try:
+            cfg = json.loads(strip_jsonc(open(CLI, encoding="utf-8").read()) or "{}")
+        except ValueError:
+            return "cli.json unreadable, set its theme by hand"
+    plugins = [x for x in cfg.get("plugins") or [] if (x.get("package") if isinstance(x, dict) else x) != OLD_PLUGIN]
+    if plugins:
+        cfg["plugins"] = plugins
+    else:
+        cfg.pop("plugins", None)
+    cfg["theme"] = {"name": cur, "mode": modes[cur]}
+    write_if_changed(CLI, json.dumps(cfg, indent=2) + "\n")
+    return "wearing " + cur
 
 
 def main():
     if not os.path.isdir(OPENCODE) or not os.path.isdir(PALETTES):
         return 0
     os.makedirs(OUT, exist_ok=True)
-    names, changed = set(), 0
+    names, changed, modes = set(), 0, {}
     for f in sorted(os.listdir(PALETTES)):
         if not f.endswith(".theme"):
             continue
@@ -173,11 +177,12 @@ def main():
             print(f"syn-theme-opencode: skipped {f}: {e}", file=sys.stderr)
             continue
         names.add(name)
+        modes[name] = "light" if p.get("SYN_THEME_MODE", "dark") == "light" else "dark"
         changed += write_if_changed(os.path.join(OUT, name + ".json"), body)
     for f in os.listdir(OUT):
         if f.startswith("SYN-OS-") and f.endswith(".json") and f[:-5] not in names:
             os.remove(os.path.join(OUT, f))
-    note = load_plugin()
+    note = wear(modes)
     print(f"opencode: {len(names)} SYN-OS themes ({changed} rewritten){', ' + note if note else ''}")
     return 0
 
