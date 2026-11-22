@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+<!-- UP: arrow out of this folder to its parent -->
+<path d="M12 20V5"/><path d="M6 11L12 5L18 11"/><path d="M4 3H20" stroke-width="1.5"/>
+</svg>

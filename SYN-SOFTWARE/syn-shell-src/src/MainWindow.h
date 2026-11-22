@@ -47,6 +47,7 @@
 #include <QStringList>
 
 class ArchiveSession;
+class QFrame;
 class QAbstractItemModel;
 class QAction;
 class QCheckBox;
@@ -71,6 +72,10 @@ class GitStatus;
 class JobsWindow;
 namespace Jobs { class Manager; struct Job; struct Progress; }
 class FieldHeader;
+#ifndef Q_OS_WIN
+class SpaceView;
+class SpaceTree;
+#endif
 
 class MainWindow : public QMainWindow
 {
@@ -78,6 +83,16 @@ class MainWindow : public QMainWindow
 
 public:
   explicit MainWindow(const QString &startPath, QWidget *parent = nullptr);
+#ifndef Q_OS_WIN
+  // Where the space has gone (src/space/): the
+  // left column's other face, the folder tree with sizes (zt); a small
+  // turning render in the bottom right corner while you browse (zr, on
+  // to start with); and that render made big, over the columns, for
+  // 2D, 3D and walking (zv, or a click on the corner; Esc puts it back).
+  void setSpaceTree(bool on);
+  void setSpaceView(bool on);
+  void setSpaceCorner(bool on);
+#endif
   ~MainWindow() override; // out of line: unique_ptrs to forward-declared types
 
 protected:
@@ -99,6 +114,12 @@ private:
   void navigateUp();
   void openCursor();
   void openTerminal(const QString &dir, const QString &command = QString());
+#ifndef Q_OS_WIN
+  void ensureSpace();
+  void spaceFollow(); // the space tree and view to the browser's folder
+  void placeSpace(bool animate = false); // the render: the corner, over the columns, or hidden
+  bool spaceInUse() const { return m_treeOn || m_spaceOn || m_cornerOn; }
+#endif
 
   void renameCursor();
   void deleteTargets();
@@ -260,6 +281,15 @@ private:
   QFileSystemModel *m_model;
   FileSortProxy *m_proxy;   // what every view shows: sorted, dirs first
   QSplitter *m_split;
+  QStackedWidget *m_leftStack;  // the parent folder, or the space tree
+#ifndef Q_OS_WIN
+  SpaceView *m_space = nullptr;
+  class WalkUse *m_walkUse = nullptr; // what E does to a file while walking
+  QFrame *m_spaceBox = nullptr; // holds m_space over the columns: corner or all of them
+  SpaceTree *m_spaceTree = nullptr;
+  bool m_treeOn = false, m_spaceOn = false, m_cornerOn = false; // m_spaceOn: made big
+  int m_leftWidth = 0; // the parent column's width, given back when the tree goes
+#endif
   QSplitter *m_vsplit;   // the columns above, the shell area below
   TermView *m_term;
   QStackedWidget *m_termStack;

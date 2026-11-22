@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+<!-- RESET VIEW: four corners framing the middle -->
+<path d="M3 8V3H8"/><path d="M16 3H21V8"/><path d="M21 16V21H16"/><path d="M8 21H3V16"/><rect x="10" y="10" width="4" height="4" fill="#ffffff" stroke="none"/>
+</svg>

@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-WINE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-WINE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#0d0508"
+SYN_BG_ALT="#160a0d"
+SYN_PANEL="#1a0d11"
+SYN_PANEL_HOVER="#211015"
+SYN_ACCENT="#e6668a"
+SYN_ACCENT_DIM="#733345"
+SYN_TEXT="#ffe0e8"
+SYN_BORDER="#59303d"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-WINE-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

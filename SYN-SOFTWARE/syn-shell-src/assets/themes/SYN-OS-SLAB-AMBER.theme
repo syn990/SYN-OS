@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-AMBER
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-AMBER"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#0a0805"
+SYN_BG_ALT="#1a1408"
+SYN_PANEL="#251d0d"
+SYN_PANEL_HOVER="#382b0c"
+SYN_ACCENT="#ffb833"
+SYN_ACCENT_DIM="#7a5200"
+SYN_TEXT="#fff0d9"
+SYN_BORDER="#5c4419"
+SYN_URGENT="#ff3333"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-AMBER-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

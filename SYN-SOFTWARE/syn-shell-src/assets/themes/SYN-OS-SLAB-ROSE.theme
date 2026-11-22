@@ -1,0 +1,17 @@
+# SYN-OS theme palette: SLAB-ROSE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-SLAB-ROSE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-SLAB"
+SYN_BG="#0a0508"
+SYN_BG_ALT="#160a10"
+SYN_PANEL="#220f18"
+SYN_PANEL_HOVER="#331824"
+SYN_ACCENT="#ff85ad"
+SYN_ACCENT_DIM="#803f56"
+SYN_TEXT="#ffe0ec"
+SYN_BORDER="#592e3f"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-SLAB-ROSE-wallpaper.png"
+SYN_GLYPH="■"
+SYN_THEME_GROUP="slab"

@@ -1,0 +1,17 @@
+# SYN-OS theme palette: BEVEL-SLATE
+# Sourced by syn-theme-apply. Keep this flat: KEY="#hexvalue" only.
+SYN_THEME_NAME="SYN-OS-BEVEL-SLATE"
+SYN_THEME_MODE="dark"
+SYN_THEME_FAMILY="SYN-OS-BEVEL"
+SYN_BG="#0d0d0f"
+SYN_BG_ALT="#15161a"
+SYN_PANEL="#1a1c22"
+SYN_PANEL_HOVER="#20222a"
+SYN_ACCENT="#a3b8e6"
+SYN_ACCENT_DIM="#515c73"
+SYN_TEXT="#e8ecf5"
+SYN_BORDER="#40434d"
+SYN_URGENT="#ff5555"
+SYN_WALLPAPER="$HOME/.wallpaper/SYN-OS-BEVEL-SLATE-wallpaper.png"
+SYN_GLYPH="⬢"
+SYN_THEME_GROUP="bevel"

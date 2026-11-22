@@ -1,0 +1,6 @@
+/build/
+/build-*/
+/pkg/
+/src/build/
+*.pkg.tar.zst
+*.before*

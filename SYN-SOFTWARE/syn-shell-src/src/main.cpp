@@ -3,6 +3,8 @@
 //
 //   Entry point: builds the app and shows one MainWindow, opened on the
 //   path given (a folder, a file's folder, or an archive), else $HOME.
+//   With --space it is the disk space window
+//   instead (src/space/).
 //
 //   SYN-OS     : The Syntax Operating System
 //   Component  : SYN-SHELL (Desktop)
@@ -11,6 +13,8 @@
 // ------------------------------------------------------------------------------
 
 #include <QApplication>
+#include <QSurfaceFormat>
+#include <QTimer>
 #include <QDir>
 #include <QRegularExpression>
 #include <QSettings>
@@ -19,6 +23,9 @@
 #include <cstdlib>
 #include <cstring>
 
+#ifdef SYN_SHELL_TEST
+#include "TestDrive.h"
+#endif
 #include "MainWindow.h"
 #include "PtySession.h"
 #ifdef Q_OS_WIN
@@ -50,6 +57,12 @@ public:
 
 } // namespace
 
+#ifndef Q_OS_WIN
+// Disk space (src/space/): its own SDL + OpenGL
+// window, run in place of the Qt one. Plain C.
+extern "C" int space_main(int argc, char **argv);
+#endif
+
 int main(int argc, char *argv[])
 {
   // The binary's two other jobs (see PtySession.h), before any GUI:
@@ -65,6 +78,29 @@ int main(int argc, char *argv[])
   }
   if (argc == 3 && QByteArray(argv[1]) == "--attach")
     return PtySession::runAttach(QString::fromLocal8Bit(argv[2]));
+#ifndef Q_OS_WIN
+  //   --space [OPTIONS] [PATH]          where the space has gone (see --space --help)
+  {
+    if (argc >= 2 && !strcmp(argv[1], "--space")) {
+      argv[1] = argv[0];
+      return space_main(argc - 1, argv + 1);
+    }
+  }
+#endif
+
+#ifndef Q_OS_WIN
+  // The space view (SpaceView) draws with OpenGL 3.3 core, which Mesa only
+  // gives a core profile; set before the app so every context agrees.
+  {
+    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
+    fmt.setRenderableType(QSurfaceFormat::OpenGL);
+    fmt.setVersion(3, 3);
+    fmt.setProfile(QSurfaceFormat::CoreProfile);
+    fmt.setDepthBufferSize(24);
+    fmt.setAlphaBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(fmt);
+  }
+#endif
 
   QApplication app(argc, argv);
   app.setApplicationName("syn-shell");
@@ -106,11 +142,40 @@ int main(int argc, char *argv[])
       settings.setValue(key, old.value(key));
   }
 
-  QString startPath = argc > 1 ? QString::fromLocal8Bit(argv[1])
-                                : QDir::homePath();
+  // syn-shell [PATH] [--tree] [--view]: start with the space tree / view on.
+  QString startPath = QDir::homePath();
+  bool tree = false, view = false;
+#ifdef SYN_SHELL_TEST
+  TestDrive drive; // the test build's --shot / --view-* options
+#endif
+  for (int i = 1; i < argc; ++i) {
+    const QByteArray a(argv[i]);
+    if (a == "--tree")
+      tree = true;
+    else if (a == "--view")
+      view = true;
+#ifdef SYN_SHELL_TEST
+    else if (drive.take(argc, argv, i))
+      continue;
+#endif
+    else
+      startPath = QString::fromLocal8Bit(argv[i]);
+  }
 
   MainWindow window(startPath);
+#ifndef Q_OS_WIN
+  if (tree)
+    window.setSpaceTree(true);
+  if (view)
+    window.setSpaceView(true);
+#else
+  Q_UNUSED(tree);
+  Q_UNUSED(view);
+#endif
   window.show();
+#ifdef SYN_SHELL_TEST
+  drive.start(&window);
+#endif
 #ifdef Q_OS_WIN
   Win::seeThrough(window.winId()); // so the opacity setting reaches the desktop
 #endif

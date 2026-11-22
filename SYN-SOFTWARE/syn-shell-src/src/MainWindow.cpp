@@ -1,4 +1,9 @@
 #include "MainWindow.h"
+#ifndef Q_OS_WIN
+#include "SpaceTree.h"
+#include "SpaceView.h"
+#include "WalkOverlay.h"
+#endif
 #include "Archive.h"
 #include "ArchiveModel.h"
 #include "FileOps.h"
@@ -15,6 +20,8 @@
 #include "Win.h"
 #endif
 
+#include <QFrame>
+#include <QPropertyAnimation>
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
@@ -186,6 +193,14 @@ const char kHelp[] = R"(  MOVE
                   (left letter staged, right one not); a dot: changes inside
   zp zo zs        permissions, owner, size columns on / off
   zm zc           modified, created columns on / off
+  zt              left column: the parent folder, or the folder tree with
+                  sizes, share, files and last change (biggest first)  :tree
+  zr              the space render in the bottom right corner on / off:
+                  where the space has gone here, turning as you browse  :corner
+  zv              that render big, over the columns (or click the corner):
+                  block map / node graph (Tab), 2D / 3D (Space), walk (the
+                  figure), drag to turn, wheel to zoom, right-click up,
+                  Esc back to the corner  :space
                   (or tick them on the bar along the top; zb hides the bar)
   on os om oc     sort by name, size, modified, created
   oN oS oM oC     the same, the other way round     or   turn the sort round
@@ -345,7 +360,12 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   m_split = new QSplitter(Qt::Horizontal, this);
   m_split->setChildrenCollapsible(false);
   m_split->setHandleWidth(1);
-  m_split->addWidget(m_parentView);
+  // The left column has a second face, the space tree, made the first
+  // time it's asked for (setSpaceTree). The space render sits over the
+  // columns, not in one (placeSpace).
+  m_leftStack = new QStackedWidget(this);
+  m_leftStack->addWidget(m_parentView);
+  m_split->addWidget(m_leftStack);
   m_split->addWidget(center);
   m_split->addWidget(m_preview);
   m_split->setStretchFactor(0, 1);
@@ -530,6 +550,13 @@ MainWindow::MainWindow(const QString &startPath, QWidget *parent)
   if (QFileInfo(start).isFile()
       && (Archive::isArchiveMime(startMime) || Archive::isCompressedFileMime(startMime)))
     openArchive(start, QString(), true);
+#ifndef Q_OS_WIN
+  // As they were left; the corner render is on to start with.
+  if (settings.value("spaceTree", false).toBool())
+    setSpaceTree(true);
+  if (settings.value("spaceCorner", true).toBool())
+    setSpaceCorner(true);
+#endif
   m_view->setFocus();
 }
 
@@ -697,6 +724,11 @@ void MainWindow::buildActions()
     {"-x", [this] { changeMode(QStringLiteral("-x")); }},
     {"O", [this] { showOpenWith(); }},
     {"du", [this] { measureFolders(); }},
+#ifndef Q_OS_WIN
+    {"zt", [this] { setSpaceTree(!m_treeOn); }},
+    {"zv", [this] { setSpaceView(!m_spaceOn); }},
+    {"zr", [this] { setSpaceCorner(!m_cornerOn); }},
+#endif
     {"dD", [this] { deleteTargets(); }},
     {"gt", [this] { openTrash(); }},
     {"zh", [this] { m_actHidden->trigger(); }},
@@ -954,6 +986,9 @@ bool MainWindow::navigateTo(const QString &path, bool recordHistory)
     if (title.startsWith(QDir::homePath()))
       title.replace(0, QDir::homePath().size(), QStringLiteral("~"));
     setWindowTitle(QStringLiteral("syn-shell: ") + title);
+#ifndef Q_OS_WIN
+    spaceFollow();
+#endif
   }
 
   m_pendingPath = m_lastCursor.value(p);
@@ -1114,6 +1149,196 @@ void MainWindow::openTerminal(const QString &dir, const QString &command)
     flash(tr("could not start foot"), true);
 }
 
+#ifndef Q_OS_WIN
+// ----------------------------------------------------------- space faces
+
+// The view and the tree share one scan, which the view owns: both are made
+// together, the first time either is asked for.
+void MainWindow::ensureSpace()
+{
+  if (m_space)
+    return;
+  // The render lives in a frame over the columns for good: moving a GL
+  // widget to another parent would make its context again.
+  m_spaceBox = new QFrame(centralWidget());
+  m_spaceBox->setObjectName("spaceBox");
+  auto *boxLayout = new QVBoxLayout(m_spaceBox);
+  boxLayout->setContentsMargins(1, 1, 1, 1);
+  m_space = new SpaceView(m_spaceBox);
+  m_space->setMini(true); // small until made big
+  boxLayout->addWidget(m_space);
+  m_spaceBox->hide();
+  m_split->installEventFilter(this);
+  m_vsplit->installEventFilter(this);
+  m_spaceTree = new SpaceTree(m_space, this);
+  m_leftStack->addWidget(m_spaceTree);
+
+  // Into a folder, up, or through a doorway there: the browser goes too.
+  connect(m_space, &SpaceView::focusRequested, this, [this](const QString &dir) {
+    if (QDir::cleanPath(dir) != m_currentDir || m_inArchive)
+      navigateTo(dir);
+  });
+  // A thing picked there: the cursor onto it if it's here, the tree onto it.
+  connect(m_space, &SpaceView::selected, this, [this](const QString &path) {
+    if (QFileInfo(path).absolutePath() == m_currentDir) {
+      m_pendingPath = path;
+      tryPending();
+    }
+    if (m_treeOn)
+      m_spaceTree->showPath(path);
+  });
+  // Esc there: back to the corner (or away, if the corner is off).
+  connect(m_space, &SpaceView::escaped, this, [this] {
+    setSpaceView(false);
+    m_view->setFocus();
+  });
+  connect(m_space, &SpaceView::enlargeRequested, this, [this] { setSpaceView(true); });
+  // E on a file while walking: an archive opens in the browser, the view
+  // small again so it shows; the rest is WalkUse's.
+  m_walkUse = new WalkUse(m_space);
+  connect(m_space, &SpaceView::used, this, [this](const QString &path, int kind, int dev) {
+    if (kind == 3 /* kinds.c's archives */ && dev == WALK_DEV_NONE && Archive::isArchiveMime(QMimeDatabase().mimeTypeForFile(path).name())) {
+      setSpaceView(false);
+      openArchive(path, QString(), true);
+      return;
+    }
+    m_walkUse->use(path, kind, dev);
+  });
+  connect(m_spaceTree, &SpaceTree::picked, this, [this](const QString &path, bool) {
+    navigateTo(path); // a file: its folder, the cursor on it
+  });
+}
+
+void MainWindow::spaceFollow()
+{
+  if (!m_space || !spaceInUse() || m_inArchive)
+    return;
+  m_space->showDir(m_currentDir);
+  if (m_treeOn)
+    m_spaceTree->showPath(m_currentDir);
+}
+
+void MainWindow::setSpaceTree(bool on)
+{
+  if (on)
+    ensureSpace();
+  if (!m_space)
+    return;
+  if (on != m_treeOn) {
+    // The tree's figures need room: the left column widens for it, out
+    // of the middle one, and goes back to its own width after. Once the
+    // window is laid out (at startup it isn't yet).
+    QTimer::singleShot(0, this, [this, on] {
+      QList<int> sizes = m_split->sizes();
+      if (sizes.size() != 3 || sizes[0] + sizes[1] <= 0)
+        return;
+      int want;
+      if (on) {
+        m_leftWidth = sizes[0];
+        want = qMax(sizes[0], 470);
+      } else {
+        want = m_leftWidth > 0 ? m_leftWidth : sizes[0];
+      }
+      const int give = qBound(-sizes[0] + 80, want - sizes[0], sizes[1] - 200);
+      sizes[0] += give;
+      sizes[1] -= give;
+      m_split->setSizes(sizes);
+    });
+  }
+  m_treeOn = on;
+  m_leftStack->setCurrentWidget(on ? static_cast<QWidget *>(m_spaceTree) : m_parentView);
+  m_space->setActive(spaceInUse());
+  QSettings().setValue("spaceTree", on);
+  spaceFollow();
+}
+
+void MainWindow::setSpaceView(bool on)
+{
+  if (on)
+    ensureSpace();
+  if (!m_space)
+    return;
+  m_spaceOn = on;
+  m_space->setMini(!on);
+  m_space->setActive(spaceInUse());
+  placeSpace(true);
+  if (on)
+    m_space->setFocus(Qt::OtherFocusReason);
+  else if (m_space->hasFocus())
+    m_view->setFocus();
+  spaceFollow();
+  if (m_spaceOn || m_cornerOn) {
+    if (cursor().isValid())
+      m_space->selectPath(m_proxy->pathOf(cursor()));
+  }
+}
+
+void MainWindow::setSpaceCorner(bool on)
+{
+  if (on)
+    ensureSpace();
+  if (!m_space)
+    return;
+  m_cornerOn = on;
+  QSettings().setValue("spaceCorner", on);
+  m_space->setActive(spaceInUse());
+  placeSpace();
+  spaceFollow();
+  if (on && cursor().isValid())
+    m_space->selectPath(m_proxy->pathOf(cursor()));
+}
+
+// Big: over all three columns. Otherwise, with the corner on, small in
+// the bottom right of them, over the preview, turning. Neither: hidden.
+void MainWindow::placeSpace(bool animate)
+{
+  if (!m_spaceBox)
+    return;
+  const bool shown = (m_spaceOn || m_cornerOn) && m_split->isVisible();
+  if (!shown) {
+    m_spaceBox->hide();
+    return;
+  }
+  const QRect area(m_split->mapTo(centralWidget(), QPoint(0, 0)), m_split->size());
+  QRect to = area;
+  if (!m_spaceOn) {
+    int w = qBound(200, area.width() * 22 / 100, 380);
+    int h = w * 2 / 3;
+    if (h > area.height() / 2) {
+      h = qMax(80, area.height() / 2);
+      w = h * 3 / 2;
+    }
+    const int gap = 10;
+    to = QRect(area.right() + 1 - gap - w, area.bottom() + 1 - gap - h, w, h);
+  }
+  m_spaceBox->setStyleSheet(m_spaceOn ? QStringLiteral("#spaceBox { border: none; }")
+                                      : QStringLiteral("#spaceBox { border: 1px solid palette(highlight); }"));
+  m_spaceBox->layout()->setContentsMargins(m_spaceOn ? QMargins() : QMargins(1, 1, 1, 1));
+  const bool wasShown = m_spaceBox->isVisible();
+  m_spaceBox->show();
+  m_spaceBox->raise();
+  auto *anim = m_spaceBox->findChild<QPropertyAnimation *>();
+  if (anim && !animate && anim->state() == QAbstractAnimation::Running) {
+    anim->setEndValue(to); // the window moved under it mid-grow: aim at the new place
+    return;
+  }
+  if (animate && wasShown) {
+    if (!anim)
+      anim = new QPropertyAnimation(m_spaceBox, "geometry", m_spaceBox);
+    anim->stop();
+    anim->setDuration(180);
+    anim->setEasingCurve(QEasingCurve::OutCubic);
+    anim->setStartValue(m_spaceBox->geometry());
+    anim->setEndValue(to);
+    anim->start();
+  } else {
+    if (anim)
+      anim->stop();
+    m_spaceBox->setGeometry(to);
+  }
+}
+#endif
+
 void MainWindow::rebuildCrumbs()
 {
   while (QLayoutItem *item = m_crumbLayout->takeAt(0)) {
@@ -1254,6 +1479,10 @@ void MainWindow::onCursorChanged()
     m_lastRow = cursor().row();
   m_previewTimer->start();
   updateInfo();
+#ifndef Q_OS_WIN
+  if (m_space && (m_spaceOn || m_cornerOn) && !m_inArchive && cursor().isValid())
+    m_space->selectPath(m_proxy->pathOf(cursor()));
+#endif
 }
 
 void MainWindow::tryPending()
@@ -1561,6 +1790,14 @@ void MainWindow::runCommand(const QString &input)
       setOpacity((v > 1.0 ? v / 100.0 : v));
   } else if (cmd == QLatin1String("du") || cmd == QLatin1String("sizes")) {
     measureFolders();
+#ifndef Q_OS_WIN
+  } else if (cmd == QLatin1String("space")) {
+    setSpaceView(arg == QLatin1String("on") ? true : arg == QLatin1String("off") ? false : !m_spaceOn);
+  } else if (cmd == QLatin1String("corner")) {
+    setSpaceCorner(arg == QLatin1String("on") ? true : arg == QLatin1String("off") ? false : !m_cornerOn);
+  } else if (cmd == QLatin1String("tree")) {
+    setSpaceTree(arg == QLatin1String("on") ? true : arg == QLatin1String("off") ? false : !m_treeOn);
+#endif
   } else if (cmd == QLatin1String("openwith")) {
     openWithCommand(arg);
   } else if (cmd == QLatin1String("bulkrename") || cmd == QLatin1String("rename-all")) {
@@ -1723,6 +1960,14 @@ bool MainWindow::handleKey(QKeyEvent *ev)
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
+#ifndef Q_OS_WIN
+  // The space render keeps to the columns as they move and change size.
+  if (m_spaceBox && (watched == m_split || watched == m_vsplit)) {
+    const QEvent::Type t = event->type();
+    if (t == QEvent::Resize || t == QEvent::Move || t == QEvent::Show || t == QEvent::Hide)
+      placeSpace();
+  }
+#endif
   if (watched == m_view && event->type() == QEvent::KeyPress)
     return handleKey(static_cast<QKeyEvent *>(event));
 
@@ -1920,6 +2165,19 @@ void MainWindow::showContextMenu(const QPoint &pos)
   menu.addAction(m_actFieldBar);
   if (!m_inArchive)
     menu.addAction(tr("Folder sizes\tdu"), this, &MainWindow::measureFolders);
+#ifndef Q_OS_WIN
+  {
+    QAction *tree = menu.addAction(tr("Folder tree with sizes\tzt"), this, [this] { setSpaceTree(!m_treeOn); });
+    tree->setCheckable(true);
+    tree->setChecked(m_treeOn);
+    QAction *corner = menu.addAction(tr("Space render in the corner\tzr"), this, [this] { setSpaceCorner(!m_cornerOn); });
+    corner->setCheckable(true);
+    corner->setChecked(m_cornerOn);
+    QAction *space = menu.addAction(tr("Space view, big: 2D / 3D / walk\tzv"), this, [this] { setSpaceView(!m_spaceOn); });
+    space->setCheckable(true);
+    space->setChecked(m_spaceOn);
+  }
+#endif
   menu.addAction(m_actRefresh);
   if (!m_jobs->jobs().isEmpty())
     menu.addAction(tr("Jobs\t:jobs"), this, &MainWindow::showJobs);
