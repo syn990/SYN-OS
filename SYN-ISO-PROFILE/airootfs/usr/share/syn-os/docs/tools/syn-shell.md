@@ -1,12 +1,14 @@
 # SYN-SHELL
 
 SYN-SHELL is SYN-OS's own window onto the system: your files, the
-archives among them and a shell, all in one place, laid out the way
-ranger lays out a terminal. Three columns: the folder you came from, the folder you're
-in, and a preview of whatever the cursor is on.
+archives among them, a shell and where the disk space has gone, all in
+one place, laid out the way ranger lays out a terminal. Three columns:
+the folder you came from, the folder you're in, and a preview of
+whatever the cursor is on. The disk space can be walked through too, as
+a city.
 
 ![SYN-SHELL main window](../screenshots/syn-shell-main-window.png)
-*Placeholder, the main window.*
+*The three columns, a code preview, and the folder in 3D in the corner.*
 
 ## Opening it
 
@@ -225,12 +227,79 @@ terminal. The next `` ` `` starts a fresh one here.
 
 `S` still opens a separate foot in the current folder, as before.
 
+## Disk space
+
+In the bottom right corner, all the time while you browse, the folder
+you're in turns as 3D blocks, growing as it's measured. `zr` (or
+`:corner`) turns it off and on.
+
+Click it, or `zv` (`:space`), and it fills the window: a block map,
+where every file is a block as big as the space it takes, or a node
+graph of the biggest folders (BLOCKS / GRAPH), each flat or solid
+(2D / 3D). Click to select, double-click to go into a folder (the
+columns follow), drag and the wheel to turn and zoom. `Esc` puts it back
+in the corner. `zt` (`:tree`) makes the left column the folder tree,
+biggest first, with sizes, shares, file counts and when anything last
+changed. Colours are kinds of file; the key is along the bottom. It only
+reads.
+
+![The block map in 3D](../screenshots/syn-shell-space-blocks-3d.png)
+
+![The node graph](../screenshots/syn-shell-space-graph-3d.png)
+
+`syn-shell --space` opens the same in a window of its own, starting at
+the list of disks.
+
+## Walk mode
+
+The figure in the disk space view's bottom right corner walks you into
+the folder (drag it onto a folder to walk into that one). The folder is
+a city: its own files stand in the market square, each folder in it is a
+building, its folders the floors above, up the stairs. Every room is
+sized to what stands in it, and every file stands as furniture of its
+kind, as big as the file: code at desks with screens, programs as
+computers and racks of servers, documents in bookcases, music round a
+rug, pictures on easels in the windows' light. Walk into a room and the
+columns go to that folder too.
+
+| Key | Does |
+|---|---|
+| click the view | Look with the mouse |
+| `W` `A` `S` `D`, left / right | Walk, turn |
+| `Shift` / `Space` | Run / jump |
+| `E` | Use the file you face (open it, play it) |
+| `V` | Your own eyes, or over your shoulder |
+| `Esc` | Back to the map |
+
+![The city from the market square](../screenshots/syn-shell-walk-city.png)
+
+![A room, its files as furniture](../screenshots/syn-shell-walk-room.png)
+
+Beyond the city wall is the rest of the disk: a glowing plain as wide as
+the disk would be at the city's scale, its edge named with the disk's
+size and what's free, and the disk's other folders standing on it as
+towers by their size (`/usr`, `/var`, the rest of `/home`, and what your
+account can't read). They're measured once in the background and kept a
+day.
+
+![Beyond the wall](../screenshots/syn-shell-walk-beyond.png)
+
+When the city is your home folder, the crew are in their offices at its
+edge: each one's home, `OFFICE:` and their name over the door, and them
+inside, walking from file to file, at their desk while SYN-CORP has them
+in a turn, their last action over them. That's read from what SYN-CORP
+logs; nothing is sent to them.
+
+![A crew member in their office](../screenshots/syn-shell-walk-crew.png)
+
+The light is SYN-TREK's: windows, lamps, screens and lines of light glow.
+
 ## Commands
 
 `:` opens a command line at the bottom: `:cd PATH`, `:mkdir NAME`,
 `:touch NAME`, `:rename NAME`, `:extract [WHERE]`, `:compress NAME`,
-`:shell`, `:detach`, `:term`, and `:!command` to run something in foot
-here.
+`:shell`, `:detach`, `:term`, `:space`, `:corner`, `:tree`, and
+`:!command` to run something in foot here.
 
 ## On Windows
 

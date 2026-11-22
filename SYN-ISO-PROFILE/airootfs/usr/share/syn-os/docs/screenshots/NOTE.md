@@ -40,8 +40,13 @@ one `foot` terminal open so the theme's terminal palette shows too.
 - [ ] `menu-docs-pipe-open.png` — Preferences > Docs, showing the flat
       top-level entries followed by the Theming/Tools/ISO Build/Concepts
       separators (referenced from `../labwc.md`)
-- [ ] `syn-shell-main-window.png` — the three columns, the segment strip
+- [x] `syn-shell-main-window.png` — the three columns, the segment strip
       and the detail line (referenced from `../tools/syn-shell.md`)
+- [x] `syn-shell-space-blocks-3d.png`, `syn-shell-space-graph-3d.png`,
+      `syn-shell-walk-city.png`, `syn-shell-walk-room.png`,
+      `syn-shell-walk-beyond.png`, `syn-shell-walk-crew.png` — disk space
+      and walk mode (`../tools/syn-shell.md`), taken from SYN-SHELL's
+      test build in a headless labwc
 - [ ] `waybar-closeup.png` — the full bar width at default height
       (referenced from `../waybar.md`)
 - [ ] `rofi-power-menu.png` — Lock / Log Out / Reboot / Power Off, themed,
