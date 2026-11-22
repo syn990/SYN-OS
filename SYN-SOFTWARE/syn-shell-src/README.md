@@ -38,7 +38,8 @@ buildings, its files furniture.
     disk at the city's scale, the disk's other folders standing on it as
     towers by their size.
   - The crew (SYN-CORP's agents) are in their offices at the city's edge,
-    from what SYN-CORP logs. Nothing is sent to them.
+    from what SYN-CORP logs; what they say on the radio appears over them,
+    the word being spoken boxed as on the phone. Nothing is sent to them.
   - Lit the way SYN-TREK is: what shines glows.
 
 | | |

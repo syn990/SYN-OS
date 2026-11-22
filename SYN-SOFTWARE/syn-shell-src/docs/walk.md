@@ -109,6 +109,16 @@ a figure like you in their own colour, their name over them.
 - **What they last did** shows a minute over them: answered, a commit and
   its repository, a ticket, from `~/.local/state/syn-corp/syn-corp.log`.
 
+**On the radio**: what they say on SYN-CORP's radio (the rooms your phone
+app talks in) appears over them as they say it, the word being spoken
+boxed in the theme's colour as on the phone, the words said bright and the
+rest dim; a spoken reply follows its voice word by word, a line with no
+voice is read at a speaking pace. Whoever isn't in the office you're in
+says it along the foot of the view, so you see it anywhere in the city;
+your own lines show there as yours. SYN-SHELL only listens on the radio
+(the same local door as the app, with the owner's token): it never says
+anything, so it runs no turn.
+
 Their homes are scanned when you first walk (each is its own tree: the
 file columns stay where they are when you walk into an office). Only what
 your account can read is shown. Nothing is asked of them and no turn is
@@ -131,6 +141,8 @@ city fades into the night and the far plane reaches the disk's edge.
 | `SYN_WORLD_DUMP=1` | print each building (its footprint, floors, rooms, files and the floor they want) and the disk measuring |
 | `SYN_SHELL_FPS=1` | frames a second while walking, on stderr |
 | `SYN_CREW_TEST=NAME` | straight into that crew member's office once it stands |
+| `SYN_RADIO_FAKE="id|text"` | a line as if that crew member said it on the radio (nothing is sent) |
+| `SYN_RADIO_REPLAY=1` | show the radio's record lines too, not only what is said from now |
 
 With the test build (`-DSYN_SHELL_TEST=ON`), `--view-script` drives it:
 `goto:PATH` walks into a folder, `hold:w:2000` walks for two seconds,

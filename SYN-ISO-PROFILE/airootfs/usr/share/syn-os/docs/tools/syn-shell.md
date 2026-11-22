@@ -287,8 +287,11 @@ day.
 When the city is your home folder, the crew are in their offices at its
 edge: each one's home, `OFFICE:` and their name over the door, and them
 inside, walking from file to file, at their desk while SYN-CORP has them
-in a turn, their last action over them. That's read from what SYN-CORP
-logs; nothing is sent to them.
+in a turn, their last action over them. What they say on the radio
+appears over them as they say it, the word being spoken boxed in the
+theme's colour as on the phone; the others' lines run along the foot of
+the view, so you see them anywhere in the city. SYN-SHELL only listens:
+nothing is sent to them, so no turn is run.
 
 ![A crew member in their office](../screenshots/syn-shell-walk-crew.png)
 

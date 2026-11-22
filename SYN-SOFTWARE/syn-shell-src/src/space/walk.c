@@ -16,6 +16,10 @@
 #include <dirent.h>
 #include <ftw.h>
 #include <sys/statvfs.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -4451,6 +4455,10 @@ typedef struct {
 	bool busy;           /* in a turn now */
 	char last[96];       /* their last logged action */
 	Uint32 last_at;
+	/* what they last said on the radio, and when each word of it is spoken */
+	char said[600], said_id[64], cue_line[64];
+	Uint32 said_at, talk_at;
+	int talk_stream, cue[900], ncue;
 	/* in their office */
 	bool placed;
 	float x, z, yaw, tx, tz, wait, stride, mv;
@@ -4466,6 +4474,8 @@ static struct {
 } crew;
 
 #ifndef _WIN32
+static int radio_thread(void *arg);
+
 static void crew_roster(void) {
 	static const struct {
 		const char *id, *name;
@@ -4621,6 +4631,10 @@ static void crew_into(World *wd, const Node *root) {
 		if (th) {
 			SDL_DetachThread(th);
 		}
+		th = SDL_CreateThread(radio_thread, "radio", NULL);
+		if (th) {
+			SDL_DetachThread(th);
+		}
 	}
 	if (SDL_AtomicGet(&crew.state) != 2) {
 		return;
@@ -4632,6 +4646,416 @@ static void crew_into(World *wd, const Node *root) {
 		}
 	}
 #endif
+}
+
+
+/* ---- the radio: what the crew say, heard as text ----
+ *
+ * The same door as the phone app (cast protocol v1, a WebSocket on
+ * 127.0.0.1:47984), joined to the crew's rooms with the owner's token
+ * (~/.config/syn-corp/owner-token, never printed). It only listens: no
+ * line is ever sent from here, so no turn is ever run. A spoken reply
+ * comes with when each word of it is said ('cue': word, start, end in ms
+ * from its voice stream's start), so the word being said is boxed as on
+ * the phone; a line with no voice is read at a speaking pace. */
+
+#ifndef _WIN32
+static struct {
+	char said[600], from[64];
+	Uint32 at;
+} you_said; /* your own lines, from the phone */
+
+static bool ws_all(int fd, void *buf, size_t n) {
+	unsigned char *p = buf;
+	while (n) {
+		ssize_t r = recv(fd, p, n, 0);
+		if (r <= 0) {
+			return false;
+		}
+		p += r;
+		n -= (size_t)r;
+	}
+	return true;
+}
+
+static bool ws_send(int fd, int op, const char *data, size_t n) {
+	unsigned char head[14], mask[4];
+	size_t h = 0;
+	head[h++] = (unsigned char)(0x80 | op);
+	if (n < 126) {
+		head[h++] = (unsigned char)(0x80 | n);
+	} else {
+		head[h++] = 0x80 | 126;
+		head[h++] = (unsigned char)(n >> 8);
+		head[h++] = (unsigned char)n;
+	}
+	for (int i = 0; i < 4; i++) {
+		mask[i] = (unsigned char)(rand() & 0xff);
+		head[h++] = mask[i];
+	}
+	unsigned char *buf = SDL_malloc(h + n);
+	memcpy(buf, head, h);
+	for (size_t i = 0; i < n; i++) {
+		buf[h + i] = (unsigned char)data[i] ^ mask[i & 3];
+	}
+	bool ok = send(fd, buf, h + n, MSG_NOSIGNAL) == (ssize_t)(h + n);
+	SDL_free(buf);
+	return ok;
+}
+
+/* where "key": starts its value in a JSON object, or NULL */
+static const char *jat(const char *js, const char *key) {
+	char pat[48];
+	snprintf(pat, sizeof pat, "\"%s\"", key);
+	for (const char *p = strstr(js, pat); p; p = strstr(p + 1, pat)) {
+		const char *v = p + strlen(pat);
+		while (*v == ' ') {
+			v++;
+		}
+		if (*v == ':') {
+			v++;
+			while (*v == ' ') {
+				v++;
+			}
+			return v;
+		}
+	}
+	return NULL;
+}
+
+/* a string value, its escapes undone (\uXXXX as UTF-8, a line end as a space) */
+static bool jstr(const char *js, const char *key, char *out, size_t n) {
+	const char *v = jat(js, key);
+	size_t o = 0;
+	if (!v || *v != '"' || !n) {
+		return false;
+	}
+	for (v++; *v && *v != '"' && o + 5 < n; v++) {
+		unsigned c = (unsigned char)*v;
+		if (c == '\\' && v[1]) {
+			v++;
+			switch (*v) {
+			case 'n': case 'r': case 't': c = ' '; break;
+			case 'u': {
+				unsigned u = 0;
+				for (int i = 1; i <= 4 && v[i]; i++) {
+					char h = v[i];
+					u = u * 16 + (unsigned)(h >= 'a' ? h - 'a' + 10 : h >= 'A' ? h - 'A' + 10 : h - '0');
+				}
+				v += 4;
+				if (u >= 0xd800 && u < 0xdc00 && v[1] == '\\' && v[2] == 'u') { /* a pair: one character */
+					unsigned l = 0;
+					for (int i = 3; i <= 6 && v[i]; i++) {
+						char h = v[i];
+						l = l * 16 + (unsigned)(h >= 'a' ? h - 'a' + 10 : h >= 'A' ? h - 'A' + 10 : h - '0');
+					}
+					u = 0x10000 + ((u - 0xd800) << 10) + (l - 0xdc00);
+					v += 6;
+				}
+				if (u < 0x80) {
+					out[o++] = (char)u;
+				} else if (u < 0x800) {
+					out[o++] = (char)(0xc0 | u >> 6);
+					out[o++] = (char)(0x80 | (u & 0x3f));
+				} else if (u < 0x10000) {
+					out[o++] = (char)(0xe0 | u >> 12);
+					out[o++] = (char)(0x80 | ((u >> 6) & 0x3f));
+					out[o++] = (char)(0x80 | (u & 0x3f));
+				} else {
+					out[o++] = (char)(0xf0 | u >> 18);
+					out[o++] = (char)(0x80 | ((u >> 12) & 0x3f));
+					out[o++] = (char)(0x80 | ((u >> 6) & 0x3f));
+					out[o++] = (char)(0x80 | (u & 0x3f));
+				}
+				continue;
+			}
+			default: c = (unsigned char)*v; break;
+			}
+		}
+		out[o++] = (char)c;
+	}
+	out[o] = '\0';
+	return true;
+}
+
+static long jlong(const char *js, const char *key, long def) {
+	const char *v = jat(js, key);
+	return v && (*v == '-' || (*v >= '0' && *v <= '9')) ? strtol(v, NULL, 10) : def;
+}
+
+static Crew *crew_named(const char *id) {
+	for (int i = 0; id[0] && i < crew.n; i++) {
+		if (!strcmp(crew.c[i].id, id)) {
+			return &crew.c[i];
+		}
+	}
+	return NULL;
+}
+
+/* one message from the radio */
+static void radio_heard(const char *js) {
+	char type[16] = "", from[64] = "", as[32] = "", text[600] = "", id[64] = "", line[64] = "";
+	jstr(js, "type", type, sizeof type);
+	const char *rp = jat(js, "replay");
+	if (rp && !strncmp(rp, "true", 4) && !SDL_getenv("SYN_RADIO_REPLAY")) {
+		return; /* the record, sent on joining: only what is said from now (SYN_RADIO_REPLAY=1 shows it, for trying) */
+	}
+	if (SDL_getenv("SYN_WORLD_DUMP")) {
+		char ty[16] = "", fr[40] = "";
+		jstr(js, "type", ty, sizeof ty);
+		jstr(js, "from", fr, sizeof fr);
+		fprintf(stderr, "radio: %s from %s\n", ty, fr);
+	}
+	jstr(js, "from", from, sizeof from);
+	jstr(js, "as", as, sizeof as);
+	SDL_LockMutex(crew.mu);
+	Crew *c = crew_named(as[0] ? as : from);
+	if (!strcmp(type, "say") && jstr(js, "text", text, sizeof text) && text[0] && strncmp(text, "::", 2) &&
+	    strcmp(from, "system") && strcmp(as, "system")) {
+		if (!jstr(js, "message", id, sizeof id)) {
+			jstr(js, "id", id, sizeof id);
+		}
+		if (c) {
+			snprintf(c->said, sizeof c->said, "%s", text);
+			snprintf(c->said_id, sizeof c->said_id, "%s", id);
+			c->said_at = SDL_GetTicks();
+			if (strcmp(c->cue_line, id)) {
+				c->ncue = 0;
+			}
+		} else {
+			snprintf(you_said.said, sizeof you_said.said, "%s", text);
+			snprintf(you_said.from, sizeof you_said.from, "%s", from);
+			you_said.at = SDL_GetTicks();
+		}
+	} else if (!strcmp(type, "talk") && c) {
+		c->talk_stream = (int)jlong(js, "stream", -1);
+		c->talk_at = SDL_GetTicks(); /* heard live: its first packet is about now */
+	} else if (!strcmp(type, "cue")) {
+		int stream = (int)jlong(js, "stream", -2);
+		jstr(js, "line", line, sizeof line);
+		for (int i = 0; i < crew.n; i++) {
+			Crew *k = &crew.c[i];
+			if (k->talk_stream != stream || !line[0]) {
+				continue;
+			}
+			if (strcmp(k->cue_line, line)) {
+				snprintf(k->cue_line, sizeof k->cue_line, "%s", line);
+				k->ncue = 0;
+			}
+			const char *t = jat(js, "t");
+			if (t && *t == '[') { /* [word, start, end, ...] */
+				char *e;
+				for (t++; k->ncue < 900;) {
+					long v = strtol(t, &e, 10);
+					if (e == t) {
+						break;
+					}
+					k->cue[k->ncue++] = (int)v;
+					t = e;
+					while (*t == ',' || *t == ' ') {
+						t++;
+					}
+				}
+				k->ncue -= k->ncue % 3;
+			}
+		}
+	}
+	SDL_UnlockMutex(crew.mu);
+}
+
+/* one connection to the radio, till it drops */
+static void radio_once(const char *token) {
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in a = {0};
+	a.sin_family = AF_INET;
+	a.sin_port = htons(47984);
+	a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	if (fd < 0 || connect(fd, (struct sockaddr *)&a, sizeof a) != 0) {
+		if (fd >= 0) {
+			close(fd);
+		}
+		return;
+	}
+	static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	char key[25];
+	for (int i = 0; i < 22; i++) {
+		key[i] = b64[rand() % 64];
+	}
+	key[22] = key[23] = '=';
+	key[24] = '\0';
+	char req[400];
+	int rn = snprintf(req, sizeof req,
+	                  "GET /cast/v1 HTTP/1.1\r\nHost: 127.0.0.1:47984\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+	                  "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n",
+	                  key);
+	char resp[1024];
+	size_t got = 0;
+	bool ok = send(fd, req, (size_t)rn, MSG_NOSIGNAL) == rn;
+	while (ok && got < sizeof resp - 1 && !strstr(resp, "\r\n\r\n")) { /* the answer, a byte at a time: no frame read with it */
+		ok = recv(fd, resp + got, 1, 0) == 1;
+		got += ok;
+		resp[got] = '\0';
+	}
+	if (!ok || !strstr(resp, " 101")) {
+		close(fd);
+		return;
+	}
+	char hello[1200], chans[600] = "";
+	size_t cl = 0;
+	for (int i = 0; i < crew.n && cl + 40 < sizeof chans; i++) {
+		cl += (size_t)snprintf(chans + cl, sizeof chans - cl, "%s\"%s\"", i ? "," : "", crew.c[i].id);
+	}
+	int hn = snprintf(hello, sizeof hello,
+	                  "{\"type\":\"hello\",\"v\":1,\"token\":\"%s\",\"device\":\"syn-shell\",\"client\":\"syn-shell/1\",\"channels\":[%s],\"seq\":1}",
+	                  token, chans);
+	ok = hn > 0 && hn < (int)sizeof hello && ws_send(fd, 1, hello, (size_t)hn);
+	memset(hello, 0, sizeof hello); /* the token, not left about */
+	char *msg = NULL;
+	size_t mlen = 0;
+	while (ok) {
+		unsigned char h[2];
+		if (!ws_all(fd, h, 2)) {
+			break;
+		}
+		int op = h[0] & 0x0f;
+		bool fin = h[0] & 0x80;
+		uint64_t n = h[1] & 0x7f;
+		if (n == 126) {
+			unsigned char e[2];
+			ok = ws_all(fd, e, 2);
+			n = (uint64_t)e[0] << 8 | e[1];
+		} else if (n == 127) {
+			unsigned char e[8];
+			ok = ws_all(fd, e, 8);
+			n = 0;
+			for (int i = 0; i < 8; i++) {
+				n = n << 8 | e[i];
+			}
+		}
+		if (!ok || n > (16u << 20)) {
+			break;
+		}
+		char *pl = SDL_malloc((size_t)n + 1);
+		ok = ws_all(fd, pl, (size_t)n);
+		pl[n] = '\0';
+		if (ok && op == 9) {
+			ws_send(fd, 10, pl, (size_t)n); /* a ping: its pong */
+		} else if (ok && op == 8) {
+			ok = false;
+		} else if (ok && (op == 1 || (op == 0 && msg))) { /* text, or the rest of it */
+			msg = SDL_realloc(msg, mlen + (size_t)n + 1);
+			memcpy(msg + mlen, pl, (size_t)n);
+			mlen += (size_t)n;
+			msg[mlen] = '\0';
+			if (fin) {
+				radio_heard(msg);
+				SDL_free(msg);
+				msg = NULL;
+				mlen = 0;
+			}
+		} /* binary: the voice itself, not played here */
+		SDL_free(pl);
+	}
+	SDL_free(msg);
+	close(fd);
+}
+
+static int radio_thread(void *arg) {
+	(void)arg;
+	char path[600], token[256] = "";
+	const char *home = getenv("HOME");
+	snprintf(path, sizeof path, "%s/.config/syn-corp/owner-token", home ? home : "");
+	srand((unsigned)SDL_GetTicks() ^ (unsigned)getpid());
+	const char *fake = SDL_getenv("SYN_RADIO_FAKE"); /* "id|text": a line as if said, for trying (nothing is sent) */
+	if (fake && strchr(fake, '|')) {
+		char js[900], who[40];
+		snprintf(who, sizeof who, "%.*s", (int)(strchr(fake, '|') - fake), fake);
+		snprintf(js, sizeof js, "{\"type\":\"say\",\"channel\":\"%s\",\"from\":\"%s\",\"message\":\"fake1\",\"text\":\"%s\"}", who, who,
+		         strchr(fake, '|') + 1);
+		SDL_Delay(6000);
+		radio_heard(js);
+	}
+	for (;;) {
+		FILE *f = fopen(path, "r");
+		if (f) {
+			if (fgets(token, sizeof token, f)) {
+				token[strcspn(token, "\r\n \"\\")] = '\0';
+			}
+			fclose(f);
+		}
+		if (token[0]) {
+			radio_once(token);
+		}
+		memset(token, 0, sizeof token);
+		SDL_Delay(5000); /* the radio down or restarting: again in a while */
+	}
+	return 0;
+}
+#endif
+
+/* The words of a line, the one being said boxed: those said in the text's
+ * colour, the rest dimmer. Wrapped to maxw, its top middle at (cx, y)
+ * (up from y when up). word: the one being said, -1 none, n all said. */
+static void words_draw(float cx, float y, float maxw, const char *who, const char *text, int word, bool up, const Theme *t,
+                       SDL_Color name_c) {
+	char buf[640];
+	snprintf(buf, sizeof buf, "%s", text);
+	const char *wd[160];
+	int nw = 0;
+	for (char *p = strtok(buf, " \t\n\r"); p && nw < 160; p = strtok(NULL, " \t\n\r")) {
+		wd[nw++] = p;
+	}
+	float th = (float)d2_text_height(), sp = (float)d2_text_width(" ");
+	float lx[160], ly[160], wide = who[0] ? (float)d2_text_width(who) + sp * 2 : 0, x = wide, row = 0, most = wide;
+	for (int i = 0; i < nw; i++) {
+		float ww = (float)d2_text_width(wd[i]);
+		if (x + ww > maxw && x > 0) {
+			x = 0;
+			row++;
+		}
+		lx[i] = x;
+		ly[i] = row;
+		x += ww + sp;
+		most = fmaxf(most, x - sp);
+	}
+	float bw = most + 16, bh = (row + 1) * (th + 3) + 10, bx = cx - bw / 2, by = up ? y - bh : y;
+	SDL_Color bg = rgb(t->bg), fg = rgb(t->text), dim = mix(fg, bg, 0.55f), acc = rgb(t->accent);
+	bg.a = 225;
+	d2_rect(bx, by, bw, bh, bg);
+	d2_frame(bx, by, bw, bh, 1, acc);
+	d2_text(bx + 8, by + 5, who, name_c);
+	for (int i = 0; i < nw; i++) {
+		float wx = bx + 8 + lx[i], wy = by + 5 + ly[i] * (th + 3);
+		if (i == word) {
+			d2_rect(wx - 2, wy - 1, (float)d2_text_width(wd[i]) + 4, th + 2, acc); /* the word being said */
+			d2_text(wx, wy, wd[i], rgb(t->bg));
+		} else {
+			d2_text(wx, wy, wd[i], i < word ? fg : dim);
+		}
+	}
+}
+
+/* which word of what c said is being said now: -1 not yet, n all said, -2 long over */
+static int said_word(const Crew *c, Uint32 now) {
+	int n = 0;
+	bool in = false;
+	for (const char *p = c->said; *p; p++) {
+		bool sp = *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r';
+		n += !sp && !in;
+		in = !sp;
+	}
+	if (c->ncue >= 3 && c->talk_at && !strcmp(c->cue_line, c->said_id)) {
+		int ms = (int)(now - c->talk_at), w = -1;
+		for (int i = 0; i + 2 < c->ncue; i += 3) {
+			if (c->cue[i + 1] <= ms) {
+				w = c->cue[i];
+			}
+		}
+		int end = c->cue[c->ncue - 1];
+		return ms > end + 8000 ? -2 : ms > end + 300 ? n : w;
+	}
+	int ms = (int)(now - c->said_at), w = ms / 330; /* no voice: about three words a second */
+	return ms > n * 330 + 8000 ? -2 : w >= n ? n : w;
 }
 
 /* the crew member whose office building b is, or NULL */
@@ -6177,18 +6601,47 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 			tag(x + sx, y + sy - th / 2, w->plaque[i].text, hot ? rgb(t->bg) : fg, hot ? rgb(t->accent) : label_bg, rgb(t->accent));
 		}
 	}
+	Uint32 now_t = SDL_GetTicks();
 	if (cm && cm->placed) {
-		/* the crew member's name over them, and what they are at */
+		/* the crew member's name over them, and what they are at; what they say on the radio over that */
 		float sx, sy;
 		if (v3_dot(v3_sub(v3(cm->x, 1.9f, cm->z), eye), look_dir(w)) > 0 && m4_project(mvp, v3(cm->x, 2.15f, cm->z), vw, vh, &sx, &sy)) {
 			SDL_LockMutex(crew.mu);
-			bool busy = cm->busy, fresh = cm->last[0] && SDL_GetTicks() - cm->last_at < 60000;
-			char doing[96];
+			bool busy = cm->busy, fresh = cm->last[0] && now_t - cm->last_at < 60000;
+			char doing[96], said[600];
 			snprintf(doing, sizeof doing, "%s", cm->last);
+			snprintf(said, sizeof said, "%s", cm->said);
+			int word = cm->said[0] ? said_word(cm, now_t) : -2;
 			SDL_UnlockMutex(crew.mu);
 			snprintf(buf, sizeof buf, "%s  |  %s", cm->name, busy ? "in a turn" : fresh ? doing : "about the office");
 			tag(x + sx, y + sy - th, buf, rgb(t->bg), busy ? rgb(t->accent) : lighten(cm->hood, 0.5f), rgb(t->accent));
+			if (word != -2) {
+				words_draw(x + sx, y + sy - th - 6, fminf(vw * 0.45f, 520), "", said, word, true, t, rgb(t->accent));
+			}
 		}
+	}
+	/* the radio along the foot of the view: what the crew say, wherever you are, and your own lines */
+	{
+		float ry = y + vh - th * 3.2f;
+		SDL_LockMutex(crew.mu);
+		for (int i = 0; i < crew.n; i++) {
+			Crew *c = &crew.c[i];
+			if (!c->said[0] || c == cm) {
+				continue; /* the one in this office says it over their head */
+			}
+			int word = said_word(c, now_t);
+			if (word == -2) {
+				continue;
+			}
+			char who[80];
+			snprintf(who, sizeof who, "%s:", c->name);
+			words_draw(x + vw / 2, ry, vw * 0.7f, who, c->said, word, true, t, lighten(c->hood, 0.6f));
+			ry -= th * 2.4f;
+		}
+		if (you_said.said[0] && now_t - you_said.at < 10000) {
+			words_draw(x + vw / 2, ry, vw * 0.7f, "You:", you_said.said, 9999, true, t, rgb(t->text));
+		}
+		SDL_UnlockMutex(crew.mu);
 	}
 	if (w->bld < 0) {
 		/* out in the street: the buildings' names over their doors, the streets' at the corners */
