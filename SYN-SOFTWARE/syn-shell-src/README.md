@@ -37,10 +37,13 @@ buildings, its files furniture.
   - Beyond the city wall, the rest of the disk: a plain as wide as the
     disk at the city's scale, the disk's other folders standing on it as
     towers by their size.
-  - The crew (SYN-CORP's agents) are in their offices at the city's edge,
-    from what SYN-CORP logs; what they say on the radio appears over them,
-    the word being spoken boxed as on the phone. Nothing is sent to them.
+  - The crew (SYN-CORP's agents) follow you as a crew; switched off on the
+    app they rest at home, and with work running a worker of theirs types
+    at their desk; what they say on the radio appears over them, the word
+    being spoken boxed as on the phone. Nothing is sent to them.
   - Lit the way SYN-TREK is: what shines glows.
+  - A radar, a car to drive (`E` at its door), sprinting, and sound made
+    as it plays: steps, jumps, the engine, the doors.
 
 | | |
 |---|---|

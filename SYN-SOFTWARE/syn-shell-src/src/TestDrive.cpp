@@ -94,6 +94,10 @@ static void runScript(QWidget *window, QStringList steps, int i)
     const int ms = p.value(2).toInt();
     QTimer::singleShot(ms, v, [v, name = p.value(1)] { keyTo(v, name, false); });
     after = ms + 20;
+  } else if (op == QLatin1String("down")) {
+    keyTo(v, p.value(1), true); /* held till up:K, so two can be held at once */
+  } else if (op == QLatin1String("up")) {
+    keyTo(v, p.value(1), false);
   } else if (op == QLatin1String("wait")) {
     after = p.value(1).toInt();
   } else if (op == QLatin1String("look")) {

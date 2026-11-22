@@ -22,7 +22,7 @@ PATH`. `Esc` goes back to the map.
 | left / right | turn |
 | `Shift` | run |
 | `Space` | jump |
-| `E` | use the file you face (open it, play it) |
+| `E` | use the file you face (open it, play it); at the car's door, get in |
 | `V` | your own eyes, or over your shoulder |
 | doorways | walk through into the next room |
 | stairs | up into a folder: the rooms over a room are its folders |
@@ -75,7 +75,42 @@ aisles between. Each piece faces its own way. One scale in every room:
 A man in a hoodie, the hood up over a balaclava, his eyes glowing in its
 slit; a snood, a tactical belt with its pouches, a drop-leg holster,
 cargo trousers with knee pads and boots. Piping in the theme's colour.
-He stands on the ring he was spawned from.
+He stands on the ring he was spawned from. Sprinting (`Shift`), he leans
+into it, lower, longer strides, knees driven up, arms pumping bent at the
+elbow.
+
+You hear it: footsteps (the street brighter than a floor, louder
+sprinting), the jump, the landing as hard as the fall. All made as it
+plays, no recordings, and quiet when you leave walk mode.
+
+## The radar
+
+Top right, turned so that ahead is up, north on its rim. Out in the city
+140 m round (220 m driving): the buildings, the crew's offices in their
+colours, the square, the wall, the car. Inside 30 m round: the rooms on
+your floor, the files as dots in their kind's colour. The crew are dots
+in their colours wherever they are.
+
+## The car
+
+Parked at the edge of the market square, right-hand drive. `E` at its
+driver's door: the door swings open on its hinge, you get in and it shuts
+behind you. You see from your seat (the dashboard, its cluster and screen
+lit, the wheel turning as you steer) or, with `V`, from behind it.
+
+| | |
+|---|---|
+| `W` / `S` | throttle; brake, then reverse |
+| `A` / `D` | steer (the front wheels turn; less lock the faster) |
+| `Shift` | more |
+| `Space` | handbrake (it slides round) |
+| `V` | your seat, or behind |
+| `E` | out, once it has all but stopped |
+
+It runs into what you would (the buildings, the wall, lamp posts and
+trees) and bumps off them. Headlights, and tail lights that brighten as
+you brake. The engine is heard by the speed and the throttle, the road
+under it as it goes faster, the doors as they open and shut.
 
 ## Beyond the wall: the rest of the disk
 
@@ -100,12 +135,23 @@ plain says it is measuring.
 
 When the city is your home folder, or a folder in it, each of the crew
 (SYN-CORP's agents) has their home standing at the city's edge as their
-office, `OFFICE:` and their name over the door. Inside, they are there:
-a figure like you in their own colour, their name over them.
+office, `OFFICE:` and their name over the door. Each is a figure like you
+in their own colour, their name over them.
 
-- **About the office**: walking from file to file and stopping to read.
-- **In a turn**: at their desk. That is SYN-CORP running a turn for them
-  (a `corp-turn-NAME` unit), read from `systemctl` every few seconds.
+- **On duty, they follow you** as a crew: in a wedge opening behind you
+  (the lane straight back left clear, so you are never hidden), walking
+  with you and running to catch up, spreading to their places. When you
+  stop they stop, and look about them, each in their own time, back at you
+  now and then. They keep out of walls and furniture; through a door or up
+  the stairs they catch you up; while you drive they wait.
+- **Switched off on the app**, they go home: sitting in a chair in their
+  office, "switched off, resting". (The radio's room list says which are
+  off.)
+- **When they have work running**, another of them is at the desk in
+  their office, typing: "NAME's worker" and what it is doing. That is a
+  turn (a `corp-turn-NAME` unit), its newest step (the radio's busy
+  presence), or a duty running as them (a `corp-duty-*` unit, the log
+  saying whose). The one following you goes on following you.
 - **What they last did** shows a minute over them: answered, a commit and
   its repository, a ticket, from `~/.local/state/syn-corp/syn-corp.log`.
 
@@ -141,7 +187,8 @@ city fades into the night and the far plane reaches the disk's edge.
 | `SYN_WORLD_DUMP=1` | print each building (its footprint, floors, rooms, files and the floor they want) and the disk measuring |
 | `SYN_SHELL_FPS=1` | frames a second while walking, on stderr |
 | `SYN_CREW_TEST=NAME` | straight into that crew member's office once it stands |
-| `SYN_RADIO_FAKE="id|text"` | a line as if that crew member said it on the radio (nothing is sent) |
+| `SYN_RADIO_FAKE="id|text"` | a line as if that crew member said it on the radio (nothing is sent); or a whole radio message, `{...}` |
+| `SYN_CAR_TEST=1` | beside the car's door once it is parked |
 | `SYN_RADIO_REPLAY=1` | show the radio's record lines too, not only what is said from now |
 
 With the test build (`-DSYN_SHELL_TEST=ON`), `--view-script` drives it:

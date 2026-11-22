@@ -111,7 +111,8 @@ typedef struct {
 } Bag;
 enum {
 	BAG_WALL, BAG_BODY, BAG_LIT, BAG_BALL, BAG_LAMP, BAG_BALL_LAMP, BAG_GLOW, BAG_BALL_GLOW,
-	BAG_FIG_DARK, BAG_FIG_LAMP, BAG_FIG_GLOW, BAG_FIG_BOX, BAG_CREW_BOX, BAG_CREW_BALL, BAG_CREW_LAMP, BAG_COUNT
+	BAG_FIG_DARK, BAG_FIG_LAMP, BAG_FIG_GLOW, BAG_FIG_BOX, BAG_CREW_BOX, BAG_CREW_BALL, BAG_CREW_LAMP,
+	BAG_CAR_BOX, BAG_CAR_BALL, BAG_CAR_LAMP, BAG_CAR_GLASS, BAG_CAR_DOOR, BAG_CAR_DGLASS, BAG_CAR_FL, BAG_CAR_FR, BAG_COUNT
 };
 typedef struct {
 	unsigned tex;
@@ -178,6 +179,22 @@ struct Walk {
 	bool ground;
 	float coyote, jump_early; /* seconds left: off an edge, Space pressed before landing */
 	float yaw, pitch, body_yaw, stride, moving;
+	int step_n; /* steps heard, by the stride */
+	/* the crew's figures this frame: those following you, resting at home, their workers at the desk */
+#define FIG_MAX 24
+	Bag fbox[FIG_MAX], fball[FIG_MAX], flamp[FIG_MAX];
+	struct {
+		int crew, kind; /* FIG_FOLLOW, FIG_REST, FIG_WORK */
+		float x, y, z, yaw;
+	} fig[FIG_MAX];
+	int nfig;
+	int crew_frame; /* the building and floor they last caught you up in */
+	/* the car: parked at the square, or you in it */
+	bool car_ok;
+	int car_state;  /* CAR_OUT, CAR_GETTING_IN, CAR_SHUTTING, CAR_DRIVING, CAR_GETTING_OUT, CAR_LEFT */
+	float car_x, car_z, car_yaw, car_v, car_steer, car_door, car_t, car_throttle, car_cam_x, car_cam_y, car_cam_z;
+	bool car_chase; /* the view from behind it, not your seat */
+	bool car_brake;
 	bool first; /* through your own eyes */
 	float dist; /* the camera behind you */
 	bool look;  /* the mouse turns you */
@@ -1743,6 +1760,12 @@ static void set_room(Walk *w, int ri) {
 /* Standing still at (x, z) facing yaw, after a lift, the street's square, a door. */
 static void city_near(Walk *w);
 static void beyond_ask(const Node *root);
+static void sfx_play(bool on);
+static bool car_covers(const Walk *w, float x, float z, float r);
+static bool car_use(Walk *w);
+static bool car_in(const Walk *w);
+static void car_camera(Walk *w, Vec3 *eye, Vec3 *at);
+static void sfx_engine(float on, float speed01, float throttle);
 static void crew_into(World *wd, const Node *root);
 static bool crew_here(const Node *root);
 static void crew_move(Walk *w, float dt);
@@ -1891,6 +1914,7 @@ void walk_enter(Walk *w, Node *dir, const Node *near) {
 		}
 	}
 	w->on = true;
+	sfx_play(true);
 	w->dist = w->dist > 0 ? w->dist : 4.2f;
 	w->look = w->captured = false;
 	place_in(w, dir);
@@ -1904,7 +1928,163 @@ void walk_enter(Walk *w, Node *dir, const Node *near) {
 Node *walk_leave(Walk *w) {
 	walk_release(w);
 	w->on = false;
+	sfx_engine(0, 0, 0);
+	sfx_play(false);
 	return w->room;
+}
+
+/* ---- sound: steps, jumps, the car ----
+ *
+ * Made as it plays, no recordings: SDL's audio, a callback mixing a few
+ * voices. A step is a scuff of filtered noise and a low thump; a jump, a
+ * rush of cloth; a landing, a thump as hard as the fall; a car door, the
+ * latch and the hinge, or the shut. The engine runs while you are in the
+ * car: its firing pitch with the speed, louder on the throttle, the road
+ * under it rising with the speed. Quiet when you are not walking. */
+
+enum { SFX_STEP, SFX_JUMP, SFX_LAND, SFX_DOOR_OPEN, SFX_DOOR_SHUT, SFX_KINDS };
+#define SFX_VOICES 12
+typedef struct {
+	int kind;
+	float t, len, amp, pitch, lp, ph;
+	unsigned seed;
+} Voice;
+static struct {
+	SDL_AudioDeviceID dev;
+	bool tried;
+	float rate;
+	SDL_SpinLock lock;
+	Voice v[SFX_VOICES];
+	/* the engine, set from the walk each frame */
+	float eng_on, eng_speed, eng_throttle;
+	/* the callback's own */
+	float eng_ph, eng_ph2, eng_lp, road_lp, eng_amp, eng_f;
+	unsigned noise;
+} sfx;
+
+static float sfx_noise(unsigned *s) {
+	*s = *s * 1664525u + 1013904223u;
+	return (float)(*s >> 8) / 8388608.0f - 1.0f;
+}
+
+static void SDLCALL sfx_mix(void *ud, Uint8 *stream, int len) {
+	(void)ud;
+	float *out = (float *)stream;
+	int n = len / (int)(2 * sizeof(float));
+	float dt = 1.0f / sfx.rate;
+	SDL_AtomicLock(&sfx.lock);
+	for (int i = 0; i < n; i++) {
+		float mix = 0;
+		for (int k = 0; k < SFX_VOICES; k++) {
+			Voice *v = &sfx.v[k];
+			if (v->len <= 0) {
+				continue;
+			}
+			float t = v->t, s = 0, nz = sfx_noise(&v->seed);
+			switch (v->kind) {
+			case SFX_STEP: /* a scuff, and the heel's thump */
+				v->lp += (nz - v->lp) * (0.18f * v->pitch);
+				s = v->lp * expf(-t * 55) * 1.6f + sinf(v->ph) * expf(-t * 38) * 0.9f;
+				v->ph += 2 * (float)M_PI * (70 + 30 * v->pitch) * dt;
+				break;
+			case SFX_JUMP: /* cloth: noise swelling and gone */
+				v->lp += (nz - v->lp) * 0.12f;
+				s = v->lp * sinf((float)M_PI * fminf(t / v->len, 1)) * 0.9f;
+				break;
+			case SFX_LAND: /* a thump, a little grit */
+				v->lp += (nz - v->lp) * 0.1f;
+				s = sinf(v->ph) * expf(-t * 22) * 1.3f + v->lp * expf(-t * 40);
+				v->ph += 2 * (float)M_PI * (52 - 20 * t) * dt;
+				break;
+			case SFX_DOOR_OPEN: /* the latch, then the hinge */
+				v->lp += (nz - v->lp) * 0.5f;
+				s = v->lp * expf(-t * 160) * 1.2f;
+				if (t > 0.04f) {
+					float f = 260 + 220 * (t - 0.04f) / v->len;
+					v->ph += 2 * (float)M_PI * f * dt;
+					s += (fmodf(v->ph / (2 * (float)M_PI), 1) - 0.5f) * 0.18f * sinf((float)M_PI * fminf((t - 0.04f) / (v->len - 0.04f), 1)) *
+					     (0.6f + 0.4f * sinf(t * 70));
+				}
+				break;
+			case SFX_DOOR_SHUT: /* the slam and the latch */
+				v->lp += (nz - v->lp) * 0.25f;
+				s = sinf(v->ph) * expf(-t * 18) * 1.4f + v->lp * expf(-t * 60) * 0.8f;
+				v->ph += 2 * (float)M_PI * 64 * dt;
+				if (t > 0.07f && t < 0.09f) {
+					s += nz * 0.6f;
+				}
+				break;
+			}
+			mix += s * v->amp;
+			v->t += dt;
+			if (v->t >= v->len) {
+				v->len = 0;
+			}
+		}
+		/* the engine, easing to what the walk asks */
+		float want_amp = sfx.eng_on * (0.16f + 0.2f * sfx.eng_throttle + 0.1f * sfx.eng_speed);
+		float want_f = 34 + 95 * sfx.eng_speed + 18 * sfx.eng_throttle;
+		sfx.eng_amp += (want_amp - sfx.eng_amp) * 0.0006f;
+		sfx.eng_f += (want_f - sfx.eng_f) * 0.0004f;
+		if (sfx.eng_amp > 0.0005f) {
+			sfx.eng_ph += sfx.eng_f * dt;
+			sfx.eng_ph2 += sfx.eng_f * 0.5f * dt;
+			float fire = fmodf(sfx.eng_ph, 1), half = fmodf(sfx.eng_ph2, 1);
+			float e = (fire - 0.5f) * 0.8f + (half - 0.5f) * 0.5f + (fire < 0.12f ? 0.5f : 0); /* the firing, its rumble under */
+			sfx.eng_lp += (e - sfx.eng_lp) * 0.08f;
+			float nz = sfx_noise(&sfx.noise);
+			sfx.road_lp += (nz - sfx.road_lp) * 0.05f;
+			mix += sfx.eng_lp * sfx.eng_amp + sfx.road_lp * sfx.eng_on * sfx.eng_speed * 0.35f;
+		}
+		mix = mix / (1 + fabsf(mix)); /* never past full */
+		out[2 * i] = out[2 * i + 1] = mix * 0.8f;
+	}
+	SDL_AtomicUnlock(&sfx.lock);
+}
+
+/* the sound opened (once) and playing, or quiet */
+static void sfx_play(bool on) {
+	if (!sfx.tried && on) {
+		sfx.tried = true;
+		if (SDL_WasInit(SDL_INIT_AUDIO) || SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
+			SDL_AudioSpec want = {0}, have;
+			want.freq = 48000;
+			want.format = AUDIO_F32SYS;
+			want.channels = 2;
+			want.samples = 512;
+			want.callback = sfx_mix;
+			sfx.dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+			sfx.rate = (float)have.freq;
+			sfx.noise = 12345u;
+			if (SDL_getenv("SYN_WORLD_DUMP")) {
+				fprintf(stderr, "sound: %s\n", sfx.dev ? "open" : SDL_GetError());
+			}
+		}
+	}
+	if (sfx.dev) {
+		SDL_PauseAudioDevice(sfx.dev, on ? 0 : 1);
+	}
+}
+
+static void sfx_start(int kind, float amp, float pitch, float len) {
+	if (!sfx.dev) {
+		return;
+	}
+	SDL_AtomicLock(&sfx.lock);
+	for (int k = 0; k < SFX_VOICES; k++) {
+		Voice *v = &sfx.v[k];
+		if (v->len <= 0) {
+			*v = (Voice){kind, 0, len, amp, pitch, 0, 0, (unsigned)SDL_GetTicks() * 2654435761u + (unsigned)k * 97u};
+			break;
+		}
+	}
+	SDL_AtomicUnlock(&sfx.lock);
+}
+
+static void sfx_engine(float on, float speed01, float throttle) {
+	sfx.eng_on = on;
+	sfx.eng_speed = speed01;
+	sfx.eng_throttle = throttle;
 }
 
 /* ---- moving ---- */
@@ -1913,6 +2093,9 @@ Node *walk_leave(Walk *w) {
  * step up on, stopped by anything else. */
 static bool move_axis(Walk *w, int axis, float d) {
 	float x = w->px + (axis == 0 ? d : 0), z = w->pz + (axis == 2 ? d : 0), rise = w->py;
+	if (!car_in(w) && car_covers(w, x, z, BODY_R) && !car_covers(w, w->px, w->pz, BODY_R)) {
+		return false; /* the car, parked */
+	}
 	int n = solid_n(w);
 	for (int i = 0; i < n; i++) {
 		const Box *b = solid_i(w, i);
@@ -2104,6 +2287,376 @@ static void world_again(Walk *w) {
 	w->follow_ok = false;
 }
 
+static Vec3 look_dir(const Walk *w);
+static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, float mv, float run, float stride, float time, SDL_Color hood, SDL_Color glow, bool flicker, int pose);
+static float cam_clear(const Walk *w, Vec3 p, Vec3 d);
+static void bag_put(Bag *g, float x, float y, float z, float sx, float sy, float sz, SDL_Color c);
+
+/* ---- the car ----
+ *
+ * Parked at the edge of the market square, right-hand drive. E at its
+ * driver's door: the door swings open on its hinge, you get in and it
+ * shuts behind you; you see from your seat (V: from behind it). W and S
+ * are the throttle and the brake (and reverse), A and D steer, Shift
+ * gives it more, Space is the handbrake; E stops it and lets you out.
+ * It runs into what you would: the buildings, the wall, posts and trees,
+ * bumping off. Built facing -z at (car_x, car_z), drawn turned by car_yaw. */
+
+enum { CAR_OUT, CAR_GETTING_IN, CAR_SHUTTING, CAR_DRIVING, CAR_GETTING_OUT, CAR_LEFT };
+#define CAR_HALF_W 0.93f
+#define CAR_HALF_L 2.2f
+#define CAR_BASE 2.7f   /* between the axles */
+#define CAR_DOOR_OPEN 1.15f
+
+static void car_local(const Walk *w, float lx, float lz, float *x, float *z) {
+	float c = cosf(w->car_yaw), s = sinf(w->car_yaw);
+	*x = w->car_x + c * lx + s * lz;
+	*z = w->car_z - s * lx + c * lz;
+}
+
+static bool car_in(const Walk *w) { return w->car_ok && w->car_state != CAR_OUT && w->car_state != CAR_LEFT; }
+
+/* where it waits: the square's east edge, nose north */
+static void car_park(Walk *w) {
+	WRect q = w->world.square;
+	w->car_x = q.x1 - 2.2f;
+	w->car_z = (q.z0 + q.z1) / 2 + 3;
+	w->car_yaw = 0;
+	w->car_v = w->car_steer = w->car_door = 0;
+	w->car_state = CAR_OUT;
+	w->car_ok = true;
+}
+
+/* whether (x, z) is within the car's body, grown by r */
+static bool car_covers(const Walk *w, float x, float z, float r) {
+	if (!w->car_ok || w->bld >= 0) {
+		return false;
+	}
+	float dx = x - w->car_x, dz = z - w->car_z, c = cosf(w->car_yaw), s = sinf(w->car_yaw);
+	float lx = c * dx - s * dz, lz = s * dx + c * dz;
+	return fabsf(lx) < CAR_HALF_W + r && fabsf(lz) < CAR_HALF_L + r;
+}
+
+/* near enough its driver's door to get in */
+static bool car_by_door(const Walk *w) {
+	if (!w->car_ok || w->car_state != CAR_OUT || w->bld >= 0) {
+		return false;
+	}
+	float dx, dz;
+	car_local(w, CAR_HALF_W + 0.5f, 0, &dx, &dz);
+	dx -= w->px;
+	dz -= w->pz;
+	return dx * dx + dz * dz < 1.8f * 1.8f;
+}
+
+/* E: in, or out once it has all but stopped */
+static bool car_use(Walk *w) {
+	if (car_by_door(w)) {
+		w->car_state = CAR_GETTING_IN;
+		w->car_t = 0;
+		w->car_chase = false;
+		w->hvx = w->hvz = 0;
+		sfx_start(SFX_DOOR_OPEN, 0.7f, 1, 0.45f);
+		return true;
+	}
+	if (w->car_ok && w->car_state == CAR_DRIVING) {
+		if (fabsf(w->car_v) < 2.0f) {
+			w->car_state = CAR_GETTING_OUT;
+			w->car_t = 0;
+			sfx_start(SFX_DOOR_OPEN, 0.7f, 1, 0.45f);
+		}
+		return true;
+	}
+	return false;
+}
+
+/* one circle of the car against the boxes round it: pushed out; how hard it hit */
+static float car_bump(Walk *w, float lz, float r) {
+	float cx, cz, hit = 0;
+	car_local(w, 0, lz, &cx, &cz);
+	for (int i = 0, n = solid_n(w); i < n; i++) {
+		const Box *b = solid_i(w, i);
+		if (b->hi[1] < 0.35f || b->lo[1] > 1.4f) {
+			continue; /* under its sills, over its roof */
+		}
+		float nx = clampf(cx, b->lo[0], b->hi[0]), nz = clampf(cz, b->lo[2], b->hi[2]);
+		float dx = cx - nx, dz = cz - nz, d = sqrtf(dx * dx + dz * dz);
+		if (d >= r) {
+			continue;
+		}
+		if (d < 1e-4f) { /* its middle inside: out the nearest side */
+			float e[4] = {cx - b->lo[0], b->hi[0] - cx, cz - b->lo[2], b->hi[2] - cz};
+			int k = 0;
+			for (int j = 1; j < 4; j++) {
+				k = e[j] < e[k] ? j : k;
+			}
+			dx = k == 0 ? -1.0f : k == 1 ? 1.0f : 0;
+			dz = k == 2 ? -1.0f : k == 3 ? 1.0f : 0;
+			d = 0;
+		} else {
+			dx /= d;
+			dz /= d;
+		}
+		w->car_x += dx * (r - d);
+		w->car_z += dz * (r - d);
+		cx += dx * (r - d);
+		cz += dz * (r - d);
+		hit = fmaxf(hit, fabsf(w->car_v));
+	}
+	return hit;
+}
+
+static void car_update(Walk *w, float dt, const Uint8 *k) {
+	if (!w->car_ok) {
+		return;
+	}
+	w->car_t += dt;
+	float throttle = 0;
+	w->car_brake = false;
+	switch (w->car_state) {
+	case CAR_GETTING_IN:
+		w->car_door = clampf(w->car_t / 0.45f, 0, 1) * CAR_DOOR_OPEN;
+		if (w->car_t >= 0.6f) {
+			w->car_state = CAR_SHUTTING;
+			w->car_t = 0;
+			w->first = true; /* from the seat */
+			w->yaw = w->car_yaw;
+			w->pitch = -0.05f;
+		}
+		break;
+	case CAR_SHUTTING:
+		w->car_door = (1 - clampf(w->car_t / 0.35f, 0, 1)) * CAR_DOOR_OPEN;
+		if (w->car_t >= 0.35f) {
+			w->car_state = CAR_DRIVING;
+			w->car_door = 0;
+			sfx_start(SFX_DOOR_SHUT, 0.8f, 1, 0.35f);
+		}
+		break;
+	case CAR_GETTING_OUT:
+		w->car_v *= 1 - clampf(dt * 4, 0, 1);
+		w->car_door = clampf(w->car_t / 0.4f, 0, 1) * CAR_DOOR_OPEN;
+		if (w->car_t >= 0.55f) {
+			float x, z;
+			car_local(w, CAR_HALF_W + 0.75f, 0.1f, &x, &z);
+			w->car_state = CAR_LEFT;
+			w->car_t = 0;
+			w->first = false;
+			w->pitch = 0.3f;
+			w->cam_len = 0;
+			stand(w, x, z, w->car_yaw - (float)M_PI / 2);
+			w->follow_ok = false;
+		}
+		break;
+	case CAR_LEFT:
+		w->car_door = (1 - clampf(w->car_t / 0.35f, 0, 1)) * CAR_DOOR_OPEN;
+		if (w->car_t >= 0.35f) {
+			w->car_state = CAR_OUT;
+			w->car_door = 0;
+			sfx_start(SFX_DOOR_SHUT, 0.8f, 1, 0.35f);
+		}
+		break;
+	case CAR_DRIVING: {
+		float ahead = (float)((k[SDL_SCANCODE_W] || k[SDL_SCANCODE_UP]) - (k[SDL_SCANCODE_S] || k[SDL_SCANCODE_DOWN]));
+		float side = (float)(k[SDL_SCANCODE_D] - k[SDL_SCANCODE_A]);
+		bool boost = k[SDL_SCANCODE_LSHIFT] || k[SDL_SCANCODE_RSHIFT], hand = k[SDL_SCANCODE_SPACE];
+		float top = boost ? 34 : 22, v = w->car_v;
+		if (ahead > 0) {
+			v += (v < 0 ? 16 : boost ? 11 : 7) * dt;
+			throttle = 1;
+		} else if (ahead < 0) {
+			if (v > 0.3f) {
+				v -= 16 * dt; /* braking */
+				w->car_brake = true;
+			} else {
+				v -= 5 * dt; /* reverse */
+				throttle = 0.6f;
+			}
+		}
+		v -= v * 0.12f * dt + (v > 0 ? 1.0f : v < 0 ? -1.0f : 0) * 0.8f * dt; /* air and the road */
+		if (fabsf(v) < 0.05f && ahead == 0) {
+			v = 0;
+		}
+		if (hand) {
+			v *= 1 - clampf(dt * 1.8f, 0, 1);
+			w->car_brake = true;
+		}
+		v = clampf(v, -7, top);
+		float want = -side * 0.55f / (1 + fabsf(v) / 16); /* less lock the faster */
+		w->car_steer += (want - w->car_steer) * clampf(dt * 6, 0, 1);
+		float turn = v * tanf(w->car_steer) / CAR_BASE * (hand ? 1.7f : 1);
+		w->car_yaw += turn * dt;
+		w->yaw += turn * dt; /* the view turns with it */
+		w->car_v = v;
+		break;
+	}
+	default:
+		break;
+	}
+	/* rolling, whatever the state */
+	float c = cosf(w->car_yaw), s = sinf(w->car_yaw);
+	w->car_x += -s * w->car_v * dt;
+	w->car_z += -c * w->car_v * dt;
+	if (w->car_v != 0) {
+		float hit = fmaxf(car_bump(w, -1.3f, 1.0f), car_bump(w, 1.3f, 1.0f));
+		if (hit > 0) {
+			if (hit > 3) {
+				sfx_start(SFX_LAND, clampf(hit / 20, 0.2f, 1), 1, 0.35f);
+			}
+			w->car_v *= -0.25f;
+		}
+	}
+	w->car_throttle += (throttle - w->car_throttle) * clampf(dt * 5, 0, 1);
+	sfx_engine(car_in(w) ? 1.0f : 0.0f, clampf(fabsf(w->car_v) / 34, 0, 1), w->car_throttle);
+	if (car_in(w) && w->car_state != CAR_LEFT) {
+		/* you go where it goes: the city's boxes round you, the world's LOD */
+		w->px = w->car_x;
+		w->pz = w->car_z;
+		w->py = 0;
+		w->hvx = w->hvz = w->vy = 0;
+		w->ground = true;
+		city_near(w);
+	}
+}
+
+/* the camera from the seat, or from behind it */
+static void car_camera(Walk *w, Vec3 *eye, Vec3 *at) {
+	Vec3 f = look_dir(w);
+	if (!w->car_chase) {
+		float x, z;
+		car_local(w, 0.38f, 0.2f, &x, &z);
+		*eye = v3(x, 1.2f, z);
+		*at = v3_add(*eye, f);
+		return;
+	}
+	float x, z;
+	car_local(w, 0, 6.5f, &x, &z);
+	Vec3 want = v3(x, 2.6f, z);
+	float k = 1 - expf(-w->cam_dt * 6);
+	if (w->car_cam_y <= 0) {
+		w->car_cam_x = want.x;
+		w->car_cam_y = want.y;
+		w->car_cam_z = want.z;
+	}
+	w->car_cam_x += (want.x - w->car_cam_x) * k;
+	w->car_cam_y += (want.y - w->car_cam_y) * k;
+	w->car_cam_z += (want.z - w->car_cam_z) * k;
+	*at = v3(w->car_x, 1.2f, w->car_z);
+	Vec3 back = v3(w->car_cam_x - at->x, w->car_cam_y - at->y, w->car_cam_z - at->z);
+	float t = cam_clear(w, *at, back);
+	*eye = v3_add(*at, v3_scale(back, t));
+}
+
+/* the car into its bags, for this frame */
+static void car_fill(Walk *w, const Theme *t) {
+	if (!w->car_ok || w->bld >= 0) {
+		return;
+	}
+	Bag *bx = &w->bag[BAG_CAR_BOX], *ball = &w->bag[BAG_CAR_BALL], *lamp = &w->bag[BAG_CAR_LAMP], *glass = &w->bag[BAG_CAR_GLASS];
+	float x = w->car_x, z = w->car_z;
+	SDL_Color paint = mix(rgb(t->accent), (SDL_Color){24, 26, 30, 255}, 0.55f), dark = {16, 17, 19, 255}, trim = {120, 124, 130, 255},
+	          seat = {30, 28, 26, 255}, dash = {22, 23, 26, 255}, tyre = {14, 14, 15, 255}, rim = {150, 154, 160, 255};
+	SDL_Color glassc = {150, 175, 200, 70};
+#define CB(lx, y0, lz, sx, sy, sz, c) bag_put(bx, x + (lx), (y0) + (sy) / 2, z + (lz), sx, sy, sz, c)
+	/* the body: sills, the shell, bonnet and boot, bumpers */
+	CB(0, 0.28f, 0, 1.86f, 0.12f, 4.3f, dark);
+	CB(-CAR_HALF_W + 0.03f, 0.4f, 0.65f, 0.06f, 0.6f, 2.5f, paint); /* the near side, rear of its door (its own door is the driver's) */
+	CB(CAR_HALF_W - 0.03f, 0.4f, 1.3f, 0.06f, 0.6f, 1.2f, paint);  /* behind the driver's door */
+	CB(-CAR_HALF_W + 0.03f, 0.4f, -0.55f, 0.06f, 0.6f, 1.1f, paint);
+	CB(0, 0.4f, -1.55f, 1.86f, 0.55f, 1.3f, paint);  /* the front: bonnet and wings */
+	CB(0, 0.4f, 1.85f, 1.86f, 0.55f, 0.75f, paint);  /* the back */
+	CB(0, 0.4f, 0.35f, 1.7f, 0.08f, 2.6f, dark);     /* the floor of the cabin */
+	CB(0, 0.3f, -2.17f, 1.9f, 0.22f, 0.12f, dark);   /* bumpers */
+	CB(0, 0.3f, 2.17f, 1.9f, 0.22f, 0.12f, dark);
+	/* the cabin: pillars, the roof, windscreen and windows (glass) */
+	CB(0, 1.38f, 0.25f, 1.7f, 0.06f, 1.7f, paint);   /* roof */
+	for (int i = 0; i < 2; i++) {
+		float sx = i ? 1.0f : -1.0f;
+		CB(sx * 0.82f, 0.95f, -0.62f, 0.06f, 0.45f, 0.08f, paint); /* A pillars */
+		CB(sx * 0.82f, 0.95f, 1.08f, 0.06f, 0.45f, 0.14f, paint);  /* C pillars */
+	}
+	bag_put(glass, x, 1.17f, z - 0.66f, 1.6f, 0.42f, 0.03f, glassc);    /* windscreen */
+	bag_put(glass, x, 1.17f, z + 1.12f, 1.55f, 0.38f, 0.03f, glassc);   /* rear window */
+	bag_put(glass, x - 0.86f, 1.17f, z + 0.25f, 0.02f, 0.4f, 1.6f, glassc); /* near side windows */
+	/* inside: seats, the dashboard, its lights, the wheel, the mirror */
+	for (int i = 0; i < 2; i++) {
+		float sx = i ? 0.38f : -0.38f;
+		CB(sx, 0.48f, 0.2f, 0.5f, 0.14f, 0.5f, seat);
+		CB(sx, 0.48f, 0.48f, 0.5f, 0.62f, 0.12f, seat);
+		CB(sx, 1.1f, 0.5f, 0.26f, 0.18f, 0.1f, seat); /* headrests */
+	}
+	CB(0, 0.48f, 1.0f, 1.5f, 0.14f, 0.5f, seat); /* the back seat */
+	CB(0, 0.48f, 1.25f, 1.5f, 0.55f, 0.12f, seat);
+	CB(0, 0.75f, -0.58f, 1.66f, 0.22f, 0.3f, dash);
+	CB(0, 0.5f, -0.25f, 0.24f, 0.3f, 0.5f, dash); /* the console between the seats */
+	bag_put(lamp, x + 0.38f, 0.95f, z - 0.45f, 0.34f, 0.08f, 0.01f, mix(rgb(t->accent), (SDL_Color){255, 255, 255, 255}, 0.3f)); /* the cluster */
+	bag_put(lamp, x, 0.9f, z - 0.46f, 0.24f, 0.13f, 0.01f, mix(rgb(t->accent), (SDL_Color){20, 30, 40, 255}, 0.5f)); /* the screen */
+	float wy = 1.0f, wz = -0.36f, wr = 0.17f;  /* the steering wheel, a ring of pieces, before the driver */
+	for (int i = 0; i < 12; i++) {
+		float a = (float)i / 12 * 2 * (float)M_PI + w->car_steer * 2.5f;
+		bag_put(bx, x + 0.38f + cosf(a) * wr, wy + sinf(a) * wr, z + wz, 0.06f, 0.06f, 0.035f, dark);
+	}
+	CB(0.38f, 0.92f, -0.42f, 0.05f, 0.1f, 0.12f, dark); /* its column */
+	CB(0, 1.25f, -0.55f, 0.2f, 0.05f, 0.03f, dark);     /* the mirror */
+	/* lights: headlights white, tail lights red, brighter braking */
+	SDL_Color head = {255, 244, 214, 255}, tail = w->car_brake ? (SDL_Color){255, 40, 30, 255} : (SDL_Color){150, 20, 18, 255};
+	for (int i = 0; i < 2; i++) {
+		float sx = i ? 0.68f : -0.68f;
+		bag_put(lamp, x + sx, 0.72f, z - 2.21f, 0.34f, 0.12f, 0.04f, head);
+		bag_put(lamp, x + sx, 0.75f, z + 2.23f, 0.32f, 0.1f, 0.04f, tail);
+	}
+	/* rear wheels with the body; front ones each turned by the steering, in their own bags */
+	for (int i = 0; i < 2; i++) {
+		float sx = i ? 0.85f : -0.85f;
+		bag_put(ball, x + sx, 0.33f, z + 1.35f, 0.24f, 0.66f, 0.66f, tyre);
+		bag_put(ball, x + sx * 1.02f, 0.33f, z + 1.35f, 0.22f, 0.34f, 0.34f, rim);
+	}
+	for (int i = 0; i < 2; i++) {
+		float fx, fz;
+		car_local(w, i ? 0.85f : -0.85f, -1.35f, &fx, &fz);
+		Bag *fw = &w->bag[i ? BAG_CAR_FR : BAG_CAR_FL];
+		bag_put(fw, fx, 0.33f, fz, 0.24f, 0.66f, 0.66f, tyre);
+		bag_put(fw, fx + (i ? 0.02f : -0.02f), 0.33f, fz, 0.22f, 0.34f, 0.34f, rim);
+	}
+	/* the driver's door, about its hinge (the front edge, on the right) */
+	float hx, hz;
+	car_local(w, CAR_HALF_W - 0.03f, -0.55f, &hx, &hz);
+	Bag *door = &w->bag[BAG_CAR_DOOR];
+	bag_put(door, hx, 0.7f, hz + 0.55f, 0.06f, 0.6f, 1.1f, paint);
+	bag_put(door, hx - 0.05f, 0.75f, hz + 0.55f, 0.04f, 0.4f, 0.95f, seat); /* its inside panel */
+	bag_put(door, hx + 0.035f, 0.85f, hz + 0.85f, 0.02f, 0.03f, 0.14f, trim); /* the handle */
+	bag_put(door, hx, 1.37f, hz + 0.55f, 0.05f, 0.04f, 1.1f, paint); /* the window frame */
+	bag_put(&w->bag[BAG_CAR_DGLASS], hx, 1.15f, hz + 0.55f, 0.02f, 0.4f, 1.05f, glassc);
+	(void)trim;
+#undef CB
+}
+
+static void car_hinge(const Walk *w, float *hx, float *hz) { car_local(w, CAR_HALF_W - 0.03f, -0.55f, hx, hz); }
+
+/* the car's bags drawn: lit, lamps or glass, as the pass asks */
+static void car_draw(const Walk *w, int pass) {
+	if (!w->car_ok || w->bld >= 0) {
+		return;
+	}
+	float hx, hz, dyaw = w->car_yaw + w->car_door;
+	car_hinge(w, &hx, &hz);
+	if (pass == 0) {
+		d3_boxes_turned(w->bag[BAG_CAR_BOX].v, w->bag[BAG_CAR_BOX].n, 0.01f, w->car_yaw, w->car_x, w->car_z);
+		d3_spheres_turned(w->bag[BAG_CAR_BALL].v, w->bag[BAG_CAR_BALL].n, w->car_yaw, w->car_x, w->car_z);
+		for (int i = 0; i < 2; i++) {
+			float fx, fz;
+			car_local(w, i ? 0.85f : -0.85f, -1.35f, &fx, &fz);
+			const Bag *fw = &w->bag[i ? BAG_CAR_FR : BAG_CAR_FL];
+			d3_spheres_turned(fw->v, fw->n, w->car_yaw + w->car_steer, fx, fz);
+		}
+		d3_boxes_turned(w->bag[BAG_CAR_DOOR].v, w->bag[BAG_CAR_DOOR].n, 0.01f, dyaw, hx, hz);
+	} else if (pass == 1) {
+		d3_boxes_turned(w->bag[BAG_CAR_LAMP].v, w->bag[BAG_CAR_LAMP].n, 0, w->car_yaw, w->car_x, w->car_z);
+	} else {
+		d3_boxes_turned(w->bag[BAG_CAR_GLASS].v, w->bag[BAG_CAR_GLASS].n, 0, w->car_yaw, w->car_x, w->car_z);
+		d3_boxes_turned(w->bag[BAG_CAR_DGLASS].v, w->bag[BAG_CAR_DGLASS].n, 0, dyaw, hx, hz);
+	}
+}
+
 void walk_update(Walk *w, float dt) {
 	if (!w->on) {
 		return;
@@ -2124,6 +2677,24 @@ void walk_update(Walk *w, float dt) {
 	float right = (float)(k[SDL_SCANCODE_D] - k[SDL_SCANCODE_A]);
 	float turn = (float)(k[SDL_SCANCODE_RIGHT] - k[SDL_SCANCODE_LEFT]); /* E is for using things now */
 	bool run = k[SDL_SCANCODE_LSHIFT] || k[SDL_SCANCODE_RSHIFT];
+	if (!w->car_ok && w->bld < 0 && w->world.nb > 0) {
+		car_park(w);
+	}
+	static bool car_tried; /* SYN_CAR_TEST=1: beside the car's door once it is parked, for trying it */
+	if (!car_tried && w->car_ok && w->bld < 0 && SDL_getenv("SYN_CAR_TEST")) {
+		float cx, cz;
+		car_local(w, CAR_HALF_W + 0.8f, 0.6f, &cx, &cz);
+		stand(w, cx, cz, w->car_yaw + 0.9f);
+		car_tried = true;
+	}
+	car_update(w, dt, k);
+	if (car_in(w) && w->car_state != CAR_LEFT) {
+		w->time += dt; /* in the car: it moves, you sit */
+		w->cam_dt = dt;
+		w->follow = v3(w->px, w->py, w->pz);
+		crew_move(w, dt);
+		return;
+	}
 	if (w->latch) {
 		w->latch = ahead != 0 || right != 0;
 		ahead = right = 0;
@@ -2191,6 +2762,12 @@ void walk_update(Walk *w, float dt) {
 			w->body_yaw += diff * clampf(dt * 12, 0, 1);
 		}
 		w->stride += speed * dt * 2.2f;
+		int n = (int)(w->stride / (float)M_PI); /* a foot down every half stride */
+		if (n != w->step_n && w->ground) {
+			float run = clampf((speed - WALK_V) / (RUN_V - WALK_V), 0, 1);
+			sfx_start(SFX_STEP, 0.3f + 0.35f * run, (w->bld < 0 ? 1.15f : 0.85f) + 0.2f * (float)(n % 3) / 2, 0.14f);
+		}
+		w->step_n = n;
 	}
 
 	/* Up and down. Space a moment before landing still jumps, and so does
@@ -2200,6 +2777,7 @@ void walk_update(Walk *w, float dt) {
 	if (w->jump_early > 0 && w->coyote > 0) {
 		w->vy = JUMP_V;
 		w->ground = false;
+		sfx_start(SFX_JUMP, 0.45f, 1, 0.24f);
 		w->coyote = w->jump_early = 0;
 	}
 	w->jump_early -= dt;
@@ -2225,6 +2803,9 @@ void walk_update(Walk *w, float dt) {
 		}
 	}
 	if (ny <= support) {
+		if (!w->ground && w->vy < -3) {
+			sfx_start(SFX_LAND, clampf(-w->vy / 14, 0.2f, 1), 1, 0.32f);
+		}
 		ny = support;
 		w->vy = 0;
 		w->ground = true;
@@ -2316,12 +2897,17 @@ int walk_key(Walk *w, SDL_Keycode k) {
 	}
 	if (k == SDLK_SPACE) {
 		w->jump_early = JUMP_EARLY;
+	} else if ((k == SDLK_v || k == SDLK_F5) && car_in(w)) {
+		w->car_chase = !w->car_chase;
+		w->car_cam_y = 0;
 	} else if (k == SDLK_v || k == SDLK_F5) {
 		w->first = !w->first;
 		w->pitch = w->first ? 0 : 0.3f;
 		w->cam_len = 0;
 	} else if (k == SDLK_e || k == SDLK_f) {
-		use_key(w);
+		if (!car_use(w)) {
+			use_key(w);
+		}
 	}
 	return WALK_NONE;
 }
@@ -2394,6 +2980,29 @@ static Vec3 look_dir(const Walk *w) {
 	return v3(-sinf(w->yaw) * cosf(w->pitch), -sinf(w->pitch), -cosf(w->yaw) * cosf(w->pitch));
 }
 
+/* how far along o + v (0 .. 1) it first meets b grown by off; 2 for never */
+static float seg_box(const float o[3], const float v[3], const Box *b, float off) {
+	float enter = 0, leave = 1;
+	for (int k = 0; k < 3 && enter <= leave; k++) {
+		float lo = b->lo[k] - off, hi = b->hi[k] + off;
+		if (fabsf(v[k]) < 1e-6f) {
+			if (o[k] < lo || o[k] > hi) {
+				return 2;
+			}
+			continue;
+		}
+		float t0 = (lo - o[k]) / v[k], t1 = (hi - o[k]) / v[k];
+		if (t0 > t1) {
+			float x = t0;
+			t0 = t1;
+			t1 = x;
+		}
+		enter = t0 > enter ? t0 : enter;
+		leave = t1 < leave ? t1 : leave;
+	}
+	return enter <= leave ? enter : 2;
+}
+
 /* how far the camera can go back from p along d (0 .. 1): stopped by
  * walls, window panes and anything that stands higher than p, and by the
  * floor; low furniture it looks over, so it never jumps about over desks */
@@ -2417,32 +3026,24 @@ static float cam_clear(const Walk *w, Vec3 p, Vec3 d) {
 		if (i >= w->nwin && (b->hi[1] < p.y + 0.2f || (i < w->nstruct && w->bld >= 0))) {
 			continue; /* a block lower than your head; the floors, stairs and rails */
 		}
-		float enter = 0, leave = 1;
-		for (int k = 0; k < 3 && enter <= leave; k++) {
-			float lo = b->lo[k] - 0.2f, hi = b->hi[k] + 0.2f; /* kept a little off it */
-			if (fabsf(v[k]) < 1e-6f) {
-				if (o[k] < lo || o[k] > hi) {
-					enter = 2;
-				}
-				continue;
-			}
-			float t0 = (lo - o[k]) / v[k], t1 = (hi - o[k]) / v[k];
-			if (t0 > t1) {
-				float s = t0;
-				t0 = t1;
-				t1 = s;
-			}
-			enter = t0 > enter ? t0 : enter;
-			leave = t1 < leave ? t1 : leave;
-		}
-		if (enter <= leave && enter < best) {
-			best = enter;
+		float t = seg_box(o, v, b, 0.2f);
+		best = t < best ? t : best;
+		if (w->bld < 0 && b->hi[0] - b->lo[0] < 0.5f && b->hi[2] - b->lo[2] < 0.5f && b->hi[1] > 2.4f) {
+			/* a tree's trunk (or a lamp post): its crown, which nothing runs into, kept out of too */
+			float cx = (b->lo[0] + b->hi[0]) / 2, cz = (b->lo[2] + b->hi[2]) / 2;
+			Box crown = box(cx - 1.3f, 1.9f, cz - 1.3f, cx + 1.3f, b->hi[1] + 0.4f, cz + 1.3f);
+			t = seg_box(o, v, &crown, 0.1f);
+			best = t < best ? t : best;
 		}
 	}
 	return best < 0 ? 0 : best;
 }
 
 static void camera(Walk *w, Vec3 *eye, Vec3 *at) {
+	if (car_in(w) && w->car_state != CAR_GETTING_IN && w->car_state != CAR_LEFT) {
+		car_camera(w, eye, at);
+		return;
+	}
 	Vec3 f = look_dir(w);
 	float fy = w->follow_ok ? w->follow.y : w->py;
 	if (w->first) {
@@ -4463,6 +5064,13 @@ typedef struct {
 	bool placed;
 	float x, z, yaw, tx, tz, wait, stride, mv;
 	int target;
+	/* switched off on the app (the radio's rooms say so): at home, resting */
+	bool off;
+	/* what they have running (a turn's step, a duty), for their worker at the desk */
+	char work[96], presence[96], duty[64];
+	/* following you: where they are in the floor you are on */
+	bool fplaced;
+	float fx, fz, fy, fyaw, fmv, frun, fstride;
 } Crew;
 static struct {
 	Crew c[CREW_MAX];
@@ -4526,6 +5134,30 @@ static void crew_watch(void) {
 	if (p) {
 		pclose(p);
 	}
+	/* duties running now, and whose (the log says each duty's agent: "duty NAME as=AGENT") */
+	static char duty_of[32][2][48];
+	static int nduty;
+	char running[CREW_MAX][64] = {{0}};
+	p = popen("systemctl list-units 'corp-duty-*' --no-legend --plain --state=running 2>/dev/null", "r");
+	while (p && fgets(line, sizeof line, p)) {
+		char unit[96] = "";
+		const char *u = strstr(line, "corp-duty-");
+		if (!u || sscanf(u + 10, "%95[^ .]", unit) != 1) {
+			continue;
+		}
+		for (int d = 0; d < nduty; d++) {
+			if (!strcmp(duty_of[d][0], unit)) {
+				for (int i = 0; i < crew.n; i++) {
+					if (!strcmp(crew.c[i].id, duty_of[d][1])) {
+						snprintf(running[i], sizeof running[i], "%s", unit);
+					}
+				}
+			}
+		}
+	}
+	if (p) {
+		pclose(p);
+	}
 	char path[600];
 	const char *home = getenv("HOME");
 	snprintf(path, sizeof path, "%s/.local/state/syn-corp/syn-corp.log", home ? home : "");
@@ -4539,7 +5171,21 @@ static void crew_watch(void) {
 		}
 		fseek(f, crew.log_at, SEEK_SET);
 		while (fgets(line, sizeof line, f)) {
-			char who[32] = "", act[48] = "", repo[48] = "";
+			char who[32] = "", act[48] = "", repo[48] = "", dn[48] = "", das[48] = "";
+			const char *dl = strstr(line, " duty ");
+			if (dl && sscanf(dl + 6, "%47s as=%47s", dn, das) == 2 && strcmp(das, "-")) {
+				int d = 0;
+				while (d < nduty && strcmp(duty_of[d][0], dn)) {
+					d++;
+				}
+				if (d == nduty && nduty < 32) {
+					nduty++;
+				}
+				if (d < 32) {
+					snprintf(duty_of[d][0], sizeof duty_of[d][0], "%s", dn);
+					snprintf(duty_of[d][1], sizeof duty_of[d][1], "%s", das);
+				}
+			}
 			const char *a = strstr(line, " agent="), *b = strstr(line, " action="), *r = strstr(line, " repo=");
 			if (a) {
 				sscanf(a + 7, "%31[^ \n]", who);
@@ -4567,6 +5213,7 @@ static void crew_watch(void) {
 	SDL_LockMutex(crew.mu);
 	for (int i = 0; i < crew.n; i++) {
 		crew.c[i].busy = busy[i];
+		snprintf(crew.c[i].duty, sizeof crew.c[i].duty, "%s", running[i]);
 		if (last[i][0]) {
 			snprintf(crew.c[i].last, sizeof crew.c[i].last, "%s", last[i]);
 			crew.c[i].last_at = SDL_GetTicks();
@@ -4796,6 +5443,33 @@ static Crew *crew_named(const char *id) {
 static void radio_heard(const char *js) {
 	char type[16] = "", from[64] = "", as[32] = "", text[600] = "", id[64] = "", line[64] = "";
 	jstr(js, "type", type, sizeof type);
+	if (jat(js, "rooms") && (!strcmp(type, "rooms") || !strcmp(type, "ok"))) {
+		SDL_LockMutex(crew.mu);
+		for (int i = 0; i < crew.n; i++) { /* each crew room's "off": switched off on the app */
+			char pat[64];
+			snprintf(pat, sizeof pat, "\"%s\"", crew.c[i].id);
+			for (const char *q = strstr(js, pat); q; q = strstr(q + 1, pat)) {
+				const char *k = q - 1;
+				while (k > js && (*k == ' ' || *k == ':')) {
+					k--;
+				}
+				if (k - js < 9 || strncmp(k - 8, "\"channel\"", 9)) {
+					continue; /* not its channel field */
+				}
+				const char *end = strchr(q, '}');
+				char obj[600];
+				const char *start = q;
+				while (start > js && *start != '{') {
+					start--;
+				}
+				snprintf(obj, sizeof obj, "%.*s", (int)((end ? end : q + strlen(q)) - start), start);
+				const char *ov = jat(obj, "off");
+				crew.c[i].off = ov && !strncmp(ov, "true", 4);
+				break;
+			}
+		}
+		SDL_UnlockMutex(crew.mu);
+	}
 	const char *rp = jat(js, "replay");
 	if (rp && !strncmp(rp, "true", 4) && !SDL_getenv("SYN_RADIO_REPLAY")) {
 		return; /* the record, sent on joining: only what is said from now (SYN_RADIO_REPLAY=1 shows it, for trying) */
@@ -4826,6 +5500,21 @@ static void radio_heard(const char *js) {
 			snprintf(you_said.said, sizeof you_said.said, "%s", text);
 			snprintf(you_said.from, sizeof you_said.from, "%s", from);
 			you_said.at = SDL_GetTicks();
+		}
+	} else if (!strcmp(type, "presence")) {
+		char mem[48] = "", st[24] = "", tx[200] = "";
+		jstr(js, "member", mem, sizeof mem);
+		jstr(js, "status", st, sizeof st);
+		jstr(js, "text", tx, sizeof tx);
+		Crew *pc = crew_named(mem);
+		if (pc) { /* busy: the newest step of its turn ("wrk1 n= s= WORDS") */
+			const char *wd = tx;
+			if (!strncmp(wd, "wrk1 ", 5)) {
+				for (int sp = 0; *wd && sp < 3; wd++) {
+					sp += *wd == ' ';
+				}
+			}
+			snprintf(pc->presence, sizeof pc->presence, "%s", !strcmp(st, "busy") ? (wd[0] ? wd : "working") : "");
 		}
 	} else if (!strcmp(type, "talk") && c) {
 		c->talk_stream = (int)jlong(js, "stream", -1);
@@ -4967,7 +5656,10 @@ static int radio_thread(void *arg) {
 	snprintf(path, sizeof path, "%s/.config/syn-corp/owner-token", home ? home : "");
 	srand((unsigned)SDL_GetTicks() ^ (unsigned)getpid());
 	const char *fake = SDL_getenv("SYN_RADIO_FAKE"); /* "id|text": a line as if said, for trying (nothing is sent) */
-	if (fake && strchr(fake, '|')) {
+	if (fake && fake[0] == '{') { /* a whole radio message, as if heard */
+		SDL_Delay(6000);
+		radio_heard(fake);
+	} else if (fake && strchr(fake, '|')) {
 		char js[900], who[40];
 		snprintf(who, sizeof who, "%.*s", (int)(strchr(fake, '|') - fake), fake);
 		snprintf(js, sizeof js, "{\"type\":\"say\",\"channel\":\"%s\",\"from\":\"%s\",\"message\":\"fake1\",\"text\":\"%s\"}", who, who,
@@ -5081,63 +5773,176 @@ static void crew_test(Walk *w) {
 	}
 }
 
-/* the one in the office you are in: to the desk while in a turn, else from file to file */
-static void crew_move(Walk *w, float dt) {
-	Crew *c = w->bld >= 0 && w->floor == 0 ? crew_of(&w->world, w->bld) : NULL;
-	if (!c || w->nblock == 0) {
-		return;
-	}
-	if (!c->placed || c->target >= w->nblock) {
-		const WRoom *r = &w->world.room[w->world.b[w->bld].room0];
-		c->x = (r->r.x0 + r->r.x1) / 2;
-		c->z = (r->r.z0 + r->r.z1) / 2;
-		c->placed = true;
-		c->target = -1;
-		c->wait = 0;
-	}
-	SDL_LockMutex(crew.mu);
-	bool busy = c->busy;
-	SDL_UnlockMutex(crew.mu);
-	bool walking = c->wait < 0;
-	if (busy && c->target != 0) {
-		walking = false; /* called to the desk */
-		c->wait = 0;
-	} else if (!walking && c->wait > 0) {
-		c->wait -= dt; /* at a file, reading */
-		c->mv = 0;
-		return;
-	}
-	if (!walking) {
-		unsigned s = SDL_GetTicks() * 2654435761u + (unsigned)(c->x * 1000);
-		int k = busy ? 0 : (int)(rnd(&s) * (float)w->nblock) % w->nblock;
-		const Box *b = &w->block[k].b;
-		float cx = (b->lo[0] + b->hi[0]) / 2, cz = (b->lo[2] + b->hi[2]) / 2;
-		switch (w->block[k].front) { /* a little in front of it */
-		case 0: cz = b->lo[2] - 0.55f; break;
-		case 1: cx = b->hi[0] + 0.55f; break;
-		case 2: cz = b->hi[2] + 0.55f; break;
-		default: cx = b->lo[0] - 0.55f; break;
+enum { FIG_FOLLOW, FIG_REST, FIG_WORK };
+
+/* whether a body r round at (x, z), feet at y, stands in something it can't step onto */
+static bool fig_blocked(const Walk *w, float x, float y, float z, float r) {
+	if (w->bld >= 0) { /* indoors: never out through the walls into the street */
+		WRect q = inset(w->world.b[w->bld].r, WALL_OUT + r);
+		if (!in_rect(q, x, z)) {
+			return true;
 		}
-		c->target = k;
-		c->tx = cx;
-		c->tz = cz;
-		c->wait = -1;
 	}
-	float dx = c->tx - c->x, dz = c->tz - c->z, d = sqrtf(dx * dx + dz * dz);
-	if (d < 0.05f) {
-		const Box *b = &w->block[c->target].b;
-		float fx = (b->lo[0] + b->hi[0]) / 2 - c->x, fz = (b->lo[2] + b->hi[2]) / 2 - c->z;
-		c->yaw = atan2f(-fx, -fz); /* facing it */
-		c->mv = 0;
-		c->wait = busy ? 4 : 3 + (float)(SDL_GetTicks() % 5000) / 1000.0f;
+	for (int i = 0, n = solid_n(w); i < n; i++) {
+		const Box *b = solid_i(w, i);
+		if (b->hi[1] > y + STEP_UP && b->lo[1] < y + BODY_H && x + r > b->lo[0] && x - r < b->hi[0] && z + r > b->lo[2] && z - r < b->hi[2]) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* What the crew are doing this frame. Those switched on follow you as a
+ * crew: in a wedge behind you, walking with you and running to catch up,
+ * spreading to their places; still when you stop, looking round about them
+ * and back at you now and then. Through doors and up stairs they catch
+ * you up; while you drive they wait. Those switched off are at home,
+ * resting. One with work running has a worker at their desk. */
+static void crew_move(Walk *w, float dt) {
+	int frame = w->bld * 64 + w->floor;
+	bool driving = car_in(w);
+	if (frame != w->crew_frame || driving) {
+		for (int i = 0; i < crew.n; i++) {
+			crew.c[i].fplaced = false; /* through a door, up the stairs, into the car: they catch up behind you */
+		}
+		w->crew_frame = frame;
+	}
+	if (driving) {
 		return;
 	}
-	float step = fminf(d, 1.3f * dt);
-	c->x += dx / d * step;
-	c->z += dz / d * step;
-	c->yaw = atan2f(-dx, -dz);
-	c->mv = 1;
-	c->stride += dt * 7.5f;
+	/* a wedge opening behind you, the lane straight back left clear for the camera */
+	static const float slot[][2] = {{-1.9f, 0.5f}, {1.9f, 0.5f}, {-3.3f, 1.7f}, {3.3f, 1.7f}, {-4.7f, 2.9f}, {4.7f, 2.9f}, {-6.1f, 4.1f},
+	                                {6.1f, 4.1f}, {-7.5f, 5.3f}, {7.5f, 5.3f}, {-8.9f, 6.5f}, {8.9f, 6.5f}};
+	float c = cosf(w->body_yaw), s = sinf(w->body_yaw), you = sqrtf(w->hvx * w->hvx + w->hvz * w->hvz);
+	int j = 0;
+	SDL_LockMutex(crew.mu);
+	for (int i = 0; i < crew.n; i++) {
+		Crew *k = &crew.c[i];
+		if (k->off || !k->home) {
+			k->fplaced = false;
+			continue;
+		}
+		float lx = slot[j % 12][0], lz = slot[j % 12][1];
+		j++;
+		float sx = w->px + c * lx + s * lz, sz = w->pz - s * lx + c * lz;
+		if (!k->fplaced) { /* in their place behind you, or just behind you if that is in a wall */
+			k->fx = sx;
+			k->fz = sz;
+			for (float back = 0.9f + 0.8f * (float)(j - 1); fig_blocked(w, k->fx, w->py, k->fz, 0.3f) && back >= 0; back -= 0.4f) {
+				k->fx = w->px + s * back; /* in a line behind you instead, as far back as there is room */
+				k->fz = w->pz + c * back;
+			}
+			k->fy = w->py;
+			k->fyaw = w->body_yaw;
+			k->fplaced = true;
+		}
+		float dx = sx - k->fx, dz = sz - k->fz, d = sqrtf(dx * dx + dz * dz);
+		if (d > 30) { /* lost: back in their place */
+			k->fplaced = false;
+			continue;
+		}
+		float want = d > 6 ? RUN_V : d > 0.5f ? fmaxf(WALK_V * clampf(d / 2.5f, 0.35f, 1), fminf(you, RUN_V)) : 0;
+		float step = fminf(d, want * dt);
+		if (step > 0) {
+			float mx = dx / d * step, mz = dz / d * step;
+			if (!fig_blocked(w, k->fx + mx, k->fy, k->fz, 0.3f)) {
+				k->fx += mx;
+			}
+			if (!fig_blocked(w, k->fx, k->fy, k->fz + mz, 0.3f)) {
+				k->fz += mz;
+			}
+			float face = atan2f(-dx, -dz), df = face - k->fyaw;
+			while (df > (float)M_PI) {
+				df -= 2 * (float)M_PI;
+			}
+			while (df < -(float)M_PI) {
+				df += 2 * (float)M_PI;
+			}
+			k->fyaw += df * clampf(dt * 10, 0, 1);
+		} else {
+			/* still: looking about, each in their own time, back at you now and then */
+			float ph = (float)i * 1.7f, t = w->time * 0.45f + ph;
+			float look = w->body_yaw + sinf(t) * 0.9f + sinf(t * 2.3f) * 0.25f;
+			if (fmodf(w->time + ph * 3, 9) < 1.6f) {
+				look = atan2f(-(w->px - k->fx), -(w->pz - k->fz)); /* at you */
+			}
+			float df = look - k->fyaw;
+			while (df > (float)M_PI) {
+				df -= 2 * (float)M_PI;
+			}
+			while (df < -(float)M_PI) {
+				df += 2 * (float)M_PI;
+			}
+			k->fyaw += df * clampf(dt * 2.5f, 0, 1);
+		}
+		float sp = step / fmaxf(dt, 1e-4f);
+		k->fmv = clampf(sp / WALK_V, 0, 1);
+		k->frun = clampf((sp - WALK_V) / (RUN_V - WALK_V), 0, 1);
+		k->fstride += sp * dt * 2.2f;
+		float under = floor_under(w, k->fx, k->fy + STEP_UP, k->fz);
+		k->fy += (under - k->fy) * clampf(dt * 12, 0, 1);
+	}
+	SDL_UnlockMutex(crew.mu);
+}
+
+/* the crew's figures into their bags: following, resting at home, at work */
+static void crew_figs(Walk *w) {
+	w->nfig = 0;
+	for (int f = 0; f < FIG_MAX; f++) {
+		w->fbox[f].n = w->fball[f].n = w->flamp[f].n = 0;
+	}
+	const Crew *office = w->bld >= 0 && w->floor == 0 ? crew_of(&w->world, w->bld) : NULL;
+	SDL_LockMutex(crew.mu);
+	for (int i = 0; i < crew.n && w->nfig < FIG_MAX - 1; i++) {
+		Crew *k = &crew.c[i];
+		SDL_Color glow = lighten(k->hood, 0.7f);
+		if (k->fplaced && !car_in(w)) {
+			int f = w->nfig++;
+			w->fig[f].crew = i;
+			w->fig[f].kind = FIG_FOLLOW;
+			w->fig[f].x = k->fx;
+			w->fig[f].y = k->fy;
+			w->fig[f].z = k->fz;
+			w->fig[f].yaw = k->fyaw;
+			figure(&w->fbox[f], &w->fball[f], &w->flamp[f], k->fx, k->fy, k->fz, k->fmv, k->frun, k->fstride, w->time, k->hood, glow, false, 0);
+		}
+		bool working = k->busy || k->presence[0] || k->duty[0];
+		if (office != k || w->nblock == 0) {
+			continue;
+		}
+		/* at home: resting in a chair in the middle of the room; a worker at the desk (the first file) */
+		const WRoom *r = &w->world.room[w->world.b[w->bld].room0];
+		for (int kind = FIG_REST; kind <= FIG_WORK && w->nfig < FIG_MAX; kind++) {
+			if ((kind == FIG_REST && !k->off) || (kind == FIG_WORK && !working)) {
+				continue;
+			}
+			float x, z, yaw;
+			if (kind == FIG_REST) {
+				x = (r->r.x0 + r->r.x1) / 2 + 1.2f;
+				z = (r->r.z0 + r->r.z1) / 2;
+				yaw = 0.6f;
+			} else {
+				const Block *b = &w->block[0];
+				float cx = (b->b.lo[0] + b->b.hi[0]) / 2, cz = (b->b.lo[2] + b->b.hi[2]) / 2;
+				switch (b->front) { /* before its front, facing it */
+				case 0: x = cx; z = b->b.lo[2] - 0.62f; yaw = (float)M_PI; break;
+				case 1: x = b->b.hi[0] + 0.62f; z = cz; yaw = (float)M_PI / 2; break;
+				case 2: x = cx; z = b->b.hi[2] + 0.62f; yaw = 0; break;
+				default: x = b->b.lo[0] - 0.62f; z = cz; yaw = -(float)M_PI / 2; break;
+				}
+			}
+			int f = w->nfig++;
+			w->fig[f].crew = i;
+			w->fig[f].kind = kind;
+			w->fig[f].x = x;
+			w->fig[f].y = 0;
+			w->fig[f].z = z;
+			w->fig[f].yaw = yaw;
+			figure(&w->fbox[f], &w->fball[f], &w->flamp[f], x, 0, z, 0, 0, 0, w->time, k->hood, kind == FIG_WORK ? lighten(k->hood, 0.9f) : darken(glow, 0.4f),
+			       kind == FIG_WORK, kind == FIG_WORK ? 2 : 1);
+		}
+	}
+	SDL_UnlockMutex(crew.mu);
 }
 
 /* Building b from outside: its walls and roof, on each floor the windows
@@ -5888,44 +6693,68 @@ static void street_where(const Walk *w, char *out, size_t n) {
  * knee pads, boots; the eyes in the mask's slit glow. Built facing -z,
  * standing at (x, y, z), into the bags given (drawn turned the way he
  * faces). mv: 0 still .. 1 walking; stride: where in his step. */
-static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, float mv, float stride, float time, SDL_Color hood, SDL_Color glow, bool flicker) {
+static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, float mv, float run, float stride, float time, SDL_Color hood, SDL_Color glow, bool flicker, int pose) {
 	const SDL_Color hem = darken(hood, 0.25f), pants = {50, 54, 46, 255}, pad = {28, 30, 27, 255},
 	                boot = {20, 20, 22, 255}, sole = {12, 12, 13, 255}, web = {74, 66, 50, 255}, pouch = {64, 58, 44, 255},
 	                metal = {150, 152, 158, 255}, mask = {13, 13, 15, 255}, snood = {46, 48, 54, 255}, glove = {18, 18, 20, 255},
 	                cord = {196, 198, 204, 255};
 	float s = sinf(stride), lift = fmaxf(0, cosf(stride));
-	y += mv * 0.03f * fabsf(s) + (1 - mv) * 0.006f * sinf(time * 1.6f); /* a step's rise; breathing still */
+	/* sprinting (run 0 .. 1): leaning into it, lower, knees high, arms pumping, bent at the elbow */
+	float lean = run * 0.22f;
+	y += mv * (0.03f + 0.05f * run) * fabsf(s) + (1 - mv) * 0.006f * sinf(time * 1.6f) - run * 0.05f; /* a step's rise; breathing still */
 	if (flicker && fmodf(time, 6.1f) < 0.07f) {
 		x += 0.03f * sinf(time * 90); /* the daemon flickers, now and then */
 	}
-#define FB(cx, cy, cz, sx, sy, sz, c) bag_put(bx, x + (cx), y + (cy), z + (cz), sx, sy, sz, c)
-#define FS(cx, cy, cz, sx, sy, sz, c) bag_put(ball, x + (cx), y + (cy), z + (cz), sx, sy, sz, c)
+	float sit = pose ? 0.42f : 0; /* seated: all from the hips up that much lower */
+	if (pose) {
+		mv = run = 0;
+	}
+#define FB(cx, cy, cz, sx, sy, sz, c) bag_put(bx, x + (cx), y + (cy) - ((cy) > 0.85f ? sit : 0), z + (cz) - lean * fmaxf(0, (cy) - 0.85f), sx, sy, sz, c)
+#define FS(cx, cy, cz, sx, sy, sz, c) bag_put(ball, x + (cx), y + (cy) - ((cy) > 0.85f ? sit : 0), z + (cz) - lean * fmaxf(0, (cy) - 0.85f), sx, sy, sz, c)
+	/* seated: thighs forward on the chair, shins down, boots on the floor; the chair under */
+	for (int i = 0; pose && i < 2; i++) {
+		float side = i ? 1.0f : -1.0f, lx = 0.11f * side;
+		FB(lx, 0.47f, -0.2f, 0.17f, 0.17f, 0.42f, pants);
+		FB(lx, 0.24f, -0.4f, 0.14f, 0.4f, 0.16f, pants);
+		FB(lx, 0.075f, -0.44f, 0.13f, 0.1f, 0.29f, boot);
+		FB(lx, 0.015f, -0.445f, 0.14f, 0.03f, 0.31f, sole);
+	}
+	if (pose) {
+		SDL_Color chair = {34, 34, 38, 255};
+		FB(0, 0.36f, -0.05f, 0.48f, 0.06f, 0.48f, chair);
+		FB(0, 0.18f, -0.05f, 0.06f, 0.36f, 0.06f, chair);
+		FB(0, 0.02f, -0.05f, 0.5f, 0.04f, 0.5f, chair);
+		FB(0, 0.66f, 0.2f, 0.44f, 0.5f, 0.05f, chair); /* its back, under the sit line so not lowered */
+	}
 	/* legs: the feet forward and back along z (front is -z), the one behind lifting */
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; !pose && i < 2; i++) {
 		float side = i ? 1.0f : -1.0f, lx = 0.11f * side, swing = mv * s * (i ? -1.0f : 1.0f);
-		float fz = -swing * 0.22f, up = mv * (i ? lift : fmaxf(0, -cosf(stride))) * 0.06f * (swing > 0 ? 0 : 1);
+		float fz = -swing * (0.22f + 0.2f * run), up = mv * (i ? lift : fmaxf(0, -cosf(stride))) * 0.06f * (swing > 0 ? 0 : 1);
+		up += mv * run * 0.24f * fmaxf(0, -cosf(stride + (i ? (float)M_PI : 0))); /* the knee driven up */
 		FB(lx, 0.015f + up, fz - 0.035f, 0.14f, 0.03f, 0.31f, sole);
 		FB(lx, 0.075f + up, fz - 0.03f, 0.13f, 0.1f, 0.29f, boot);
 		FB(lx, 0.17f + up, fz, 0.125f, 0.1f, 0.15f, boot); /* the boot's ankle */
 		FB(lx, 0.38f + up * 0.6f, fz * 0.6f, 0.14f, 0.36f, 0.16f, pants);
 		FB(lx, 0.5f + up * 0.5f, fz * 0.55f - 0.085f, 0.12f, 0.12f, 0.03f, pad); /* knee pads */
-		FB(lx, 0.74f, fz * 0.3f, 0.17f, 0.4f, 0.19f, pants);
+		FB(lx, 0.74f + up * 0.25f, fz * (0.3f + 0.25f * run), 0.17f, 0.4f, 0.19f, pants);
 		FB(lx + side * 0.092f, 0.66f, fz * 0.3f, 0.026f, 0.15f, 0.13f, darken(pants, 0.15f)); /* cargo pockets */
 	}
 	float rz = -mv * s * -0.22f * 0.3f; /* the right thigh's swing, for the holster */
-	FB(0.205f, 0.7f, rz, 0.05f, 0.19f, 0.1f, darken(web, 0.3f)); /* drop-leg holster and its straps */
-	FB(0.11f, 0.64f, rz, 0.19f, 0.03f, 0.2f, web);
-	FB(0.11f, 0.78f, rz, 0.19f, 0.03f, 0.2f, web);
-	FB(0.205f, 0.82f, rz, 0.03f, 0.1f, 0.03f, web);
+	if (!pose) {
+		FB(0.205f, 0.7f, rz, 0.05f, 0.19f, 0.1f, darken(web, 0.3f)); /* drop-leg holster and its straps */
+		FB(0.11f, 0.64f, rz, 0.19f, 0.03f, 0.2f, web);
+		FB(0.11f, 0.78f, rz, 0.19f, 0.03f, 0.2f, web);
+		FB(0.205f, 0.82f, rz, 0.03f, 0.1f, 0.03f, web);
+	}
 	/* hips, the hoodie over them, the belt over that */
-	FB(0, 0.92f, 0, 0.38f, 0.14f, 0.22f, pants);
+	FB(0, pose ? 0.5f : 0.92f, pose ? -0.02f : 0, 0.38f, 0.14f, 0.22f, pants);
 	FB(0, 1.13f, 0, 0.44f, 0.28f, 0.25f, hood);
 	FB(0, 1.36f, 0, 0.48f, 0.24f, 0.27f, hood);
 	FB(0, 1.03f, 0, 0.45f, 0.06f, 0.26f, hem);
 	FB(0, 1.13f, -0.13f, 0.3f, 0.15f, 0.02f, hem); /* the front pocket */
 	FB(0, 0.99f, 0, 0.42f, 0.065f, 0.27f, web);
 	FB(0, 0.99f, -0.14f, 0.075f, 0.055f, 0.016f, metal); /* the buckle, a light in it */
-	bag_put(lamp, x, y + 0.99f, z - 0.149f, 0.014f, 0.014f, 0.006f, glow);
+	bag_put(lamp, x, y - sit + 0.99f, z - 0.149f - lean * fmaxf(0, 0.99f - 0.85f), 0.014f, 0.014f, 0.006f, glow);
 	for (int i = 0; i < 2; i++) { /* magazine pouches in front, pouches at the sides and back */
 		float side = i ? 1.0f : -1.0f;
 		FB(side * 0.13f, 0.96f, -0.145f, 0.07f, 0.1f, 0.035f, pouch);
@@ -5936,19 +6765,26 @@ static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, flo
 	FB(-0.05f, 1.37f, -0.14f, 0.012f, 0.17f, 0.012f, cord);
 	/* arms, swinging against the legs; gloved hands */
 	for (int i = 0; i < 2; i++) {
-		float side = i ? 1.0f : -1.0f, az = mv * s * (i ? 1.0f : -1.0f) * 0.17f;
+		float side = i ? 1.0f : -1.0f, az = mv * s * (i ? 1.0f : -1.0f) * (0.17f + 0.2f * run), bend = run * mv;
 		FS(side * 0.245f, 1.44f, 0, 0.17f, 0.16f, 0.21f, hood);
 		FB(side * 0.275f, 1.27f, az * 0.5f, 0.12f, 0.3f, 0.13f, hood);
-		FB(side * 0.285f, 1.0f, az, 0.11f, 0.27f, 0.12f, hood);
-		FB(side * 0.285f, 0.865f, az, 0.115f, 0.04f, 0.125f, hem);
-		FS(side * 0.285f, 0.8f, az - 0.01f, 0.09f, 0.11f, 0.1f, glove);
+		if (pose) { /* seated: forearms forward, on the keys (typing, a hand at a time) or in the lap */
+			float tap = pose == 2 ? 0.015f * sinf(time * 17 + (float)i * 2.1f) : 0, fy = pose == 2 ? 1.05f : 0.98f;
+			FB(side * 0.24f, fy + tap, -0.17f, 0.11f, 0.11f, 0.3f, hood);
+			FB(side * 0.23f, fy + tap, -0.335f, 0.115f, 0.125f, 0.04f, hem);
+			FS(side * 0.22f, fy + tap, -0.39f, 0.1f, 0.09f, 0.11f, glove);
+			continue;
+		}
+		FB(side * 0.285f, 1.0f + bend * 0.16f, az - bend * 0.1f, 0.11f, 0.27f, 0.12f, hood);
+		FB(side * 0.285f, 0.865f + bend * 0.26f, az - bend * 0.17f, 0.115f, 0.04f, 0.125f, hem);
+		FS(side * 0.285f, 0.8f + bend * 0.3f, az - 0.01f - bend * 0.2f, 0.09f, 0.11f, 0.1f, glove);
 	}
 	/* the snood, the head in its balaclava, the eye slit and the eyes */
 	FS(0, 1.52f, 0, 0.19f, 0.12f, 0.2f, snood);
 	FS(0, 1.65f, 0, 0.2f, 0.24f, 0.22f, mask);
 	FB(0, 1.67f, -0.1f, 0.13f, 0.034f, 0.03f, sole);
-	bag_put(lamp, x - 0.032f, y + 1.67f, z - 0.116f, 0.032f, 0.015f, 0.01f, glow);
-	bag_put(lamp, x + 0.032f, y + 1.67f, z - 0.116f, 0.032f, 0.015f, 0.01f, glow);
+	bag_put(lamp, x - 0.032f, y - sit + 1.67f, z - 0.116f - lean * fmaxf(0, 1.67f - 0.85f), 0.032f, 0.015f, 0.01f, glow);
+	bag_put(lamp, x + 0.032f, y - sit + 1.67f, z - 0.116f - lean * fmaxf(0, 1.67f - 0.85f), 0.032f, 0.015f, 0.01f, glow);
 	/* the hood: round behind, its sides framing the face, a peak shading it */
 	FS(0, 1.7f, 0.05f, 0.28f, 0.31f, 0.29f, hood);
 	FB(-0.12f, 1.66f, -0.06f, 0.04f, 0.27f, 0.12f, hood);
@@ -5957,13 +6793,13 @@ static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, flo
 	FB(0, 1.5f, 0.12f, 0.3f, 0.14f, 0.08f, hood); /* down over the shoulders behind */
 	/* piping that glows faintly in the theme's colour: round the hood's opening, down the sleeves */
 	SDL_Color pipe = darken(glow, 0.35f);
-	bag_put(lamp, x - 0.141f, y + 1.66f, z - 0.115f, 0.006f, 0.26f, 0.008f, pipe);
-	bag_put(lamp, x + 0.141f, y + 1.66f, z - 0.115f, 0.006f, 0.26f, 0.008f, pipe);
-	bag_put(lamp, x, y + 1.775f, z - 0.141f, 0.25f, 0.006f, 0.008f, pipe);
+	bag_put(lamp, x - 0.141f, y - sit + 1.66f, z - 0.115f - lean * fmaxf(0, 1.66f - 0.85f), 0.006f, 0.26f, 0.008f, pipe);
+	bag_put(lamp, x + 0.141f, y - sit + 1.66f, z - 0.115f - lean * fmaxf(0, 1.66f - 0.85f), 0.006f, 0.26f, 0.008f, pipe);
+	bag_put(lamp, x, y - sit + 1.775f, z - 0.141f - lean * fmaxf(0, 1.775f - 0.85f), 0.25f, 0.006f, 0.008f, pipe);
 	for (int i = 0; i < 2; i++) {
-		float side = i ? 1.0f : -1.0f, az = mv * s * (i ? 1.0f : -1.0f) * 0.17f;
-		bag_put(lamp, x + side * 0.337f, y + 1.27f, z + az * 0.5f, 0.006f, 0.28f, 0.02f, pipe);
-		bag_put(lamp, x + side * 0.342f, y + 1.0f, z + az, 0.006f, 0.25f, 0.02f, pipe);
+		float side = i ? 1.0f : -1.0f, az = mv * s * (i ? 1.0f : -1.0f) * (0.17f + 0.2f * run), bend = run * mv;
+		bag_put(lamp, x + side * 0.337f, y - sit + 1.27f, z + az * 0.5f - lean * fmaxf(0, 1.27f - 0.85f), 0.006f, 0.28f, 0.02f, pipe);
+		bag_put(lamp, x + side * 0.342f, y - sit + 1.0f + bend * 0.16f, z + az - bend * 0.1f - lean * fmaxf(0, 1.0f - 0.85f), 0.006f, 0.25f, 0.02f, pipe);
 	}
 #undef FB
 #undef FS
@@ -5971,8 +6807,9 @@ static void figure(Bag *bx, Bag *ball, Bag *lamp, float x, float y, float z, flo
 
 /* you, and the ring you were spawned from, on what is under you */
 static void hologram(Walk *w, const Theme *t, float under) {
-	figure(&w->bag[BAG_FIG_BOX], &w->bag[BAG_FIG_DARK], &w->bag[BAG_FIG_LAMP], w->px, w->py, w->pz, w->ground ? w->moving : 0, w->stride,
-	       w->time, (SDL_Color){40, 42, 48, 255}, lighten(rgb(t->accent), 0.6f), true);
+	figure(&w->bag[BAG_FIG_BOX], &w->bag[BAG_FIG_DARK], &w->bag[BAG_FIG_LAMP], w->px, w->py, w->pz, w->ground ? w->moving : 0,
+	       w->ground ? clampf((sqrtf(w->hvx * w->hvx + w->hvz * w->hvz) - WALK_V) / (RUN_V - WALK_V), 0, 1) : 0, w->stride,
+	       w->time, (SDL_Color){40, 42, 48, 255}, lighten(rgb(t->accent), 0.6f), true, 0);
 	SDL_Color ring = rgb(t->accent);
 	ring.a = 170;
 	bag_put(&w->bag[BAG_BALL_GLOW], w->px, under + 0.02f, w->pz, 0.8f, 0.02f, 0.8f, ring);
@@ -6438,6 +7275,142 @@ static void fit_path(char *out, size_t n, const char *head, const char *path, fl
 	snprintf(out, n, "%s..%.400s", head, path + lo);
 }
 
+/* ---- the radar: what is round you, from above, turned so ahead is up ----
+ *
+ * Top right of the view. Out in the city, some 140 m round: the
+ * buildings (the crew's offices in their colours), the wall, the car;
+ * inside, 30 m round: the rooms on your floor, the files in them, the
+ * crew member there. You in the middle, pointing up; north on its rim. */
+
+typedef struct {
+	float cx, cy, r, scale, px, pz, fx, fz, rx, rz;
+} Radar;
+
+static void radar_at(const Radar *R, float wx, float wz, float *sx, float *sy) {
+	float dx = wx - R->px, dz = wz - R->pz;
+	*sx = R->cx + (dx * R->rx + dz * R->rz) * R->scale;
+	*sy = R->cy - (dx * R->fx + dz * R->fz) * R->scale;
+}
+
+/* a line on the radar, cut to its round */
+static void radar_line(const Radar *R, float wx0, float wz0, float wx1, float wz1, float thick, SDL_Color c) {
+	float ax, ay, bx, by;
+	radar_at(R, wx0, wz0, &ax, &ay);
+	radar_at(R, wx1, wz1, &bx, &by);
+	float dx = bx - ax, dy = by - ay, fx = ax - R->cx, fy = ay - R->cy;
+	float a = dx * dx + dy * dy, b = 2 * (fx * dx + fy * dy), cc = fx * fx + fy * fy - R->r * R->r;
+	float t0 = 0, t1 = 1;
+	if (a < 1e-6f) {
+		return;
+	}
+	float disc = b * b - 4 * a * cc;
+	if (disc <= 0) {
+		return; /* misses the round altogether */
+	}
+	float sq = sqrtf(disc), u0 = (-b - sq) / (2 * a), u1 = (-b + sq) / (2 * a);
+	t0 = fmaxf(t0, u0);
+	t1 = fminf(t1, u1);
+	if (t0 >= t1) {
+		return;
+	}
+	d2_line(ax + dx * t0, ay + dy * t0, ax + dx * t1, ay + dy * t1, thick, c);
+}
+
+static void radar_rect(const Radar *R, float x0, float z0, float x1, float z1, float thick, SDL_Color c) {
+	radar_line(R, x0, z0, x1, z0, thick, c);
+	radar_line(R, x1, z0, x1, z1, thick, c);
+	radar_line(R, x1, z1, x0, z1, thick, c);
+	radar_line(R, x0, z1, x0, z0, thick, c);
+}
+
+static void radar_draw(Walk *w, const Theme *t, float x, float y, float vw) {
+	bool driving = car_in(w);
+	Radar R;
+	R.r = 88;
+	R.cx = x + vw - R.r - 14;
+	R.cy = y + 62 + R.r;
+	float range = w->bld >= 0 ? 30 : driving ? 220 : 140;
+	R.scale = R.r / range;
+	float yaw = driving && w->car_chase ? w->car_yaw : w->yaw;
+	R.px = w->px;
+	R.pz = w->pz;
+	R.fx = -sinf(yaw);
+	R.fz = -cosf(yaw);
+	R.rx = cosf(yaw);
+	R.rz = -sinf(yaw);
+	SDL_Color bg = rgb(t->bg), acc = rgb(t->accent), fg = rgb(t->text), dim = mix(fg, bg, 0.55f);
+	bg.a = 210;
+	d2_disc(R.cx, R.cy, R.r, bg, bg);
+	d2_ring(R.cx, R.cy, R.r * 0.5f, 1, mix(acc, bg, 0.7f));
+	const World *wd = &w->world;
+	if (w->bld < 0) {
+		for (int i = 0; i < wd->nb; i++) {
+			const WBuilding *b = &wd->b[i];
+			float mx = (b->r.x0 + b->r.x1) / 2 - R.px, mz = (b->r.z0 + b->r.z1) / 2 - R.pz;
+			if (sqrtf(mx * mx + mz * mz) > range + 60) {
+				continue;
+			}
+			const Crew *c = crew_of(wd, i);
+			radar_rect(&R, b->r.x0, b->r.z0, b->r.x1, b->r.z1, c ? 2.0f : 1.0f, c ? lighten(c->hood, 0.55f) : dim);
+		}
+		float E = wd->edge;
+		radar_rect(&R, -E, -E, E, E, 2, mix(acc, bg, 0.3f));
+		radar_rect(&R, wd->square.x0, wd->square.z0, wd->square.x1, wd->square.z1, 1, mix(acc, bg, 0.6f));
+		if (w->car_ok && !driving) { /* the car, its nose a line */
+			float c0x, c0z, c1x, c1z, c2x, c2z, c3x, c3z, nx, nz;
+			car_local(w, -CAR_HALF_W, -CAR_HALF_L, &c0x, &c0z);
+			car_local(w, CAR_HALF_W, -CAR_HALF_L, &c1x, &c1z);
+			car_local(w, CAR_HALF_W, CAR_HALF_L, &c2x, &c2z);
+			car_local(w, -CAR_HALF_W, CAR_HALF_L, &c3x, &c3z);
+			car_local(w, 0, -CAR_HALF_L - 1.5f, &nx, &nz);
+			radar_line(&R, c0x, c0z, c1x, c1z, 2, acc);
+			radar_line(&R, c1x, c1z, c2x, c2z, 2, acc);
+			radar_line(&R, c2x, c2z, c3x, c3z, 2, acc);
+			radar_line(&R, c3x, c3z, c0x, c0z, 2, acc);
+			radar_line(&R, (c0x + c1x) / 2, (c0z + c1z) / 2, nx, nz, 1, acc);
+		}
+	} else {
+		for (int k = 0; k < w->nfroom; k++) {
+			WRect q = wd->room[w->froom[k]].r;
+			radar_rect(&R, q.x0, q.z0, q.x1, q.z1, w->froom[k] == w->at ? 2.0f : 1.0f, w->froom[k] == w->at ? fg : dim);
+		}
+		for (int i = 0; i < w->nblock; i++) {
+			const Box *b = &w->block[i].b;
+			float sx, sy;
+			radar_at(&R, (b->lo[0] + b->hi[0]) / 2, (b->lo[2] + b->hi[2]) / 2, &sx, &sy);
+			if ((sx - R.cx) * (sx - R.cx) + (sy - R.cy) * (sy - R.cy) < R.r * R.r) {
+				d2_rect(sx - 1.5f, sy - 1.5f, 3, 3, kind_colour(w->block[i].kind, t));
+			}
+		}
+	}
+	for (int f = 0; f < w->nfig; f++) { /* the crew, in their colours */
+		const Crew *k = &crew.c[w->fig[f].crew];
+		float sx, sy;
+		radar_at(&R, w->fig[f].x, w->fig[f].z, &sx, &sy);
+		if ((sx - R.cx) * (sx - R.cx) + (sy - R.cy) * (sy - R.cy) < R.r * R.r) {
+			d2_disc(sx, sy, 3.5f, lighten(k->hood, 0.6f), lighten(k->hood, 0.3f));
+		}
+	}
+	/* you, pointing ahead; driving, the car */
+	if (driving) {
+		d2_frame(R.cx - 4, R.cy - 9, 8, 18, 2, acc);
+	} else {
+		float a = w->body_yaw - yaw; /* which way you face, against which way you look */
+		float s = 7, tx = R.cx - sinf(a) * s * 1.4f, ty = R.cy - cosf(a) * s * 1.4f;
+		float lx = R.cx + cosf(a) * s * 0.8f - sinf(a) * -s, ly = R.cy - sinf(a) * s * 0.8f - cosf(a) * -s;
+		float rx = R.cx - cosf(a) * s * 0.8f - sinf(a) * -s, ry = R.cy + sinf(a) * s * 0.8f - cosf(a) * -s;
+		d2_line(tx, ty, lx, ly, 2, acc);
+		d2_line(lx, ly, rx, ry, 2, acc);
+		d2_line(rx, ry, tx, ty, 2, acc);
+	}
+	d2_ring(R.cx, R.cy, R.r, 2, acc);
+	float nx = R.cx + sinf(yaw) * (R.r - 9), ny = R.cy - cosf(yaw) * (R.r - 9); /* north: -z */
+	d2_text(nx - (float)d2_text_width("N") / 2, ny - (float)d2_text_height() / 2, "N", fg);
+	char lab[32];
+	snprintf(lab, sizeof lab, "%.0f m", range);
+	d2_text(R.cx - (float)d2_text_width(lab) / 2, R.cy + R.r + 3, lab, dim);
+}
+
 void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SDL_Color back, float mx, float my) {
 	w->vx = x;
 	w->vy0 = y;
@@ -6493,11 +7466,9 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 	if (!w->first && w->cam_len > 0.8f) {
 		hologram(w, t, under); /* not with the camera pulled right in to your head */
 	}
-	Crew *cm = w->bld >= 0 && w->floor == 0 ? crew_of(&w->world, w->bld) : NULL;
-	if (cm && cm->placed) {
-		figure(&w->bag[BAG_CREW_BOX], &w->bag[BAG_CREW_BALL], &w->bag[BAG_CREW_LAMP], cm->x, 0, cm->z, cm->mv, cm->stride, w->time, cm->hood,
-		       lighten(cm->hood, 0.7f), false);
-	}
+	car_fill(w, t);
+	crew_figs(w);
+	Crew *cm = NULL; /* the office's own figure is gone: the crew follow you, rest or work */
 	use_mark(w, t, eye, at);
 
 	float eyef[3] = {eyew.x, eyew.y, eyew.z}, eyel[3] = {eye.x, eye.y, eye.z};
@@ -6525,9 +7496,10 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 	}
 	d3_spheres_turned(w->bag[BAG_FIG_DARK].v, w->bag[BAG_FIG_DARK].n, w->body_yaw, w->px, w->pz);
 	d3_boxes_turned(w->bag[BAG_FIG_BOX].v, w->bag[BAG_FIG_BOX].n, 0, w->body_yaw, w->px, w->pz);
-	if (cm) {
-		d3_spheres_turned(w->bag[BAG_CREW_BALL].v, w->bag[BAG_CREW_BALL].n, cm->yaw, cm->x, cm->z);
-		d3_boxes_turned(w->bag[BAG_CREW_BOX].v, w->bag[BAG_CREW_BOX].n, 0, cm->yaw, cm->x, cm->z);
+	car_draw(w, 0);
+	for (int f = 0; f < w->nfig; f++) {
+		d3_spheres_turned(w->fball[f].v, w->fball[f].n, w->fig[f].yaw, w->fig[f].x, w->fig[f].z);
+		d3_boxes_turned(w->fbox[f].v, w->fbox[f].n, 0, w->fig[f].yaw, w->fig[f].x, w->fig[f].z);
 	}
 	/* what shines by itself: windows, lamps, screens */
 	d3_look(LOOK_LAMP);
@@ -6543,9 +7515,10 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 		}
 	}
 	d3_spheres_turned(w->bag[BAG_FIG_LAMP].v, w->bag[BAG_FIG_LAMP].n, w->body_yaw, w->px, w->pz);
-	if (cm) {
-		d3_spheres_turned(w->bag[BAG_CREW_LAMP].v, w->bag[BAG_CREW_LAMP].n, cm->yaw, cm->x, cm->z);
+	for (int f = 0; f < w->nfig; f++) {
+		d3_spheres_turned(w->flamp[f].v, w->flamp[f].n, w->fig[f].yaw, w->fig[f].x, w->fig[f].z);
 	}
+	car_draw(w, 1);
 	/* and the holograms, last: they hide nothing. You first laid down as a
 	 * shell, so only your outside glows and not every part through the others */
 	d3_look(LOOK_LIT);
@@ -6554,6 +7527,7 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 	d3_depth_only(false);
 	d3_look(LOOK_GLOW);
 	d3_quads(0, w->iglass, w->niglass); /* the windows' glass: a faint tint over the city */
+	car_draw(w, 2);
 	d3_boxes(w->bag[BAG_GLOW].v, w->bag[BAG_GLOW].n);
 	d3_spheres(w->bag[BAG_BALL_GLOW].v, w->bag[BAG_BALL_GLOW].n);
 	d3_spheres_turned(w->bag[BAG_FIG_GLOW].v, w->bag[BAG_FIG_GLOW].n, w->body_yaw, w->px, w->pz);
@@ -6602,23 +7576,50 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 		}
 	}
 	Uint32 now_t = SDL_GetTicks();
-	if (cm && cm->placed) {
-		/* the crew member's name over them, and what they are at; what they say on the radio over that */
-		float sx, sy;
-		if (v3_dot(v3_sub(v3(cm->x, 1.9f, cm->z), eye), look_dir(w)) > 0 && m4_project(mvp, v3(cm->x, 2.15f, cm->z), vw, vh, &sx, &sy)) {
-			SDL_LockMutex(crew.mu);
-			bool busy = cm->busy, fresh = cm->last[0] && now_t - cm->last_at < 60000;
-			char doing[96], said[600];
-			snprintf(doing, sizeof doing, "%s", cm->last);
-			snprintf(said, sizeof said, "%s", cm->said);
-			int word = cm->said[0] ? said_word(cm, now_t) : -2;
-			SDL_UnlockMutex(crew.mu);
-			snprintf(buf, sizeof buf, "%s  |  %s", cm->name, busy ? "in a turn" : fresh ? doing : "about the office");
-			tag(x + sx, y + sy - th, buf, rgb(t->bg), busy ? rgb(t->accent) : lighten(cm->hood, 0.5f), rgb(t->accent));
-			if (word != -2) {
-				words_draw(x + sx, y + sy - th - 6, fminf(vw * 0.45f, 520), "", said, word, true, t, rgb(t->accent));
-			}
+	bool shown_said[CREW_MAX] = {false};
+	(void)cm;
+	for (int f = 0; f < w->nfig; f++) {
+		/* each figure's name and what it is at; what that one says on the radio over the nearest of them */
+		Crew *k = &crew.c[w->fig[f].crew];
+		float sx, sy, top = w->fig[f].y + (w->fig[f].kind == FIG_FOLLOW ? 2.15f : 1.75f);
+		Vec3 head = v3(w->fig[f].x, top, w->fig[f].z), to = v3_sub(head, eye);
+		if (v3_dot(to, look_dir(w)) <= 0 || v3_dot(to, to) > 40 * 40 || !m4_project(mvp, head, vw, vh, &sx, &sy)) {
+			continue;
 		}
+		SDL_LockMutex(crew.mu);
+		bool fresh = k->last[0] && now_t - k->last_at < 60000;
+		char doing[96], said[600];
+		snprintf(doing, sizeof doing, "%s", k->presence[0] ? k->presence : k->duty[0] ? k->duty : k->busy ? "a turn" : k->last);
+		snprintf(said, sizeof said, "%s", k->said);
+		int word = k->said[0] ? said_word(k, now_t) : -2;
+		SDL_UnlockMutex(crew.mu);
+		if (w->fig[f].kind == FIG_REST) {
+			snprintf(buf, sizeof buf, "%s  |  switched off, resting", k->name);
+		} else if (w->fig[f].kind == FIG_WORK) {
+			snprintf(buf, sizeof buf, "%s's worker  |  %s", k->name, doing);
+		} else {
+			snprintf(buf, sizeof buf, "%s%s%s", k->name, (k->busy || k->presence[0]) ? "  |  in a turn" : fresh ? "  |  " : "",
+			         (k->busy || k->presence[0]) ? "" : fresh ? doing : "");
+		}
+		tag(x + sx, y + sy - th, buf, rgb(t->bg), w->fig[f].kind == FIG_WORK ? rgb(t->accent) : lighten(k->hood, 0.5f), rgb(t->accent));
+		if (word != -2 && !shown_said[w->fig[f].crew] && w->fig[f].kind != FIG_WORK) {
+			shown_said[w->fig[f].crew] = true;
+			words_draw(x + sx, y + sy - th - 6, fminf(vw * 0.45f, 520), "", said, word, true, t, rgb(t->accent));
+		}
+	}
+	radar_draw(w, t, x, y, vw);
+	/* the car: E at its door; from the seat, how fast */
+	if (car_by_door(w)) {
+		float dx, dz, sx, sy;
+		car_local(w, CAR_HALF_W + 0.1f, 0, &dx, &dz);
+		if (m4_project(mvpw, v3(dx, 1.5f, dz), vw, vh, &sx, &sy)) {
+			tag(x + sx, y + sy, "E  get in", rgb(t->bg), rgb(t->accent), rgb(t->accent));
+		}
+	}
+	if (car_in(w) && w->car_state == CAR_DRIVING) {
+		snprintf(buf, sizeof buf, "%3.0f km/h   %s   |   W S  A D   Shift more   Space handbrake   V view   E out%s", fabsf(w->car_v) * 3.6f,
+		         w->car_v < -0.2f ? "R" : "D", fabsf(w->car_v) >= 2 ? " (slow down)" : "");
+		tag(x + vw / 2, y + vh - th * 1.9f, buf, rgb(t->text), mix(rgb(t->bg), rgb(t->panel), 0.5f), rgb(t->accent));
 	}
 	/* the radio along the foot of the view: what the crew say, wherever you are, and your own lines */
 	{
@@ -6626,8 +7627,8 @@ void walk_draw(Walk *w, float x, float y, float vw, float vh, const Theme *t, SD
 		SDL_LockMutex(crew.mu);
 		for (int i = 0; i < crew.n; i++) {
 			Crew *c = &crew.c[i];
-			if (!c->said[0] || c == cm) {
-				continue; /* the one in this office says it over their head */
+			if (!c->said[0] || shown_said[i]) {
+				continue; /* said over their head already */
 			}
 			int word = said_word(c, now_t);
 			if (word == -2) {
